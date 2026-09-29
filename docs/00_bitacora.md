@@ -36,3 +36,25 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - BA Data (datos abiertos de CABA) respondió con errores 502/503 durante la jornada; se reintentará.
 - La Mac no tenía git; se instalan las Command Line Tools de Apple.
 - Nombres de variables de Open-Meteo: la humedad de suelo es `soil_moisture_0_to_7cm_mean` (la documentación no coincide).
+
+## 2026-09-28 (tarde) · Más fuentes y cobertura real
+
+**Hecho**
+- `exposicion_ign.py`: salud (8 311), educación, residuos, cursos de agua, canales, diques y espejos de agua del IGN.
+- `renabap.py`: 6 467 barrios populares con atributos de servicios + factores de riesgo en barrios del GBA.
+- `caba.py`: sumideros (5 zonas) y reclamos al 147 **2011-2026** (~2,5 GB). En 2024 la categoría PLUVIALES tuvo ~2 200 reclamos (destape de sumideros, calle anegada, sumidero roto); el 99 % trae coordenadas.
+- `osm.py`: extracto de Argentina (430 MB). Se filtraron 40 658 puentes, 35 825 alcantarillas, 40 687 canales y zanjas, 735 plantas cloacales, 640 potabilizadoras, 273 estaciones de bombeo, 1 670 subestaciones, 397 basurales.
+- `censo.py`: 17 variables del Censo 2022 por radio (66 348 radios con hogares).
+- `lluvia_historica_caba.py`: lluvia diaria ERA5 2011-2026 en los 48 barrios porteños.
+- `cobertura.py`: matriz de cobertura real por gobierno local (`data/cobertura.csv`, `data/cobertura_provincias.csv`).
+- `docs/01_fuentes.md` reescrito solo con Argentina y la cobertura medida.
+
+**Hallazgos de cobertura**
+- Pronóstico, censo, escuelas y salud cubren prácticamente todo el país (90-100 %).
+- Solo el 21 % de los gobiernos locales tiene una estación de río con nivel de alerta a ≤ 30 km, y es 0 % en el NOA, Cuyo y la Patagonia. Justo donde El Niño trae aludes, faltan estaciones.
+- OpenStreetMap subregistra plantas cloacales (9 %), bombeo (5 %) y basurales (6-9 %). Se marca como limitación.
+- Solo el 1 % de la población vive fuera de un gobierno local; se asigna al departamento.
+
+**Problemas**
+- Open-Meteo gratuito: se agotó el cupo por hora con GloFAS. El script ahora hace pausas, maneja el error 429 y retoma donde quedó.
+- Git se instaló (Command Line Tools) y se hizo el primer commit.
