@@ -1,0 +1,46 @@
+{
+  "validacion_2023_24": {
+    "linea_base_agua_historica_jrc": {
+      "spearman": 0.637,
+      "mae_pct_superficie": 3.294,
+      "aciertos_top10": 0.498
+    },
+    "lineal_ridge": {
+      "spearman": 0.471,
+      "mae_pct_superficie": 0.561,
+      "aciertos_top10": 0.402
+    },
+    "gradient_boosting": {
+      "spearman": 0.534,
+      "mae_pct_superficie": 0.624,
+      "aciertos_top10": 0.314
+    },
+    "combinado_gb_mas_linea_base": {
+      "spearman": 0.625,
+      "mae_pct_superficie": null,
+      "aciertos_top10": 0.463
+    }
+  },
+  "modelo_elegido": "gradient_boosting",
+  "variables": [
+    "hand_m",
+    "pct_area_hand_2m",
+    "pct_area_hand_5m",
+    "pendiente_grados",
+    "elevacion_m",
+    "agua_ocurrencia_pct",
+    "pct_area_agua_alguna_vez",
+    "arcilla_pct",
+    "pendiente_p90_grados",
+    "uso_urbano",
+    "uso_humedal",
+    "uso_cultivos",
+    "uso_agua",
+    "lluvia_normal_mm",
+    "anomalia_mm",
+    "dist_rio_grande_km",
+    "caudal_relativo_ponderado"
+  ],
+  "entrenamiento": "El Niño 2015-16 (validación) → 2015-16 + 2023-24 (pronóstico)",
+  "n_gobiernos_locales": 2282
+}

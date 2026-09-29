@@ -1,8 +1,11 @@
-"""OpenStreetMap Argentina (Geofabrik): infraestructura crítica y de drenaje que no está en fuentes oficiales.
+"""OpenStreetMap Argentina (Geofabrik): infraestructura crítica, de drenaje y de respuesta social.
 
 Se descarga el extracto completo (~430 MB) y se filtran solo las etiquetas relevantes:
 puentes, plantas cloacales y potabilizadoras, estaciones de bombeo, canales, zanjas,
-alcantarillas, subestaciones eléctricas, hospitales, escuelas, bomberos, basurales.
+alcantarillas, subestaciones eléctricas, hospitales, escuelas, bomberos, basurales;
+y para la capa social: policía, puntos de encuentro, centros comunitarios, clubes,
+lugares de culto, y organizaciones de ayuda por nombre (Cruz Roja, Cáritas, bancos de alimentos,
+Defensa Civil).
 
 Salida: data/raw/osm/infraestructura.parquet (una fila por elemento, con su categoría)
 """
@@ -28,10 +31,32 @@ FILTROS = {
     "escuela": ("amenity", {"school"}),
     "bomberos": ("amenity", {"fire_station"}),
     "basural_relleno": ("landuse", {"landfill"}),
+    # Capa social y de respuesta: posibles puntos de alojamiento y ayuda (nunca oficiales)
+    "policia": ("amenity", {"police"}),
+    "punto_encuentro": ("emergency", {"assembly_point"}),
+    # No se usa amenity=shelter: en Argentina son casi siempre paradas de colectivo techadas
+    "centro_comunitario": ("amenity", {"community_centre", "social_facility"}),
+    "club_deportivo": ("leisure", {"sports_centre", "stadium"}),
+    "lugar_culto": ("amenity", {"place_of_worship"}),
+}
+
+# Organizaciones de ayuda: se detectan por nombre (en OSM suelen tener etiquetas variadas)
+POR_NOMBRE = {
+    "cruz_roja": ("cruz roja",),
+    "caritas": ("cáritas", "caritas"),
+    "banco_alimentos": ("banco de alimentos",),
+    "defensa_civil": ("defensa civil", "protección civil", "proteccion civil"),
 }
 
 
 def categoria(tags) -> str | None:
+    nombre = (tags.get("name") or "").lower()
+    # Las calles, vías y cursos de agua pueden llamarse "Cruz Roja Argentina": no son organizaciones
+    es_via = any(k in tags for k in ("highway", "railway", "waterway"))
+    es_via = es_via or "farmacia" in nombre  # "Farmacia Cruz Roja" es un comercio, no la organización
+    for cat, claves in POR_NOMBRE.items():
+        if not es_via and any(k in nombre for k in claves):
+            return cat
     for cat, (clave, valores) in FILTROS.items():
         v = tags.get(clave)
         if v and v != "no" and (valores is None or v in valores):
@@ -60,12 +85,19 @@ class Filtro(osmium.SimpleHandler):
         self._agregar(n, "n", self.fab.create_point)
 
     def way(self, w):
-        if w.is_closed() and w.tags.get("landuse") == "landfill":
+        if w.is_closed() and (w.tags.get("landuse") == "landfill"
+                              or w.tags.get("leisure") in {"sports_centre", "stadium"}
+                              or w.tags.get("amenity") in {"community_centre", "social_facility",
+                                                           "place_of_worship", "police"}):
             return  # los polígonos se toman en area()
         self._agregar(w, "w", self.fab.create_linestring)
 
     def area(self, a):
-        if a.tags.get("landuse") == "landfill" or a.tags.get("man_made") in {"wastewater_plant", "water_works"}:
+        # Polígonos que interesan como superficie (no como línea): basurales, plantas y lugares de alojamiento
+        if (a.tags.get("landuse") == "landfill"
+                or a.tags.get("man_made") in {"wastewater_plant", "water_works"}
+                or a.tags.get("leisure") in {"sports_centre", "stadium"}
+                or a.tags.get("amenity") in {"community_centre", "social_facility", "place_of_worship", "police"}):
             self._agregar(a, "a", self.fab.create_multipolygon)
 
 

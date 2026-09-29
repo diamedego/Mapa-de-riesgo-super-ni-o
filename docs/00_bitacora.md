@@ -160,3 +160,24 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
     - (2) **Exposición y vulnerabilidad con estructura INFORM**, transparente.
     - (3) **Análisis de sensibilidad** de pesos (Monte Carlo): qué municipios quedan en el top con cualquier combinación razonable.
     - (4) **Validación extra** con el modelo del 147 en CABA y el dengue 2023-24.
+
+## 2026-09-29 · Modelo de amenaza de agua: resultado y más modelos
+
+**Resultado del modelo de amenaza (validación fuera de muestra)**
+- Se entrenó con El Niño 2015-16 y se evaluó con 2023-24. Variables: terreno, suelo, uso del suelo, lluvia (ERA5-Land) y caudal de ríos grandes (GloFAS).
+- Resultados (Spearman / aciertos en el 10 % más afectado):
+  - Línea base "agua histórica JRC": **0,64 / 50 %**
+  - Gradient boosting: 0,53 / 31 %
+  - Ridge: 0,47 / 40 %
+  - Combinado GB + línea base: 0,63 / 46 %
+- Al revés (entrenar 2023-24, evaluar 2015-16): gradient boosting 0,52 contra línea base 0,64. Usar el agua de un Niño para predecir la del otro da 0,50.
+- **Conclusión**: dónde aparece el agua depende sobre todo de la geografía, que el historial de 40 años ya captura. Un modelo entrenado con un solo evento no agrega precisión. La amenaza de agua se basa en la **propensión histórica**, modulada por el pronóstico de lluvia y caudal 2026-27. Queda documentado; no se destaca en el post (decisión de la usuaria).
+- Hallazgo: el patrón de lluvia pronosticado para nov-2026 → feb-2027 se parece al de El Niño 2015-16 (correlación 0,63 entre municipios), con una anomalía mediana algo mayor (+103 mm contra +84 mm).
+
+**Nuevos datos**
+- `earth_engine/lluvia_temporadas.py`: lluvia nov-feb (ERA5-Land) de 2015-16, 2022-23 y 2023-24, y la normal 1991-2020, por gobierno local. 41 municipios más chicos que la celda (~11 km) se completan con el valor de su celda.
+- `ingesta/glofas_temporadas.py`: caudal medio nov-feb de GloFAS en 96 estaciones. En la mediana, 2015-16 trajo ~6 veces el caudal de la sequía 2022-23.
+
+**Decisiones de la usuaria**
+- Modelos de pronóstico propios: **dengue, ríos (nivel de alerta), anegamientos en CABA (147) e impacto agrícola**.
+- Capa social (albergues, donaciones, comedores): **pospuesta**. Quedó hecho solo un filtro ampliado de OpenStreetMap (policía, puntos de encuentro, centros comunitarios, clubes, lugares de culto, Cruz Roja, Cáritas, Defensa Civil). Se descartaron `amenity=shelter` (en Argentina son paradas de colectivo techadas) y los nombres de calles y farmacias que contienen "Cruz Roja".
