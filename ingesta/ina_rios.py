@@ -7,6 +7,7 @@
 Salida: data/raw/ina/series.parquet y data/raw/ina/alturas.parquet
 """
 import datetime as dt
+import json
 
 import geopandas as gpd
 import pandas as pd
@@ -20,7 +21,8 @@ DESDE = "2015-01-01"
 
 def main() -> None:
     s = sesion()
-    series = s.get(f"{BASE}/series", params={"var_id": 2, "format": "json"}, timeout=120).json()["rows"]
+    r = s.get(f"{BASE}/series", params={"var_id": 2, "format": "json"}, timeout=120)
+    series = json.loads(r.content.decode("utf-8"))["rows"]  # la API no declara UTF-8 y requests lo lee como latin-1
     cat = gpd.GeoDataFrame([{
         "series_id": x["id"],
         "estacion_id": x["estacion"]["id"],
