@@ -26,6 +26,7 @@ Entrada: data/referencia/rasgos_gobiernos_locales.parquet (fijos) + pronósticos
 Salida: data/gold/indice_riesgo_mensual.parquet y una foto con fecha en data/archivo/indice/.
 """
 import datetime as dt
+import json
 from pathlib import Path
 
 import geopandas as gpd
@@ -67,9 +68,7 @@ def amenaza_rios(rasgos: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame(columns=["cmu", "mes", "H_rio"])
     rios = pd.read_parquet(f)
     rios = rios[rios["r_validacion"] >= 0.7]
-    ser = pd.read_parquet(REF / "estaciones_ina.parquet") if (REF / "estaciones_ina.parquet").exists() else \
-        gpd.read_parquet(RAIZ / "data" / "raw" / "ina" / "series.parquet")[["series_id", "geometry"]]
-    est = gpd.GeoDataFrame(ser, geometry="geometry", crs=4326)
+    est = gpd.read_parquet(REF / "estaciones_ina.parquet")[["series_id", "geometry"]]
     est = est[est["series_id"].isin(rios["series_id"])].to_crs(5345)
     pts = gpd.GeoDataFrame(rasgos[["cmu"]], geometry=gpd.points_from_xy(rasgos["lon"], rasgos["lat"]), crs=4326)
     cerca = gpd.sjoin_nearest(pts.to_crs(5345), est[["series_id", "geometry"]], max_distance=30_000,
@@ -100,6 +99,10 @@ def main() -> None:
     g["V"] = 10 * ind_V.mean(axis=1)
 
     fl, corrida_seas5 = factor_lluvia()
+    # Retroalimentación: el pronóstico pesa según cuánto viene acertando (modelos/verificacion.py)
+    ver = GOLD / "verificacion.json"
+    peso = json.loads(ver.read_text())["lluvia_16_dias"].get("peso_pronostico", 1.0) if ver.exists() else 1.0
+    fl["r"] = 1 + peso * (fl["r"] - 1)
     rios = amenaza_rios(g)
     filas = []
     for mes in MESES:
@@ -135,6 +138,7 @@ def main() -> None:
     out["ranking_personas"] = out.groupby("mes")["personas_en_riesgo"].rank(ascending=False, method="min")
     out["ranking_relativo"] = out.groupby("mes")["riesgo"].rank(ascending=False, method="min")
     out["corrida_seas5"] = corrida_seas5
+    out["peso_pronostico"] = peso
     out["calculado"] = dt.date.today().isoformat()
 
     GOLD.mkdir(parents=True, exist_ok=True)

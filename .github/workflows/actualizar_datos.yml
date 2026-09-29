@@ -78,10 +78,17 @@ jobs:
           python ingesta/open_meteo_estacional.py gobiernos_locales
           python ingesta/open_meteo_estacional.py departamentos
 
+      - name: Recalcular riesgo (retroalimentación con lo observado y los pronósticos nuevos)
+        if: steps.tarea.outputs.tarea == 'ina' || steps.tarea.outputs.tarea == 'glofas' || steps.tarea.outputs.tarea == 'estacional'
+        run: |
+          python modelos/rios.py pronostico
+          python modelos/verificacion.py
+          python modelos/indice_riesgo.py
+
       - name: Guardar en el repo
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f data/archivo
+          git add -f data/archivo data/gold
           git diff --cached --quiet || git commit -m "Datos automáticos: ${{ steps.tarea.outputs.tarea }} $(date -u +%F\ %H:%M) UTC"
           git pull --rebase --autostash && git push

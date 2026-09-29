@@ -249,3 +249,24 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - Mes pico: feb-2027.
 - Riesgo relativo más alto: Cecilio Echavarría y Goya (Corrientes), Fontana, Barranqueras y Puerto Vilelas (Chaco), Helvecia, Recreo, Villa G. Gálvez y Timbúes (Santa Fe). Robustos: están en el 10 % superior en el 92-100 % de las simulaciones.
 - Más personas en riesgo: La Matanza, Rosario, Santa Fe, Lomas de Zamora, Lanús, Resistencia, Quilmes, Merlo, Avellaneda, Corrientes. Los del conurbano entran por cantidad de población, no por riesgo relativo alto: aparecen en el 10 % superior en solo 0-2 % de las simulaciones.
+
+## 2026-09-29 (tarde) · Motor de actualización automática en marcha
+
+**Hecho**
+- `modelos/rios.py` dividido en dos partes:
+  - **Calibración** (Mac): guarda las curvas en `data/referencia/rios_curvas.parquet` y las estaciones en `estaciones_ina.parquet`.
+  - **Pronóstico diario** (Actions): curvas + última corrida GloFAS + alturas recientes del INA.
+- GloFAS se descarga ahora con los 31 días pasados. Las 43 estaciones confiables recalculan el corrimiento con los datos de este mes. En estaciones sin desfase, el primer día coincide con lo medido (Corrientes 4,39 vs 4,29 m; Goya 4,30 vs 4,26 m).
+- `modelos/verificacion.py`: compara cada pronóstico de lluvia a 16 días y cada pronóstico de altura con lo observado después. La precisión define el peso del pronóstico en el índice (`r_ajustada = 1 + w·(r − 1)`). Hasta tener ≥ 7 días verificados, w = 1 y figura como "sin verificar todavía".
+- Workflow diario:
+  1. pronóstico a 16 días;
+  2. alturas INA;
+  3. pronóstico de ríos;
+  4. verificación;
+  5. índice de riesgo;
+  6. foto del día en `data/archivo/indice/`.
+- Se sembraron los archivos iniciales en `data/archivo/` (SEAS5 del 28-sep, GloFAS del 29-sep, primer pronóstico a 16 días) para que el recálculo automático funcione desde el primer día.
+
+**Contraste con el INA (29-sep)**
+- El INA informa aguas medias en el Paraná, con tendencia estable o en descenso, y posibles aumentos en 7-15 días (sobre todo en el Uruguay y el Iguazú). No emite pronóstico estacional ni menciona El Niño.
+- El escenario GloFAS da probabilidades de evacuación del 90-100 % en dic-ene en el Paraná inferior, con caudales comparables a El Niño 2015-16 (cuando Rosario superó el nivel de evacuación). Los ensambles estacionales suelen ser demasiado confiados. **Se presenta como "escenario GloFAS", aclarando que el INA no hace pronóstico estacional**, y la verificación diaria ajustará su peso.

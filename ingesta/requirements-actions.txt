@@ -3,3 +3,5 @@ pandas
 pyarrow
 geopandas
 shapely
+scikit-learn
+scipy

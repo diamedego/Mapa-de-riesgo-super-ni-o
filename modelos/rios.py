@@ -25,6 +25,7 @@ from sklearn.isotonic import IsotonicRegression
 
 RAIZ = Path(__file__).resolve().parents[1]
 RAW = RAIZ / "data" / "raw"
+REF = RAIZ / "data" / "referencia"
 GOLD = RAIZ / "data" / "gold"
 ENTRENAMIENTO = [("2015-09-01", "2016-06-30"), ("2021-09-01", "2022-06-30")]
 VALIDACION = ("2023-09-01", "2024-06-30")
@@ -88,6 +89,64 @@ def prob_superar(alturas_cuantiles: np.ndarray, nivel: float) -> float:
     return float(1 - np.interp(nivel, h, probs))
 
 
+def pronosticar() -> None:
+    """Pronóstico diario (corre en GitHub Actions): curvas guardadas + última corrida de GloFAS +
+    alturas observadas recientes del INA para recalcular el sesgo (retroalimentación)."""
+    curvas = pd.read_parquet(REF / "rios_curvas.parquet").set_index("series_id")
+    info = gpd.read_parquet(REF / "estaciones_ina.parquet").set_index("series_id")
+    carpetas = sorted([p for p in (RAW / "glofas").glob("20*") if p.is_dir()] +
+                      [p for p in (RAIZ / "data" / "archivo" / "glofas").glob("20*") if p.is_dir()],
+                      key=lambda p: p.name)
+    pron = pd.concat(pd.read_parquet(p) for p in carpetas[-1].glob("estacion_*.parquet"))
+    pron["fecha"] = pd.to_datetime(pron["fecha"])
+    corrida = pd.Timestamp(carpetas[-1].name)
+
+    alturas = []
+    for f in [RAW / "ina" / "alturas.parquet", *(RAIZ / "data" / "archivo" / "ina").glob("alturas_*.parquet")]:
+        if f.exists():
+            a = pd.read_parquet(f)
+            a["fecha"] = pd.to_datetime(a["fecha"], utc=True).dt.tz_convert(None).dt.normalize()
+            alturas.append(a.groupby(["series_id", "fecha"], as_index=False)["altura_m"].mean())
+    alt = pd.concat(alturas).drop_duplicates(["series_id", "fecha"], keep="last")
+
+    filas, sesgos = [], {}
+    for sid, c in curvas.iterrows():
+        def curva(q, c=c):  # interpolación lineal entre umbrales = predicción de la regresión isotónica
+            return np.interp(np.log1p(q), c["x_log_caudal"], c["y_altura"])
+        lag = int(c["desfase_dias"])
+        p = pron[pron["estacion_id"] == info.loc[sid, "estacion_id"]]
+        # Sesgo con los días pasados de esta corrida y las alturas observadas (si hay ≥ 10 días en común)
+        pas = p[p["fecha"] < corrida][["fecha", "river_discharge"]].dropna()
+        m = alt[alt["series_id"] == sid].merge(pas.assign(fecha=pas["fecha"] + pd.Timedelta(days=lag)), on="fecha")
+        reciente = len(m) >= 10
+        sesgo = float((m["altura_m"] - curva(m["river_discharge"])).mean()) if reciente \
+            else float(c["sesgo_calibracion"])
+        sesgos[sid] = {"sesgo_m": round(sesgo, 2), "dias_para_sesgo": int(len(m)),
+                       "fuente_sesgo": "reciente" if reciente else "calibracion"}
+        for _, d in p[p["fecha"] >= corrida].dropna(subset=["river_discharge_median"]).iterrows():
+            hq = curva(np.array([d[q] for q, _ in CUANTILES], dtype=float)) + sesgo
+            filas.append({"series_id": sid, "fecha": d["fecha"] + pd.Timedelta(days=lag), "altura_mediana_m": hq[2],
+                          "p_alerta": prob_superar(hq, info.loc[sid, "nivel_alerta"]),
+                          "p_evacuacion": (prob_superar(hq, info.loc[sid, "nivel_evacuacion"])
+                                           if pd.notna(info.loc[sid, "nivel_evacuacion"]) else np.nan)})
+    diario = pd.DataFrame(filas)
+    foto = RAIZ / "data" / "archivo" / "rios" / f"{carpetas[-1].name}.parquet"
+    foto.parent.mkdir(parents=True, exist_ok=True)
+    diario[["series_id", "fecha", "altura_mediana_m", "p_alerta", "p_evacuacion"]].round(3).to_parquet(foto, index=False)
+    diario["mes"] = diario["fecha"].dt.to_period("M").astype(str)
+    mensual = diario.groupby(["series_id", "mes"]).agg(
+        p_alerta=("p_alerta", "max"), p_evacuacion=("p_evacuacion", "max"),
+        altura_mediana_max_m=("altura_mediana_m", "max")).reset_index()
+    mensual = mensual.merge(info[["estacion_id", "estacion", "rio", "provincia", "nivel_alerta", "nivel_evacuacion",
+                                  "r_validacion"]].reset_index(), on="series_id")
+    mensual = mensual.merge(pd.DataFrame(sesgos).T.rename_axis("series_id").reset_index(), on="series_id")
+    mensual["corrida_glofas"] = carpetas[-1].name
+    GOLD.mkdir(parents=True, exist_ok=True)
+    mensual.to_parquet(GOLD / "rios_pronostico_mensual.parquet", index=False)
+    print(f"Ríos: corrida GloFAS {carpetas[-1].name}; sesgo reciente en "
+          f"{sum(v['fuente_sesgo'] == 'reciente' for v in sesgos.values())}/{len(sesgos)} estaciones")
+
+
 def main() -> None:
     cal, alt, ser = datos()
     info = ser.drop_duplicates("series_id").set_index("series_id")
@@ -132,51 +191,18 @@ def main() -> None:
             modelos[sid] = (iso, lag, sesgo_reciente(iso, lag, h, cal[cal["estacion_id"] == est]))
     val = pd.DataFrame(validacion).sort_values("r_validacion", ascending=False)
 
-    # Pronóstico: último archivo de GloFAS disponible (descarga local o archivo automático de Actions)
-    carpetas = sorted([p for p in (RAW / "glofas").glob("20*") if p.is_dir()] +
-                      [p for p in (RAIZ / "data" / "archivo" / "glofas").glob("20*") if p.is_dir()])
-    pron = pd.concat(pd.read_parquet(p) for p in carpetas[-1].glob("estacion_*.parquet"))
-    pron["fecha"] = pd.to_datetime(pron["fecha"])
-    corrida = pd.Timestamp(carpetas[-1].name)
-    # Retroalimentación operativa: si la corrida trae días pasados, el sesgo se recalcula con esos días
-    # y las alturas observadas más recientes (descarga local + archivo diario de GitHub Actions)
-    recientes = [alt]
-    for f in (RAIZ / "data" / "archivo" / "ina").glob("alturas_*.parquet"):
-        a = pd.read_parquet(f)
-        a["fecha"] = pd.to_datetime(a["fecha"], utc=True).dt.tz_convert(None).dt.normalize()
-        recientes.append(a.groupby(["series_id", "fecha"], as_index=False)["altura_m"].mean())
-    alt_rec = pd.concat(recientes).drop_duplicates(["series_id", "fecha"], keep="last")
-    pasados = pron[pron["fecha"] < corrida].rename(columns={"river_discharge": "caudal_m3s"})
-    for sid, (iso, lag, sesgo) in list(modelos.items()):
-        q = pasados[pasados["estacion_id"] == info.loc[sid, "estacion_id"]][["fecha", "caudal_m3s"]]
-        h = alt_rec[alt_rec["series_id"] == sid][["fecha", "altura_m"]]
-        m = h.merge(q.assign(fecha=q["fecha"] + pd.Timedelta(days=lag)), on="fecha").dropna()
-        if len(m) >= 10:
-            modelos[sid] = (iso, lag, sesgo_reciente(iso, lag, h, q))
-    filas = []
-    for sid, (iso, lag, sesgo) in modelos.items():
-        est = info.loc[sid, "estacion_id"]
-        p = pron[pron["estacion_id"] == est].dropna(subset=["river_discharge_median"])
-        for _, d in p.iterrows():
-            hq = iso.predict(np.log1p(np.array([d[c] for c, _ in CUANTILES], dtype=float))) + sesgo
-            filas.append({"series_id": sid, "fecha": d["fecha"] + pd.Timedelta(days=lag),
-                          "altura_mediana_m": hq[2],
-                          "p_alerta": prob_superar(hq, info.loc[sid, "nivel_alerta"]),
-                          "p_evacuacion": (prob_superar(hq, info.loc[sid, "nivel_evacuacion"])
-                                           if pd.notna(info.loc[sid, "nivel_evacuacion"]) else np.nan)})
-    diario = pd.DataFrame(filas)
-    diario = diario[diario["fecha"] >= pd.Timestamp(carpetas[-1].name)]  # solo días futuros
-    diario["mes"] = diario["fecha"].dt.to_period("M").astype(str)
-    mensual = diario.groupby(["series_id", "mes"]).agg(
-        p_alerta=("p_alerta", "max"), p_evacuacion=("p_evacuacion", "max"),
-        altura_mediana_max_m=("altura_mediana_m", "max")).reset_index()
-    mensual = mensual.merge(val[["series_id", "estacion_id", "estacion", "rio", "r_validacion"]], on="series_id") \
-        .merge(info[["nivel_alerta", "nivel_evacuacion", "provincia"]].reset_index(), on="series_id")
-    mensual["corrida_glofas"] = carpetas[-1].name
+    # Se guardan las curvas en data/referencia (versionado) para el pronóstico diario en GitHub Actions
+    REF.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame([{"series_id": sid, "desfase_dias": lag, "sesgo_calibracion": sesgo,
+                   "x_log_caudal": iso.X_thresholds_.tolist(), "y_altura": iso.y_thresholds_.tolist()}
+                  for sid, (iso, lag, sesgo) in modelos.items()]).to_parquet(REF / "rios_curvas.parquet", index=False)
+    est = ser.drop_duplicates("series_id")[["series_id", "estacion_id", "estacion", "rio", "provincia",
+                                            "nivel_alerta", "nivel_evacuacion", "geometry"]]
+    est = est.merge(val[["series_id", "r_validacion"]], on="series_id", how="left")
+    est.to_parquet(REF / "estaciones_ina.parquet", index=False)
 
     GOLD.mkdir(parents=True, exist_ok=True)
     val.to_parquet(GOLD / "rios_validacion.parquet", index=False)
-    mensual.to_parquet(GOLD / "rios_pronostico_mensual.parquet", index=False)
     resumen = {
         "estaciones_evaluadas": int(len(val)),
         "estaciones_confiables_r_ge_0_7": int((val["r_validacion"] >= R_MINIMO).sum()),
@@ -185,7 +211,6 @@ def main() -> None:
         "deteccion_dias_sobre_alerta": {
             "observados": int(val["dias_sobre_alerta_obs"].sum()), "aciertos": int(val["aciertos_alerta"].sum()),
             "falsas_alarmas": int(val["falsas_alarmas"].sum())},
-        "corrida_glofas": carpetas[-1].name,
     }
     (GOLD / "rios_metricas.json").write_text(json.dumps(resumen, indent=2, ensure_ascii=False))
     print(json.dumps(resumen, indent=2, ensure_ascii=False))
@@ -197,4 +222,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "pronostico":
+        pronosticar()          # GitHub Actions: sin datos crudos
+    else:
+        main()                 # calibración + validación (Mac, con datos crudos)
+        pronosticar()

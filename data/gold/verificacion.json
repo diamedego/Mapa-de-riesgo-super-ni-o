@@ -1,0 +1,12 @@
+{
+  "lluvia_16_dias": {
+    "estado": "sin verificar todavía",
+    "corridas": 1
+  },
+  "rios": {
+    "estado": "pocos días",
+    "pares": 15,
+    "archivo_gold": "rios_pronostico_mensual.parquet"
+  },
+  "actualizado": "2026-09-29"
+}
