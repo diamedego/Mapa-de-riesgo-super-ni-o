@@ -74,12 +74,18 @@ def main(unidad: str = "gobiernos_locales") -> None:
     parciales = RAW / "earth_engine" / f"_parcial_{unidad}"
     parciales.mkdir(exist_ok=True)
 
+    # Se excluyen la Antártida e islas del Atlántico Sur (al sur de 56° S): un solo radio antártico
+    # mide 872 000 km² y bloquea el procesamiento, sin aportar al análisis de riesgo.
+    # Se filtra dentro de cada lote para no correr los índices de los lotes ya procesados.
+    fuera = gdf.geometry.representative_point().y < -56
+
     img = imagen()
     for i in range(0, len(gdf), tam_lote):
         f = parciales / f"lote_{i:06d}.parquet"
         if f.exists():  # retoma donde quedó
             continue
-        filas = procesar_lote(img, gdf.iloc[i:i + tam_lote], id_col)
+        lote = gdf.iloc[i:i + tam_lote][~fuera.iloc[i:i + tam_lote]]
+        filas = procesar_lote(img, lote, id_col)
         pd.DataFrame(filas).to_parquet(f, index=False)
         print(f"  {min(i + tam_lote, len(gdf))}/{len(gdf)}", flush=True)
 

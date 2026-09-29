@@ -83,10 +83,17 @@ def main() -> None:
     tabla["sumideros_georref"] = es_caba
     tabla["reclamos_147_pluviales"] = es_caba
 
-    # Pendientes de procesar en Earth Engine (cobertura nacional esperada)
-    for capa in ["elevacion_30m", "pendiente_y_bajos", "impermeabilizacion_mapbiomas",
-                 "agua_historica_jrc", "manchas_inundacion_sentinel1"]:
-        tabla[capa] = "pendiente"
+    # Capas procesadas en Earth Engine: hay dato si el gobierno local tiene valor
+    ee_dir = RAW / "earth_engine"
+    terreno = pd.read_parquet(ee_dir / "terreno_agua_gobiernos_locales.parquet").set_index("cmu")
+    tabla["terreno_hand_pendiente"] = terreno["hand_m"].notna()
+    tabla["agua_historica_jrc"] = terreno["agua_ocurrencia_pct"].notna()
+    uso = pd.read_parquet(ee_dir / "uso_suelo_gobiernos_locales.parquet")
+    tabla["mapbiomas_1985_2024"] = uso.groupby("cmu")["anio"].nunique().eq(40)
+    suelo = pd.read_parquet(ee_dir / "suelo_deslizamientos_gobiernos_locales.parquet").set_index("cmu")
+    tabla["arcilla_suelo"] = suelo["arcilla_pct"].notna()
+    tabla["deslizamientos_historicos"] = suelo["deslizamientos_1970_2019"]
+    tabla["manchas_inundacion_sentinel1"] = "pendiente"
 
     # Sin fuente pública nacional
     for capa in ["red_pluvial_fuera_caba", "red_cloacal_geometria", "napas_freaticas", "dengue_por_municipio"]:
@@ -98,16 +105,17 @@ def main() -> None:
     # Resumen por provincia: % de gobiernos locales con cada dato
     def pct(col):
         s = tabla[col]
-        ok = s.fillna(0).astype(float) > 0 if s.dtype != object else s.eq(True)
+        ok = s.eq(True) if s.dtype in (bool, object) else s.fillna(0).astype(float) > 0
         return ok.groupby(tabla["jur"]).mean().mul(100).round(0)
 
-    columnas = ["seas5_meses", "estacion_ina_30km", "salud_ign", "educacion_ign", "barrios_renabap",
-                "residuos_ign"] + [c for c in tabla.columns if c.startswith("osm_")]
+    columnas = ["seas5_meses", "terreno_hand_pendiente", "agua_historica_jrc", "mapbiomas_1985_2024",
+                "arcilla_suelo", "estacion_ina_30km", "salud_ign", "educacion_ign", "barrios_renabap",
+                "residuos_ign", "deslizamientos_historicos"] + [c for c in tabla.columns if c.startswith("osm_")]
     resumen = pd.DataFrame({c: pct(c) for c in columnas})
     resumen.insert(0, "gobiernos_locales", tabla.groupby("jur").size())
     resumen.insert(1, "pct_radios_con_censo", tabla.groupby("jur")["pct_radios_con_censo"].mean().round(1))
     resumen.loc["ARGENTINA"] = [len(tabla), tabla["pct_radios_con_censo"].mean().round(1)] + [
-        round((tabla[c].fillna(0).astype(float) > 0).mean() * 100) for c in columnas]
+        round(pct(c).mul(tabla.groupby("jur").size()).sum() / len(tabla)) for c in columnas]
     resumen.to_csv(RAIZ / "data" / "cobertura_provincias.csv")
 
     print(f"Población total (radios): {pob_total:,.0f}")
