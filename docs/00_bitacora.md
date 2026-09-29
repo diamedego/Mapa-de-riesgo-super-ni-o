@@ -116,3 +116,14 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 
 **Problemas**
 - El geoservicio del INTA (`geo-backend.inta.gob.ar`) no respondió. La textura/arcilla de OpenLandMap reemplaza por ahora al mapa de suelos del INTA; se reintentará.
+
+## 2026-09-28 (medianoche) · Terreno por radio censal
+
+**Hecho**
+- `terreno_agua.py radios`: elevación, HAND, pendiente y agua histórica para **66 514 radios censales**, sin valores faltantes (~1 h 20 min en Earth Engine).
+- Se excluyó 1 radio: el de la Antártida Argentina (872 000 km²). Bloqueaba el procesamiento y no aporta al análisis. El filtro se aplica dentro de cada lote para poder retomar sin reprocesar.
+
+**Hallazgo (preliminar)**
+- ~18,0 millones de personas (39,5 %) viven en radios con más de la mitad de su superficie a menos de 2 m sobre el cauce más cercano (HAND, MERIT Hydro 90 m).
+- De ellas, ~7,8 millones (17 % del total) viven en radios donde menos de la mitad de los hogares desagota a red cloacal (Censo 2022).
+- Matiz metodológico: en la llanura pampeana y chaqueña un HAND bajo es muy frecuente. Indica terreno bajo y drenaje lento, no inundación segura. Se combinará con el pronóstico de lluvia, el agua histórica y los reclamos en el índice de riesgo.
