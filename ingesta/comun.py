@@ -10,6 +10,7 @@ import csv
 import datetime as dt
 import io
 import os
+import tempfile
 from pathlib import Path
 
 import geopandas as gpd
@@ -31,8 +32,24 @@ CAMPOS_MANIFEST = [
 ]
 
 
+def _bundle_ca() -> str:
+    """Certificados raíz estándar (certifi) + intermedios que algunos servidores públicos no envían.
+
+    Ej.: datos.salud.gob.ar no manda el intermedio "Sectigo DV R36" y la verificación TLS falla.
+    En vez de desactivar la verificación, se agrega el intermedio oficial (ingesta/certificados/).
+    """
+    import certifi
+    extra = sorted((Path(__file__).parent / "certificados").glob("*.pem"))
+    if not extra:
+        return certifi.where()
+    bundle = Path(tempfile.gettempdir()) / "proyecto_el_nino_ca.pem"
+    bundle.write_text(Path(certifi.where()).read_text() + "".join(p.read_text() for p in extra))
+    return str(bundle)
+
+
 def sesion() -> requests.Session:
     s = requests.Session()
+    s.verify = _bundle_ca()
     reintentos = Retry(total=5, backoff_factor=2,
                        status_forcelist=[429, 500, 502, 503, 504],
                        allowed_methods=["GET", "POST"])
