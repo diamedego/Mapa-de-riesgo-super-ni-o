@@ -204,3 +204,20 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 **Otros**
 - Se corrigió un error latente: `cobertura.py` y `amenaza_agua.py` buscaban `estacional_*.parquet` y el nuevo archivo por departamento se ordenaba último. Ahora buscan `estacional_2*`.
 - GitHub Actions descarga también el pronóstico SEAS5 por departamento cada mes.
+
+## 2026-09-29 · Foco en inundación, modelo de ríos y motor de actualización
+
+**Decisiones de la usuaria**
+- Solo riesgos de **inundación**. Dengue e impacto agrícola quedan pospuestos (el trabajo de dengue queda guardado).
+- **Motor de actualización continua**: la simulación se retroalimenta con observaciones y pronósticos nuevos, y el riesgo se recalcula solo.
+
+**Modelo de ríos (`modelos/rios.py`)**
+- Curva caudal (GloFAS) → altura (INA) por estación, con regresión isotónica y el desfase de días que mejor ajusta. Entrenamiento: 2015-16 (crecida) + 2021-22 (bajante). Validación: Niño 2023-24. Datos: `ingesta/glofas_calibracion.py` (74 194 pares diarios en 94 estaciones).
+- 43 de 91 estaciones validan con r ≥ 0,7 (Paraná y Uruguay: r 0,91-0,94). Pero había un **corrimiento sistemático** (error medio 1,25 m con correlación alta): la forma de la curva es correcta y está desplazada.
+- **Retroalimentación**: corregir ese corrimiento con los 30 días observados antes del período evaluado bajó el error medio a **0,70 m**. La detección de días sobre el nivel de alerta subió de 720 a 963 (de 2 037); las falsas alarmas, de 224 a 424. Paso de los Libres: 96 de 98 días detectados.
+- **Contraste con la realidad**: con el corrimiento de 2024, el modelo sobrestimaba la altura de hoy entre 0,5 y 1,8 m (Rosario: 4,24 m modelado contra 2,81 m medido por el INA el 28-sep). Eso inflaba las probabilidades de evacuación (~100 % en dic-ene en todo el Paraná inferior). **No se publican** esos valores. Se agregó `past_days=31` a `glofas_rios.py` para recalcular el corrimiento con los datos de este mes en cada corrida (automático en Actions).
+- La probabilidad por día se obtiene interpolando entre los cuantiles del ensamble (mín, p25, mediana, p75, máx); por mes se toma la máxima diaria. Es una aproximación: pedir los 50 miembros agotaría el cupo gratuito de la API.
+
+**Reclamos de CABA (`transformacion/reclamos_caba.py`)**
+- 4 esquemas de columnas entre 2011 y 2026. Pluviales: 1 600 a 6 000 por año, 97-100 % con barrio oficial.
+- 2012 y 2013 están incompletos en el portal (585 y 3 304 filas). Los reclamos cloacales cambian de registro en 2020 (probable traspaso a AySA), así que no son serie continua. "NUEZ" = Núñez (se pierde la Ñ).

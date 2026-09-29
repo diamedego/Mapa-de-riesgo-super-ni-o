@@ -57,7 +57,10 @@ def main() -> None:
         mejor = max(vecinas, key=lambda x: pd.Series(x["daily"]["river_discharge_mean"]).mean(skipna=True) or 0)
         time.sleep(PAUSA_S)
         completo = _get(s, {"latitude": mejor["latitude"], "longitude": mejor["longitude"],
-                            "daily": ",".join(VARIABLES), "forecast_days": 210})
+                            "daily": ",".join(VARIABLES), "forecast_days": 210,
+                            # 31 días pasados: se comparan con las alturas observadas del INA para
+                            # corregir el sesgo de la curva caudal → altura (retroalimentación)
+                            "past_days": 31})
         df = pd.DataFrame(completo["daily"]).rename(columns={"time": "fecha"})
         df["estacion_id"] = e["estacion_id"]
         df["lat_celda"], df["lon_celda"] = mejor["latitude"], mejor["longitude"]

@@ -1,0 +1,12 @@
+{
+  "estaciones_evaluadas": 91,
+  "estaciones_confiables_r_ge_0_7": 43,
+  "r_validacion_mediana": 0.594,
+  "error_medio_m_mediana_confiables": 0.7,
+  "deteccion_dias_sobre_alerta": {
+    "observados": 2037,
+    "aciertos": 963,
+    "falsas_alarmas": 424
+  },
+  "corrida_glofas": "2026-09-28"
+}
