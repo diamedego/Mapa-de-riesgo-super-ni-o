@@ -1,0 +1,15 @@
+# Entorno
+.venv/
+__pycache__/
+.DS_Store
+
+# Datos pesados: se regeneran con los scripts de ingesta
+data/raw/**
+!data/raw/.gitkeep
+data/silver/**
+!data/silver/.gitkeep
+# data/gold se versiona (tablas finales livianas)
+
+# Credenciales
+.env
+*.key.json
