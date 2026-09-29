@@ -73,3 +73,13 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 
 **Problemas**
 - La API del INA no declara UTF-8 y los nombres llegaban con acentos rotos ("ParanÃ¡"). Se decodifica explícitamente en UTF-8.
+
+## 2026-09-29 (noche) · Google Earth Engine
+
+**Hecho**
+- Earth Engine autorizado en la Mac. Proyecto de Google Cloud: ID `camisetas-de-futbol-argentino` (nombre visible cambiado a "Mapa de riesgo El Nino"; Google no permite cambiar el ID). Configurado en `earth_engine/config.py`.
+- `earth_engine/terreno_agua.py`: elevación, HAND (altura sobre el cauce más cercano), pendiente y agua histórica (JRC 1984-2021) para los 2 282 gobiernos locales, en ~5 minutos. Solo se descargan los promedios.
+
+**Hallazgos**
+- La mitad de los gobiernos locales tiene más del 45 % de su superficie a menos de 2 m sobre el cauce más cercano (mediana de HAND: 3,2 m). Es la llanura pampeana y chaqueña: drenaje lento.
+- Pendiente mediana de 0,8°: el agua escurre muy despacio en la mayor parte del país habitado.
