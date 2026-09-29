@@ -58,6 +58,10 @@ jobs:
         if: steps.tarea.outputs.tarea == 'smn'
         run: python ingesta/smn_alertas.py
 
+      - name: Pronóstico de lluvia a 16 días (ECMWF)
+        if: steps.tarea.outputs.tarea == 'ina'
+        run: python ingesta/pronostico_corto.py
+
       - name: Alturas INA (últimos 10 días)
         if: steps.tarea.outputs.tarea == 'ina' || steps.tarea.outputs.tarea == 'glofas'
         run: |

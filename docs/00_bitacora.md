@@ -232,3 +232,20 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   - Error semanal por barrio: parecido a la línea base (0,92 vs 0,94).
 - Límite: subestima los días de tormenta fuerte. ERA5 (~25 km) suaviza la lluvia convectiva localizada.
 - Pronóstico 2026-27 por método delta (días de lluvia históricos del mes escalados por el cociente SEAS5/normal de CABA): dic +3 %, ene +5 % de reclamos respecto de lluvia normal (p90: 225 y 251 reclamos/mes en toda la ciudad). El Niño afecta menos a CABA que al Litoral.
+
+## 2026-09-29 · Índice de riesgo de inundación (preliminar) y motor de actualización
+
+**Hecho**
+- `transformacion/rasgos.py`: rasgos fijos por radio (66 515; 2,5 MB) y por gobierno local (2 282; 0,4 MB) en `data/referencia/`, versionados. GitHub Actions puede recalcular el riesgo sin los datos crudos pesados. Población en terreno bajo: 17,8 M; en terreno bajo y sin cloaca: 7,9 M.
+- `ingesta/pronostico_corto.py`: lluvia diaria a 16 días (ECMWF IFS 0,25°) + 3 días pasados, por gobierno local. Se suma al workflow diario.
+- `modelos/indice_riesgo.py`: índice INFORM mensual (oct-2026 → abr-2027).
+  - Amenaza multi-componente: agua en superficie, ríos y quebradas.
+  - Exposición: población en terreno bajo, en cantidad y proporción.
+  - Vulnerabilidad: sin cloaca, NBI, materiales deficientes y barrios populares.
+  - Riesgo = media geométrica. Sensibilidad: 1 000 simulaciones con pesos Dirichlet.
+  - Cada corrida deja una foto en `data/archivo/indice/<fecha>.parquet` para la línea de tiempo.
+
+**Resultados preliminares** (el componente de ríos todavía usa el sesgo de 2024 → probabilidades infladas; se recalcula con la corrección de este mes)
+- Mes pico: feb-2027.
+- Riesgo relativo más alto: Cecilio Echavarría y Goya (Corrientes), Fontana, Barranqueras y Puerto Vilelas (Chaco), Helvecia, Recreo, Villa G. Gálvez y Timbúes (Santa Fe). Robustos: están en el 10 % superior en el 92-100 % de las simulaciones.
+- Más personas en riesgo: La Matanza, Rosario, Santa Fe, Lomas de Zamora, Lanús, Resistencia, Quilmes, Merlo, Avellaneda, Corrientes. Los del conurbano entran por cantidad de población, no por riesgo relativo alto: aparecen en el 10 % superior en solo 0-2 % de las simulaciones.
