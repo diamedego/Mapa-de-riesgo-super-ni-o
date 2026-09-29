@@ -35,7 +35,7 @@
 | Elevación, HAND (altura sobre el cauce), % de superficie a < 2 m y < 5 m del cauce, pendiente | MERIT Hydro (90 m) + Copernicus DEM GLO-30 (30 m) vía Earth Engine | **100 %** | gobierno local; radio censal en curso | ✅ |
 | Urbano, agua, humedal y cultivos, cada año 1985-2024 | MapBiomas Argentina col. 2 vía Earth Engine | **100 %** | 30 m → gobierno local | ✅ |
 | Agua histórica 1984-2021 (ocurrencia y máxima extensión) | JRC Global Surface Water vía Earth Engine | **100 %** | 30 m → gobierno local | ✅ |
-| Manchas de inundación observadas por radar | Sentinel-1 vía Earth Engine | 100 % esperado | 10 m | ⏳ pendiente |
+| Agua observada en los Niños 2015-16 y 2023-24 vs. la sequía 2022-23 | Dynamic World (Sentinel-2 + deep learning) vía Earth Engine | **100 %** | 10 m → gobierno local | ✅ (Sentinel-1 descartado por falsos positivos en sequía) |
 | Sudestada y mareas del Río de la Plata | SHN | costa del Río de la Plata | puertos | ⏳ pendiente |
 | Deslizamientos históricos 1970-2019 | Catálogo Global de Deslizamientos (NASA) vía Earth Engine | 7 gobiernos locales | punto | ⚠️ subregistro; se complementa con pendiente p90 + arcilla + lluvia |
 | Suelo: % de arcilla (infiltración) | OpenLandMap vía Earth Engine | **100 %** | 250 m | ✅ (reemplaza al INTA, cuyo geoservicio no responde) |

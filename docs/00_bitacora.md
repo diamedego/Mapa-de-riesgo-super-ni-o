@@ -134,3 +134,15 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - Primer intento: radar Sentinel-1, agua = VV < -18 dB, comparando El Niño 2023-24 con la sequía de La Niña 2022-23. En una muestra de 10 municipios de Corrientes y Entre Ríos, la sequía mostraba **más** agua que El Niño (p. ej., Estación Torrent: 8,0 % vs 1,2 %), lo que no tiene sentido físico. Causas conocidas: el suelo seco y liso refleja poca señal de radar y se confunde con agua, y en 2022-23 solo operaba Sentinel-1A (Sentinel-1B falló en dic-2021). **No se usa.**
 - Segundo intento: Dynamic World (clasificación con deep learning sobre Sentinel-2). En la misma muestra, El Niño muestra más agua que la sequía en los 10 casos (Estación Torrent: 5,5 % vs 0,06 %). Es coherente, así que se adopta. Se agrega El Niño 2015-16 (Dynamic World empieza a mediados de 2015).
 - `earth_engine/inundacion_observada.py` en curso para los 2 282 gobiernos locales.
+
+## 2026-09-29 (madrugada) · Resultado de Dynamic World
+
+- 2 282 gobiernos locales, sin faltantes. Superficie con agua (sin contar el agua permanente) dentro de los gobiernos locales:
+  - El Niño 2023-24: **21 709 km²**
+  - El Niño 2015-16: **20 029 km²**
+  - Sequía de La Niña 2022-23: **12 839 km²**
+- El Niño 2023-24 tuvo **+69 %** de superficie con agua respecto de la sequía; 13 174 km² de agua "nueva". Los dos Niños dan magnitudes parecidas, lo que da consistencia.
+- Más agua nueva en 2023-24: Buenos Aires (3 411 km²), Corrientes (2 403), Santa Fe (1 984), Entre Ríos (1 909).
+- Municipios con mayor % de superficie con agua nueva: Puerto Vilelas (Chaco) 22,9 %, Isla Las Lechiguanas y Victoria (Entre Ríos) ~21 %.
+- En el 65 % de los gobiernos locales el agua observada en El Niño supera a la de la sequía. En el resto no hay diferencia apreciable: zonas áridas o sin cuerpos de agua.
+- Esta capa sirve para **validar** el índice de riesgo: los municipios que el índice marque como más riesgosos deberían ser los que más agua tuvieron en los Niños pasados.

@@ -93,7 +93,8 @@ def main() -> None:
     suelo = pd.read_parquet(ee_dir / "suelo_deslizamientos_gobiernos_locales.parquet").set_index("cmu")
     tabla["arcilla_suelo"] = suelo["arcilla_pct"].notna()
     tabla["deslizamientos_historicos"] = suelo["deslizamientos_1970_2019"]
-    tabla["manchas_inundacion_sentinel1"] = "pendiente"
+    obs = pd.read_parquet(ee_dir / "inundacion_observada_gobiernos_locales.parquet").set_index("cmu")
+    tabla["agua_observada_ninos_dynamic_world"] = obs["agua_nino_2023_24_pct"].notna()
 
     # Sin fuente pública nacional
     for capa in ["red_pluvial_fuera_caba", "red_cloacal_geometria", "napas_freaticas", "dengue_por_municipio"]:
@@ -109,7 +110,7 @@ def main() -> None:
         return ok.groupby(tabla["jur"]).mean().mul(100).round(0)
 
     columnas = ["seas5_meses", "terreno_hand_pendiente", "agua_historica_jrc", "mapbiomas_1985_2024",
-                "arcilla_suelo", "estacion_ina_30km", "salud_ign", "educacion_ign", "barrios_renabap",
+                "arcilla_suelo", "agua_observada_ninos_dynamic_world", "estacion_ina_30km", "salud_ign", "educacion_ign", "barrios_renabap",
                 "residuos_ign", "deslizamientos_historicos"] + [c for c in tabla.columns if c.startswith("osm_")]
     resumen = pd.DataFrame({c: pct(c) for c in columnas})
     resumen.insert(0, "gobiernos_locales", tabla.groupby("jur").size())
