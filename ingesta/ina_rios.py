@@ -8,6 +8,7 @@ Salida: data/raw/ina/series.parquet y data/raw/ina/alturas.parquet
 """
 import datetime as dt
 import json
+import os
 
 import geopandas as gpd
 import pandas as pd
@@ -16,7 +17,9 @@ from shapely.geometry import shape
 from comun import RAW, registrar, sesion
 
 BASE = "https://alerta.ina.gob.ar/a5/obs/puntual"
-DESDE = "2015-01-01"
+# En GitHub Actions se piden solo los últimos días (INA_DESDE) y se guarda un archivo por fecha
+DESDE = os.environ.get("INA_DESDE", "2015-01-01")
+FECHADO = os.environ.get("INA_SALIDA_FECHADA") == "1"
 
 
 def main() -> None:
@@ -54,9 +57,10 @@ def main() -> None:
             print(f"  {i}/{len(con_alerta)} series", flush=True)
     alturas = pd.DataFrame(obs, columns=["series_id", "fecha", "altura_m"])
     alturas["fecha"] = pd.to_datetime(alturas["fecha"], utc=True)
-    alturas.to_parquet(carpeta / "alturas.parquet", index=False)
+    nombre = f"alturas_{dt.date.today().isoformat()}.parquet" if FECHADO else "alturas.parquet"
+    alturas.to_parquet(carpeta / nombre, index=False)
     registrar("INA", f"alturas diarias desde {DESDE} (series con nivel de alerta)",
-              f"{BASE}/observaciones", carpeta / "alturas.parquet", "Parquet", len(alturas),
+              f"{BASE}/observaciones", carpeta / nombre, "Parquet", len(alturas),
               "Datos públicos INA, citar fuente", nota=f"{len(con_alerta)} series")
     print(f"INA: {len(cat)} series, {len(con_alerta)} con alerta, {len(alturas)} observaciones")
 

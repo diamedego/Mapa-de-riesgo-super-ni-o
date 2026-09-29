@@ -9,7 +9,7 @@ Salida: data/raw/open_meteo/estacional_<AAAA-MM-DD>.parquet en formato largo
 import geopandas as gpd
 import pandas as pd
 
-from comun import RAW, hoy, registrar, sesion
+from comun import RAIZ, RAW, hoy, registrar, sesion
 
 URL = "https://seasonal-api.open-meteo.com/v1/seasonal"
 VARIABLES = [
@@ -21,11 +21,22 @@ VARIABLES = [
 LOTE = 100  # la API acepta varias coordenadas separadas por coma
 
 
+PUNTOS = RAIZ / "data" / "referencia" / "puntos_gobiernos_locales.csv"
+
+
 def puntos_consulta() -> pd.DataFrame:
-    """Un punto representativo (dentro del polígono) por gobierno local del INDEC."""
+    """Un punto representativo (dentro del polígono) por gobierno local del INDEC.
+
+    Se guarda en data/referencia (versionado) para que GitHub Actions no necesite los polígonos.
+    """
+    if PUNTOS.exists():
+        return pd.read_csv(PUNTOS, dtype={"cmu": str})
     gl = gpd.read_parquet(RAW / "limites" / "gobiernos_locales.parquet")
     pts = gl.representative_point()
-    return pd.DataFrame({"cmu": gl["cmu"], "lat": pts.y.round(4), "lon": pts.x.round(4)})
+    df = pd.DataFrame({"cmu": gl["cmu"], "lat": pts.y.round(4), "lon": pts.x.round(4)})
+    PUNTOS.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(PUNTOS, index=False)
+    return df
 
 
 def main() -> None:

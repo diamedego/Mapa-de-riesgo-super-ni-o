@@ -1,0 +1,81 @@
+# Actualización automática de los datos que cambian en el tiempo.
+# Guarda cada corrida en data/archivo/ (versionado): así se arma el histórico de la línea de tiempo del mapa.
+name: Actualizar datos
+
+on:
+  schedule:
+    - cron: "15 */3 * * *"   # cada 3 horas: alertas SMN
+    - cron: "40 10 * * *"    # todos los días 07:40 ART: alturas de ríos INA
+    - cron: "0 11 * * 1"     # lunes 08:00 ART: pronóstico de caudal GloFAS
+    - cron: "0 12 6 * *"     # día 6 de cada mes: pronóstico estacional SEAS5 (sale el día 5)
+  workflow_dispatch:
+    inputs:
+      tarea:
+        description: "smn | ina | glofas | estacional"
+        required: true
+        default: smn
+
+permissions:
+  contents: write
+
+concurrency:
+  group: actualizar-datos
+  cancel-in-progress: false
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      RAW_DIR: data/archivo
+      MANIFEST: data/archivo/manifest_automatico.csv
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ingesta/requirements-actions.txt
+
+      - run: pip install -r ingesta/requirements-actions.txt
+
+      - name: Elegir tarea
+        id: tarea
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then t="${{ inputs.tarea }}"
+          else
+            case "${{ github.event.schedule }}" in
+              "15 */3 * * *") t=smn ;;
+              "40 10 * * *")  t=ina ;;
+              "0 11 * * 1")   t=glofas ;;
+              "0 12 6 * *")   t=estacional ;;
+            esac
+          fi
+          echo "tarea=$t" >> "$GITHUB_OUTPUT"
+
+      - name: Alertas SMN
+        if: steps.tarea.outputs.tarea == 'smn'
+        run: python ingesta/smn_alertas.py
+
+      - name: Alturas INA (últimos 10 días)
+        if: steps.tarea.outputs.tarea == 'ina' || steps.tarea.outputs.tarea == 'glofas'
+        run: |
+          export INA_DESDE=$(date -u -d '10 days ago' +%F) INA_SALIDA_FECHADA=1
+          python ingesta/ina_rios.py
+
+      - name: Caudales GloFAS
+        if: steps.tarea.outputs.tarea == 'glofas'
+        run: python ingesta/glofas_rios.py
+
+      - name: Pronóstico estacional SEAS5
+        if: steps.tarea.outputs.tarea == 'estacional'
+        run: python ingesta/open_meteo_estacional.py
+
+      - name: Guardar en el repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f data/archivo
+          git diff --cached --quiet || git commit -m "Datos automáticos: ${{ steps.tarea.outputs.tarea }} $(date -u +%F\ %H:%M) UTC"
+          git pull --rebase --autostash && git push

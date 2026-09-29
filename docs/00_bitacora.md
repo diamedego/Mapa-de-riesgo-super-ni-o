@@ -59,7 +59,7 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - Open-Meteo gratuito: se agotó el cupo por hora con GloFAS. El script ahora hace pausas, maneja el error 429 y retoma donde quedó.
 - Git se instaló (Command Line Tools) y se hizo el primer commit.
 
-## 2026-09-29 · Repo en GitHub y caudales GloFAS
+## 2026-09-28 (noche) · Repo en GitHub y caudales GloFAS
 
 **Hecho**
 - Repositorio privado en GitHub (`diamedego/Mapa-de-riesgo-super-ni-o`), con una deploy key exclusiva de este repo para subir cambios.
@@ -74,7 +74,7 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 **Problemas**
 - La API del INA no declara UTF-8 y los nombres llegaban con acentos rotos ("ParanÃ¡"). Se decodifica explícitamente en UTF-8.
 
-## 2026-09-29 (noche) · Google Earth Engine
+## 2026-09-28 (noche) · Google Earth Engine
 
 **Hecho**
 - Earth Engine autorizado en la Mac. Proyecto de Google Cloud: ID `camisetas-de-futbol-argentino` (nombre visible cambiado a "Mapa de riesgo El Nino"; Google no permite cambiar el ID). Configurado en `earth_engine/config.py`.
@@ -83,3 +83,12 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 **Hallazgos**
 - La mitad de los gobiernos locales tiene más del 45 % de su superficie a menos de 2 m sobre el cauce más cercano (mediana de HAND: 3,2 m). Es la llanura pampeana y chaqueña: drenaje lento.
 - Pendiente mediana de 0,8°: el agua escurre muy despacio en la mayor parte del país habitado.
+
+## 2026-09-28 (noche) · Actualización automática y MapBiomas
+
+**Hecho**
+- `.github/workflows/actualizar_datos.yml`: GitHub Actions guarda en `data/archivo/` (versionado) las alertas del SMN cada 3 horas, las alturas del INA todos los días, los caudales de GloFAS cada lunes y el pronóstico SEAS5 el día 6 de cada mes. El historial de alertas solo se puede armar guardándolo desde ahora: el feed del SMN muestra lo vigente.
+- Los scripts leen las rutas de variables de entorno (`RAW_DIR`, `MANIFEST`, `INA_DESDE`), así funcionan igual en la Mac y en Actions.
+- `data/referencia/puntos_gobiernos_locales.csv`: un punto por gobierno local, versionado, para que Actions no necesite los polígonos.
+- MapBiomas Argentina colección 2 (1985-2024) accesible en Earth Engine. Clases verificadas con muestras: 24 urbano (CABA 98 %), 33 agua, 11 humedal (Delta 39 %), 19 cultivos (pampa 74 %).
+- En curso: terreno por radio censal (66 515) y uso del suelo anual 1985-2024 por gobierno local.

@@ -1,0 +1,12 @@
+# Entorno completo del proyecto (Mac). GitHub Actions usa ingesta/requirements-actions.txt
+requests
+pandas
+pyarrow
+geopandas
+shapely
+pyogrio
+duckdb
+statsmodels
+earthengine-api
+osmium
+censoargentino

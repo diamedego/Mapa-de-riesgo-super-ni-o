@@ -22,8 +22,9 @@ from urllib3.util.retry import Retry
 os.environ.setdefault("OGR_GEOJSON_MAX_OBJ_SIZE", "0")
 
 RAIZ = Path(__file__).resolve().parents[1]
-RAW = RAIZ / "data" / "raw"
-MANIFEST = RAIZ / "data" / "manifest.csv"
+# En GitHub Actions se redirigen las salidas a data/archivo (versionado) con estas variables de entorno
+RAW = Path(os.environ.get("RAW_DIR", RAIZ / "data" / "raw"))
+MANIFEST = Path(os.environ.get("MANIFEST", RAIZ / "data" / "manifest.csv"))
 CAMPOS_MANIFEST = [
     "fecha_descarga", "fuente", "dataset", "url", "archivo",
     "formato", "registros", "licencia", "estado", "nota",
@@ -56,7 +57,7 @@ def registrar(fuente: str, dataset: str, url: str, archivo: Path | str,
             "fuente": fuente,
             "dataset": dataset,
             "url": url,
-            "archivo": str(Path(archivo).relative_to(RAIZ)) if archivo else "",
+            "archivo": str(Path(archivo).resolve().relative_to(RAIZ)) if archivo else "",
             "formato": formato,
             "registros": registros if registros is not None else "",
             "licencia": licencia,
