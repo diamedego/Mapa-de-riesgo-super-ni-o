@@ -70,7 +70,9 @@ jobs:
 
       - name: Pronóstico estacional SEAS5
         if: steps.tarea.outputs.tarea == 'estacional'
-        run: python ingesta/open_meteo_estacional.py
+        run: |
+          python ingesta/open_meteo_estacional.py gobiernos_locales
+          python ingesta/open_meteo_estacional.py departamentos
 
       - name: Guardar en el repo
         run: |

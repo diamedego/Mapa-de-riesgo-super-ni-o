@@ -39,9 +39,23 @@ def puntos_consulta() -> pd.DataFrame:
     return df
 
 
-def main() -> None:
+def puntos_departamentos() -> pd.DataFrame:
+    """Un punto por departamento del INDEC (para el modelo de dengue, que trabaja por departamento)."""
+    archivo = RAIZ / "data" / "referencia" / "puntos_departamentos.csv"
+    if archivo.exists():
+        return pd.read_csv(archivo, dtype={"cde": str})
+    dep = gpd.read_parquet(RAW / "limites" / "departamentos.parquet")
+    pts = dep.representative_point()
+    df = pd.DataFrame({"cde": dep["cde"], "lat": pts.y.round(4), "lon": pts.x.round(4)})
+    df = df[df["lat"] > -56]  # sin Antártida
+    df.to_csv(archivo, index=False)
+    return df
+
+
+def main(unidad: str = "gobiernos_locales") -> None:
     s = sesion()
-    pts = puntos_consulta()
+    pts = puntos_consulta() if unidad == "gobiernos_locales" else puntos_departamentos()
+    id_col = "cmu" if unidad == "gobiernos_locales" else "cde"
     filas = []
     for i in range(0, len(pts), LOTE):
         lote = pts.iloc[i:i + LOTE]
@@ -54,22 +68,25 @@ def main() -> None:
         respuestas = r.json()
         if isinstance(respuestas, dict):
             respuestas = [respuestas]
-        for cmu, resp in zip(lote["cmu"], respuestas):
+        for cmu, resp in zip(lote[id_col], respuestas):
             m = resp["monthly"]
             for var in VARIABLES:
                 for mes, valor in zip(m["time"], m[var]):
                     filas.append((cmu, mes, var, valor))
-        print(f"  {min(i + LOTE, len(pts))}/{len(pts)} gobiernos locales", flush=True)
+        print(f"  {min(i + LOTE, len(pts))}/{len(pts)} {unidad}", flush=True)
 
-    df = pd.DataFrame(filas, columns=["cmu", "mes", "variable", "valor"])
+    df = pd.DataFrame(filas, columns=[id_col, "mes", "variable", "valor"])
     df["fecha_corrida"] = hoy()
-    destino = RAW / "open_meteo" / f"estacional_{hoy()}.parquet"
+    sufijo = "" if unidad == "gobiernos_locales" else "departamentos_"
+    destino = RAW / "open_meteo" / f"estacional_{sufijo}{hoy()}.parquet"
     destino.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(destino, index=False)
-    registrar("Open-Meteo (ECMWF SEAS5)", "pronóstico estacional mensual por gobierno local",
+    registrar("Open-Meteo (ECMWF SEAS5)", f"pronóstico estacional mensual por {unidad}",
               URL, destino, "Parquet", len(df), "CC BY 4.0, uso no comercial gratuito",
               nota=f"{pts.shape[0]} puntos; variables: {', '.join(VARIABLES)}")
+    print(f"{unidad}: {pts.shape[0]} puntos, {len(df)} valores")
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    main(sys.argv[1] if len(sys.argv) > 1 else "gobiernos_locales")

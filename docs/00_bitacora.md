@@ -181,3 +181,26 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 **Decisiones de la usuaria**
 - Modelos de pronóstico propios: **dengue, ríos (nivel de alerta), anegamientos en CABA (147) e impacto agrícola**.
 - Capa social (albergues, donaciones, comedores): **pospuesta**. Quedó hecho solo un filtro ampliado de OpenStreetMap (policía, puntos de encuentro, centros comunitarios, clubes, lugares de culto, Cruz Roja, Cáritas, Defensa Civil). Se descartaron `amenity=shelter` (en Argentina son paradas de colectivo techadas) y los nombres de calles y farmacias que contienen "Cruz Roja".
+
+## 2026-09-29 · Modelo de dengue
+
+**Datos (capa silver, `transformacion/dengue.py`)**
+- 802 438 casos crudos (2018 → SE 38 de 2025). Se asignó el **96,23 %** a un departamento del INDEC; el resto viene como "999 desconocido" en el origen.
+- Limpiezas: dos esquemas de columnas; 2024 publicado 3 veces (se usa la última); 2021 en dos archivos superpuestos; códigos sin cero inicial; comunas de CABA (02001 → 02007, múltiplos de 7); códigos previos al Censo 2022 (Río Grande 94007 → 94008, Ushuaia 94014 → 94015, Chascomús 06217 → 06218). Reporte en `data/silver/dengue_calidad.json`.
+- Temporada epidemiológica = SE 31 → SE 30. Quedan 6 temporadas completas; 2021-22 se descarta porque no se publicó el segundo semestre de 2021.
+- Casos por temporada: 2018-19 2 753 · 2019-20 46 362 · 2020-21 4 059 · 2022-23 129 079 · **2023-24 570 026** (post Niño 2023) · 2024-25 17 267.
+
+**Clima**: `earth_engine/clima_departamentos.py` (temperatura y lluvia nov-feb, 2018-2024 + normal 1991-2020, 528 departamentos). La temporada 2023-24 fue +1,0 °C más cálida que la normal. SEAS5 por departamento: `open_meteo_estacional.py departamentos`.
+
+**Validación (`modelos/dengue.py`)**
+- Gradient boosting con clima, Censo e historia vs persistencia (máxima incidencia previa):
+  - 2024-25: modelo Spearman 0,34 vs persistencia 0,45.
+  - 2023-24: modelo 0,53 vs persistencia 0,74.
+- **Magnitud nacional no predecible**: predijo ~2 500 casos en 2023-24 (hubo 570 229) y ~500 000 en 2024-25 (hubo 17 269). Las epidemias dependen del serotipo y de la inmunidad, que no se observan en datos públicos.
+- Combinación historia + clima: con peso 25 % para el clima mejora en la temporada Niño (2023-24: Spearman 0,743 → 0,766; top 10 % 38 % → 42 %), pero no en la post-epidemia (2024-25: 0,446 → 0,428).
+- **Índice final**: 75 % historia + 25 % clima (validado en el Niño análogo). Se reporta como **riesgo relativo entre departamentos, no como número de casos**.
+- Departamentos de mayor riesgo relativo 2026-27: San Justo y Río Segundo (Córdoba), Chicligasta, Capital y Tafí Viejo (Tucumán), Metán (Salta), Federación (Entre Ríos), Capital (La Rioja).
+
+**Otros**
+- Se corrigió un error latente: `cobertura.py` y `amenaza_agua.py` buscaban `estacional_*.parquet` y el nuevo archivo por departamento se ordenaba último. Ahora buscan `estacional_2*`.
+- GitHub Actions descarga también el pronóstico SEAS5 por departamento cada mes.

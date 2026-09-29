@@ -131,7 +131,7 @@ def main() -> None:
     final.fit(ambos[X_cols], np.log1p(ambos["y"]))
 
     # Pronóstico 2026-27: anomalía SEAS5 nov-feb; uso del suelo 2024 (último disponible)
-    est = pd.read_parquet(sorted((RAIZ / "data" / "raw" / "open_meteo").glob("estacional_*.parquet"))[-1])
+    est = pd.read_parquet(sorted((RAIZ / "data" / "raw" / "open_meteo").glob("estacional_2*.parquet"))[-1])
     meses = ["2026-11-01", "2026-12-01", "2027-01-01", "2027-02-01"]
     anom = est[(est["variable"] == "precipitation_anomaly") & est["mes"].isin(meses)] \
         .groupby("cmu")["valor"].sum().rename("anomalia_2026_27_mm").reset_index()

@@ -1,0 +1,91 @@
+{
+  "validacion": {
+    "temporal_2024_25": {
+      "modelo": {
+        "spearman": 0.343,
+        "aciertos_top10": 0.132,
+        "mae_log": 4.513
+      },
+      "solo_clima_y_estructura": {
+        "spearman": 0.324,
+        "aciertos_top10": 0.151,
+        "mae_log": 2.964
+      },
+      "persistencia_max_historica": {
+        "spearman": 0.446,
+        "aciertos_top10": 0.283,
+        "mae_log": 4.595
+      },
+      "casos_totales": {
+        "reales": 17269,
+        "predichos": 501352
+      }
+    },
+    "epidemia_nino_2023_24": {
+      "modelo": {
+        "spearman": 0.526,
+        "aciertos_top10": 0.226,
+        "mae_log": 4.249
+      },
+      "solo_clima_y_estructura": {
+        "spearman": 0.617,
+        "aciertos_top10": 0.283,
+        "mae_log": 4.206
+      },
+      "persistencia_max_historica": {
+        "spearman": 0.743,
+        "aciertos_top10": 0.377,
+        "mae_log": 2.252
+      },
+      "casos_totales": {
+        "reales": 570229,
+        "predichos": 2478
+      }
+    }
+  },
+  "variables": [
+    "temp_media_c",
+    "temp_anomalia_c",
+    "lluvia_mm",
+    "lluvia_anomalia_mm",
+    "lat",
+    "log_densidad",
+    "pct_nbi",
+    "pct_agua_no_red",
+    "pct_agua_almacenada",
+    "pct_urbano",
+    "hist_max_y"
+  ],
+  "temporadas": [
+    2018,
+    2019,
+    2020,
+    2022,
+    2023,
+    2024
+  ],
+  "indice_final": "75 % historia (máxima incidencia) + 25 % modelo de clima, en rangos percentiles",
+  "combinacion_validada": {
+    "2023_24_nino": {
+      "solo_historia": {
+        "spearman": 0.743,
+        "top10": 0.377
+      },
+      "75_25": {
+        "spearman": 0.766,
+        "top10": 0.415
+      }
+    },
+    "2024_25_post_epidemia": {
+      "solo_historia": {
+        "spearman": 0.446,
+        "top10": 0.283
+      },
+      "75_25": {
+        "spearman": 0.428,
+        "top10": 0.226
+      }
+    }
+  },
+  "n_departamentos": 527
+}

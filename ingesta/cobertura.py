@@ -53,7 +53,7 @@ def main() -> None:
     tabla["pct_radios_con_censo"] = (por_gl["con_censo"].mean() * 100).round(1)
 
     # Pronóstico estacional
-    est = pd.read_parquet(sorted(glob.glob(str(RAW / "open_meteo" / "estacional_*.parquet")))[-1])
+    est = pd.read_parquet(sorted(glob.glob(str(RAW / "open_meteo" / "estacional_2*.parquet")))[-1])
     tabla["seas5_meses"] = est.groupby("cmu")["mes"].nunique()
 
     # Ríos grandes: estación INA con nivel de alerta a ≤ 30 km
