@@ -93,7 +93,7 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - MapBiomas Argentina colección 2 (1985-2024) accesible en Earth Engine. Clases verificadas con muestras: 24 urbano (CABA 98 %), 33 agua, 11 humedal (Delta 39 %), 19 cultivos (pampa 74 %).
 - En curso: terreno por radio censal (66 515) y uso del suelo anual 1985-2024 por gobierno local.
 
-## 2026-09-28 (madrugada) · Históricos: dengue y desastres
+## 2026-09-28 (noche) · Históricos: dengue y desastres
 
 **Hecho**
 - `historico.py`: casos de dengue y zika por departamento y semana (Ministerio de Salud, 2018-2025, 11 archivos), incluida la epidemia 2023-24 que siguió al Niño 2023. También la base DesInventar de Argentina (desastres históricos por departamento, con su cartografía).
@@ -103,7 +103,7 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - El portal etiqueta mal los formatos (2023-2024 figura como XLS y es CSV). El filtro ahora mira la extensión de la URL.
 - Los archivos de dengue tienen dos esquemas de columnas: hasta 2022 (`departamento_id`, `año`, `semanas_epidemiologicas`…) y desde 2024 (`id_depto_indec_residencia`, `anio_min`, `sepi_min`…). Se unifican en la capa silver.
 
-## 2026-09-28 (madrugada) · MapBiomas, suelo y deslizamientos
+## 2026-09-28 (noche) · MapBiomas, suelo y deslizamientos
 
 **Hecho**
 - `earth_engine/uso_suelo.py`: % de superficie urbana, agua, humedal y cultivos para cada gobierno local y cada año 1985-2024 (MapBiomas Argentina col. 2). 365 120 valores, sin nulos.
@@ -117,7 +117,7 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 **Problemas**
 - El geoservicio del INTA (`geo-backend.inta.gob.ar`) no respondió. La textura/arcilla de OpenLandMap reemplaza por ahora al mapa de suelos del INTA; se reintentará.
 
-## 2026-09-28 (medianoche) · Terreno por radio censal
+## 2026-09-28 (noche) · Terreno por radio censal
 
 **Hecho**
 - `terreno_agua.py radios`: elevación, HAND, pendiente y agua histórica para **66 514 radios censales**, sin valores faltantes (~1 h 20 min en Earth Engine).
@@ -128,7 +128,7 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - De ellas, ~7,8 millones (17 % del total) viven en radios donde menos de la mitad de los hogares desagota a red cloacal (Censo 2022).
 - Matiz metodológico: en la llanura pampeana y chaqueña un HAND bajo es muy frecuente. Indica terreno bajo y drenaje lento, no inundación segura. Se combinará con el pronóstico de lluvia, el agua histórica y los reclamos en el índice de riesgo.
 
-## 2026-09-29 (madrugada) · Inundación observada por satélite
+## 2026-09-28 (noche) · Inundación observada por satélite
 
 **Decisión: se descarta Sentinel-1 y se usa Dynamic World**
 - Primer intento: radar Sentinel-1, agua = VV < -18 dB, comparando El Niño 2023-24 con la sequía de La Niña 2022-23. En una muestra de 10 municipios de Corrientes y Entre Ríos, la sequía mostraba **más** agua que El Niño (p. ej., Estación Torrent: 8,0 % vs 1,2 %), lo que no tiene sentido físico. Causas conocidas: el suelo seco y liso refleja poca señal de radar y se confunde con agua, y en 2022-23 solo operaba Sentinel-1A (Sentinel-1B falló en dic-2021). **No se usa.**
