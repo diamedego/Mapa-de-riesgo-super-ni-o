@@ -1,6 +1,6 @@
 # Fuentes de datos y cobertura real
 
-*Actualizado: 2026-09-28. La cobertura se calcula con `ingesta/cobertura.py` sobre los datos descargados, no se estima.*
+*Actualizado: 2026-09-28 (noche). La cobertura se calcula con `ingesta/cobertura.py` sobre los datos descargados, no se estima.*
 *Detalle por gobierno local: `data/cobertura.csv`. Resumen por provincia: `data/cobertura_provincias.csv`. Registro de cada descarga: `data/manifest.csv`.*
 
 ## Unidad territorial
@@ -31,15 +31,16 @@
 | Sumideros georreferenciados | BA Data | solo CABA (15 comunas) | punto | ✅ |
 | Reclamos al 147 (sumideros, anegamientos, residuos) | BA Data 2011-2026 | solo CABA | punto (99 % con coordenadas) | ✅ ~2,5 GB |
 | Lluvia diaria histórica 2011-2026 | ERA5 vía Open-Meteo | CABA (48 barrios) | ~25 km | ✅ |
-| Pronóstico de caudal (210 días, ensamble) | GloFAS v4 vía Open-Meteo | estaciones INA con alerta | 5 km | ⏳ en curso (límite de la API) |
-| Elevación 30 m, pendiente, bajos, acumulación de flujo | MDE-Ar IGN / Copernicus DEM | 100 % esperado | 30 m | ⏳ Earth Engine |
-| Impermeabilización y cambio de uso del suelo 1985-2025 | MapBiomas Argentina | 100 % esperado | 30 m | ⏳ Earth Engine |
-| Agua histórica e inundaciones observadas | JRC Global Surface Water, Sentinel-1 | 100 % esperado | 10-30 m | ⏳ Earth Engine |
+| Pronóstico de caudal (210 días, ensamble) | GloFAS v4 vía Open-Meteo | 96 estaciones INA con alerta | 5 km | ✅ (se actualiza cada lunes) |
+| Elevación, HAND (altura sobre el cauce), % de superficie a < 2 m y < 5 m del cauce, pendiente | MERIT Hydro (90 m) + Copernicus DEM GLO-30 (30 m) vía Earth Engine | **100 %** | gobierno local; radio censal en curso | ✅ |
+| Urbano, agua, humedal y cultivos, cada año 1985-2024 | MapBiomas Argentina col. 2 vía Earth Engine | **100 %** | 30 m → gobierno local | ✅ |
+| Agua histórica 1984-2021 (ocurrencia y máxima extensión) | JRC Global Surface Water vía Earth Engine | **100 %** | 30 m → gobierno local | ✅ |
+| Manchas de inundación observadas por radar | Sentinel-1 vía Earth Engine | 100 % esperado | 10 m | ⏳ pendiente |
 | Sudestada y mareas del Río de la Plata | SHN | costa del Río de la Plata | puertos | ⏳ pendiente |
-| Deslizamientos (probabilidad diaria) | NASA LHASA | 100 % esperado | 1 km | ⏳ pendiente |
-| Suelos: drenaje y anegabilidad | INTA 1:500 000 | 100 % esperado | polígono | ⏳ pendiente |
-| Dengue y leptospirosis | Boletín Epidemiológico Nacional | provincia / departamento | — | ⏳ pendiente |
-| Eventos históricos | DesInventar, Copernicus EMS | departamento | — | ⏳ pendiente |
+| Deslizamientos históricos 1970-2019 | Catálogo Global de Deslizamientos (NASA) vía Earth Engine | 7 gobiernos locales | punto | ⚠️ subregistro; se complementa con pendiente p90 + arcilla + lluvia |
+| Suelo: % de arcilla (infiltración) | OpenLandMap vía Earth Engine | **100 %** | 250 m | ✅ (reemplaza al INTA, cuyo geoservicio no responde) |
+| Dengue y zika por semana, 2018-2025 | Ministerio de Salud (datos.gob.ar) | departamento | — | ✅ (leptospirosis pendiente) |
+| Desastres históricos | DesInventar Argentina | departamento | — | ✅ (Copernicus EMS pendiente) |
 
 ## Faltantes sin fuente pública nacional
 
