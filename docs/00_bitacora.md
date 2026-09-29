@@ -270,3 +270,23 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 **Contraste con el INA (29-sep)**
 - El INA informa aguas medias en el Paraná, con tendencia estable o en descenso, y posibles aumentos en 7-15 días (sobre todo en el Uruguay y el Iguazú). No emite pronóstico estacional ni menciona El Niño.
 - El escenario GloFAS da probabilidades de evacuación del 90-100 % en dic-ene en el Paraná inferior, con caudales comparables a El Niño 2015-16 (cuando Rosario superó el nivel de evacuación). Los ensambles estacionales suelen ser demasiado confiados. **Se presenta como "escenario GloFAS", aclarando que el INA no hace pronóstico estacional**, y la verificación diaria ajustará su peso.
+
+## 2026-09-29 (noche) · Web 3D, primera versión
+
+- `web/preparar_datos.py` genera los datos livianos:
+  - municipios (3,2 MB), estaciones, barrios de CABA y resumen nacional;
+  - **radios censales por provincia** (49 MB en total; Buenos Aires 13,7 MB sin comprimir). El riesgo de cada radio es cbrt(amenaza del municipio en el mes × exposición del radio [% superficie a < 2 m del cauce] × vulnerabilidad del radio [sin cloaca, NBI, materiales]).
+- `web/index.html` + `app.js` + `estilos.css`:
+  - MapLibre GL 5.24 + relieve AWS Terrain Tiles + mapa base OpenFreeMap.
+  - Municipios en 3D (altura = riesgo por encima de 3, escalada según el zoom). Desde zoom 10 cambia a radios censales, cargados por provincia solo cuando se miran.
+  - Estaciones de río (tamaño = probabilidad de evacuación, "escenario GloFAS").
+  - Selector de mes con reproducción; relato con scroll en 5 capítulos, cada uno con su vista del mapa.
+  - Ficha del municipio (componentes H/E/V); indicadores del mes; gráfico mes a mes (una serie, un eje, con tooltip); tabla top 20 por riesgo relativo y por personas.
+  - Bilingüe ES/EN, modo claro/oscuro, links directos (`#litoral`, `?tema=oscuro`).
+- Guía de visualización aplicada: una sola escala de color (azul, 7 clases ordinales), en oscuro "más riesgo = más claro"; gráfico sin área (el eje no arranca en cero); tabla como alternativa accesible; nada de arcoíris ni doble eje. **Pendiente**: correr el validador de paleta (no hay Node en la Mac).
+- Correcciones al revisar capturas:
+  - el mapa base mostraba "Falkland Islands": se fuerzan los nombres en español (`name:es` → "Islas Malvinas");
+  - vista inicial demasiado lejana;
+  - zonas en blanco explicadas en la leyenda (áreas rurales sin gobierno local);
+  - la columna del conurbano tapaba todo (altura según zoom);
+  - la capa de barrios de CABA se superponía (ahora solo contorno).

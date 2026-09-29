@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Argentina frente a El Niño 2026-27</title>
+<meta name="description" content="Mapa 3D del riesgo de inundación por El Niño 2026-27 en los 2 282 gobiernos locales de Argentina, con datos públicos y pronósticos que se actualizan solos.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css">
+<link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+<a class="saltar" href="#tabla" data-i18n="saltar">Ir a la tabla de datos</a>
+
+<header class="cabecera">
+  <div class="titulo">
+    <h1 data-i18n="titulo">Argentina frente a El Niño 2026-27</h1>
+    <p class="bajada" data-i18n="bajada">Riesgo de inundación en los 2 282 gobiernos locales, mes a mes, con datos públicos que se actualizan solos.</p>
+  </div>
+  <div class="controles-globales">
+    <button id="btn-idioma" class="boton-chico" aria-label="Change language to English">EN</button>
+    <button id="btn-tema" class="boton-chico" aria-label="Cambiar tema claro u oscuro">◐</button>
+  </div>
+</header>
+
+<section class="kpis" aria-label="Indicadores del mes seleccionado">
+  <div class="kpi"><span class="kpi-etiqueta" data-i18n="kpi_personas">Personas en terreno bajo, ponderadas por riesgo</span><span class="kpi-valor" id="kpi-personas">–</span></div>
+  <div class="kpi"><span class="kpi-etiqueta" data-i18n="kpi_municipios">Municipios con riesgo alto (≥ 7 de 10)</span><span class="kpi-valor" id="kpi-municipios">–</span></div>
+  <div class="kpi"><span class="kpi-etiqueta" data-i18n="kpi_estaciones">Estaciones de río con ≥ 50 % de probabilidad de nivel de evacuación (escenario GloFAS)</span><span class="kpi-valor" id="kpi-estaciones">–</span></div>
+</section>
+
+<nav class="meses" aria-label="Mes">
+  <button id="btn-play" class="boton-chico" aria-label="Reproducir la secuencia de meses">▶</button>
+  <div id="botones-mes" role="radiogroup" aria-label="Mes"></div>
+  <span class="actualizado" id="actualizado"></span>
+</nav>
+
+<main class="escenario">
+  <div id="mapa" role="region" aria-label="Mapa 3D de riesgo de inundación"></div>
+
+  <aside class="leyenda" aria-label="Leyenda">
+    <p class="leyenda-titulo" data-i18n="leyenda_titulo">Riesgo de inundación (0-10)</p>
+    <div id="leyenda-escala" class="leyenda-escala"></div>
+    <p class="leyenda-nota" data-i18n="leyenda_altura">La altura de cada municipio también indica el riesgo.</p>
+    <p class="leyenda-nota" data-i18n="leyenda_blanco">En blanco: zonas rurales sin gobierno local (1 % de la población).</p>
+    <p class="leyenda-nota"><span class="punto-estacion"></span> <span data-i18n="leyenda_estacion">Estación de río: el tamaño es la probabilidad de superar el nivel de evacuación.</span></p>
+  </aside>
+
+  <article id="ficha" class="ficha" hidden aria-live="polite"></article>
+
+  <div class="relato" id="relato">
+    <section class="capitulo" data-vista="pais">
+      <h2 data-i18n="c1_t">Un Niño de los más fuertes</h2>
+      <p data-i18n="c1_p">NOAA da más del 90 % de probabilidad de un Niño muy fuerte. En Argentina eso significa más lluvia en el Litoral y la región pampeana, y ríos que crecen con semanas de retraso. Cada municipio se levanta según su riesgo.</p>
+    </section>
+    <section class="capitulo" data-vista="litoral">
+      <h2 data-i18n="c2_t">El Litoral concentra el riesgo más alto</h2>
+      <p data-i18n="c2_p">Corrientes, Chaco y Santa Fe combinan terreno bajo, historia de inundaciones y ríos grandes. Sus municipios siguen en el 10 % más riesgoso en más del 90 % de las 1 000 simulaciones con pesos distintos.</p>
+    </section>
+    <section class="capitulo" data-vista="rios">
+      <h2 data-i18n="c3_t">Los ríos: un escenario, no una certeza</h2>
+      <p data-i18n="c3_p">GloFAS pronostica caudales del Paraná comparables a El Niño 2015-16. El INA hoy informa aguas medias y no emite pronóstico estacional: por eso se muestra como escenario, y el modelo se corrige cada día con las alturas medidas.</p>
+    </section>
+    <section class="capitulo" data-vista="conurbano">
+      <h2 data-i18n="c4_t">Donde más gente hay en riesgo</h2>
+      <p data-i18n="c4_p">En el conurbano el riesgo relativo es medio, pero la cantidad de personas en terreno bajo y sin cloaca lo vuelve prioritario: La Matanza, Lomas de Zamora, Lanús, Quilmes.</p>
+    </section>
+    <section class="capitulo" data-vista="caba">
+      <h2 data-i18n="c5_t">CABA: lluvia y sumideros</h2>
+      <p data-i18n="c5_p">Con 13 años de reclamos al 147, el modelo anticipa el doble de reclamos por sumideros y calles anegadas que un promedio histórico en días de tormenta. Para diciembre y enero espera entre 3 % y 5 % más.</p>
+    </section>
+  </div>
+</main>
+
+<section class="bloque" aria-labelledby="t-evolucion">
+  <h2 id="t-evolucion" data-i18n="evolucion_t">Personas en riesgo, mes a mes</h2>
+  <div id="grafico-meses" class="grafico" role="img" aria-describedby="t-evolucion"></div>
+</section>
+
+<section class="bloque" id="tabla" aria-labelledby="t-tabla">
+  <h2 id="t-tabla" data-i18n="tabla_t">Los 20 municipios prioritarios del mes pico</h2>
+  <div class="pestanas" role="tablist">
+    <button role="tab" aria-selected="true" data-ranking="top_relativo" data-i18n="tab_relativo">Por riesgo relativo</button>
+    <button role="tab" aria-selected="false" data-ranking="top_personas" data-i18n="tab_personas">Por cantidad de personas</button>
+  </div>
+  <table class="tabla">
+    <thead><tr>
+      <th data-i18n="col_mun">Municipio</th><th data-i18n="col_prov">Provincia</th>
+      <th class="num" data-i18n="col_riesgo">Riesgo</th><th class="num" data-i18n="col_personas">Personas en riesgo</th>
+      <th class="num" data-i18n="col_robustez">Robustez</th>
+    </tr></thead>
+    <tbody id="tabla-cuerpo"></tbody>
+  </table>
+  <p class="nota" data-i18n="robustez_nota">Robustez: % de 1 000 simulaciones con pesos aleatorios en las que el municipio queda en el 10 % de mayor riesgo.</p>
+</section>
+
+<footer class="pie">
+  <p data-i18n="pie_oficial"><strong>No es un producto oficial.</strong> Ante una emergencia, seguí las indicaciones de Defensa Civil, el SMN y el INA.</p>
+  <p data-i18n="pie_metodo">Riesgo = (amenaza × exposición × vulnerabilidad)^⅓, estructura INFORM. Amenaza: agua en superficie, crecida de ríos y quebradas. Exposición: población en terreno bajo. Vulnerabilidad: falta de cloacas, NBI, materiales de la vivienda y barrios populares.</p>
+  <p data-i18n="pie_fuentes">Fuentes: INDEC (Censo 2022), IGN, INA, SMN, ECMWF SEAS5, GloFAS, ERA5, MapBiomas Argentina, JRC, Dynamic World, RENABAP, BA Data, OpenStreetMap (© colaboradores, ODbL). Relieve: AWS Terrain Tiles. Mapa base: OpenFreeMap.</p>
+  <p><a href="https://github.com/diamedego/Mapa-de-riesgo-super-ni-o" data-i18n="pie_repo">Código, datos y metodología en GitHub</a></p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
