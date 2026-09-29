@@ -146,3 +146,17 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - Municipios con mayor % de superficie con agua nueva: Puerto Vilelas (Chaco) 22,9 %, Isla Las Lechiguanas y Victoria (Entre Ríos) ~21 %.
 - En el 65 % de los gobiernos locales el agua observada en El Niño supera a la de la sequía. En el resto no hay diferencia apreciable: zonas áridas o sin cuerpos de agua.
 - Esta capa sirve para **validar** el índice de riesgo: los municipios que el índice marque como más riesgosos deberían ser los que más agua tuvieron en los Niños pasados.
+
+## 2026-09-29 · Diseño del índice de riesgo (decisiones de la usuaria)
+
+- **Un índice por amenaza + uno combinado**: crecida de ríos grandes, anegamiento y agua en superficie, aludes (NOA/Cuyo) y salud (dengue).
+- **Dos rankings**: por cantidad de personas en riesgo y por proporción del municipio en riesgo (lógica de Pareto).
+- **Mapa**: gobierno local de lejos; radio censal al acercar.
+- **Método híbrido** (se discutieron y descartaron las alternativas puras):
+  - *Solo INFORM* (pesos iguales, media geométrica): estándar pero genérico.
+  - *Todo calibrado con datos*: hay solo dos Niños con satélite completo (sobreajuste). El satélite mide agua abierta, no daño: un índice calibrado solo contra agua le quitaría peso a la vulnerabilidad social. Además sería circular (no quedaría evento para validar).
+  - *Elegido*:
+    - (1) **Amenaza con modelo propio**: entrenar con El Niño 2015-16, validar fuera de muestra con El Niño 2023-24 y aplicar al pronóstico 2026-27.
+    - (2) **Exposición y vulnerabilidad con estructura INFORM**, transparente.
+    - (3) **Análisis de sensibilidad** de pesos (Monte Carlo): qué municipios quedan en el top con cualquier combinación razonable.
+    - (4) **Validación extra** con el modelo del 147 en CABA y el dengue 2023-24.
