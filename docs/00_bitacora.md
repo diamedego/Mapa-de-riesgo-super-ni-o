@@ -102,3 +102,17 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - `datos.salud.gob.ar` no envía el certificado intermedio "Sectigo DV R36" y la verificación TLS fallaba. No se desactivó la verificación: se agregó el intermedio oficial (descargado de la URL AIA del propio certificado, `crt.sectigo.com`) en `ingesta/certificados/`, y `comun.sesion()` lo suma a los certificados estándar.
 - El portal etiqueta mal los formatos (2023-2024 figura como XLS y es CSV). El filtro ahora mira la extensión de la URL.
 - Los archivos de dengue tienen dos esquemas de columnas: hasta 2022 (`departamento_id`, `año`, `semanas_epidemiologicas`…) y desde 2024 (`id_depto_indec_residencia`, `anio_min`, `sepi_min`…). Se unifican en la capa silver.
+
+## 2026-09-28 (madrugada) · MapBiomas, suelo y deslizamientos
+
+**Hecho**
+- `earth_engine/uso_suelo.py`: % de superficie urbana, agua, humedal y cultivos para cada gobierno local y cada año 1985-2024 (MapBiomas Argentina col. 2). 365 120 valores, sin nulos.
+- `earth_engine/suelo_deslizamientos.py`: arcilla superficial (OpenLandMap 250 m), percentil 90 de la pendiente y deslizamientos del Catálogo Global de la NASA (1970-2019) por gobierno local.
+
+**Hallazgos**
+- La superficie urbana dentro de los gobiernos locales creció de 10 081 km² (1985) a 13 675 km² (2024): **+36 %**. Más superficie impermeable = más escorrentía.
+- El agua en superficie sube en los años Niño: ~15 200 km² en 1997 y 2016, frente a 12 300 km² en la sequía de La Niña 2022-23 (**−19 %**). Es la señal que el mapa tiene que mostrar.
+- El catálogo de la NASA registra deslizamientos en solo 7 gobiernos locales: **subregistro** (se basa en noticias) y muchos aludes ocurren fuera de los ejidos. Para el NOA se usará un indicador propio: pendiente p90 + arcilla + anomalía de lluvia SEAS5.
+
+**Problemas**
+- El geoservicio del INTA (`geo-backend.inta.gob.ar`) no respondió. La textura/arcilla de OpenLandMap reemplaza por ahora al mapa de suelos del INTA; se reintentará.
