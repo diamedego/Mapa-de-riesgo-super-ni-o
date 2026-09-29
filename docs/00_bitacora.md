@@ -221,3 +221,14 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 **Reclamos de CABA (`transformacion/reclamos_caba.py`)**
 - 4 esquemas de columnas entre 2011 y 2026. Pluviales: 1 600 a 6 000 por año, 97-100 % con barrio oficial.
 - 2012 y 2013 están incompletos en el portal (585 y 3 304 filas). Los reclamos cloacales cambian de registro en 2020 (probable traspaso a AySA), así que no son serie continua. "NUEZ" = Núñez (se pierde la Ñ).
+
+## 2026-09-29 · Modelo de anegamientos en CABA (reclamos al 147)
+
+- `modelos/anegamientos_caba.py`: GLM binomial negativo de reclamos pluviales diarios por barrio. Variables: lluvia del día, del día anterior y acumulada 3 días (log), interacción, barrio, día de la semana y régimen 2020+. Entrenamiento 2014-2022; validación 2023-2026 (incluye El Niño 2023-24).
+- **Primer modelo que supera a su línea base**:
+  - Correlación diaria de la ciudad: 0,44 vs −0,03 del promedio histórico.
+  - En los 58 días con ≥ 20 mm: 1 165 reclamos observados; el modelo anticipa 659 y la línea base 335.
+  - Ranking de barrios: Spearman 0,87.
+  - Error semanal por barrio: parecido a la línea base (0,92 vs 0,94).
+- Límite: subestima los días de tormenta fuerte. ERA5 (~25 km) suaviza la lluvia convectiva localizada.
+- Pronóstico 2026-27 por método delta (días de lluvia históricos del mes escalados por el cociente SEAS5/normal de CABA): dic +3 %, ene +5 % de reclamos respecto de lluvia normal (p90: 225 y 251 reclamos/mes en toda la ciudad). El Niño afecta menos a CABA que al Litoral.

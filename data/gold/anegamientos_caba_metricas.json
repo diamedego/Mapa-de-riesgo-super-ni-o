@@ -1,0 +1,23 @@
+{
+  "correlacion_diaria_ciudad": {
+    "modelo": 0.441,
+    "linea_base": -0.029
+  },
+  "dias_lluvia_20mm_o_mas": {
+    "n": 58,
+    "reclamos_obs": 1165,
+    "reclamos_modelo": 659,
+    "reclamos_linea_base": 335
+  },
+  "spearman_barrios_total_periodo": 0.867,
+  "mae_semanal_por_barrio": {
+    "modelo": 0.923,
+    "linea_base": 0.939
+  },
+  "coeficientes_lluvia": {
+    "log_lluvia_mm": 0.081,
+    "log_lluvia_ayer": 0.007,
+    "log_lluvia_3d": 0.015,
+    "log_lluvia_mm:log_lluvia_3d": 0.035
+  }
+}
