@@ -127,3 +127,10 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - ~18,0 millones de personas (39,5 %) viven en radios con más de la mitad de su superficie a menos de 2 m sobre el cauce más cercano (HAND, MERIT Hydro 90 m).
 - De ellas, ~7,8 millones (17 % del total) viven en radios donde menos de la mitad de los hogares desagota a red cloacal (Censo 2022).
 - Matiz metodológico: en la llanura pampeana y chaqueña un HAND bajo es muy frecuente. Indica terreno bajo y drenaje lento, no inundación segura. Se combinará con el pronóstico de lluvia, el agua histórica y los reclamos en el índice de riesgo.
+
+## 2026-09-29 (madrugada) · Inundación observada por satélite
+
+**Decisión: se descarta Sentinel-1 y se usa Dynamic World**
+- Primer intento: radar Sentinel-1, agua = VV < -18 dB, comparando El Niño 2023-24 con la sequía de La Niña 2022-23. En una muestra de 10 municipios de Corrientes y Entre Ríos, la sequía mostraba **más** agua que El Niño (p. ej., Estación Torrent: 8,0 % vs 1,2 %), lo que no tiene sentido físico. Causas conocidas: el suelo seco y liso refleja poca señal de radar y se confunde con agua, y en 2022-23 solo operaba Sentinel-1A (Sentinel-1B falló en dic-2021). **No se usa.**
+- Segundo intento: Dynamic World (clasificación con deep learning sobre Sentinel-2). En la misma muestra, El Niño muestra más agua que la sequía en los 10 casos (Estación Torrent: 5,5 % vs 0,06 %). Es coherente, así que se adopta. Se agrega El Niño 2015-16 (Dynamic World empieza a mediados de 2015).
+- `earth_engine/inundacion_observada.py` en curso para los 2 282 gobiernos locales.
