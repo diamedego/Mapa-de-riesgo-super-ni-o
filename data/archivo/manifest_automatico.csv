@@ -8,3 +8,4 @@ fecha_descarga,fuente,dataset,url,archivo,formato,registros,licencia,estado,nota
 2026-09-29T18:07:23,SMN,alertas CAP vigentes,https://ssl.smn.gob.ar/CAP/AR.php,data/archivo/smn_cap/alertas_2026-09-29.parquet,GeoParquet,106,CC BY 4.0 (SMN),ok,25 avisos en el feed
 2026-09-29T17:15:22,Open-Meteo (ECMWF IFS 0.25°),pronóstico diario de lluvia 16 días por gobierno local,https://api.open-meteo.com/v1/forecast,data/archivo/pronostico_corto/2026-09-29.parquet,Parquet,43358,"CC BY 4.0, uso no comercial gratuito",ok,
 2026-09-29T22:20:07,SMN,alertas CAP vigentes,https://ssl.smn.gob.ar/CAP/AR.php,data/archivo/smn_cap/alertas_2026-09-29.parquet,GeoParquet,107,CC BY 4.0 (SMN),ok,26 avisos en el feed
+2026-09-30T05:38:36,SMN,alertas CAP vigentes,https://ssl.smn.gob.ar/CAP/AR.php,data/archivo/smn_cap/alertas_2026-09-30.parquet,GeoParquet,25,CC BY 4.0 (SMN),ok,25 avisos en el feed
