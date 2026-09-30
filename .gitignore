@@ -13,3 +13,7 @@ data/silver/**
 # Credenciales
 .env
 *.key.json
+
+# Capa bronze exportada (se regenera con sql/exportar_bronze.py)
+data/bronze/
+data/*.duckdb

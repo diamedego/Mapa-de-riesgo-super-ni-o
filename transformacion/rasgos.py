@@ -51,7 +51,7 @@ def rasgos_radios() -> pd.DataFrame:
 def main() -> None:
     REF.mkdir(parents=True, exist_ok=True)
     r = rasgos_radios()
-    r.round(3).to_parquet(REF / "rasgos_radios.parquet", index=False)
+    r.to_parquet(REF / "rasgos_radios.parquet", index=False)  # sin redondear: el redondeo creaba empates artificiales en los rankings
 
     # Agregado por gobierno local (ponderado por población)
     def pond(g, c):
@@ -83,7 +83,7 @@ def main() -> None:
     out = (base.merge(agg, on="cmu", how="left")
            .merge(ter, on="cmu", how="left").merge(obs, on="cmu", how="left")
            .merge(sue, on="cmu", how="left").merge(uso, on="cmu", how="left"))
-    out.round(4).to_parquet(REF / "rasgos_gobiernos_locales.parquet", index=False)
+    out.to_parquet(REF / "rasgos_gobiernos_locales.parquet", index=False)
     print(f"Radios: {len(r)} | gobiernos locales: {len(out)} | columnas: {out.shape[1]}")
     print(out[["poblacion", "pob_terreno_bajo", "pob_bajo_sin_cloaca", "pct_cloaca", "pct_nbi"]].sum().round(0).head(3))
     for f in REF.glob("*.parquet"):

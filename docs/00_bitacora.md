@@ -290,3 +290,11 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   - zonas en blanco explicadas en la leyenda (áreas rurales sin gobierno local);
   - la columna del conurbano tapaba todo (altura según zoom);
   - la capa de barrios de CABA se superponía (ahora solo contorno).
+
+## 2026-09-30 · Modelo en capas en SQL (bronze → silver → gold)
+
+- `sql/exportar_bronze.py`: aterrizaje de 12 tablas bronze (7,6 MB), sin transformar. Solo se resuelven en Python los 3 cruces geoespaciales (radio → gobierno local, RENABAP por gobierno local, estación de río más cercana), que quedan como tablas de correspondencia.
+- `sql/10_silver.sql`: radios censales (Censo de formato largo a una fila por radio: % cloaca, NBI, materiales), gobiernos locales (agregados ponderados por población + satélite + RENABAP), factor de lluvia SEAS5 por mes y amenaza de ríos.
+- `sql/20_gold.sql`: componentes fijos (indicadores a formato largo → percentiles con `RANK` + `CUME_DIST` por ventana → vuelta a formato ancho), índice mensual INFORM y resumen nacional.
+- Los mismos archivos SQL corren en **DuckDB** (`sql/correr_duckdb.py`) y en **Databricks** (`sql/correr_databricks.py`, pendiente del login).
+- **Validación**: el SQL reproduce el índice de Python en las 15 974 combinaciones municipio × mes con los **mismos rankings** y diferencias ≤ 0,00005 (redondeo de salida). En la primera prueba había diferencias de hasta 0,002: los rasgos se guardaban redondeados y eso creaba empates artificiales en los percentiles. Se quitó el redondeo de `transformacion/rasgos.py`.
