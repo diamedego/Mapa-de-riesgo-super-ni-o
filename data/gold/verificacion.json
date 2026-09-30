@@ -1,12 +1,22 @@
 {
   "lluvia_16_dias": {
-    "estado": "sin verificar todavía",
-    "corridas": 1
+    "estado": "pocos días",
+    "dias_verificados": 1,
+    "por_plazo": {
+      "0-3": {
+        "n": 2282,
+        "correlacion": 0.995,
+        "sesgo_mm": -0.12,
+        "deteccion_20mm": 0.939
+      }
+    },
+    "peso_pronostico": 1.0
   },
   "rios": {
-    "estado": "pocos días",
-    "pares": 15,
-    "archivo_gold": "rios_pronostico_mensual.parquet"
+    "estado": "verificado",
+    "pares": 42,
+    "error_medio_m": 0.56,
+    "sesgo_m": 0.34
   },
-  "actualizado": "2026-09-29"
+  "actualizado": "2026-09-30"
 }
