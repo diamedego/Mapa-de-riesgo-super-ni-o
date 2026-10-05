@@ -42,3 +42,4 @@ fecha_descarga,fuente,dataset,url,archivo,formato,registros,licencia,estado,nota
 2026-10-04T18:39:56,SMN,alertas CAP vigentes,https://ssl.smn.gob.ar/CAP/AR.php,data/archivo/smn_cap/alertas_2026-10-04.parquet,GeoParquet,113,CC BY 4.0 (SMN),ok,26 avisos en el feed
 2026-10-04T23:59:09,SMN,alertas CAP vigentes,https://ssl.smn.gob.ar/CAP/AR.php,data/archivo/smn_cap/alertas_2026-10-04.parquet,GeoParquet,140,CC BY 4.0 (SMN),ok,32 avisos en el feed
 2026-10-05T05:47:52,SMN,alertas CAP vigentes,https://ssl.smn.gob.ar/CAP/AR.php,data/archivo/smn_cap/alertas_2026-10-05.parquet,GeoParquet,32,CC BY 4.0 (SMN),ok,32 avisos en el feed
+2026-10-05T14:48:37,SMN,alertas CAP vigentes,https://ssl.smn.gob.ar/CAP/AR.php,data/archivo/smn_cap/alertas_2026-10-05.parquet,GeoParquet,56,CC BY 4.0 (SMN),ok,33 avisos en el feed
