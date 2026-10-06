@@ -1,5 +1,5 @@
 {
- "calculado": "2026-09-29",
+ "calculado": "2026-09-30",
  "corrida_seas5": "2026-09-28",
  "corrida_glofas": "2026-09-29",
  "meses": [
@@ -12,45 +12,47 @@
   "2027-04"
  ],
  "mes_pico": "2027-02",
+ "peso_pronostico": 1.0,
+ "verificacion_lluvia": "sin verificar todavía",
  "por_mes": {
   "2026-10": {
-   "personas_en_riesgo": 8816177.4,
+   "personas_en_riesgo": 8816181.0,
    "riesgo_medio": 3.8,
    "municipios_riesgo_alto": 16.0,
    "estaciones_prob_evacuacion_50": 15
   },
   "2026-11": {
-   "personas_en_riesgo": 9085198.2,
+   "personas_en_riesgo": 9085201.9,
    "riesgo_medio": 4.0,
    "municipios_riesgo_alto": 70.0,
    "estaciones_prob_evacuacion_50": 25
   },
   "2026-12": {
-   "personas_en_riesgo": 9709884.7,
+   "personas_en_riesgo": 9709889.0,
    "riesgo_medio": 4.2,
    "municipios_riesgo_alto": 113.0,
    "estaciones_prob_evacuacion_50": 22
   },
   "2027-01": {
-   "personas_en_riesgo": 9870971.7,
+   "personas_en_riesgo": 9870976.2,
    "riesgo_medio": 4.2,
    "municipios_riesgo_alto": 137.0,
    "estaciones_prob_evacuacion_50": 17
   },
   "2027-02": {
-   "personas_en_riesgo": 9699422.9,
+   "personas_en_riesgo": 9699427.1,
    "riesgo_medio": 4.2,
    "municipios_riesgo_alto": 144.0,
    "estaciones_prob_evacuacion_50": 17
   },
   "2027-03": {
-   "personas_en_riesgo": 9027383.2,
+   "personas_en_riesgo": 9027387.2,
    "riesgo_medio": 3.9,
    "municipios_riesgo_alto": 50.0,
    "estaciones_prob_evacuacion_50": 16
   },
   "2027-04": {
-   "personas_en_riesgo": 9041646.0,
+   "personas_en_riesgo": 9041649.9,
    "riesgo_medio": 3.9,
    "municipios_riesgo_alto": 53.0,
    "estaciones_prob_evacuacion_50": 16
@@ -182,7 +184,7 @@
    "nam": "San Miguel",
    "jur": "Corrientes",
    "riesgo": 7.95,
-   "personas_en_riesgo": 3809.72,
+   "personas_en_riesgo": 3809.61,
    "pct_simulaciones_top10": 98.4
   },
   {
@@ -380,154 +382,6 @@
    "pct_simulaciones_top10": 2.6
   }
  ],
- "poblacion_total": 45181442.0,
- "poblacion_terreno_bajo": 17777284.0,
  "municipios": 2282,
- "estaciones_confiables": 43,
- "cajas_radios": {
-  "02": [
-   -58.531,
-   -34.705,
-   -58.335,
-   -34.527
-  ],
-  "06": [
-   -63.386,
-   -41.038,
-   -56.663,
-   -33.262
-  ],
-  "10": [
-   -69.095,
-   -30.12,
-   -64.781,
-   -25.168
-  ],
-  "14": [
-   -65.619,
-   -34.851,
-   -61.788,
-   -29.571
-  ],
-  "18": [
-   -59.712,
-   -30.73,
-   -55.62,
-   -27.256
-  ],
-  "22": [
-   -63.422,
-   -28.066,
-   -58.378,
-   -24.079
-  ],
-  "26": [
-   -72.074,
-   -46.0,
-   -64.263,
-   -42.0
-  ],
-  "30": [
-   -60.72,
-   -34.035,
-   -57.812,
-   -30.218
-  ],
-  "34": [
-   -62.342,
-   -26.878,
-   -57.559,
-   -22.462
-  ],
-  "38": [
-   -67.213,
-   -24.613,
-   -64.151,
-   -21.781
-  ],
-  "42": [
-   -68.297,
-   -39.314,
-   -63.383,
-   -35.002
-  ],
-  "46": [
-   -69.635,
-   -31.998,
-   -65.423,
-   -27.707
-  ],
-  "50": [
-   -70.584,
-   -37.575,
-   -66.478,
-   -31.999
-  ],
-  "54": [
-   -56.059,
-   -28.162,
-   -53.638,
-   -25.498
-  ],
-  "58": [
-   -71.731,
-   -40.867,
-   -67.998,
-   -36.321
-  ],
-  "62": [
-   -71.886,
-   -42.0,
-   -62.79,
-   -37.572
-  ],
-  "66": [
-   -68.507,
-   -26.417,
-   -62.341,
-   -21.999
-  ],
-  "70": [
-   -70.569,
-   -32.626,
-   -66.662,
-   -28.389
-  ],
-  "74": [
-   -67.185,
-   -35.733,
-   -64.883,
-   -31.969
-  ],
-  "78": [
-   -72.901,
-   -51.685,
-   -65.867,
-   -46.423
-  ],
-  "82": [
-   -62.884,
-   -34.387,
-   -58.879,
-   -27.998
-  ],
-  "86": [
-   -65.17,
-   -29.779,
-   -61.809,
-   -25.786
-  ],
-  "90": [
-   -66.177,
-   -28.014,
-   -64.482,
-   -26.058
-  ],
-  "94": [
-   -68.399,
-   -54.851,
-   -65.977,
-   -53.718
-  ]
- }
+ "estaciones_confiables": 43
 }

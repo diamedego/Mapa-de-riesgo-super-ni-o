@@ -84,11 +84,12 @@ jobs:
           python modelos/rios.py pronostico
           python modelos/verificacion.py
           python modelos/indice_riesgo.py
+          python web/actualizar_datos_web.py
 
       - name: Guardar en el repo
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f data/archivo data/gold
+          git add -f data/archivo data/gold web/datos/riesgo.json web/datos/estaciones.geojson web/datos/resumen.json
           git diff --cached --quiet || git commit -m "Datos automáticos: ${{ steps.tarea.outputs.tarea }} $(date -u +%F\ %H:%M) UTC"
           git pull --rebase --autostash && git push

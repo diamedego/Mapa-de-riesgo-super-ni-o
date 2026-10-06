@@ -239,15 +239,40 @@ function mostrarTooltipRadio(e) {
     `<br>${t("radio_poblacion")}: ${Math.round(p.poblacion).toLocaleString(estado.idioma === "es" ? "es-AR" : "en-US")}`);
 }
 
+// Copia los números del día a cada municipio con los nombres que usan las capas: r_<mes>, p_<mes>, …
+function unirRiesgo(geo, riesgo) {
+  geo.features.forEach((f) => {
+    const d = riesgo.cmu[f.properties.cmu];
+    if (!d) return;
+    riesgo.meses.forEach((m, i) => {
+      Object.assign(f.properties, { [`r_${m}`]: d.r[i], [`p_${m}`]: d.p[i], [`h_${m}`]: d.h[i],
+        [`ha_${m}`]: d.ha[i], [`hr_${m}`]: d.hr[i], [`hq_${m}`]: d.hq[i] });
+    });
+    Object.assign(f.properties, { E: d.E, V: d.V, robustez: d.rob });
+  });
+}
+
+// Radio censal: riesgo = cbrt(amenaza del municipio en el mes × exposición del radio × vulnerabilidad del radio)
+function riesgoRadios(features) {
+  features.forEach((f) => {
+    const d = estado.riesgo.cmu[f.properties.cmu];
+    if (!d) return;
+    estado.riesgo.meses.forEach((m, i) => {
+      f.properties[`r_${m}`] = Math.round(Math.cbrt(d.h[i] * f.properties.E * f.properties.V) * 10) / 10;
+    });
+  });
+}
+
 // Carga los radios de las provincias visibles (una sola vez cada una)
 async function cargarRadiosVisibles() {
   if (mapa.getZoom() < 9) return;
   const b = mapa.getBounds();
-  const pendientes = Object.entries(estado.datos.resumen.cajas_radios).filter(([prov, [x0, y0, x1, y1]]) =>
+  const pendientes = Object.entries(estado.datos.cajas).filter(([prov, [x0, y0, x1, y1]]) =>
     !estado.provinciasCargadas.has(prov) && x0 < b.getEast() && x1 > b.getWest() && y0 < b.getNorth() && y1 > b.getSouth());
   for (const [prov] of pendientes) {
     estado.provinciasCargadas.add(prov);
     const geo = await fetch(`datos/radios/${prov}.geojson`).then((r) => r.json());
+    riesgoRadios(geo.features);
     estado.radios.push(...geo.features);
   }
   if (pendientes.length) mapa.getSource("radios").setData({ type: "FeatureCollection", features: estado.radios });
@@ -284,11 +309,11 @@ function seleccionar(p) {
     ${barra(t("ficha_expo"), p.E)}
     ${barra(t("ficha_vuln"), p.V)}
     <hr style="border:0;border-top:1px solid var(--grilla)">
-    ${barra(t("ficha_agua"), p.H_agua)}
-    ${barra(t("ficha_rio"), p.H_rio)}
-    ${barra(t("ficha_quebrada"), p.H_quebrada)}
+    ${barra(t("ficha_agua"), p[`ha_${m}`])}
+    ${barra(t("ficha_rio"), p[`hr_${m}`])}
+    ${barra(t("ficha_quebrada"), p[`hq_${m}`])}
     <p>${t("ficha_bajo")}: <strong>${formatoPersonas(Number(p.pob_terreno_bajo))}</strong><br>
-    ${t("ficha_robustez")}: <strong>${Math.round(Number(p.pct_simulaciones_top10))} %</strong></p>`;
+    ${t("ficha_robustez")}: <strong>${Math.round(Number(p.robustez))} %</strong></p>`;
   ficha.querySelector(".cerrar").onclick = () => { ficha.hidden = true; mapa.setFilter("municipios-seleccion", ["==", ["get", "cmu"], ""]); };
 }
 
@@ -430,10 +455,13 @@ async function iniciar() {
   const tema = new URLSearchParams(location.search).get("tema");
   if (tema) document.documentElement.dataset.theme = tema === "oscuro" ? "dark" : "light";
   const vistaInicial = VISTAS[location.hash.slice(1)] ?? VISTAS.pais;
-  const [resumen, municipios, estaciones, caba] = await Promise.all(
-    ["resumen.json", "municipios.geojson", "estaciones.geojson", "caba_barrios.geojson"]
-      .map((f) => fetch(`datos/${f}`).then((r) => r.json())));
-  estado.datos = { resumen, municipios, estaciones, caba };
+  // Geometrías fijas + números del día (riesgo.json lo reescribe GitHub Actions cada mañana)
+  const [resumen, municipios, riesgo, estaciones, caba, cajas] = await Promise.all(
+    ["resumen.json", "municipios_geo.geojson", "riesgo.json", "estaciones.geojson", "caba_barrios.geojson",
+     "radios/indice.json"].map((f) => fetch(`datos/${f}`, { cache: "no-cache" }).then((r) => r.json())));
+  unirRiesgo(municipios, riesgo);
+  estado.riesgo = riesgo;
+  estado.datos = { resumen, municipios, estaciones, caba, cajas };
   estado.mes = resumen.mes_pico;
 
   mapa = new maplibregl.Map({

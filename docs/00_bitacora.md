@@ -298,3 +298,11 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - `sql/20_gold.sql`: componentes fijos (indicadores a formato largo → percentiles con `RANK` + `CUME_DIST` por ventana → vuelta a formato ancho), índice mensual INFORM y resumen nacional.
 - Los mismos archivos SQL corren en **DuckDB** (`sql/correr_duckdb.py`) y en **Databricks** (`sql/correr_databricks.py`, pendiente del login).
 - **Validación**: el SQL reproduce el índice de Python en las 15 974 combinaciones municipio × mes con los **mismos rankings** y diferencias ≤ 0,00005 (redondeo de salida). En la primera prueba había diferencias de hasta 0,002: los rasgos se guardaban redondeados y eso creaba empates artificiales en los percentiles. Se quitó el redondeo de `transformacion/rasgos.py`.
+
+## 2026-09-30 · Web: geometrías fijas + números diarios
+
+- Separación de la web en dos partes:
+  - **fijo** (`web/preparar_geometrias.py`, Mac): `municipios_geo.geojson` y `radios/<provincia>.geojson`, con exposición y vulnerabilidad del radio;
+  - **diario** (`web/actualizar_datos_web.py`, GitHub Actions): `riesgo.json` (630 KB), `estaciones.geojson`, `resumen.json`.
+- El navegador une ambos y calcula el riesgo de cada radio (cbrt de la amenaza del municipio × E × V). Así el repo no sube 50 MB de geometrías por día.
+- El workflow diario, después del índice, actualiza los datos de la web.
