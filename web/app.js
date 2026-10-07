@@ -121,7 +121,15 @@ const formatoPersonas = (n) => {
 // ---------- Mapa ----------
 let mapa;
 
+// SIN_TESELAS: versión para entornos que bloquean servidores externos (vista privada en claude.ai):
+// sin mapa base ni relieve, solo los datos propios sobre un fondo liso.
+const SIN_TESELAS = window.SIN_TESELAS === true;
+
 function estiloBase() {
+  if (SIN_TESELAS) {
+    return { version: 8, sources: {}, layers: [{ id: "fondo", type: "background",
+      paint: { "background-color": css("--plano") } }] };
+  }
   return `https://tiles.openfreemap.org/styles/${temaOscuro() ? "dark" : "positron"}`;
 }
 
@@ -144,6 +152,11 @@ function nombresEnEspanol() {
 function agregarCapas() {
   const m = estado.mes;
   nombresEnEspanol();
+  if (!SIN_TESELAS) agregarRelieve();
+  agregarCapasDatos(m);
+}
+
+function agregarRelieve() {
   mapa.addSource("relieve", {
     type: "raster-dem", encoding: "terrarium", tileSize: 256, maxzoom: 14,
     tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
@@ -152,6 +165,9 @@ function agregarCapas() {
   mapa.setTerrain({ source: "relieve", exaggeration: 1.6 });
   mapa.addLayer({ id: "sombreado", type: "hillshade", source: "relieve",
     paint: { "hillshade-exaggeration": 0.35, "hillshade-shadow-color": temaOscuro() ? "#000" : "#6b6a66" } });
+}
+
+function agregarCapasDatos(m) {
 
   mapa.addSource("municipios", { type: "geojson", data: estado.datos.municipios, promoteId: "cmu" });
   mapa.addLayer({ id: "municipios-3d", type: "fill-extrusion", source: "municipios",
@@ -469,7 +485,7 @@ async function iniciar() {
     attributionControl: { compact: true },
   });
   mapa.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
-  mapa.on("style.load", () => { if (!mapa.getSource("relieve")) agregarCapas(); });
+  mapa.on("style.load", () => { if (!mapa.getSource("municipios")) agregarCapas(); });
 
   document.getElementById("btn-idioma").onclick = () => { estado.idioma = estado.idioma === "es" ? "en" : "es"; aplicarIdioma(); };
   document.getElementById("btn-tema").onclick = cambiarTema;
