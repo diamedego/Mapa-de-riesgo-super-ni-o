@@ -48,6 +48,13 @@ def main() -> None:
     fijo[["poblacion", "pob_terreno_bajo"]] = fijo[["poblacion", "pob_terreno_bajo"]].fillna(0).round(0)
     redondear_geojson(gl.merge(fijo, on="cmu"), SALIDA / "municipios_geo.geojson")
 
+    # Provincias: fondo gris del mapa (lo que no cubre ningún gobierno local se ve como "sin datos")
+    pv = gpd.read_parquet(RAIZ / "data" / "raw" / "limites" / "provincias.parquet")[["nam", "geometry"]]
+    pv["geometry"] = pv.geometry.intersection(shapely.box(-75, -56, -52, -21))  # sin el sector antártico
+    pv = pv[~pv.geometry.is_empty]
+    pv["geometry"] = pv.to_crs(5345).simplify(800).to_crs(4326).make_valid()
+    redondear_geojson(pv, SALIDA / "provincias_geo.geojson", 3)
+
     # CABA: reclamos pluviales esperados por barrio y mes
     br = gpd.read_file(RAIZ / "data" / "raw" / "caba" / "barrios.geojson")[["nombre", "geometry"]]
     br["barrio"] = br["nombre"].str.upper().str.normalize("NFKD").str.encode("ascii", "ignore").str.decode("ascii")

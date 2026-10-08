@@ -40,8 +40,7 @@
   <aside class="leyenda" aria-label="Leyenda">
     <p class="leyenda-titulo" data-i18n="leyenda_titulo">Riesgo de inundación (0-10)</p>
     <div id="leyenda-escala" class="leyenda-escala"></div>
-    <p class="leyenda-nota" data-i18n="leyenda_altura">La altura de cada municipio también indica el riesgo.</p>
-    <p class="leyenda-nota" data-i18n="leyenda_blanco">En blanco: zonas rurales sin gobierno local (1 % de la población).</p>
+    <label class="interruptor"><input type="checkbox" id="chk-altura"> <span data-i18n="leyenda_altura">Mostrar el riesgo también como altura</span></label>
     <p class="leyenda-nota"><span class="punto-estacion"></span> <span data-i18n="leyenda_estacion">Estación de río: el tamaño es la probabilidad de superar el nivel de evacuación.</span></p>
   </aside>
 
@@ -50,7 +49,7 @@
   <div class="relato" id="relato">
     <section class="capitulo" data-vista="pais">
       <h2 data-i18n="c1_t">Un Niño de los más fuertes</h2>
-      <p data-i18n="c1_p">NOAA da más del 90 % de probabilidad de un Niño muy fuerte. En Argentina eso significa más lluvia en el Litoral y la región pampeana, y ríos que crecen con semanas de retraso. Cada municipio se levanta según su riesgo.</p>
+      <p data-i18n="c1_p">NOAA da más del 90 % de probabilidad de un Niño muy fuerte. En Argentina eso significa más lluvia en el Litoral y la región pampeana, y ríos que crecen con semanas de retraso. Cada municipio se colorea según su riesgo; el relieve en 3D es el terreno real.</p>
     </section>
     <section class="capitulo" data-vista="litoral">
       <h2 data-i18n="c2_t">El Litoral concentra el riesgo más alto</h2>

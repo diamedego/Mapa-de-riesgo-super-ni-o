@@ -10,11 +10,11 @@ const TEXTOS = {
     kpi_municipios: "Municipios con riesgo alto (≥ 7 de 10)",
     kpi_estaciones: "Estaciones de río con ≥ 50 % de probabilidad de nivel de evacuación (escenario GloFAS)",
     leyenda_titulo: "Riesgo de inundación (0-10)",
-    leyenda_altura: "La altura de cada municipio también indica el riesgo.",
+    leyenda_altura: "Mostrar el riesgo también como altura",
+    niveles: ["Muy bajo", "Bajo", "Medio", "Alto", "Muy alto"], sin_datos: "Sin datos (zona rural sin gobierno local)",
     leyenda_estacion: "Estación de río: el tamaño es la probabilidad de superar el nivel de evacuación.",
-    leyenda_blanco: "En blanco: zonas rurales sin gobierno local (1 % de la población).",
     c1_t: "Un Niño de los más fuertes",
-    c1_p: "NOAA da más del 90 % de probabilidad de un Niño muy fuerte. En Argentina eso significa más lluvia en el Litoral y la región pampeana, y ríos que crecen con semanas de retraso. Cada municipio se levanta según su riesgo.",
+    c1_p: "NOAA da más del 90 % de probabilidad de un Niño muy fuerte. En Argentina eso significa más lluvia en el Litoral y la región pampeana, y ríos que crecen con semanas de retraso. Cada municipio se colorea según su riesgo; el relieve en 3D es el terreno real.",
     c2_t: "El Litoral concentra el riesgo más alto",
     c2_p: "Corrientes, Chaco y Santa Fe combinan terreno bajo, historia de inundaciones y ríos grandes. Sus municipios siguen en el 10 % más riesgoso en más del 90 % de las 1 000 simulaciones con pesos distintos.",
     c3_t: "Los ríos: un escenario, no una certeza",
@@ -50,11 +50,11 @@ const TEXTOS = {
     kpi_municipios: "Municipalities at high risk (≥ 7 out of 10)",
     kpi_estaciones: "River gauges with ≥ 50 % chance of evacuation level (GloFAS scenario)",
     leyenda_titulo: "Flood risk (0-10)",
-    leyenda_altura: "Each municipality's height also shows its risk.",
+    leyenda_altura: "Also show risk as height",
+    niveles: ["Very low", "Low", "Medium", "High", "Very high"], sin_datos: "No data (rural area without local government)",
     leyenda_estacion: "River gauge: size is the chance of exceeding the evacuation level.",
-    leyenda_blanco: "Blank: rural areas with no local government (1 % of the population).",
     c1_t: "One of the strongest El Niños",
-    c1_p: "NOAA gives a >90 % chance of a very strong El Niño. For Argentina that means more rain in the Litoral and the Pampas, and rivers that rise weeks later. Each municipality rises with its risk.",
+    c1_p: "NOAA gives a >90 % chance of a very strong El Niño. For Argentina that means more rain in the Litoral and the Pampas, and rivers that rise weeks later. Each municipality is colored by its risk; the 3D relief is the real terrain.",
     c2_t: "The Litoral carries the highest risk",
     c2_p: "Corrientes, Chaco and Santa Fe combine low ground, a history of floods and large rivers. Their municipalities stay in the riskiest 10 % in over 90 % of 1,000 simulations with different weights.",
     c3_t: "Rivers: a scenario, not a certainty",
@@ -91,11 +91,15 @@ const VISTAS = {
   conurbano: { center: [-58.56, -34.7], zoom: 10.4, pitch: 58, bearing: -10 },
   caba: { center: [-58.44, -34.61], zoom: 11.3, pitch: 50, bearing: 0 },
 };
-const CORTES = [3, 4, 5, 6, 7, 8]; // 7 clases de riesgo: <3, 3-4, …, ≥8
+// 5 niveles de riesgo (escala 0-10). Con el índice de feb-2027: muy alto ≈ 5 % de los municipios,
+// alto ≈ 11 %, medio ≈ 28 %, bajo ≈ 42 %, muy bajo ≈ 14 %: lo más riesgoso se distingue de un vistazo.
+const CORTES = [3, 4.5, 6, 7];
+const RANGOS = ["< 3", "3 – 4,5", "4,5 – 6", "6 – 7", "≥ 7"];
 
 // Altura: solo se levanta el riesgo por encima de 3, y la escala se achica al acercarse
 // (si no, en el conurbano las columnas taparían todo)
 function alturaRiesgo(campo) {
+  if (!estado.altura) return 0;   // por defecto plano: el 3D es solo el relieve real del terreno
   const exceso = ["^", ["max", ["-", ["coalesce", ["get", campo], 0], 3], 0], 2];
   return ["interpolate", ["linear"], ["zoom"], 4, ["*", exceso, 2400], 7, ["*", exceso, 500],
           10, ["*", exceso, 60], 13, ["*", exceso, 8]];
@@ -103,7 +107,7 @@ function alturaRiesgo(campo) {
 const radioEstacion = (campo) => ["interpolate", ["linear"], ["coalesce", ["get", campo], 0], 0, 3, 1, 10];
 
 const estado = { idioma: "es", mes: null, datos: {}, ranking: "top_relativo", seleccion: null, reproduciendo: null,
-  radios: [], provinciasCargadas: new Set() };
+  radios: [], provinciasCargadas: new Set(), altura: false };
 const t = (clave) => TEXTOS[estado.idioma][clave];
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const temaOscuro = () => {
@@ -134,7 +138,7 @@ function estiloBase() {
 }
 
 function colorRiesgo(campo) {
-  const c = [1, 2, 3, 4, 5, 6, 7].map((i) => css(`--r${i}`));
+  const c = [1, 2, 3, 4, 5].map((i) => css(`--r${i}`));
   const expr = ["step", ["coalesce", ["get", campo], 0], c[0]];
   CORTES.forEach((corte, i) => expr.push(corte, c[i + 1]));
   return expr;
@@ -168,6 +172,13 @@ function agregarRelieve() {
 }
 
 function agregarCapasDatos(m) {
+
+  // Fondo gris: todo el país. Lo que queda gris es zona sin gobierno local (sin datos)
+  mapa.addSource("provincias", { type: "geojson", data: estado.datos.provincias });
+  mapa.addLayer({ id: "sin-datos", type: "fill", source: "provincias",
+    paint: { "fill-color": css("--sin-datos"), "fill-opacity": 0.9 } });
+  mapa.addLayer({ id: "provincias-borde", type: "line", source: "provincias",
+    paint: { "line-color": css("--tinta-3"), "line-width": 0.8, "line-opacity": 0.8 } });
 
   mapa.addSource("municipios", { type: "geojson", data: estado.datos.municipios, promoteId: "cmu" });
   mapa.addLayer({ id: "municipios-3d", type: "fill-extrusion", source: "municipios",
@@ -367,14 +378,12 @@ function elegirMes(m) {
 
 function pintarLeyenda() {
   const esc = document.getElementById("leyenda-escala");
-  esc.innerHTML = [1, 2, 3, 4, 5, 6, 7].map((i) => `<span style="background:var(--r${i})"></span>`).join("");
-  let rot = esc.nextElementSibling;
-  if (!rot || !rot.classList.contains("leyenda-rotulos")) {
-    rot = document.createElement("div");
-    rot.className = "leyenda-rotulos";
-    esc.after(rot);
-  }
-  rot.innerHTML = "<span>0</span><span>5</span><span>10</span>";
+  const filas = [5, 4, 3, 2, 1].map((i) => `<div class="leyenda-clase"><span class="muestra" style="background:var(--r${i})"></span>
+      <span>${t("niveles")[i - 1]}</span><span class="rango">${RANGOS[i - 1]}</span></div>`);
+  filas.push(`<div class="leyenda-clase"><span class="muestra" style="background:var(--sin-datos)"></span>
+      <span>${t("sin_datos")}</span><span></span></div>`);
+  esc.innerHTML = filas.join("");
+  esc.nextElementSibling?.classList.contains("leyenda-rotulos") && esc.nextElementSibling.remove();
 }
 
 function pintarTabla() {
@@ -472,12 +481,12 @@ async function iniciar() {
   if (tema) document.documentElement.dataset.theme = tema === "oscuro" ? "dark" : "light";
   const vistaInicial = VISTAS[location.hash.slice(1)] ?? VISTAS.pais;
   // Geometrías fijas + números del día (riesgo.json lo reescribe GitHub Actions cada mañana)
-  const [resumen, municipios, riesgo, estaciones, caba, cajas] = await Promise.all(
+  const [resumen, municipios, riesgo, estaciones, caba, cajas, provincias] = await Promise.all(
     ["resumen.json", "municipios_geo.geojson", "riesgo.json", "estaciones.geojson", "caba_barrios.geojson",
-     "radios/indice.json"].map((f) => fetch(`datos/${f}`, { cache: "no-cache" }).then((r) => r.json())));
+     "radios/indice.json", "provincias_geo.geojson"].map((f) => fetch(`datos/${f}`, { cache: "no-cache" }).then((r) => r.json())));
   unirRiesgo(municipios, riesgo);
   estado.riesgo = riesgo;
-  estado.datos = { resumen, municipios, estaciones, caba, cajas };
+  estado.datos = { resumen, municipios, estaciones, caba, cajas, provincias };
   estado.mes = resumen.mes_pico;
 
   mapa = new maplibregl.Map({
@@ -489,6 +498,7 @@ async function iniciar() {
 
   document.getElementById("btn-idioma").onclick = () => { estado.idioma = estado.idioma === "es" ? "en" : "es"; aplicarIdioma(); };
   document.getElementById("btn-tema").onclick = cambiarTema;
+  document.getElementById("chk-altura").onchange = (e) => { estado.altura = e.target.checked; actualizarMes(); };
   document.getElementById("btn-play").onclick = () => {
     const btn = document.getElementById("btn-play");
     if (estado.reproduciendo) { clearInterval(estado.reproduciendo); estado.reproduciendo = null; btn.textContent = "▶"; return; }

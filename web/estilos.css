@@ -10,8 +10,9 @@
   --eje: #c3c2b7;
   --borde: rgba(11, 11, 11, 0.10);
   --acento: #2a78d6;
-  /* Escala ordinal de riesgo (azul 250 → 700): en claro, más riesgo = más oscuro */
-  --r1: #86b6ef; --r2: #6da7ec; --r3: #5598e7; --r4: #2a78d6; --r5: #1c5cab; --r6: #104281; --r7: #0d366b;
+  /* Riesgo: 5 niveles con nombre, escala de calor (amarillo → rojo oscuro). Más riesgo = más intenso */
+  --r1: #fbefc4; --r2: #f6c96a; --r3: #ef9338; --r4: #d85424; --r5: #961c1c;
+  --sin-datos: #d6d4cc;
   --estacion: #0b0b0b;
   --sombra: 0 1px 3px rgba(0, 0, 0, 0.08);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -22,7 +23,8 @@
     --plano: #0d0d0d; --superficie: #1a1a19; --tinta-1: #ffffff; --tinta-2: #c3c2b7; --tinta-3: #898781;
     --grilla: #2c2c2a; --eje: #383835; --borde: rgba(255, 255, 255, 0.10); --acento: #3987e5;
     /* En oscuro, más riesgo = más claro (azul 600 → 100) */
-    --r1: #184f95; --r2: #256abf; --r3: #2a78d6; --r4: #3987e5; --r5: #6da7ec; --r6: #9ec5f4; --r7: #cde2fb;
+    --r1: #55482f; --r2: #8f6c25; --r3: #d2812b; --r4: #ef5c2f; --r5: #ff8c78;
+    --sin-datos: #232427;
     --estacion: #ffffff;
   }
 }
@@ -30,7 +32,8 @@
   color-scheme: dark;
   --plano: #0d0d0d; --superficie: #1a1a19; --tinta-1: #ffffff; --tinta-2: #c3c2b7; --tinta-3: #898781;
   --grilla: #2c2c2a; --eje: #383835; --borde: rgba(255, 255, 255, 0.10); --acento: #3987e5;
-  --r1: #184f95; --r2: #256abf; --r3: #2a78d6; --r4: #3987e5; --r5: #6da7ec; --r6: #9ec5f4; --r7: #cde2fb;
+  --r1: #55482f; --r2: #8f6c25; --r3: #d2812b; --r4: #ef5c2f; --r5: #ff8c78;
+    --sin-datos: #232427;
   --estacion: #ffffff;
 }
 
@@ -75,8 +78,11 @@ a { color: var(--acento); }
 }
 .leyenda { position: absolute; right: 12px; bottom: 28px; width: 250px; padding: 10px 12px; font-size: 0.8rem; }
 .leyenda-titulo { margin: 0 0 6px; font-weight: 600; }
-.leyenda-escala { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-.leyenda-escala span { height: 10px; border-radius: 2px; }
+.leyenda-escala { display: grid; gap: 3px; margin: 2px 0 6px; }
+.leyenda-clase { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 8px; }
+.leyenda-clase .muestra { height: 12px; border-radius: 2px; }
+.leyenda-clase .rango { color: var(--tinta-3); font-variant-numeric: tabular-nums; }
+.interruptor { display: flex; align-items: center; gap: 6px; margin-top: 8px; cursor: pointer; color: var(--tinta-2); }
 .leyenda-rotulos { display: flex; justify-content: space-between; color: var(--tinta-3); margin-top: 2px; font-variant-numeric: tabular-nums; }
 .leyenda-nota { margin: 6px 0 0; color: var(--tinta-2); }
 .punto-estacion { display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--estacion); vertical-align: -1px; }
