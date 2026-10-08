@@ -24,3 +24,11 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
 - Este archivo resume el proyecto: no re-explorar el repo para ubicarse.
 - Antes de publicar algo nuevo, contrastar cifras extremas (p. ej. GloFAS vs INA) y presentarlas como escenario.
 - Commits con la línea `Co-Authored-By` que indique el sistema; `git pull --rebase` antes de `push` (Actions sube datos solos).
+
+## Pendientes (actualizar al terminar cada tarea)
+- Databricks: login por navegador en la Mac (perfil `mapa-nino`) y correr `sql/correr_databricks.py`.
+- GloFAS semanal: la corrida automática del lunes 5-oct no se guardó; revisar el workflow (posible límite de la API).
+- Sudestada (SHN), reintentar suelos INTA, validar paleta con Node.
+- Re-medir consumo de IA (`consumo_ia/`) en 1-2 semanas.
+- Lanzamiento (antes del 30-nov): pulir web, video 30-60 s, post ES/EN, README, repo público + GitHub Pages.
+- Versión privada en claude.ai: https://claude.ai/artifact/2LcKXVqiZ3ZiGc9ZnnNbyU (actualizar con `web/construir_artifact.py`).
