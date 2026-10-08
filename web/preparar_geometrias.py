@@ -76,7 +76,7 @@ def indice_buscador() -> list:
     """Lugares buscables → municipios (gobiernos locales) que abarcan y caja para centrar el mapa.
 
     Tipos: provincia, departamento / partido / comuna, municipio (gobierno local), localidad y barrio
-    (Georef), y barrios de CABA. Cada entrada: [nombre, tipo, provincia, cmus, [x0, y0, x1, y1]].
+    (Georef), y barrios de CABA. Cada entrada: [nombre, tipo, provincia, cmus, [x0, y0, x1, y1], nivel] con nivel prov/depto/gl/loc.
     """
     raw = RAIZ / "data" / "raw" / "limites"
     gl = gpd.read_parquet(raw / "gobiernos_locales.parquet")[["cmu", "nam", "jur", "gna", "geometry"]]
@@ -86,16 +86,16 @@ def indice_buscador() -> list:
     entradas = []
     for prov, g in gl.groupby("jur"):
         b = g.geometry.intersection(shapely.box(-75, -56, -52, -21)).total_bounds
-        entradas.append([prov, "Provincia", prov, sorted(g["cmu"]), [round(v, 3) for v in b]])
+        entradas.append([prov, "Provincia", prov, sorted(g["cmu"]), [round(v, 3) for v in b], "prov"])
     dep = gpd.read_parquet(raw / "departamentos.parquet")[["cde", "nam", "jur", "geometry"]]
     dep = dep[dep.geometry.representative_point().y > -56]
     cont = gpd.sjoin(pts[["cmu", "geometry"]], dep[["cde", "geometry"]], predicate="within").groupby("cde")["cmu"].apply(sorted)
     for _, d in dep.iterrows():
         tipo = "Partido" if d["jur"] == "Buenos Aires" else "Comuna" if d["jur"].startswith("Ciudad") else "Departamento"
         if d["cde"] in cont.index:
-            entradas.append([d["nam"], tipo, d["jur"], cont[d["cde"]], caja(d.geometry)])
+            entradas.append([d["nam"], tipo, d["jur"], cont[d["cde"]], caja(d.geometry), "depto"])
     for _, g in gl.iterrows():
-        entradas.append([g["nam"], g["gna"] or "Municipio", g["jur"], [g["cmu"]], caja(g.geometry)])
+        entradas.append([g["nam"], g["gna"] or "Municipio", g["jur"], [g["cmu"]], caja(g.geometry), "gl"])
     loc = json.loads((raw / "georef_localidades.json").read_text())["localidades"]
     lg = gpd.GeoDataFrame(loc, geometry=gpd.points_from_xy([l["centroide"]["lon"] for l in loc],
                                                            [l["centroide"]["lat"] for l in loc]), crs=4326)
@@ -104,13 +104,13 @@ def indice_buscador() -> list:
         x, y = l.geometry.x, l.geometry.y
         tipo = "Barrio o paraje" if l["categoria"] == "Entidad" else "Localidad"
         entradas.append([l["nombre"], tipo, l["provincia"]["nombre"], [l["cmu"]],
-                         [round(x - .04, 3), round(y - .03, 3), round(x + .04, 3), round(y + .03, 3)]])
+                         [round(x - .04, 3), round(y - .03, 3), round(x + .04, 3), round(y + .03, 3)], "loc"])
     br = gpd.read_file(RAIZ / "data" / "raw" / "caba" / "barrios.geojson")[["nombre", "geometry"]]
     bp = br.copy()
     bp["geometry"] = br.geometry.representative_point()
     bp = gpd.sjoin(bp, gl[["cmu", "geometry"]], predicate="within")
     for (_, b), geom in zip(bp.iterrows(), br.loc[bp.index].geometry):
-        entradas.append([b["nombre"].title(), "Barrio", "Ciudad Autónoma de Buenos Aires", [b["cmu"]], caja(geom)])
+        entradas.append([b["nombre"].title(), "Barrio", "Ciudad Autónoma de Buenos Aires", [b["cmu"]], caja(geom), "loc"])
     return entradas
 
 

@@ -27,7 +27,13 @@ const TEXTOS = {
     evolucion_nota: "Promedio de los municipios de la zona, en la misma escala de 0 a 10. Pasá el mouse para ver también las personas en riesgo.",
     tabla_t: "Los 20 municipios prioritarios del mes",
     buscar_label: "Buscar un lugar", buscar_ph: "Buscar provincia, partido, municipio, localidad o barrio…",
-    sin_resultados: "Sin resultados", quitar_filtro: "Quitar filtro", en: "en",
+    sin_resultados: "Sin resultados", quitar_filtro: "Quitar filtro", en: "en", pareto_acum: "Acumulado",
+    pareto_t: "¿Dónde se concentra el riesgo?", calor_t: "Riesgo por zona, mes a mes",
+    pareto_nota: "Barras: parte de las personas en riesgo de la zona que aporta cada una. Línea: porcentaje acumulado. Hacé clic en una barra para ver adentro.",
+    calor_nota: "Riesgo promedio de cada zona, ponderado por población, con los mismos colores del mapa. Hacé clic en una fila para ver adentro.",
+    niveles_zona: { prov: "provincias", depto: "partidos y departamentos", gl: "municipios" },
+    pareto_hallazgo: (n, total, tipo, mes) => `<strong>${n} de ${total} ${tipo}</strong> concentran el 80 % de las personas en riesgo en ${mes}.`,
+    resto: "Resto", mas_zonas: (n) => `y ${n} más con menos riesgo`,
     serie_riesgo: "Riesgo", serie_agua: "Agua en superficie", serie_rio: "Crecida de ríos", serie_quebrada: "Quebradas",
     tab_relativo: "Por riesgo relativo", tab_personas: "Por cantidad de personas",
     col_mun: "Municipio", col_prov: "Provincia", col_riesgo: "Riesgo", col_personas: "Personas en riesgo", col_robustez: "Robustez",
@@ -73,7 +79,13 @@ const TEXTOS = {
     evolucion_nota: "Average across the area's municipalities, on the same 0-10 scale. Hover to also see people at risk.",
     tabla_t: "The 20 priority municipalities of the month",
     buscar_label: "Search a place", buscar_ph: "Search a province, district, municipality, town or neighborhood…",
-    sin_resultados: "No results", quitar_filtro: "Clear filter", en: "in",
+    sin_resultados: "No results", quitar_filtro: "Clear filter", en: "in", pareto_acum: "Cumulative",
+    pareto_t: "Where is the risk concentrated?", calor_t: "Risk by area, month by month",
+    pareto_nota: "Bars: each area's share of the people at risk. Line: cumulative percentage. Click a bar to drill down.",
+    calor_nota: "Population-weighted average risk of each area, with the map's colors. Click a row to drill down.",
+    niveles_zona: { prov: "provinces", depto: "districts", gl: "municipalities" },
+    pareto_hallazgo: (n, total, tipo, mes) => `<strong>${n} of ${total} ${tipo}</strong> hold 80 % of the people at risk in ${mes}.`,
+    resto: "Rest", mas_zonas: (n) => `and ${n} more with lower risk`,
     serie_riesgo: "Risk", serie_agua: "Surface water", serie_rio: "River flood", serie_quebrada: "Flash floods",
     tab_relativo: "By relative risk", tab_personas: "By number of people",
     col_mun: "Municipality", col_prov: "Province", col_riesgo: "Risk", col_personas: "People at risk", col_robustez: "Robustness",
@@ -252,7 +264,7 @@ function agregarCapasDatos(m) {
   mapa.on("click", "municipios-3d", (e) => {
     const p = e.features[0].properties;
     seleccionar(p);
-    aplicarZona({ nombre: p.nam, tipo: "Municipio", provincia: p.jur, cmus: [p.cmu] }, false);
+    aplicarZona({ nombre: p.nam, tipo: "Municipio", provincia: p.jur, cmus: [p.cmu], nivel: "gl" }, false);
   });
   mapa.on("mousemove", "estaciones", (e) => mostrarTooltipEstacion(e));
   mapa.on("mouseleave", "estaciones", () => ocultarTooltip());
@@ -439,7 +451,7 @@ function elegirMes(m) {
   pintarMeses();
   pintarKpis();
   actualizarMes();
-  pintarGrafico();
+  pintarPareto(); pintarCalor(); pintarGrafico(); pintarTabla();
   if (estado.seleccion) seleccionar(estado.seleccion);
 }
 
@@ -543,8 +555,8 @@ function pintarGrafico() {
 const normalizar = (txt) => txt.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
 function prepararBuscador() {
-  estado.lugares = estado.datos.buscador.map(([nombre, tipo, provincia, cmus, caja]) =>
-    ({ nombre, tipo, provincia, cmus, caja, clave: normalizar(nombre) }));
+  estado.lugares = estado.datos.buscador.map(([nombre, tipo, provincia, cmus, caja, nivel]) =>
+    ({ nombre, tipo, provincia, cmus, caja, nivel, clave: normalizar(nombre) }));
   const input = document.getElementById("buscar"), lista = document.getElementById("resultados");
   let activos = [], pos = -1;
   const cerrar = () => { lista.hidden = true; input.setAttribute("aria-expanded", "false"); };
@@ -606,7 +618,113 @@ function aplicarZona(lugar, volar) {
     document.getElementById("ficha").hidden = true;
     if (mapa) mapa.setFilter("municipios-seleccion", ["==", ["get", "cmu"], ""]);
   }
-  actualizarMes(); pintarKpis(); pintarGrafico(); pintarTabla();
+  pintarTodo();
+}
+
+function pintarTodo() {
+  actualizarMes(); pintarKpis(); pintarPareto(); pintarCalor(); pintarGrafico(); pintarTabla();
+}
+
+// ---------- Zonas "hijas" de la selección: país → provincias → partidos/departamentos → municipios ----------
+function unidadesHijas() {
+  const z = estado.zona;
+  if (!z) return { nivel: "prov", unidades: estado.lugares.filter((l) => l.nivel === "prov") };
+  if (z.nivel === "prov") {
+    const dentro = new Set(z.cmus);
+    const deptos = estado.lugares.filter((l) => l.nivel === "depto" && l.provincia === z.provincia
+      && l.cmus.every((c) => dentro.has(c)));
+    if (deptos.length > 1) return { nivel: "depto", unidades: deptos };
+  }
+  const gl = estado.lugares.filter((l) => l.nivel === "gl");
+  const porCmu = new Map(gl.map((l) => [l.cmus[0], l]));
+  return { nivel: "gl", unidades: z.cmus.map((c) => porCmu.get(c)).filter(Boolean) };
+}
+
+// Por unidad y mes: personas en riesgo (suma) y riesgo promedio ponderado por población
+function resumenUnidad(u) {
+  const meses = estado.riesgo.meses;
+  const cmus = u.cmus.filter((c) => estado.riesgo.cmu[c]);
+  const pob = cmus.map((c) => Math.max(1, Number(estado.porCmu.get(c)?.poblacion) || 1));
+  const tot = pob.reduce((a, b) => a + b, 0);
+  return { u, personas: meses.map((_, i) => cmus.reduce((a, c) => a + (estado.riesgo.cmu[c].p[i] ?? 0), 0)),
+    riesgo: meses.map((_, i) => cmus.reduce((a, c, k) => a + (estado.riesgo.cmu[c].r[i] ?? 0) * pob[k], 0) / tot) };
+}
+
+function pintarPareto() {
+  const cont = document.getElementById("grafico-pareto");
+  const { nivel, unidades } = unidadesHijas();
+  const i = estado.riesgo.meses.indexOf(estado.mes);
+  let filas = unidades.map(resumenUnidad).filter((f) => f.personas[i] > 0).sort((a, b) => b.personas[i] - a.personas[i]);
+  const total = filas.reduce((a, f) => a + f.personas[i], 0) || 1;
+  let acum = 0, n80 = 0;
+  filas.forEach((f) => { acum += f.personas[i]; f.acum = acum / total; if (f.acum - f.personas[i] / total < 0.8) n80 += 1; });
+  const totalUnidades = filas.length;
+  const MAX = 22;
+  if (filas.length > MAX) {   // la cola larga se agrupa en "Resto"
+    const resto = filas.slice(MAX - 1);
+    filas = filas.slice(0, MAX - 1);
+    filas.push({ resto: true, u: { nombre: `${t("resto")} (${resto.length})` }, personas: estado.riesgo.meses.map((_, k) =>
+      resto.reduce((a, f) => a + f.personas[k], 0)), riesgo: resto[0].riesgo.map(() => 0), acum: 1 });
+  }
+  document.getElementById("pareto-hallazgo").innerHTML =
+    t("pareto_hallazgo")(n80, totalUnidades, t("niveles_zona")[nivel], nombreMes(estado.mes));
+  const W = cont.clientWidth, H = cont.clientHeight, izq = 44, der = 16, arr = 16, aba = 110;
+  const ancho = (W - izq - der) / filas.length;
+  const y = (v) => arr + (1 - v) * (H - arr - aba);       // un solo eje: porcentaje (0-100 %)
+  const xc = (k) => izq + ancho * (k + 0.5);
+  const linea = filas.map((f, k) => `${k ? "L" : "M"}${xc(k)},${y(f.acum)}`).join("");
+  cont.innerHTML = `<svg width="${W}" height="${H}">
+    ${[0, 0.2, 0.4, 0.6, 0.8, 1].map((v) => `<line x1="${izq}" x2="${W - der}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grilla)"/>
+      <text x="${izq - 8}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--tinta-3)">${v * 100} %</text>`).join("")}
+    <line x1="${izq}" x2="${W - der}" y1="${y(0.8)}" y2="${y(0.8)}" stroke="var(--acento)" stroke-width="1"/>
+    <text x="${W - der}" y="${y(0.8) - 6}" text-anchor="end" font-size="11" fill="var(--acento)">80 %</text>
+    ${filas.map((f, k) => { const h = (f.personas[i] / total) * (H - arr - aba);
+      const color = f.resto ? "var(--tinta-3)" : `var(--r${nivelRiesgo(f.riesgo[i])})`;
+      return `<g class="barra-pareto" data-k="${k}" style="cursor:${f.resto ? "default" : "pointer"}">
+        <rect x="${izq + ancho * k + 2}" y="${y(0) - h}" width="${Math.max(2, ancho - 4)}" height="${h}" rx="3" fill="${color}"/>
+        <rect x="${izq + ancho * k}" y="${arr}" width="${ancho}" height="${H - arr - aba}" fill="transparent"/>
+        <text transform="translate(${xc(k) + 4},${y(0) + 10}) rotate(-45)" text-anchor="end" font-size="11" fill="var(--tinta-2)">${f.u.nombre.length > 22 ? f.u.nombre.slice(0, 21) + "…" : f.u.nombre}</text></g>`; }).join("")}
+    <path d="${linea}" fill="none" stroke="var(--tinta-1)" stroke-width="2" stroke-linejoin="round"/>
+    ${filas.map((f, k) => `<circle cx="${xc(k)}" cy="${y(f.acum)}" r="3" fill="var(--tinta-1)" stroke="var(--superficie)" stroke-width="1.5"/>`).join("")}
+    <line x1="${izq}" x2="${W - der}" y1="${y(0)}" y2="${y(0)}" stroke="var(--eje)"/>
+  </svg><div class="tooltip" hidden></div>`;
+  const tip = cont.querySelector(".tooltip");
+  cont.querySelectorAll(".barra-pareto").forEach((g) => {
+    const f = filas[+g.dataset.k];
+    g.addEventListener("mousemove", (ev) => {
+      const r = cont.getBoundingClientRect();
+      tip.hidden = false;
+      tip.innerHTML = `<strong>${f.u.nombre}</strong><br>${formatoPersonas(f.personas[i])} ${t("personas")} ·
+        ${Math.round((100 * f.personas[i]) / total)} %<br>${t("pareto_acum")}: ${Math.round(100 * f.acum)} %` +
+        (f.resto ? "" : `<br>${t("ficha_riesgo")}: ${f.riesgo[i].toFixed(1)} / 10`);
+      tip.style.left = `${Math.min(ev.clientX - r.left + 12, W - 200)}px`; tip.style.top = `${ev.clientY - r.top - 10}px`;
+    });
+    g.addEventListener("mouseleave", () => { tip.hidden = true; });
+    if (!f.resto) g.addEventListener("click", () => aplicarZona(f.u, true));
+  });
+}
+
+function pintarCalor() {
+  const cont = document.getElementById("grafico-calor");
+  const { unidades } = unidadesHijas();
+  const meses = estado.riesgo.meses, i = meses.indexOf(estado.mes);
+  const pico = meses.indexOf(estado.datos.resumen.mes_pico);
+  const filas = unidades.map(resumenUnidad).sort((a, b) => b.riesgo[pico] - a.riesgo[pico]);
+  const MAX = 20, visibles = filas.slice(0, MAX);
+  cont.innerHTML = `<div class="fila-calor encabezado"><span class="etq"></span>${meses.map((m, k) =>
+      `<span class="mes${k === i ? " activo" : ""}">${nombreMes(m)}</span>`).join("")}</div>` +
+    visibles.map((f, r) => `<div class="fila-calor" data-r="${r}"><span class="etq" title="${f.u.nombre}">${f.u.nombre}</span>${
+      f.riesgo.map((v, k) => `<button class="celda n${nivelRiesgo(v)}${k === i ? " mes-activo" : ""}" data-k="${k}"
+        style="background:var(--r${nivelRiesgo(v)})" title="${f.u.nombre} · ${nombreMes(meses[k])}: ${v.toFixed(1)} / 10 · ${formatoPersonas(f.personas[k])} ${t("personas")}">${v.toFixed(1)}</button>`).join("")}</div>`).join("") +
+    (filas.length > MAX ? `<p class="nota">${t("mas_zonas")(filas.length - MAX)}</p>` : "");
+  cont.querySelectorAll(".fila-calor[data-r]").forEach((fila) => {
+    const f = visibles[+fila.dataset.r];
+    fila.querySelectorAll(".celda").forEach((c) => c.addEventListener("click", () => {
+      elegirMes(meses[+c.dataset.k]);   // celda: cambia el mes; nombre de la fila: entra a la zona
+    }));
+    fila.querySelector(".etq").addEventListener("click", () => aplicarZona(f.u, true));
+    fila.querySelector(".etq").style.cursor = "pointer";
+  });
 }
 
 // ---------- Relato con scroll ----------
@@ -635,7 +753,7 @@ function aplicarIdioma() {
   b.textContent = estado.idioma === "es" ? "EN" : "ES";
   b.setAttribute("aria-label", estado.idioma === "es" ? "Change language to English" : "Cambiar el idioma a español");
   document.title = t("titulo");
-  pintarMeses(); pintarKpis(); pintarTabla(); pintarGrafico();
+  pintarMeses(); pintarKpis(); pintarPareto(); pintarCalor(); pintarTabla(); pintarGrafico();
   if (estado.seleccion) seleccionar(estado.seleccion);
 }
 
@@ -687,7 +805,7 @@ async function iniciar() {
     document.querySelectorAll(".pestanas button").forEach((o) => o.setAttribute("aria-selected", String(o === b)));
     estado.ranking = b.dataset.ranking; pintarTabla();
   });
-  window.addEventListener("resize", pintarGrafico);
+  window.addEventListener("resize", () => { pintarGrafico(); pintarPareto(); });
 
   pintarLeyenda();
   aplicarIdioma();

@@ -312,3 +312,13 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - `consumo_ia/extraer_consumo.py` y `analizar_consumo.py`: consumo de tokens de Claude Code en el proyecto (solo metadatos). Detalle en `docs/05_consumo_ia.md`.
 - 779 respuestas en 6 sesiones; USD 128 equivalentes en API (USD 904 sin caché). El 40 % se va en 17 retomas de sesiones largas después de pausas de más de 1 hora (el caché vence y se reescribe todo el contexto).
 - Primera mejora: `CLAUDE.md` con el resumen del proyecto, para trabajar en sesiones nuevas y cortas sin re-explorar el repo.
+
+## 2026-10-08 · Web: análisis por zona (estilo Power BI)
+
+- Pedidos de la usuaria: escala de riesgo de 5 niveles con nombre (muy alto en rojo), gris para "sin datos", mapa plano por defecto (el 3D es solo el relieve; altura del riesgo opcional), línea fina gris oscuro entre niveles de riesgo, gráficos en vez de tablas, buscador con filtro por zona y gráficos por zona.
+- **Buscador** (`web/datos/buscador.json`, 6 820 lugares): provincias, partidos/departamentos, municipios, localidades y barrios (Georef + BA Data), cada uno con sus gobiernos locales y su caja. Al elegir, el mapa va a la zona, atenúa el resto y todos los gráficos se recalculan.
+- **Gráficos por zona** con desglose jerárquico (país → provincias → partidos/departamentos → municipios) y clic para entrar:
+  - **Pareto** de personas en riesgo (barras = % de cada zona; línea = % acumulado; un solo eje en %). Hallazgo a nivel país: 7 de 24 provincias concentran el 80 % de las personas en riesgo, y Buenos Aires casi la mitad.
+  - **Mapa de calor zona × mes** (riesgo ponderado por población, colores del mapa).
+  - Líneas de riesgo y amenazas de la zona en un mismo eje 0-10 (sin doble eje) y ranking de municipios en barras.
+- **Bordes entre niveles** (`bordes_geo.geojson`, 2,3 MB fijos): tramos compartidos entre municipios vecinos; el navegador dibuja solo los que separan niveles distintos en el mes elegido. Se descartó disolver por nivel cada día (9 MB diarios en el repo).

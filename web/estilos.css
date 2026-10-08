@@ -17,6 +17,7 @@
   --atenuado: #e9e7e1;
   --s-riesgo: #0b0b0b; --s-agua: #2a78d6; --s-rio: #1baf7a; --s-quebrada: #4a3aa7;
   --borde-riesgo: #4a4945;
+  --texto-celda-claro: #2b2a27;
   --sombra: 0 1px 3px rgba(0, 0, 0, 0.08);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
@@ -161,3 +162,23 @@ a { color: var(--acento); }
 .zona-titulo { color: var(--acento); font-weight: 600; }
 
 [hidden] { display: none !important; }
+
+/* Pareto y mapa de calor por zona */
+.grafico-pareto { height: 380px; }
+.hallazgo { margin: 4px 0 0; font-size: 1.02rem; color: var(--tinta-1); }
+.hallazgo strong { color: var(--acento); }
+.calor { display: grid; gap: 2px; overflow-x: auto; }
+.fila-calor { display: grid; grid-template-columns: minmax(130px, 220px) repeat(7, minmax(44px, 1fr)); gap: 2px; align-items: stretch; }
+.fila-calor .etq { font-size: 0.86rem; padding: 6px 8px 6px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fila-calor .celda { border: 0; border-radius: 3px; min-height: 28px; cursor: pointer; font: inherit; font-size: 0.78rem; font-variant-numeric: tabular-nums; color: var(--texto-celda-claro); }
+.fila-calor .celda.n4, .fila-calor .celda.n5 { color: #ffffff; }
+.fila-calor .celda:hover, .fila-calor .celda:focus-visible { outline: 2px solid var(--tinta-1); outline-offset: -2px; }
+.fila-calor .celda.mes-activo { box-shadow: inset 0 0 0 2px var(--tinta-1); }
+.fila-calor.encabezado .etq, .fila-calor.encabezado .mes { font-size: 0.78rem; color: var(--tinta-3); text-align: center; padding: 2px 0; }
+.fila-calor.encabezado .mes.activo { color: var(--tinta-1); font-weight: 600; }
+.fila-calor:not(.encabezado):hover .etq { color: var(--acento); }
+
+@media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) .fila-calor .celda { color: #1a1a19; }
+  :root:where(:not([data-theme="light"])) .fila-calor .celda.n1, :root:where(:not([data-theme="light"])) .fila-calor .celda.n2 { color: #f2f1ec; } }
+:root[data-theme="dark"] .fila-calor .celda { color: #1a1a19; }
+:root[data-theme="dark"] .fila-calor .celda.n1, :root[data-theme="dark"] .fila-calor .celda.n2 { color: #f2f1ec; }
