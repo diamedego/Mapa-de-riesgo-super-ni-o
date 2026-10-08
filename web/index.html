@@ -28,6 +28,14 @@
   <div class="kpi"><span class="kpi-etiqueta" data-i18n="kpi_estaciones">Estaciones de río con ≥ 50 % de probabilidad de nivel de evacuación (escenario GloFAS)</span><span class="kpi-valor" id="kpi-estaciones">–</span></div>
 </section>
 
+<div class="buscador" role="search">
+  <label for="buscar" class="visualmente-oculto" data-i18n="buscar_label">Buscar un lugar</label>
+  <input id="buscar" type="search" autocomplete="off" data-i18n-ph="buscar_ph"
+         placeholder="Buscar provincia, partido, municipio, localidad o barrio…" aria-controls="resultados" aria-expanded="false">
+  <ul id="resultados" class="resultados" role="listbox" hidden></ul>
+  <span id="filtro-activo" class="filtro-activo" hidden></span>
+</div>
+
 <nav class="meses" aria-label="Mes">
   <button id="btn-play" class="boton-chico" aria-label="Reproducir la secuencia de meses">▶</button>
   <div id="botones-mes" role="radiogroup" aria-label="Mes"></div>
@@ -71,16 +79,19 @@
 </main>
 
 <section class="bloque" aria-labelledby="t-evolucion">
-  <h2 id="t-evolucion" data-i18n="evolucion_t">Personas en riesgo, mes a mes</h2>
+  <h2 id="t-evolucion"><span data-i18n="evolucion_t">Riesgo y amenazas, mes a mes</span> <span class="zona-titulo"></span></h2>
+  <p class="nota" data-i18n="evolucion_nota">Promedio de los municipios de la zona, en la misma escala de 0 a 10. Pasá el mouse para ver también las personas en riesgo.</p>
   <div id="grafico-meses" class="grafico" role="img" aria-describedby="t-evolucion"></div>
 </section>
 
 <section class="bloque" id="tabla" aria-labelledby="t-tabla">
-  <h2 id="t-tabla" data-i18n="tabla_t">Los 20 municipios prioritarios del mes pico</h2>
+  <h2 id="t-tabla"><span data-i18n="tabla_t">Los 20 municipios prioritarios del mes</span> <span class="zona-titulo"></span></h2>
   <div class="pestanas" role="tablist">
     <button role="tab" aria-selected="true" data-ranking="top_relativo" data-i18n="tab_relativo">Por riesgo relativo</button>
     <button role="tab" aria-selected="false" data-ranking="top_personas" data-i18n="tab_personas">Por cantidad de personas</button>
   </div>
+  <div id="grafico-ranking" class="ranking" role="img" aria-describedby="t-tabla"></div>
+  <details class="ver-tabla"><summary data-i18n="ver_tabla">Ver los datos en tabla</summary>
   <table class="tabla">
     <thead><tr>
       <th data-i18n="col_mun">Municipio</th><th data-i18n="col_prov">Provincia</th>
@@ -89,7 +100,8 @@
     </tr></thead>
     <tbody id="tabla-cuerpo"></tbody>
   </table>
-  <p class="nota" data-i18n="robustez_nota">Robustez: % de 1 000 simulaciones con pesos aleatorios en las que el municipio queda en el 10 % de mayor riesgo.</p>
+  </details>
+  <p class="nota" data-i18n="robustez_nota_grafico">Robustez: % de 1 000 simulaciones con pesos aleatorios en las que el municipio queda en el 10 % de mayor riesgo.</p>
 </section>
 
 <footer class="pie">

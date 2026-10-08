@@ -14,6 +14,9 @@
   --r1: #fbefc4; --r2: #f8d77a; --r3: #f4a53c; --r4: #ec6f2c; --r5: #d7191c;
   --sin-datos: #d6d4cc;
   --estacion: #0b0b0b;
+  --atenuado: #e9e7e1;
+  --s-riesgo: #0b0b0b; --s-agua: #2a78d6; --s-rio: #1baf7a; --s-quebrada: #4a3aa7;
+  --borde-riesgo: #4a4945;
   --sombra: 0 1px 3px rgba(0, 0, 0, 0.08);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
@@ -26,6 +29,9 @@
     --r1: #55482f; --r2: #8f6c25; --r3: #c9922e; --r4: #f07c2e; --r5: #ff3a2f;
     --sin-datos: #232427;
     --estacion: #ffffff;
+    --atenuado: #1d1d1c;
+    --s-riesgo: #ffffff; --s-agua: #3987e5; --s-rio: #199e70; --s-quebrada: #9085e9;
+    --borde-riesgo: #a3a199;
   }
 }
 :root[data-theme="dark"] {
@@ -35,6 +41,9 @@
   --r1: #55482f; --r2: #8f6c25; --r3: #c9922e; --r4: #f07c2e; --r5: #ff3a2f;
     --sin-datos: #232427;
   --estacion: #ffffff;
+  --atenuado: #1d1d1c;
+  --s-riesgo: #ffffff; --s-agua: #3987e5; --s-rio: #199e70; --s-quebrada: #9085e9;
+  --borde-riesgo: #a3a199;
 }
 
 * { box-sizing: border-box; }
@@ -123,3 +132,32 @@ a { color: var(--acento); }
   .ficha { left: 8px; right: 8px; width: auto; top: 8px; max-height: 50%; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+
+/* Ranking: barras horizontales (el color es el nivel de riesgo del municipio) */
+.ranking { display: grid; gap: 6px; margin-top: 6px; }
+.fila-ranking { display: grid; grid-template-columns: minmax(120px, 230px) 1fr 64px; align-items: center; gap: 10px; font-size: 0.88rem; }
+.fila-ranking .nombre { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fila-ranking .nombre small { color: var(--tinta-3); }
+.fila-ranking .pista { display: block; height: 14px; background: var(--grilla); border-radius: 0 4px 4px 0; overflow: hidden; }
+.fila-ranking .barra-r { display: block; height: 100%; border-radius: 0 4px 4px 0; }
+.fila-ranking .valor { text-align: right; font-variant-numeric: tabular-nums; color: var(--tinta-2); }
+.ver-tabla { margin-top: 12px; color: var(--tinta-2); font-size: 0.88rem; }
+.ver-tabla summary { cursor: pointer; }
+@media (max-width: 560px) { .fila-ranking { grid-template-columns: 1fr 52px; } .fila-ranking .pista { grid-column: 1 / -1; grid-row: 2; } }
+
+/* Buscador */
+.visualmente-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.buscador { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 4px clamp(16px, 3vw, 32px) 0; }
+#buscar { font: inherit; flex: 1 1 320px; max-width: 560px; min-height: 40px; padding: 8px 12px; border-radius: 10px;
+  border: 1px solid var(--borde); background: var(--superficie); color: var(--tinta-1); }
+.resultados { position: absolute; z-index: 20; top: 48px; left: clamp(16px, 3vw, 32px); width: min(560px, calc(100% - 32px));
+  margin: 0; padding: 4px; list-style: none; background: var(--superficie); border: 1px solid var(--borde); border-radius: 10px; box-shadow: var(--sombra); }
+.resultados li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 10px; border-radius: 6px; cursor: pointer; }
+.resultados li[aria-selected="true"], .resultados li:hover { background: var(--grilla); }
+.resultados .tipo { color: var(--tinta-3); font-size: 0.82rem; white-space: nowrap; }
+.filtro-activo { display: inline-flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; border-radius: 18px;
+  background: var(--acento); color: #fff; font-size: 0.9rem; }
+.filtro-activo button { font: inherit; border: 0; background: rgba(255,255,255,.2); color: #fff; border-radius: 12px; width: 24px; height: 24px; cursor: pointer; }
+.zona-titulo { color: var(--acento); font-weight: 600; }
+
+[hidden] { display: none !important; }

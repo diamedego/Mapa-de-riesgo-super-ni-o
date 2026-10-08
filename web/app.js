@@ -23,11 +23,17 @@ const TEXTOS = {
     c4_p: "En el conurbano el riesgo relativo es medio, pero la cantidad de personas en terreno bajo y sin cloaca lo vuelve prioritario: La Matanza, Lomas de Zamora, Lanús, Quilmes.",
     c5_t: "CABA: lluvia y sumideros",
     c5_p: "Con 13 años de reclamos al 147, el modelo anticipa el doble de reclamos por sumideros y calles anegadas que un promedio histórico en días de tormenta. Para diciembre y enero espera entre 3 % y 5 % más.",
-    evolucion_t: "Personas en riesgo, mes a mes",
-    tabla_t: "Los 20 municipios prioritarios del mes pico",
+    evolucion_t: "Riesgo y amenazas, mes a mes",
+    evolucion_nota: "Promedio de los municipios de la zona, en la misma escala de 0 a 10. Pasá el mouse para ver también las personas en riesgo.",
+    tabla_t: "Los 20 municipios prioritarios del mes",
+    buscar_label: "Buscar un lugar", buscar_ph: "Buscar provincia, partido, municipio, localidad o barrio…",
+    sin_resultados: "Sin resultados", quitar_filtro: "Quitar filtro", en: "en",
+    serie_riesgo: "Riesgo", serie_agua: "Agua en superficie", serie_rio: "Crecida de ríos", serie_quebrada: "Quebradas",
     tab_relativo: "Por riesgo relativo", tab_personas: "Por cantidad de personas",
     col_mun: "Municipio", col_prov: "Provincia", col_riesgo: "Riesgo", col_personas: "Personas en riesgo", col_robustez: "Robustez",
     robustez_nota: "Robustez: % de 1 000 simulaciones con pesos aleatorios en las que el municipio queda en el 10 % de mayor riesgo.",
+    robustez_nota_grafico: "El color de cada barra es el nivel de riesgo del municipio. Pasá el mouse para ver su robustez: el % de 1 000 simulaciones con pesos distintos en las que sigue en el 10 % más riesgoso.",
+    ver_tabla: "Ver los datos en tabla",
     pie_oficial: "<strong>No es un producto oficial.</strong> Ante una emergencia, seguí las indicaciones de Defensa Civil, el SMN y el INA.",
     pie_metodo: "Riesgo = (amenaza × exposición × vulnerabilidad)^⅓, estructura INFORM. Amenaza: agua en superficie, crecida de ríos y quebradas. Exposición: población en terreno bajo. Vulnerabilidad: falta de cloacas, NBI, materiales de la vivienda y barrios populares.",
     pie_fuentes: "Fuentes: INDEC (Censo 2022), IGN, INA, SMN, ECMWF SEAS5, GloFAS, ERA5, MapBiomas Argentina, JRC, Dynamic World, RENABAP, BA Data, OpenStreetMap (© colaboradores, ODbL). Relieve: AWS Terrain Tiles. Mapa base: OpenFreeMap.",
@@ -63,11 +69,17 @@ const TEXTOS = {
     c4_p: "Around Buenos Aires the relative risk is moderate, but the number of people on low ground without sewers makes it a priority: La Matanza, Lomas de Zamora, Lanús, Quilmes.",
     c5_t: "Buenos Aires City: rain and storm drains",
     c5_p: "Trained on 13 years of 147 citizen reports, the model anticipates twice as many clogged-drain and flooded-street reports as a historical average on stormy days. It expects 3-5 % more in December and January.",
-    evolucion_t: "People at risk, month by month",
-    tabla_t: "The 20 priority municipalities in the peak month",
+    evolucion_t: "Risk and hazards, month by month",
+    evolucion_nota: "Average across the area's municipalities, on the same 0-10 scale. Hover to also see people at risk.",
+    tabla_t: "The 20 priority municipalities of the month",
+    buscar_label: "Search a place", buscar_ph: "Search a province, district, municipality, town or neighborhood…",
+    sin_resultados: "No results", quitar_filtro: "Clear filter", en: "in",
+    serie_riesgo: "Risk", serie_agua: "Surface water", serie_rio: "River flood", serie_quebrada: "Flash floods",
     tab_relativo: "By relative risk", tab_personas: "By number of people",
     col_mun: "Municipality", col_prov: "Province", col_riesgo: "Risk", col_personas: "People at risk", col_robustez: "Robustness",
     robustez_nota: "Robustness: % of 1,000 random-weight simulations in which the municipality ranks in the riskiest 10 %.",
+    robustez_nota_grafico: "Each bar is colored by the municipality's risk level. Hover to see its robustness: the % of 1,000 simulations with different weights in which it stays in the riskiest 10 %.",
+    ver_tabla: "See the data as a table",
     pie_oficial: "<strong>Not an official product.</strong> In an emergency, follow Civil Defense, SMN and INA guidance.",
     pie_metodo: "Risk = (hazard × exposure × vulnerability)^⅓, INFORM framework. Hazard: surface water, river floods and flash floods. Exposure: population on low-lying ground. Vulnerability: lack of sewers, unmet basic needs, housing materials and informal settlements.",
     pie_fuentes: "Sources: INDEC (2022 Census), IGN, INA, SMN, ECMWF SEAS5, GloFAS, ERA5, MapBiomas Argentina, JRC, Dynamic World, RENABAP, BA Data, OpenStreetMap (© contributors, ODbL). Terrain: AWS Terrain Tiles. Basemap: OpenFreeMap.",
@@ -107,7 +119,7 @@ function alturaRiesgo(campo) {
 const radioEstacion = (campo) => ["interpolate", ["linear"], ["coalesce", ["get", campo], 0], 0, 3, 1, 10];
 
 const estado = { idioma: "es", mes: null, datos: {}, ranking: "top_relativo", seleccion: null, reproduciendo: null,
-  radios: [], provinciasCargadas: new Set(), altura: false };
+  radios: [], provinciasCargadas: new Set(), altura: false, zona: null, porCmu: new Map() };
 const t = (clave) => TEXTOS[estado.idioma][clave];
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const temaOscuro = () => {
@@ -142,6 +154,11 @@ function colorRiesgo(campo) {
   const expr = ["step", ["coalesce", ["get", campo], 0], c[0]];
   CORTES.forEach((corte, i) => expr.push(corte, c[i + 1]));
   return expr;
+}
+
+function colorMapa(campo) {
+  if (!estado.zona) return colorRiesgo(campo);
+  return ["case", ["in", ["get", "cmu"], ["literal", estado.zona.cmus]], colorRiesgo(campo), css("--atenuado")];
 }
 
 function nombresEnEspanol() {
@@ -183,12 +200,21 @@ function agregarCapasDatos(m) {
   mapa.addSource("municipios", { type: "geojson", data: estado.datos.municipios, promoteId: "cmu" });
   mapa.addLayer({ id: "municipios-3d", type: "fill-extrusion", source: "municipios",
     paint: {
-      "fill-extrusion-color": colorRiesgo(`r_${m}`),
+      "fill-extrusion-color": colorMapa(`r_${m}`),
       "fill-extrusion-height": alturaRiesgo(`r_${m}`),
       "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 9.6, 0.88, 10.2, 0],
     } });
   mapa.addLayer({ id: "municipios-borde", type: "line", source: "municipios", minzoom: 6,
     paint: { "line-color": css("--superficie"), "line-width": 0.6, "line-opacity": 0.7 } });
+  // Línea fina gris oscuro solo donde cambia el nivel de riesgo (o contra zonas sin datos)
+  mapa.addSource("bordes", { type: "geojson", data: estado.datos.bordes });
+  mapa.addLayer({ id: "bordes-riesgo", type: "line", source: "bordes", maxzoom: 10.2,
+    filter: ["!=", ["get", `na_${m}`], ["get", `nb_${m}`]],
+    paint: { "line-color": css("--borde-riesgo"),
+             "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.4, 8, 0.9, 10, 1.2], "line-opacity": 0.9 } });
+  mapa.addLayer({ id: "zona-contorno", type: "line", source: "municipios",
+    filter: ["in", ["get", "cmu"], ["literal", estado.zona ? estado.zona.cmus : []]],
+    paint: { "line-color": css("--tinta-1"), "line-width": 2 } });
   mapa.addLayer({ id: "municipios-seleccion", type: "line", source: "municipios",
     filter: ["==", ["get", "cmu"], ""],
     paint: { "line-color": css("--tinta-1"), "line-width": 2.5 } });
@@ -197,7 +223,7 @@ function agregarCapasDatos(m) {
   mapa.addSource("radios", { type: "geojson", data: { type: "FeatureCollection", features: estado.radios } });
   mapa.addLayer({ id: "radios-3d", type: "fill-extrusion", source: "radios", minzoom: 9,
     paint: {
-      "fill-extrusion-color": colorRiesgo(`r_${m}`),
+      "fill-extrusion-color": colorMapa(`r_${m}`),
       "fill-extrusion-height": alturaRiesgo(`r_${m}`),
       "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 9.6, 0, 10.2, 0.9],
     } });
@@ -223,7 +249,11 @@ function agregarCapasDatos(m) {
 
   mapa.on("mousemove", "municipios-3d", (e) => mostrarTooltipMunicipio(e));
   mapa.on("mouseleave", "municipios-3d", () => ocultarTooltip());
-  mapa.on("click", "municipios-3d", (e) => seleccionar(e.features[0].properties));
+  mapa.on("click", "municipios-3d", (e) => {
+    const p = e.features[0].properties;
+    seleccionar(p);
+    aplicarZona({ nombre: p.nam, tipo: "Municipio", provincia: p.jur, cmus: [p.cmu] }, false);
+  });
   mapa.on("mousemove", "estaciones", (e) => mostrarTooltipEstacion(e));
   mapa.on("mouseleave", "estaciones", () => ocultarTooltip());
   mapa.on("mousemove", "caba-barrios", (e) => mostrarTooltipCaba(e));
@@ -233,9 +263,11 @@ function agregarCapasDatos(m) {
 function actualizarMes() {
   const m = estado.mes;
   if (!mapa || !mapa.getLayer("municipios-3d")) return;
-  mapa.setPaintProperty("municipios-3d", "fill-extrusion-color", colorRiesgo(`r_${m}`));
+  mapa.setPaintProperty("municipios-3d", "fill-extrusion-color", colorMapa(`r_${m}`));
+  mapa.setFilter("bordes-riesgo", ["!=", ["get", `na_${m}`], ["get", `nb_${m}`]]);
+  mapa.setFilter("zona-contorno", ["in", ["get", "cmu"], ["literal", estado.zona ? estado.zona.cmus : []]]);
   mapa.setPaintProperty("municipios-3d", "fill-extrusion-height", alturaRiesgo(`r_${m}`));
-  mapa.setPaintProperty("radios-3d", "fill-extrusion-color", colorRiesgo(`r_${m}`));
+  mapa.setPaintProperty("radios-3d", "fill-extrusion-color", colorMapa(`r_${m}`));
   mapa.setPaintProperty("radios-3d", "fill-extrusion-height", alturaRiesgo(`r_${m}`));
   mapa.setPaintProperty("estaciones", "circle-radius", radioEstacion(`pe_${m}`));
 }
@@ -267,8 +299,19 @@ function mostrarTooltipRadio(e) {
 }
 
 // Copia los números del día a cada municipio con los nombres que usan las capas: r_<mes>, p_<mes>, …
+function unirBordes(bordes, riesgo) {
+  const nivel = (cmu, i) => { const d = riesgo.cmu[cmu]; return d && d.r[i] != null ? nivelRiesgo(d.r[i]) : 0; };
+  bordes.features.forEach((f) => {
+    riesgo.meses.forEach((m, i) => {
+      f.properties[`na_${m}`] = nivel(f.properties.a, i);
+      f.properties[`nb_${m}`] = f.properties.b ? nivel(f.properties.b, i) : 0;
+    });
+  });
+}
+
 function unirRiesgo(geo, riesgo) {
   geo.features.forEach((f) => {
+    estado.porCmu.set(f.properties.cmu, f.properties);
     const d = riesgo.cmu[f.properties.cmu];
     if (!d) return;
     riesgo.meses.forEach((m, i) => {
@@ -345,12 +388,36 @@ function seleccionar(p) {
 }
 
 // ---------- KPIs, meses, leyenda, tabla ----------
+// Agregados de la zona elegida (o de todo el país) a partir de riesgo.json
+function cmusZona() {
+  return estado.zona ? estado.zona.cmus : Object.keys(estado.riesgo.cmu);
+}
+
+function agregado() {
+  const meses = estado.riesgo.meses, cmus = cmusZona().filter((c) => estado.riesgo.cmu[c]);
+  const serie = (clave, fn) => meses.map((_, i) => fn(cmus.map((c) => estado.riesgo.cmu[c][clave][i] ?? 0)));
+  const prom = (v) => (v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0);
+  const suma = (v) => v.reduce((a, b) => a + b, 0);
+  return { meses, n: cmus.length,
+    riesgo: serie("r", prom), agua: serie("ha", prom), rio: serie("hr", prom), quebrada: serie("hq", prom),
+    personas: serie("p", suma), alto: serie("r", (v) => v.filter((x) => x >= 7).length) };
+}
+
 function pintarKpis() {
-  const r = estado.datos.resumen.por_mes[estado.mes];
-  document.getElementById("kpi-personas").textContent = formatoPersonas(r.personas_en_riesgo);
-  document.getElementById("kpi-municipios").textContent = Math.round(r.municipios_riesgo_alto);
-  document.getElementById("kpi-estaciones").textContent =
-    `${r.estaciones_prob_evacuacion_50} / ${estado.datos.resumen.estaciones_confiables}`;
+  const ag = agregado(), i = ag.meses.indexOf(estado.mes);
+  document.getElementById("kpi-personas").textContent = formatoPersonas(ag.personas[i]);
+  document.getElementById("kpi-municipios").textContent = estado.zona ? `${ag.alto[i]} / ${ag.n}` : ag.alto[i];
+  // Estaciones de río dentro de la caja de la zona
+  const [x0, y0, x1, y1] = estado.zona?.caja ?? [-180, -90, 180, 90];
+  const est = estado.datos.estaciones.features.filter((f) => {
+    const [x, y] = f.geometry.coordinates;
+    return x >= x0 && x <= x1 && y >= y0 && y <= y1;
+  });
+  const altas = est.filter((f) => (f.properties[`pe_${estado.mes}`] ?? 0) >= 0.5).length;
+  document.getElementById("kpi-estaciones").textContent = est.length ? `${altas} / ${est.length}` : "–";
+  document.querySelectorAll(".zona-titulo").forEach((el) => {
+    el.textContent = estado.zona ? `· ${estado.zona.nombre}` : "";
+  });
 }
 
 function pintarMeses() {
@@ -386,8 +453,38 @@ function pintarLeyenda() {
   esc.nextElementSibling?.classList.contains("leyenda-rotulos") && esc.nextElementSibling.remove();
 }
 
+function nivelRiesgo(r) {   // 1..5, mismos cortes que el mapa
+  return 1 + CORTES.filter((c) => r >= c).length;
+}
+
+function filasRanking() {
+  const i = estado.riesgo.meses.indexOf(estado.mes);
+  const clave = estado.ranking === "top_personas" ? "p" : "r";
+  return cmusZona().filter((c) => estado.riesgo.cmu[c])
+    .map((c) => { const d = estado.riesgo.cmu[c], p = estado.porCmu.get(c) || {};
+      return { cmu: c, nam: p.nam, jur: p.jur, riesgo: d.r[i] ?? 0, personas_en_riesgo: d.p[i] ?? 0,
+               pct_simulaciones_top10: d.rob, orden: d[clave][i] ?? 0 }; })
+    .sort((a, b) => b.orden - a.orden).slice(0, 20);
+}
+
+function pintarRanking() {
+  const filas = filasRanking();
+  const porPersonas = estado.ranking === "top_personas";
+  const max = porPersonas ? Math.max(1, ...filas.map((f) => f.personas_en_riesgo)) : 10;
+  document.getElementById("grafico-ranking").innerHTML = filas.map((f) => {
+    const v = porPersonas ? f.personas_en_riesgo : f.riesgo;
+    const etiqueta = porPersonas ? formatoPersonas(v) : v.toFixed(1);
+    const nivel = nivelRiesgo(f.riesgo);
+    return `<div class="fila-ranking" title="${f.nam} · ${t("ficha_riesgo")} ${f.riesgo.toFixed(1)} · ${t("col_robustez")} ${Math.round(f.pct_simulaciones_top10)} %">
+      <span class="nombre">${f.nam} <small>${f.jur}</small></span>
+      <span class="pista"><span class="barra-r" style="width:${(100 * v) / max}%;background:var(--r${nivel})"></span></span>
+      <span class="valor">${etiqueta}</span></div>`;
+  }).join("");
+}
+
 function pintarTabla() {
-  const filas = estado.datos.resumen[estado.ranking];
+  pintarRanking();
+  const filas = filasRanking();
   const loc = estado.idioma === "es" ? "es-AR" : "en-US";
   document.getElementById("tabla-cuerpo").innerHTML = filas.map((f) => `
     <tr><td>${f.nam}</td><td>${f.jur}</td><td class="num">${f.riesgo.toFixed(1)}</td>
@@ -398,41 +495,118 @@ function pintarTabla() {
 // ---------- Gráfico: personas en riesgo por mes (una serie, un eje) ----------
 function pintarGrafico() {
   const cont = document.getElementById("grafico-meses");
-  const meses = estado.datos.resumen.meses;
-  const vals = meses.map((m) => estado.datos.resumen.por_mes[m].personas_en_riesgo);
-  const W = cont.clientWidth, H = cont.clientHeight, izq = 64, der = 16, arr = 12, aba = 28;
-  const max = Math.ceil(Math.max(...vals) / 1e6) * 1e6, min = Math.floor(Math.min(...vals) / 1e6) * 1e6 - 1e6;
+  const ag = agregado(), meses = ag.meses;
+  const series = [
+    { clave: "riesgo", color: "var(--s-riesgo)", ancho: 2.5 },
+    { clave: "agua", color: "var(--s-agua)", ancho: 2 },
+    { clave: "rio", color: "var(--s-rio)", ancho: 2 },
+    { clave: "quebrada", color: "var(--s-quebrada)", ancho: 2 },
+  ];
+  const W = cont.clientWidth, H = cont.clientHeight, izq = 36, der = 150, arr = 12, aba = 28;
   const x = (i) => izq + (i * (W - izq - der)) / (meses.length - 1);
-  const y = (v) => arr + ((max - v) * (H - arr - aba)) / (max - min);
-  const ticks = [];
-  for (let v = min; v <= max; v += 1e6) ticks.push(v);
-  const linea = vals.map((v, i) => `${i ? "L" : "M"}${x(i)},${y(v)}`).join("");
+  const y = (v) => arr + ((10 - v) * (H - arr - aba)) / 10;
   const sel = meses.indexOf(estado.mes);
+  // Etiquetas directas al final de cada línea, separadas para que no se pisen
+  const finales = series.map((s) => ({ s, yy: y(ag[s.clave][meses.length - 1]) })).sort((a, b) => a.yy - b.yy);
+  finales.forEach((f, k) => { if (k && f.yy - finales[k - 1].yy < 14) f.yy = finales[k - 1].yy + 14; });
   cont.innerHTML = `<svg width="${W}" height="${H}">
-    ${ticks.map((v) => `<line x1="${izq}" x2="${W - der}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grilla)"/>
-      <text x="${izq - 8}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--tinta-3)" style="font-variant-numeric:tabular-nums">${formatoPersonas(v)}</text>`).join("")}
-    <line x1="${izq}" x2="${W - der}" y1="${y(min)}" y2="${y(min)}" stroke="var(--eje)"/>
-    <path d="${linea}" fill="none" stroke="var(--acento)" stroke-width="2"/>
+    ${[0, 2, 4, 6, 8, 10].map((v) => `<line x1="${izq}" x2="${W - der}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grilla)"/>
+      <text x="${izq - 8}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--tinta-3)" style="font-variant-numeric:tabular-nums">${v}</text>`).join("")}
+    <line x1="${izq}" x2="${W - der}" y1="${y(0)}" y2="${y(0)}" stroke="var(--eje)"/>
+    <line x1="${x(sel)}" x2="${x(sel)}" y1="${arr}" y2="${y(0)}" stroke="var(--eje)" stroke-dasharray="0"/>
+    ${series.map((s) => `<path d="${ag[s.clave].map((v, i) => `${i ? "L" : "M"}${x(i)},${y(v)}`).join("")}"
+        fill="none" stroke="${s.color}" stroke-width="${s.ancho}" stroke-linejoin="round"/>
+      <circle cx="${x(sel)}" cy="${y(ag[s.clave][sel])}" r="4.5" fill="${s.color}" stroke="var(--superficie)" stroke-width="2"/>`).join("")}
+    ${finales.map((f) => `<text x="${W - der + 10}" y="${f.yy + 4}" font-size="12" fill="var(--tinta-2)">
+        <tspan fill="${f.s.color}">●</tspan> ${t("serie_" + f.s.clave)}</text>`).join("")}
     ${meses.map((m, i) => `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--tinta-3)">${nombreMes(m)}</text>`).join("")}
-    <circle cx="${x(sel)}" cy="${y(vals[sel])}" r="5" fill="var(--acento)" stroke="var(--superficie)" stroke-width="2"/>
-    <text x="${x(sel)}" y="${y(vals[sel]) - 12}" text-anchor="middle" font-size="12" fill="var(--tinta-1)">${formatoPersonas(vals[sel])}</text>
-    <line id="cruz" y1="${arr}" y2="${y(min)}" stroke="var(--eje)" visibility="hidden"/>
+    <line id="cruz" y1="${arr}" y2="${y(0)}" stroke="var(--tinta-3)" visibility="hidden"/>
     <rect x="${izq}" y="${arr}" width="${W - izq - der}" height="${H - arr - aba}" fill="transparent" id="zona"/>
   </svg><div class="tooltip" hidden></div>`;
   const zona = cont.querySelector("#zona"), cruz = cont.querySelector("#cruz"), tip = cont.querySelector(".tooltip");
+  const indice = (ev) => { const r = zona.getBoundingClientRect();
+    return Math.max(0, Math.min(meses.length - 1, Math.round(((ev.clientX - r.left) / r.width) * (meses.length - 1)))); };
   zona.addEventListener("mousemove", (ev) => {
-    const r = zona.getBoundingClientRect();
-    const i = Math.max(0, Math.min(meses.length - 1, Math.round(((ev.clientX - r.left) / r.width) * (meses.length - 1))));
+    const i = indice(ev);
     cruz.setAttribute("x1", x(i)); cruz.setAttribute("x2", x(i)); cruz.setAttribute("visibility", "visible");
     tip.hidden = false;
-    tip.innerHTML = `<strong>${nombreMes(meses[i])}</strong><br>${formatoPersonas(vals[i])} ${t("personas")}`;
-    tip.style.left = `${Math.min(x(i) + 10, W - 140)}px`; tip.style.top = `${y(vals[i]) - 10}px`;
+    tip.innerHTML = `<strong>${nombreMes(meses[i])}</strong><br>` + series.map((s) =>
+      `<span style="color:${s.color}">●</span> ${t("serie_" + s.clave)}: ${ag[s.clave][i].toFixed(1)}`).join("<br>") +
+      `<br>${formatoPersonas(ag.personas[i])} ${t("personas")}`;
+    tip.style.left = `${Math.min(x(i) + 12, W - 220)}px`; tip.style.top = `${arr}px`;
   });
   zona.addEventListener("mouseleave", () => { cruz.setAttribute("visibility", "hidden"); tip.hidden = true; });
-  zona.addEventListener("click", (ev) => {
-    const r = zona.getBoundingClientRect();
-    elegirMes(meses[Math.round(((ev.clientX - r.left) / r.width) * (meses.length - 1))]);
+  zona.addEventListener("click", (ev) => elegirMes(meses[indice(ev)]));
+}
+
+// ---------- Buscador y filtro por zona (como un segmentador de Power BI) ----------
+const normalizar = (txt) => txt.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+function prepararBuscador() {
+  estado.lugares = estado.datos.buscador.map(([nombre, tipo, provincia, cmus, caja]) =>
+    ({ nombre, tipo, provincia, cmus, caja, clave: normalizar(nombre) }));
+  const input = document.getElementById("buscar"), lista = document.getElementById("resultados");
+  let activos = [], pos = -1;
+  const cerrar = () => { lista.hidden = true; input.setAttribute("aria-expanded", "false"); };
+  const pintar = () => {
+    lista.innerHTML = activos.length ? activos.map((l, k) => `<li role="option" aria-selected="${k === pos}" data-k="${k}">
+        <span>${l.nombre}</span><span class="tipo">${l.tipo} · ${l.provincia}</span></li>`).join("")
+      : `<li aria-disabled="true"><span>${t("sin_resultados")}</span></li>`;
+    lista.hidden = false; input.setAttribute("aria-expanded", "true");
+  };
+  const orden = { Provincia: 0, Partido: 1, Departamento: 1, Municipio: 2, Barrio: 3, Localidad: 4 };
+  input.addEventListener("input", () => {
+    const q = normalizar(input.value);
+    if (q.length < 2) { cerrar(); return; }
+    const empieza = estado.lugares.filter((l) => l.clave.startsWith(q));
+    const contiene = estado.lugares.filter((l) => !l.clave.startsWith(q) && l.clave.includes(q));
+    activos = [...empieza, ...contiene]
+      .sort((a, b) => (a.clave.startsWith(q) === b.clave.startsWith(q) ? 0 : a.clave.startsWith(q) ? -1 : 1)
+        || (orden[a.tipo] ?? 3) - (orden[b.tipo] ?? 3) || a.clave.length - b.clave.length)
+      .slice(0, 10);
+    pos = activos.length ? 0 : -1;
+    pintar();
   });
+  input.addEventListener("keydown", (e) => {
+    if (lista.hidden) return;
+    if (e.key === "ArrowDown") { pos = Math.min(pos + 1, activos.length - 1); pintar(); e.preventDefault(); }
+    if (e.key === "ArrowUp") { pos = Math.max(pos - 1, 0); pintar(); e.preventDefault(); }
+    if (e.key === "Enter" && activos[pos]) { elegir(activos[pos]); e.preventDefault(); }
+    if (e.key === "Escape") cerrar();
+  });
+  lista.addEventListener("mousedown", (e) => {
+    const li = e.target.closest("li[data-k]");
+    if (li) { elegir(activos[+li.dataset.k]); e.preventDefault(); }
+  });
+  input.addEventListener("blur", () => setTimeout(cerrar, 150));
+  const elegir = (l) => { input.value = ""; cerrar(); aplicarZona(l, true); };
+}
+
+function aplicarZona(lugar, volar) {
+  estado.zona = lugar;
+  if (lugar && !lugar.caja) {   // municipio elegido con un clic: caja desde su geometría
+    const f = estado.datos.municipios.features.find((x) => x.properties.cmu === lugar.cmus[0]);
+    const xs = [], ys = [];
+    JSON.stringify(f.geometry.coordinates).replace(/-?\d+\.?\d*,-?\d+\.?\d*/g, (par) => {
+      const [a, b] = par.split(",").map(Number); xs.push(a); ys.push(b); return par; });
+    lugar.caja = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+  }
+  const chip = document.getElementById("filtro-activo");
+  if (lugar) {
+    chip.hidden = false;
+    chip.innerHTML = `<span>${lugar.nombre} <small>(${lugar.tipo})</small></span>
+      <button aria-label="${t("quitar_filtro")}" title="${t("quitar_filtro")}">✕</button>`;
+    chip.querySelector("button").onclick = () => aplicarZona(null, false);
+    if (volar && mapa) {
+      const [x0, y0, x1, y1] = lugar.caja;
+      mapa.fitBounds([[x0, y0], [x1, y1]], { padding: 60, pitch: 45, duration: 1800, maxZoom: 12 });
+    }
+  } else {
+    chip.hidden = true;
+    document.getElementById("ficha").hidden = true;
+    if (mapa) mapa.setFilter("municipios-seleccion", ["==", ["get", "cmu"], ""]);
+  }
+  actualizarMes(); pintarKpis(); pintarGrafico(); pintarTabla();
 }
 
 // ---------- Relato con scroll ----------
@@ -456,6 +630,7 @@ function aplicarIdioma() {
     const v = t(el.dataset.i18n);
     if (typeof v === "string") el.innerHTML = v;
   });
+  document.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
   const b = document.getElementById("btn-idioma");
   b.textContent = estado.idioma === "es" ? "EN" : "ES";
   b.setAttribute("aria-label", estado.idioma === "es" ? "Change language to English" : "Cambiar el idioma a español");
@@ -481,12 +656,14 @@ async function iniciar() {
   if (tema) document.documentElement.dataset.theme = tema === "oscuro" ? "dark" : "light";
   const vistaInicial = VISTAS[location.hash.slice(1)] ?? VISTAS.pais;
   // Geometrías fijas + números del día (riesgo.json lo reescribe GitHub Actions cada mañana)
-  const [resumen, municipios, riesgo, estaciones, caba, cajas, provincias] = await Promise.all(
+  const [resumen, municipios, riesgo, estaciones, caba, cajas, provincias, bordes, buscador] = await Promise.all(
     ["resumen.json", "municipios_geo.geojson", "riesgo.json", "estaciones.geojson", "caba_barrios.geojson",
-     "radios/indice.json", "provincias_geo.geojson"].map((f) => fetch(`datos/${f}`, { cache: "no-cache" }).then((r) => r.json())));
+     "radios/indice.json", "provincias_geo.geojson", "bordes_geo.geojson", "buscador.json"].map((f) => fetch(`datos/${f}`, { cache: "no-cache" }).then((r) => r.json())));
   unirRiesgo(municipios, riesgo);
+  unirBordes(bordes, riesgo);
   estado.riesgo = riesgo;
-  estado.datos = { resumen, municipios, estaciones, caba, cajas, provincias };
+  estado.datos = { resumen, municipios, estaciones, caba, cajas, provincias, bordes, buscador };
+  prepararBuscador();
   estado.mes = resumen.mes_pico;
 
   mapa = new maplibregl.Map({
