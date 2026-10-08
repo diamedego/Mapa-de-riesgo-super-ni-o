@@ -17,3 +17,6 @@ data/silver/**
 # Capa bronze exportada (se regenera con sql/exportar_bronze.py)
 data/bronze/
 data/*.duckdb
+
+# Consumo de IA: metadatos locales de sesiones (se regenera)
+data/consumo_ia/

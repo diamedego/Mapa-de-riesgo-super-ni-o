@@ -306,3 +306,9 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   - **diario** (`web/actualizar_datos_web.py`, GitHub Actions): `riesgo.json` (630 KB), `estaciones.geojson`, `resumen.json`.
 - El navegador une ambos y calcula el riesgo de cada radio (cbrt de la amenaza del municipio × E × V). Así el repo no sube 50 MB de geometrías por día.
 - El workflow diario, después del índice, actualiza los datos de la web.
+
+## 2026-10-08 · Consumo de IA: línea base
+
+- `consumo_ia/extraer_consumo.py` y `analizar_consumo.py`: consumo de tokens de Claude Code en el proyecto (solo metadatos). Detalle en `docs/05_consumo_ia.md`.
+- 779 respuestas en 6 sesiones; USD 128 equivalentes en API (USD 904 sin caché). El 40 % se va en 17 retomas de sesiones largas después de pausas de más de 1 hora (el caché vence y se reescribe todo el contexto).
+- Primera mejora: `CLAUDE.md` con el resumen del proyecto, para trabajar en sesiones nuevas y cortas sin re-explorar el repo.
