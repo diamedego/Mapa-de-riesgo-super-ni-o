@@ -11,7 +11,7 @@
   --borde: rgba(11, 11, 11, 0.10);
   --acento: #2a78d6;
   /* Riesgo: 5 niveles con nombre, escala de calor (amarillo → rojo oscuro). Más riesgo = más intenso */
-  --r1: #fbefc4; --r2: #f6c96a; --r3: #ef9338; --r4: #d85424; --r5: #961c1c;
+  --r1: #fbefc4; --r2: #f8d77a; --r3: #f4a53c; --r4: #ec6f2c; --r5: #d7191c;
   --sin-datos: #d6d4cc;
   --estacion: #0b0b0b;
   --sombra: 0 1px 3px rgba(0, 0, 0, 0.08);
@@ -23,7 +23,7 @@
     --plano: #0d0d0d; --superficie: #1a1a19; --tinta-1: #ffffff; --tinta-2: #c3c2b7; --tinta-3: #898781;
     --grilla: #2c2c2a; --eje: #383835; --borde: rgba(255, 255, 255, 0.10); --acento: #3987e5;
     /* En oscuro, más riesgo = más claro (azul 600 → 100) */
-    --r1: #55482f; --r2: #8f6c25; --r3: #d2812b; --r4: #ef5c2f; --r5: #ff8c78;
+    --r1: #55482f; --r2: #8f6c25; --r3: #c9922e; --r4: #f07c2e; --r5: #ff3a2f;
     --sin-datos: #232427;
     --estacion: #ffffff;
   }
@@ -32,7 +32,7 @@
   color-scheme: dark;
   --plano: #0d0d0d; --superficie: #1a1a19; --tinta-1: #ffffff; --tinta-2: #c3c2b7; --tinta-3: #898781;
   --grilla: #2c2c2a; --eje: #383835; --borde: rgba(255, 255, 255, 0.10); --acento: #3987e5;
-  --r1: #55482f; --r2: #8f6c25; --r3: #d2812b; --r4: #ef5c2f; --r5: #ff8c78;
+  --r1: #55482f; --r2: #8f6c25; --r3: #c9922e; --r4: #f07c2e; --r5: #ff3a2f;
     --sin-datos: #232427;
   --estacion: #ffffff;
 }
