@@ -28,13 +28,25 @@
   <div class="kpi"><span class="kpi-etiqueta" data-i18n="kpi_estaciones">Estaciones de río con ≥ 50 % de probabilidad de nivel de evacuación (escenario GloFAS)</span><span class="kpi-valor" id="kpi-estaciones">–</span></div>
 </section>
 
-<div class="buscador" role="search">
-  <label for="buscar" class="visualmente-oculto" data-i18n="buscar_label">Buscar un lugar</label>
-  <input id="buscar" type="search" autocomplete="off" data-i18n-ph="buscar_ph"
-         placeholder="Buscar provincia, partido, municipio, localidad o barrio…" aria-controls="resultados" aria-expanded="false">
-  <ul id="resultados" class="resultados" role="listbox" hidden></ul>
+<form class="buscador" role="search" id="form-buscar" autocomplete="off">
+  <div class="campo">
+    <label for="buscar-partido" data-i18n="b_partido">Partido o departamento</label>
+    <input id="buscar-partido" type="search" data-nivel="partido" data-i18n-ph="b_partido_ph" placeholder="Ej.: Campana">
+    <ul class="resultados" role="listbox" hidden></ul>
+  </div>
+  <div class="campo">
+    <label for="buscar-localidad" data-i18n="b_localidad">Localidad o municipio</label>
+    <input id="buscar-localidad" type="search" data-nivel="localidad" data-i18n-ph="b_localidad_ph" placeholder="Ej.: Lomas del Río Luján">
+    <ul class="resultados" role="listbox" hidden></ul>
+  </div>
+  <div class="campo campo-ancho">
+    <label for="buscar-direccion" data-i18n="b_direccion">Dirección exacta</label>
+    <input id="buscar-direccion" type="search" data-i18n-ph="b_direccion_ph" placeholder="Ej.: Mitre 500">
+  </div>
+  <button type="submit" class="boton-buscar" data-i18n="b_buscar">Buscar</button>
   <span id="filtro-activo" class="filtro-activo" hidden></span>
-</div>
+  <p id="aviso-busqueda" class="aviso-busqueda" hidden></p>
+</form>
 
 <nav class="meses" aria-label="Mes">
   <button id="btn-play" class="boton-chico" aria-label="Reproducir la secuencia de meses">▶</button>

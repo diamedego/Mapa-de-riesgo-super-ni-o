@@ -322,3 +322,11 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   - **Mapa de calor zona × mes** (riesgo ponderado por población, colores del mapa).
   - Líneas de riesgo y amenazas de la zona en un mismo eje 0-10 (sin doble eje) y ranking de municipios en barras.
 - **Bordes entre niveles** (`bordes_geo.geojson`, 2,3 MB fijos): tramos compartidos entre municipios vecinos; el navegador dibuja solo los que separan niveles distintos en el mes elegido. Se descartó disolver por nivel cada día (9 MB diarios en el repo).
+
+## 2026-10-09 · Web: calles, tres buscadores y ficha con semáforo
+
+- **Calles al acercarse**: el riesgo pasa a relleno plano semitransparente debajo de ríos, calles y nombres del mapa base (antes, columnas 3D que tapaban todo). La altura del riesgo queda como opción. A nivel calle se ven las cuadras con el color de su radio censal.
+- **Tres buscadores combinables** (pueden quedar vacíos): partido o departamento; localidad o municipio (filtrado por el partido elegido); dirección exacta (API oficial de direcciones Georef, con el partido como filtro). La dirección se marca en el mapa, se ubica en su municipio (punto en polígono) y abre la ficha de su radio censal. Links directos: `?partido=Campana&dir=Mitre 500`, `?lugar=…`, `?vista=lon,lat,zoom`.
+- **Ficha = tablero de control**: números grandes con semáforo según una meta por factor (verde ≤ meta, amarillo, rojo). Índices 0-10: meta < 4,5 (alineada con los niveles del mapa), rojo ≥ 6. Población en terreno bajo y hogares sin cloaca: meta < 20 %, rojo ≥ 50 %. NBI: < 5 %, rojo ≥ 10 % (promedio nacional ≈ 6,7 %). Materiales deficientes: < 10 %, rojo ≥ 25 %. Para una zona, valores ponderados por población.
+- Corrección: al cargar, el relato movía el mapa a la vista del país y pisaba búsquedas y links. Ahora solo lo mueve cuando la persona scrollea el relato.
+- La versión privada de claude.ai no puede mostrar calles ni buscar direcciones (bloquea servicios externos); la versión completa sí (Mac / GitHub Pages).

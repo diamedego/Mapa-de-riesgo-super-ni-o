@@ -120,8 +120,11 @@ def main() -> None:
     ras = pd.read_parquet(RAIZ / "data" / "referencia" / "rasgos_gobiernos_locales.parquet")
     gl = gpd.read_parquet(RAIZ / "data" / "raw" / "limites" / "gobiernos_locales.parquet")[["cmu", "geometry"]]
     gl["geometry"] = gl.to_crs(5345).simplify(250).to_crs(4326).make_valid()
-    fijo = ras[["cmu", "nam", "jur", "poblacion", "pob_terreno_bajo"]].copy()
+    fijo = ras[["cmu", "nam", "jur", "poblacion", "pob_terreno_bajo", "pct_cloaca", "pct_nbi",
+                "pct_materiales_deficientes"]].copy()
     fijo[["poblacion", "pob_terreno_bajo"]] = fijo[["poblacion", "pob_terreno_bajo"]].fillna(0).round(0)
+    fijo[["pct_cloaca", "pct_nbi", "pct_materiales_deficientes"]] = fijo[["pct_cloaca", "pct_nbi",
+                                                                        "pct_materiales_deficientes"]].round(1)
     redondear_geojson(gl.merge(fijo, on="cmu"), SALIDA / "municipios_geo.geojson")
 
     # Bordes entre municipios vecinos (y contra zonas sin datos). El navegador dibuja solo los que

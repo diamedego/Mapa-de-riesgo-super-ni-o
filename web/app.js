@@ -26,7 +26,16 @@ const TEXTOS = {
     evolucion_t: "Riesgo y amenazas, mes a mes",
     evolucion_nota: "Promedio de los municipios de la zona, en la misma escala de 0 a 10. Pasá el mouse para ver también las personas en riesgo.",
     tabla_t: "Los 20 municipios prioritarios del mes",
-    buscar_label: "Buscar un lugar", buscar_ph: "Buscar provincia, partido, municipio, localidad o barrio…",
+    b_partido: "Partido o departamento", b_partido_ph: "Ej.: Campana", b_localidad: "Localidad o municipio",
+    b_localidad_ph: "Ej.: Lomas del Río Luján", b_direccion: "Dirección exacta", b_direccion_ph: "Ej.: Mitre 500", b_buscar: "Buscar",
+    dir_no_encontrada: "No encontramos esa dirección. Probá con calle y altura (ej.: Mitre 500) y elegí el partido.",
+    dir_sin_red: "La búsqueda por dirección necesita la versión completa del mapa (en esta vista no hay conexión con el servicio de direcciones).",
+    t_riesgo: "Riesgo de inundación", t_amenaza: "Amenaza", t_expo: "Exposición", t_vuln: "Vulnerabilidad",
+    t_agua: "Agua en superficie", t_rio: "Crecida de ríos", t_quebrada: "Quebradas", t_personas: "Personas en riesgo",
+    t_bajo: "Población en terreno bajo", t_cloaca: "Hogares sin cloaca", t_nbi: "Hogares con NBI", t_materiales: "Viviendas con materiales deficientes",
+    g_amenazas: "Amenazas del mes", g_social: "Exposición y vulnerabilidad", meta: "Meta", sin_meta: "Sin meta: cantidad",
+    e_ok: "● En meta", e_atencion: "▲ Atención", e_critico: "✖ Crítico", radio_titulo: "Radio censal",
+    radio_nota: "Detalle de manzanas alrededor de la dirección (radio censal del Censo 2022).",
     sin_resultados: "Sin resultados", quitar_filtro: "Quitar filtro", en: "en", pareto_acum: "Acumulado",
     pareto_t: "¿Dónde se concentra el riesgo?", calor_t: "Riesgo por zona, mes a mes",
     pareto_nota: "Barras: parte de las personas en riesgo de la zona que aporta cada una. Línea: porcentaje acumulado. Hacé clic en una barra para ver adentro.",
@@ -78,7 +87,16 @@ const TEXTOS = {
     evolucion_t: "Risk and hazards, month by month",
     evolucion_nota: "Average across the area's municipalities, on the same 0-10 scale. Hover to also see people at risk.",
     tabla_t: "The 20 priority municipalities of the month",
-    buscar_label: "Search a place", buscar_ph: "Search a province, district, municipality, town or neighborhood…",
+    b_partido: "District", b_partido_ph: "E.g.: Campana", b_localidad: "Town or municipality",
+    b_localidad_ph: "E.g.: Lomas del Río Luján", b_direccion: "Exact address", b_direccion_ph: "E.g.: Mitre 500", b_buscar: "Search",
+    dir_no_encontrada: "Address not found. Try street and number (e.g.: Mitre 500) and pick the district.",
+    dir_sin_red: "Address search needs the full version of the map (this view can't reach the address service).",
+    t_riesgo: "Flood risk", t_amenaza: "Hazard", t_expo: "Exposure", t_vuln: "Vulnerability",
+    t_agua: "Surface water", t_rio: "River flood", t_quebrada: "Flash floods", t_personas: "People at risk",
+    t_bajo: "Population on low ground", t_cloaca: "Homes without sewer", t_nbi: "Homes with unmet basic needs", t_materiales: "Homes with poor materials",
+    g_amenazas: "Hazards this month", g_social: "Exposure and vulnerability", meta: "Target", sin_meta: "No target: count",
+    e_ok: "● On target", e_atencion: "▲ Watch", e_critico: "✖ Critical", radio_titulo: "Census tract",
+    radio_nota: "Blocks around the address (2022 Census tract).",
     sin_resultados: "No results", quitar_filtro: "Clear filter", en: "in", pareto_acum: "Cumulative",
     pareto_t: "Where is the risk concentrated?", calor_t: "Risk by area, month by month",
     pareto_nota: "Bars: each area's share of the people at risk. Line: cumulative percentage. Click a bar to drill down.",
@@ -200,52 +218,62 @@ function agregarRelieve() {
     paint: { "hillshade-exaggeration": 0.35, "hillshade-shadow-color": temaOscuro() ? "#000" : "#6b6a66" } });
 }
 
-function agregarCapasDatos(m) {
+function primeraCapaDelMapaBase() {
+  // Las capas de datos van debajo de ríos, calles y nombres del mapa base: al acercarse se leen las calles
+  const capa = mapa.getStyle().layers.find((l) => l.type === "line" || l.type === "symbol");
+  return capa ? capa.id : undefined;
+}
 
+const opacidadRelleno = ["interpolate", ["linear"], ["zoom"], 4, 0.85, 10, 0.75, 13, 0.5, 16, 0.4];
+
+function agregarCapasDatos(m) {
+  const antes = SIN_TESELAS ? undefined : primeraCapaDelMapaBase();
   // Fondo gris: todo el país. Lo que queda gris es zona sin gobierno local (sin datos)
   mapa.addSource("provincias", { type: "geojson", data: estado.datos.provincias });
   mapa.addLayer({ id: "sin-datos", type: "fill", source: "provincias",
-    paint: { "fill-color": css("--sin-datos"), "fill-opacity": 0.9 } });
-  mapa.addLayer({ id: "provincias-borde", type: "line", source: "provincias",
-    paint: { "line-color": css("--tinta-3"), "line-width": 0.8, "line-opacity": 0.8 } });
+    paint: { "fill-color": css("--sin-datos"), "fill-opacity": ["interpolate", ["linear"], ["zoom"], 4, 0.9, 13, 0.35] } }, antes);
 
   mapa.addSource("municipios", { type: "geojson", data: estado.datos.municipios, promoteId: "cmu" });
-  mapa.addLayer({ id: "municipios-3d", type: "fill-extrusion", source: "municipios",
-    paint: {
-      "fill-extrusion-color": colorMapa(`r_${m}`),
-      "fill-extrusion-height": alturaRiesgo(`r_${m}`),
-      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 9.6, 0.88, 10.2, 0],
-    } });
-  mapa.addLayer({ id: "municipios-borde", type: "line", source: "municipios", minzoom: 6,
-    paint: { "line-color": css("--superficie"), "line-width": 0.6, "line-opacity": 0.7 } });
+  // Riesgo como relleno plano (por defecto). Hasta zoom 10 por municipio; después, por radio censal
+  mapa.addLayer({ id: "municipios-3d", type: "fill", source: "municipios", maxzoom: 10.2,
+    paint: { "fill-color": colorMapa(`r_${m}`), "fill-opacity": opacidadRelleno } }, antes);
+
+  mapa.addSource("radios", { type: "geojson", data: { type: "FeatureCollection", features: estado.radios } });
+  mapa.addLayer({ id: "radios-3d", type: "fill", source: "radios", minzoom: 9.6,
+    paint: { "fill-color": colorMapa(`r_${m}`), "fill-opacity": opacidadRelleno } }, antes);
+
+  mapa.addLayer({ id: "provincias-borde", type: "line", source: "provincias",
+    paint: { "line-color": css("--tinta-3"), "line-width": 0.8, "line-opacity": 0.8 } }, antes);
   // Línea fina gris oscuro solo donde cambia el nivel de riesgo (o contra zonas sin datos)
   mapa.addSource("bordes", { type: "geojson", data: estado.datos.bordes });
   mapa.addLayer({ id: "bordes-riesgo", type: "line", source: "bordes", maxzoom: 10.2,
     filter: ["!=", ["get", `na_${m}`], ["get", `nb_${m}`]],
     paint: { "line-color": css("--borde-riesgo"),
-             "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.4, 8, 0.9, 10, 1.2], "line-opacity": 0.9 } });
+             "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.4, 8, 0.9, 10, 1.2], "line-opacity": 0.9 } }, antes);
+
+  // Opcional: riesgo también como altura (columnas 3D), arriba de todo
+  mapa.addLayer({ id: "municipios-alto", type: "fill-extrusion", source: "municipios", maxzoom: 10.2,
+    layout: { visibility: estado.altura ? "visible" : "none" },
+    paint: { "fill-extrusion-color": colorMapa(`r_${m}`), "fill-extrusion-height": alturaRiesgo(`r_${m}`),
+             "fill-extrusion-opacity": 0.88 } });
+  mapa.addLayer({ id: "radios-alto", type: "fill-extrusion", source: "radios", minzoom: 9.6,
+    layout: { visibility: estado.altura ? "visible" : "none" },
+    paint: { "fill-extrusion-color": colorMapa(`r_${m}`), "fill-extrusion-height": alturaRiesgo(`r_${m}`),
+             "fill-extrusion-opacity": 0.9 } });
+
   mapa.addLayer({ id: "zona-contorno", type: "line", source: "municipios",
     filter: ["in", ["get", "cmu"], ["literal", estado.zona ? estado.zona.cmus : []]],
-    paint: { "line-color": css("--tinta-1"), "line-width": 2 } });
+    paint: { "line-color": css("--tinta-1"), "line-width": ["interpolate", ["linear"], ["zoom"], 5, 1.5, 12, 3] } });
   mapa.addLayer({ id: "municipios-seleccion", type: "line", source: "municipios",
-    filter: ["==", ["get", "cmu"], ""],
-    paint: { "line-color": css("--tinta-1"), "line-width": 2.5 } });
+    filter: ["==", ["get", "cmu"], ""], paint: { "line-color": css("--tinta-1"), "line-width": 2.5 } });
 
-  // Nivel barrio: radios censales, cargados por provincia al acercarse (zoom ≥ 9)
-  mapa.addSource("radios", { type: "geojson", data: { type: "FeatureCollection", features: estado.radios } });
-  mapa.addLayer({ id: "radios-3d", type: "fill-extrusion", source: "radios", minzoom: 9,
-    paint: {
-      "fill-extrusion-color": colorMapa(`r_${m}`),
-      "fill-extrusion-height": alturaRiesgo(`r_${m}`),
-      "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 9.6, 0, 10.2, 0.9],
-    } });
   mapa.on("mousemove", "radios-3d", (e) => mostrarTooltipRadio(e));
   mapa.on("mouseleave", "radios-3d", () => ocultarTooltip());
+  mapa.on("click", "radios-3d", (e) => abrirFichaRadio(e.features[0].properties));
   mapa.on("moveend", cargarRadiosVisibles);
   cargarRadiosVisibles();
 
   mapa.addSource("caba", { type: "geojson", data: estado.datos.caba });
-  // Barrios de CABA: solo contorno + zona sensible al mouse (el color lo dan los radios)
   mapa.addLayer({ id: "caba-barrios", type: "fill", source: "caba", minzoom: 10.5,
     paint: { "fill-color": css("--tinta-1"), "fill-opacity": 0.01 } });
   mapa.addLayer({ id: "caba-contorno", type: "line", source: "caba", minzoom: 10.5,
@@ -253,17 +281,18 @@ function agregarCapasDatos(m) {
 
   mapa.addSource("estaciones", { type: "geojson", data: estado.datos.estaciones });
   mapa.addLayer({ id: "estaciones", type: "circle", source: "estaciones", minzoom: 5.5,
-    paint: {
-      "circle-radius": radioEstacion(`pe_${m}`),
-      "circle-color": "rgba(0,0,0,0)",
-      "circle-stroke-color": css("--estacion"), "circle-stroke-width": 1.5,
-    } });
+    paint: { "circle-radius": radioEstacion(`pe_${m}`), "circle-color": "rgba(0,0,0,0)",
+             "circle-stroke-color": css("--estacion"), "circle-stroke-width": 1.5 } });
+
+  // Dirección buscada
+  mapa.addSource("direccion", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  mapa.addLayer({ id: "direccion", type: "circle", source: "direccion",
+    paint: { "circle-radius": 9, "circle-color": css("--acento"), "circle-stroke-color": "#ffffff", "circle-stroke-width": 3 } });
 
   mapa.on("mousemove", "municipios-3d", (e) => mostrarTooltipMunicipio(e));
   mapa.on("mouseleave", "municipios-3d", () => ocultarTooltip());
   mapa.on("click", "municipios-3d", (e) => {
     const p = e.features[0].properties;
-    seleccionar(p);
     aplicarZona({ nombre: p.nam, tipo: "Municipio", provincia: p.jur, cmus: [p.cmu], nivel: "gl" }, false);
   });
   mapa.on("mousemove", "estaciones", (e) => mostrarTooltipEstacion(e));
@@ -275,12 +304,14 @@ function agregarCapasDatos(m) {
 function actualizarMes() {
   const m = estado.mes;
   if (!mapa || !mapa.getLayer("municipios-3d")) return;
-  mapa.setPaintProperty("municipios-3d", "fill-extrusion-color", colorMapa(`r_${m}`));
+  for (const id of ["municipios-3d", "radios-3d"]) mapa.setPaintProperty(id, "fill-color", colorMapa(`r_${m}`));
+  for (const id of ["municipios-alto", "radios-alto"]) {
+    mapa.setLayoutProperty(id, "visibility", estado.altura ? "visible" : "none");
+    mapa.setPaintProperty(id, "fill-extrusion-color", colorMapa(`r_${m}`));
+    mapa.setPaintProperty(id, "fill-extrusion-height", alturaRiesgo(`r_${m}`));
+  }
   mapa.setFilter("bordes-riesgo", ["!=", ["get", `na_${m}`], ["get", `nb_${m}`]]);
   mapa.setFilter("zona-contorno", ["in", ["get", "cmu"], ["literal", estado.zona ? estado.zona.cmus : []]]);
-  mapa.setPaintProperty("municipios-3d", "fill-extrusion-height", alturaRiesgo(`r_${m}`));
-  mapa.setPaintProperty("radios-3d", "fill-extrusion-color", colorMapa(`r_${m}`));
-  mapa.setPaintProperty("radios-3d", "fill-extrusion-height", alturaRiesgo(`r_${m}`));
   mapa.setPaintProperty("estaciones", "circle-radius", radioEstacion(`pe_${m}`));
 }
 
@@ -373,30 +404,101 @@ function mostrarTooltipCaba(e) {
 }
 
 // ---------- Ficha de municipio ----------
-function barra(etiqueta, valor) {
-  const v = Math.max(0, Math.min(10, Number(valor) || 0));
-  return `<div class="barra"><span>${etiqueta}</span><span class="pista"><span class="relleno" style="width:${v * 10}%"></span></span><span class="valor">${v.toFixed(1)}</span></div>`;
+// Metas de cada indicador (semáforo): verde ≤ meta, amarillo hasta el segundo umbral, rojo arriba.
+// Índices 0-10 alineados con los niveles del mapa (bajo < 4,5 · medio 4,5-6 · alto ≥ 6).
+const METAS = {
+  riesgo: [4.5, 6], amenaza: [4.5, 6], agua: [4.5, 6], rio: [4.5, 6], quebrada: [4.5, 6], expo: [4.5, 6], vuln: [4.5, 6],
+  bajo: [20, 50],        // % de la población en terreno bajo
+  cloaca: [20, 50],      // % de hogares sin desagüe a red cloacal
+  nbi: [5, 10],          // % de hogares con NBI (promedio nacional ≈ 6,7 %)
+  materiales: [10, 25],  // % de hogares con materiales deficientes (calidad III-IV)
+};
+
+function tarjeta(clave, valor, { pct = false, destacado = false } = {}) {
+  if (valor == null || Number.isNaN(valor)) return "";
+  const [verde, rojo] = METAS[clave];
+  const estadoK = valor < verde ? "ok" : valor < rojo ? "atencion" : "critico";
+  const loc = estado.idioma === "es" ? "es-AR" : "en-US";
+  const num = pct ? `${valor.toLocaleString(loc, { maximumFractionDigits: 0 })}<small> %</small>`
+                  : `${valor.toLocaleString(loc, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}<small> /10</small>`;
+  const meta = pct ? `< ${verde} %` : `< ${String(verde).replace(".", estado.idioma === "es" ? "," : ".")}`;
+  return `<div class="kpi-ficha ${estadoK}${destacado ? " destacado" : ""}">
+    <span class="k-etq">${t("t_" + clave)}</span><span class="k-num">${num}</span>
+    <span class="k-estado">${t("e_" + estadoK)}</span><span class="k-meta">${t("meta")}: ${meta}</span></div>`;
 }
-function seleccionar(p) {
-  estado.seleccion = p;
-  mapa.setFilter("municipios-seleccion", ["==", ["get", "cmu"], p.cmu]);
-  const m = estado.mes;
+
+function tarjetaCantidad(clave, valor) {
+  return `<div class="kpi-ficha"><span class="k-etq">${t("t_" + clave)}</span>
+    <span class="k-num">${formatoPersonas(valor)}</span><span class="k-meta">${t("sin_meta")}</span></div>`;
+}
+
+// Valores de una zona (uno o varios municipios), ponderados por población
+function valoresZona(cmus, i) {
+  const items = cmus.map((c) => ({ d: estado.riesgo.cmu[c], p: estado.porCmu.get(c) || {} })).filter((x) => x.d);
+  const pob = items.map((x) => Math.max(1, Number(x.p.poblacion) || 1));
+  const tot = pob.reduce((a, b) => a + b, 0);
+  const pond = (fn) => items.reduce((a, x, k) => a + (fn(x) ?? 0) * pob[k], 0) / tot;
+  const pondDatos = (campo) => { const v = items.map((x, k) => [Number(x.p[campo]), pob[k]]).filter(([n]) => !Number.isNaN(n));
+    const w = v.reduce((a, [, p]) => a + p, 0); return w ? v.reduce((a, [n, p]) => a + n * p, 0) / w : null; };
+  const poblacion = items.reduce((a, x) => a + (Number(x.p.poblacion) || 0), 0);
+  const bajo = items.reduce((a, x) => a + (Number(x.p.pob_terreno_bajo) || 0), 0);
+  return {
+    riesgo: pond((x) => x.d.r[i]), amenaza: pond((x) => x.d.h[i]), agua: pond((x) => x.d.ha[i]),
+    rio: pond((x) => x.d.hr[i]), quebrada: pond((x) => x.d.hq[i]), expo: pond((x) => x.d.E), vuln: pond((x) => x.d.V),
+    personas: items.reduce((a, x) => a + (x.d.p[i] ?? 0), 0), bajo: poblacion ? (100 * bajo) / poblacion : null,
+    cloaca: (v => v == null ? null : 100 - v)(pondDatos("pct_cloaca")), nbi: pondDatos("pct_nbi"),
+    materiales: pondDatos("pct_materiales_deficientes"),
+  };
+}
+
+function cerrarFicha() {
+  document.getElementById("ficha").hidden = true;
+  if (mapa) mapa.setFilter("municipios-seleccion", ["==", ["get", "cmu"], ""]);
+}
+
+function abrirFicha() {
+  const z = estado.zona;
+  if (!z) return cerrarFicha();
+  const i = estado.riesgo.meses.indexOf(estado.mes);
+  const v = valoresZona(z.cmus, i);
   const ficha = document.getElementById("ficha");
   ficha.hidden = false;
   ficha.innerHTML = `
     <button class="boton-chico cerrar" aria-label="${t("cerrar")}">✕</button>
-    <h3>${p.nam}</h3><p class="provincia">${p.jur} · ${nombreMes(m)}</p>
-    ${barra(t("ficha_riesgo"), p[`r_${m}`])}
-    ${barra(t("ficha_amenaza"), p[`h_${m}`])}
-    ${barra(t("ficha_expo"), p.E)}
-    ${barra(t("ficha_vuln"), p.V)}
-    <hr style="border:0;border-top:1px solid var(--grilla)">
-    ${barra(t("ficha_agua"), p[`ha_${m}`])}
-    ${barra(t("ficha_rio"), p[`hr_${m}`])}
-    ${barra(t("ficha_quebrada"), p[`hq_${m}`])}
-    <p>${t("ficha_bajo")}: <strong>${formatoPersonas(Number(p.pob_terreno_bajo))}</strong><br>
-    ${t("ficha_robustez")}: <strong>${Math.round(Number(p.robustez))} %</strong></p>`;
-  ficha.querySelector(".cerrar").onclick = () => { ficha.hidden = true; mapa.setFilter("municipios-seleccion", ["==", ["get", "cmu"], ""]); };
+    <h3>${z.nombre}</h3><p class="provincia">${z.tipo} · ${z.provincia ?? ""} · ${nombreMes(estado.mes)}</p>
+    <div class="tablero">
+      ${tarjeta("riesgo", v.riesgo, { destacado: true })}
+      ${tarjetaCantidad("personas", v.personas)}${tarjeta("amenaza", v.amenaza)}
+      <p class="tablero-titulo">${t("g_amenazas")}</p>
+      ${tarjeta("agua", v.agua)}${tarjeta("rio", v.rio)}${tarjeta("quebrada", v.quebrada)}
+      <p class="tablero-titulo">${t("g_social")}</p>
+      ${tarjeta("expo", v.expo)}${tarjeta("vuln", v.vuln)}
+      ${tarjeta("bajo", v.bajo, { pct: true })}${tarjeta("cloaca", v.cloaca, { pct: true })}
+      ${tarjeta("nbi", v.nbi, { pct: true })}${tarjeta("materiales", v.materiales, { pct: true })}
+    </div>`;
+  ficha.querySelector(".cerrar").onclick = cerrarFicha;
+}
+
+// Radio censal (al buscar una dirección o tocar el mapa de cerca)
+function abrirFichaRadio(p) {
+  const i = estado.riesgo.meses.indexOf(estado.mes);
+  const d = estado.riesgo.cmu[p.cmu];
+  const muni = estado.porCmu.get(p.cmu) || {};
+  const ficha = document.getElementById("ficha");
+  ficha.hidden = false;
+  ficha.innerHTML = `
+    <button class="boton-chico cerrar" aria-label="${t("cerrar")}">✕</button>
+    <h3>${estado.direccion ?? `${t("radio_titulo")} ${p.cod_indec}`}</h3>
+    <p class="provincia">${muni.nam ?? ""} · ${muni.jur ?? ""} · ${nombreMes(estado.mes)}</p>
+    <p class="nota">${t("radio_nota")}</p>
+    <div class="tablero">
+      ${tarjeta("riesgo", Number(p[`r_${estado.mes}`]), { destacado: true })}
+      ${d ? tarjeta("amenaza", d.h[i]) : ""}${tarjeta("expo", Number(p.E))}
+      ${tarjeta("vuln", Number(p.V))}${tarjeta("bajo", Number(p.pct_area_hand_2m), { pct: true })}
+      ${tarjeta("cloaca", 100 - Number(p.pct_cloaca), { pct: true })}
+      ${d ? `<p class="tablero-titulo">${t("g_amenazas")}</p>${tarjeta("agua", d.ha[i])}${tarjeta("rio", d.hr[i])}${tarjeta("quebrada", d.hq[i])}` : ""}
+    </div>`;
+  ficha.querySelector(".cerrar").onclick = cerrarFicha;
 }
 
 // ---------- KPIs, meses, leyenda, tabla ----------
@@ -452,7 +554,7 @@ function elegirMes(m) {
   pintarKpis();
   actualizarMes();
   pintarPareto(); pintarCalor(); pintarGrafico(); pintarTabla();
-  if (estado.seleccion) seleccionar(estado.seleccion);
+  if (estado.zona) abrirFicha();
 }
 
 function pintarLeyenda() {
@@ -557,41 +659,107 @@ const normalizar = (txt) => txt.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
 function prepararBuscador() {
   estado.lugares = estado.datos.buscador.map(([nombre, tipo, provincia, cmus, caja, nivel]) =>
     ({ nombre, tipo, provincia, cmus, caja, nivel, clave: normalizar(nombre) }));
-  const input = document.getElementById("buscar"), lista = document.getElementById("resultados");
-  let activos = [], pos = -1;
-  const cerrar = () => { lista.hidden = true; input.setAttribute("aria-expanded", "false"); };
-  const pintar = () => {
-    lista.innerHTML = activos.length ? activos.map((l, k) => `<li role="option" aria-selected="${k === pos}" data-k="${k}">
-        <span>${l.nombre}</span><span class="tipo">${l.tipo} · ${l.provincia}</span></li>`).join("")
-      : `<li aria-disabled="true"><span>${t("sin_resultados")}</span></li>`;
-    lista.hidden = false; input.setAttribute("aria-expanded", "true");
-  };
+  estado.filtros = { partido: null, localidad: null };
   const orden = { Provincia: 0, Partido: 1, Departamento: 1, Municipio: 2, Barrio: 3, Localidad: 4 };
-  input.addEventListener("input", () => {
-    const q = normalizar(input.value);
-    if (q.length < 2) { cerrar(); return; }
-    const empieza = estado.lugares.filter((l) => l.clave.startsWith(q));
-    const contiene = estado.lugares.filter((l) => !l.clave.startsWith(q) && l.clave.includes(q));
-    activos = [...empieza, ...contiene]
-      .sort((a, b) => (a.clave.startsWith(q) === b.clave.startsWith(q) ? 0 : a.clave.startsWith(q) ? -1 : 1)
-        || (orden[a.tipo] ?? 3) - (orden[b.tipo] ?? 3) || a.clave.length - b.clave.length)
-      .slice(0, 10);
-    pos = activos.length ? 0 : -1;
-    pintar();
+  const candidatos = (nivel, q) => {
+    let base = nivel === "partido"
+      ? estado.lugares.filter((l) => l.nivel === "depto" || l.nivel === "prov")
+      : estado.lugares.filter((l) => l.nivel === "gl" || l.nivel === "loc");
+    const partido = estado.filtros.partido;
+    if (nivel === "localidad" && partido) {   // localidades del partido elegido
+      const dentro = new Set(partido.cmus);
+      base = base.filter((l) => l.cmus.some((c) => dentro.has(c)));
+    }
+    return base.filter((l) => l.clave.includes(q))
+      .sort((a, b) => (b.clave.startsWith(q) - a.clave.startsWith(q)) || (orden[a.tipo] ?? 3) - (orden[b.tipo] ?? 3)
+        || a.clave.length - b.clave.length).slice(0, 10);
+  };
+  document.querySelectorAll(".buscador input[data-nivel]").forEach((input) => {
+    const nivel = input.dataset.nivel, lista = input.nextElementSibling;
+    let activos = [], pos = -1;
+    const cerrar = () => { lista.hidden = true; };
+    const pintar = () => {
+      lista.innerHTML = activos.length ? activos.map((l, k) => `<li role="option" aria-selected="${k === pos}" data-k="${k}">
+          <span>${l.nombre}</span><span class="tipo">${l.tipo} · ${l.provincia}</span></li>`).join("")
+        : `<li aria-disabled="true"><span>${t("sin_resultados")}</span></li>`;
+      lista.hidden = false;
+    };
+    const elegir = (l) => {
+      input.value = l.nombre; cerrar();
+      estado.filtros[nivel] = l;
+      if (nivel === "partido") { estado.filtros.localidad = null; document.getElementById("buscar-localidad").value = ""; }
+      aplicarZona(l, true);
+    };
+    input.addEventListener("input", () => {
+      const q = normalizar(input.value);
+      if (!q) { estado.filtros[nivel] = null; cerrar(); return; }
+      if (q.length < 2) { cerrar(); return; }
+      activos = candidatos(nivel, q); pos = activos.length ? 0 : -1; pintar();
+    });
+    input.addEventListener("keydown", (e) => {
+      if (lista.hidden) return;
+      if (e.key === "ArrowDown") { pos = Math.min(pos + 1, activos.length - 1); pintar(); e.preventDefault(); }
+      if (e.key === "ArrowUp") { pos = Math.max(pos - 1, 0); pintar(); e.preventDefault(); }
+      if (e.key === "Enter" && activos[pos]) { elegir(activos[pos]); e.preventDefault(); }
+      if (e.key === "Escape") cerrar();
+    });
+    lista.addEventListener("mousedown", (e) => {
+      const li = e.target.closest("li[data-k]");
+      if (li) { elegir(activos[+li.dataset.k]); e.preventDefault(); }
+    });
+    input.addEventListener("blur", () => setTimeout(cerrar, 150));
   });
-  input.addEventListener("keydown", (e) => {
-    if (lista.hidden) return;
-    if (e.key === "ArrowDown") { pos = Math.min(pos + 1, activos.length - 1); pintar(); e.preventDefault(); }
-    if (e.key === "ArrowUp") { pos = Math.max(pos - 1, 0); pintar(); e.preventDefault(); }
-    if (e.key === "Enter" && activos[pos]) { elegir(activos[pos]); e.preventDefault(); }
-    if (e.key === "Escape") cerrar();
+  // Botón Buscar: usa la dirección si hay; si no, lo más específico elegido (localidad > partido)
+  document.getElementById("form-buscar").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const dir = document.getElementById("buscar-direccion").value.trim();
+    if (dir) return buscarDireccion(dir);
+    const l = estado.filtros.localidad || estado.filtros.partido;
+    if (l) aplicarZona(l, true);
   });
-  lista.addEventListener("mousedown", (e) => {
-    const li = e.target.closest("li[data-k]");
-    if (li) { elegir(activos[+li.dataset.k]); e.preventDefault(); }
+}
+
+// Punto dentro de polígono (ray casting) para saber en qué municipio cae una dirección
+function contiene(geom, [x, y]) {
+  const anillo = (r) => { let d = false;
+    for (let a = 0, b = r.length - 1; a < r.length; b = a++) {
+      const [xa, ya] = r[a], [xb, yb] = r[b];
+      if ((ya > y) !== (yb > y) && x < ((xb - xa) * (y - ya)) / (yb - ya) + xa) d = !d;
+    } return d; };
+  const pol = (p) => anillo(p[0]) && !p.slice(1).some(anillo);
+  return geom.type === "Polygon" ? pol(geom.coordinates) : geom.coordinates.some(pol);
+}
+
+async function buscarDireccion(texto) {
+  const aviso = document.getElementById("aviso-busqueda");
+  aviso.hidden = true;
+  const params = new URLSearchParams({ direccion: texto, max: "1" });
+  const partido = estado.filtros.partido, localidad = estado.filtros.localidad;
+  if (partido?.nivel === "depto") { params.set("departamento", partido.nombre); params.set("provincia", partido.provincia); }
+  else if (partido?.nivel === "prov") params.set("provincia", partido.provincia);
+  else if (localidad) params.set("provincia", localidad.provincia);
+  let d;
+  try {
+    d = await fetch(`https://apis.datos.gob.ar/georef/api/direcciones?${params}`).then((r) => r.json());
+  } catch (err) { aviso.textContent = t("dir_sin_red"); aviso.hidden = false; return; }
+  const r = d.direcciones?.[0];
+  if (!r) { aviso.textContent = t("dir_no_encontrada"); aviso.hidden = false; return; }
+  const punto = [r.ubicacion.lon, r.ubicacion.lat];
+  const muni = estado.datos.municipios.features.find((f) => contiene(f.geometry, punto));
+  estado.direccion = r.nomenclatura;
+  mapa.getSource("direccion").setData({ type: "FeatureCollection",
+    features: [{ type: "Feature", geometry: { type: "Point", coordinates: punto }, properties: {} }] });
+  if (muni) {
+    aplicarZona({ nombre: r.nomenclatura, tipo: t("b_direccion"), provincia: muni.properties.jur,
+      cmus: [muni.properties.cmu], nivel: "gl", caja: [punto[0] - 0.004, punto[1] - 0.003, punto[0] + 0.004, punto[1] + 0.003] }, false);
+  }
+  mapa.flyTo({ center: punto, zoom: 15.5, pitch: 40, duration: 2200 });
+  // Al llegar, abrir la ficha del radio censal (barrio) donde cae la dirección
+  mapa.once("moveend", async () => {
+    await cargarRadiosVisibles();
+    const radio = estado.radios.find((f) => contiene(f.geometry, punto));
+    if (radio) abrirFichaRadio(radio.properties);
   });
-  input.addEventListener("blur", () => setTimeout(cerrar, 150));
-  const elegir = (l) => { input.value = ""; cerrar(); aplicarZona(l, true); };
 }
 
 function aplicarZona(lugar, volar) {
@@ -608,17 +776,21 @@ function aplicarZona(lugar, volar) {
     chip.hidden = false;
     chip.innerHTML = `<span>${lugar.nombre} <small>(${lugar.tipo})</small></span>
       <button aria-label="${t("quitar_filtro")}" title="${t("quitar_filtro")}">✕</button>`;
-    chip.querySelector("button").onclick = () => aplicarZona(null, false);
+    chip.querySelector("button").onclick = () => {
+      estado.filtros = { partido: null, localidad: null }; estado.direccion = null;
+      document.querySelectorAll(".buscador input").forEach((x) => { x.value = ""; });
+      if (mapa?.getSource("direccion")) mapa.getSource("direccion").setData({ type: "FeatureCollection", features: [] });
+      aplicarZona(null, false);
+    };
     if (volar && mapa) {
       const [x0, y0, x1, y1] = lugar.caja;
       mapa.fitBounds([[x0, y0], [x1, y1]], { padding: 60, pitch: 45, duration: 1800, maxZoom: 12 });
     }
   } else {
     chip.hidden = true;
-    document.getElementById("ficha").hidden = true;
-    if (mapa) mapa.setFilter("municipios-seleccion", ["==", ["get", "cmu"], ""]);
   }
   pintarTodo();
+  if (lugar && lugar.tipo !== t("b_direccion")) abrirFicha(); else if (!lugar) cerrarFicha();
 }
 
 function pintarTodo() {
@@ -730,10 +902,14 @@ function pintarCalor() {
 // ---------- Relato con scroll ----------
 function prepararRelato() {
   const caps = document.querySelectorAll(".capitulo");
+  // El relato mueve el mapa solo cuando la persona lo scrollea (no al cargar: no pisa búsquedas ni links)
+  let scrolleado = false;
+  document.getElementById("relato").addEventListener("scroll", () => { scrolleado = true; }, { once: true, passive: true });
   const obs = new IntersectionObserver((entradas) => {
     entradas.forEach((en) => {
       if (!en.isIntersecting) return;
       caps.forEach((c) => c.classList.toggle("activo", c === en.target));
+      if (!scrolleado) return;
       const v = VISTAS[en.target.dataset.vista];
       if (mapa && v) mapa.flyTo({ ...v, duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 2600, essential: true });
     });
@@ -754,7 +930,7 @@ function aplicarIdioma() {
   b.setAttribute("aria-label", estado.idioma === "es" ? "Change language to English" : "Cambiar el idioma a español");
   document.title = t("titulo");
   pintarMeses(); pintarKpis(); pintarPareto(); pintarCalor(); pintarTabla(); pintarGrafico();
-  if (estado.seleccion) seleccionar(estado.seleccion);
+  if (estado.zona) abrirFicha();
 }
 
 function cambiarTema() {
@@ -772,7 +948,10 @@ async function iniciar() {
   // Links directos: #litoral, #caba… (útil para compartir y para grabar el video); ?tema=oscuro|claro
   const tema = new URLSearchParams(location.search).get("tema");
   if (tema) document.documentElement.dataset.theme = tema === "oscuro" ? "dark" : "light";
-  const vistaInicial = VISTAS[location.hash.slice(1)] ?? VISTAS.pais;
+  // ?vista=lon,lat,zoom: link directo a un punto (útil para compartir una zona)
+  const v = new URLSearchParams(location.search).get("vista")?.split(",").map(Number);
+  const vistaInicial = v?.length === 3 ? { center: [v[0], v[1]], zoom: v[2], pitch: 40, bearing: 0 }
+    : VISTAS[location.hash.slice(1)] ?? VISTAS.pais;
   // Geometrías fijas + números del día (riesgo.json lo reescribe GitHub Actions cada mañana)
   const [resumen, municipios, riesgo, estaciones, caba, cajas, provincias, bordes, buscador] = await Promise.all(
     ["resumen.json", "municipios_geo.geojson", "riesgo.json", "estaciones.geojson", "caba_barrios.geojson",
@@ -814,6 +993,19 @@ async function iniciar() {
     if (cap) document.getElementById("relato").scrollTop = cap.offsetTop;
   }
   prepararRelato();
+  const q = new URLSearchParams(location.search);
+  if (q.get("partido") || q.get("dir") || q.get("lugar")) {
+    const alCargar = (fn) => (mapa.loaded() ? fn() : mapa.once("load", fn));
+    alCargar(() => {
+      const buscar = (nombre, niveles) => estado.lugares.find((l) => niveles.includes(l.nivel) && l.clave === normalizar(nombre));
+      if (q.get("partido")) { estado.filtros.partido = buscar(q.get("partido"), ["depto", "prov"]);
+        document.getElementById("buscar-partido").value = q.get("partido"); }
+      if (q.get("lugar")) { estado.filtros.localidad = buscar(q.get("lugar"), ["gl", "loc"]);
+        document.getElementById("buscar-localidad").value = q.get("lugar"); }
+      if (q.get("dir")) { document.getElementById("buscar-direccion").value = q.get("dir"); buscarDireccion(q.get("dir")); }
+      else if (estado.filtros.localidad || estado.filtros.partido) aplicarZona(estado.filtros.localidad || estado.filtros.partido, true);
+    });
+  }
 }
 
 iniciar();
