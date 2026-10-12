@@ -29,7 +29,7 @@ const TEXTOS = {
     b_partido: "Partido o departamento", b_partido_ph: "Ej.: Campana", b_localidad: "Localidad o municipio",
     b_localidad_ph: "Ej.: Lomas del Río Luján", b_direccion: "Dirección exacta", b_direccion_ph: "Ej.: Mitre 500", b_buscar: "Buscar",
     dir_no_encontrada: "No encontramos esa dirección. Probá con calle y altura (ej.: Mitre 500) y elegí el partido.",
-    dir_sin_red: "La búsqueda por dirección necesita la versión completa del mapa (en esta vista no hay conexión con el servicio de direcciones).",
+    dir_sin_red: "Esta vista (claude.ai) no permite conectarse al servicio de direcciones ni mostrar calles. Abrí la versión completa del mapa para buscar una dirección.",
     t_riesgo: "Riesgo de inundación", t_amenaza: "Amenaza", t_expo: "Exposición", t_vuln: "Vulnerabilidad",
     t_agua: "Agua en superficie", t_rio: "Crecida de ríos", t_quebrada: "Quebradas", t_personas: "Personas en riesgo",
     t_bajo: "Población en terreno bajo", t_cloaca: "Hogares sin cloaca", t_nbi: "Hogares con NBI", t_materiales: "Viviendas con materiales deficientes",
@@ -90,7 +90,7 @@ const TEXTOS = {
     b_partido: "District", b_partido_ph: "E.g.: Campana", b_localidad: "Town or municipality",
     b_localidad_ph: "E.g.: Lomas del Río Luján", b_direccion: "Exact address", b_direccion_ph: "E.g.: Mitre 500", b_buscar: "Search",
     dir_no_encontrada: "Address not found. Try street and number (e.g.: Mitre 500) and pick the district.",
-    dir_sin_red: "Address search needs the full version of the map (this view can't reach the address service).",
+    dir_sin_red: "This view (claude.ai) can't reach the address service or show streets. Open the full version of the map to search an address.",
     t_riesgo: "Flood risk", t_amenaza: "Hazard", t_expo: "Exposure", t_vuln: "Vulnerability",
     t_agua: "Surface water", t_rio: "River flood", t_quebrada: "Flash floods", t_personas: "People at risk",
     t_bajo: "Population on low ground", t_cloaca: "Homes without sewer", t_nbi: "Homes with unmet basic needs", t_materiales: "Homes with poor materials",
@@ -176,7 +176,8 @@ function estiloBase() {
     return { version: 8, sources: {}, layers: [{ id: "fondo", type: "background",
       paint: { "background-color": css("--plano") } }] };
   }
-  return `https://tiles.openfreemap.org/styles/${temaOscuro() ? "dark" : "positron"}`;
+  // Claro: estilo "liberty" (calles, ríos, puntos de interés: hospitales, escuelas, estaciones…)
+  return `https://tiles.openfreemap.org/styles/${temaOscuro() ? "dark" : "liberty"}`;
 }
 
 function colorRiesgo(campo) {
