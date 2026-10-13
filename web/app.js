@@ -29,7 +29,8 @@ const TEXTOS = {
     b_partido: "Partido o departamento", b_partido_ph: "Ej.: Campana", b_localidad: "Localidad o municipio",
     b_localidad_ph: "Ej.: Lomas del Río Luján", b_direccion: "Dirección exacta", b_direccion_ph: "Ej.: Mitre 500", b_buscar: "Buscar",
     dir_no_encontrada: "No encontramos esa dirección. Probá con calle y altura (ej.: Mitre 500) y elegí el partido.",
-    dir_sin_red: "Esta vista (claude.ai) no permite conectarse al servicio de direcciones ni mostrar calles. Abrí la versión completa del mapa para buscar una dirección.",
+    dir_elegir_partido: "Para buscar una dirección, elegí primero el partido o la localidad.",
+    dir_aprox: "Ubicación aproximada: el INDEC no tiene la numeración de esa cuadra, se muestra la más cercana de la calle.",
     t_riesgo: "Riesgo de inundación", t_amenaza: "Amenaza", t_expo: "Exposición", t_vuln: "Vulnerabilidad",
     t_agua: "Agua en superficie", t_rio: "Crecida de ríos", t_quebrada: "Quebradas", t_personas: "Personas en riesgo",
     t_bajo: "Población en terreno bajo", t_cloaca: "Hogares sin cloaca", t_nbi: "Hogares con NBI", t_materiales: "Viviendas con materiales deficientes",
@@ -90,7 +91,8 @@ const TEXTOS = {
     b_partido: "District", b_partido_ph: "E.g.: Campana", b_localidad: "Town or municipality",
     b_localidad_ph: "E.g.: Lomas del Río Luján", b_direccion: "Exact address", b_direccion_ph: "E.g.: Mitre 500", b_buscar: "Search",
     dir_no_encontrada: "Address not found. Try street and number (e.g.: Mitre 500) and pick the district.",
-    dir_sin_red: "This view (claude.ai) can't reach the address service or show streets. Open the full version of the map to search an address.",
+    dir_elegir_partido: "To search an address, first pick the district or town.",
+    dir_aprox: "Approximate location: INDEC has no house numbers for that block; showing the nearest point on the street.",
     t_riesgo: "Flood risk", t_amenaza: "Hazard", t_expo: "Exposure", t_vuln: "Vulnerability",
     t_agua: "Surface water", t_rio: "River flood", t_quebrada: "Flash floods", t_personas: "People at risk",
     t_bajo: "Population on low ground", t_cloaca: "Homes without sewer", t_nbi: "Homes with unmet basic needs", t_materiales: "Homes with poor materials",
@@ -731,6 +733,54 @@ function contiene(geom, [x, y]) {
   return geom.type === "Polygon" ? pol(geom.coordinates) : geom.coordinates.some(pol);
 }
 
+// ---------- Callejero propio (cuadras del INDEC), para cuando no hay conexión al servicio de direcciones ----------
+const VACIAS = new Set(["AV", "AVDA", "AVENIDA", "CALLE", "BV", "BOULEVARD", "BULEVAR", "PJE", "PASAJE", "DR", "DOCTOR",
+  "GRAL", "GENERAL", "ING", "INGENIERO", "PTE", "PRESIDENTE", "CNEL", "CORONEL", "DE", "DEL", "LA", "LAS", "LOS", "EL", "Y", "N"]);
+const tokens = (txt) => normalizar(txt).toUpperCase().replace(/[^A-Z0-9 ]/g, " ").split(/\s+/)
+  .filter((w) => w && !VACIAS.has(w));
+
+async function callejero() {
+  estado.callejero ??= { indice: await fetch("datos/callejero/indice.json").then((r) => r.json()), cargados: {} };
+  return estado.callejero;
+}
+
+async function buscarDireccionLocal(texto) {
+  const m = texto.trim().match(/^(.*?)[\s,]+(\d{1,5})\s*$/);
+  if (!m) return null;
+  const palabras = tokens(m[1]), numero = Number(m[2]);
+  if (!palabras.length) return null;
+  const cj = await callejero();
+  const zona = estado.filtros.localidad || estado.filtros.partido;
+  if (!zona) return { error: "elegir_partido" };
+  const deptos = [...new Set(zona.cmus.flatMap((c) => cj.indice.cmu_depto[c] || []))];
+  let mejor = null;
+  for (const d of deptos) {
+    const archivo = cj.indice.depto_archivo[d];
+    if (!archivo) continue;
+    cj.cargados[archivo] ??= await fetch(`datos/callejero/${archivo}`).then((r) => r.json());
+    const calles = cj.cargados[archivo][d] || {};
+    for (const [nombre, cuadras] of Object.entries(calles)) {
+      const t = nombre.split(" ");
+      if (!palabras.every((p) => t.some((w) => w === p || (p.length >= 4 && w.startsWith(p))))) continue;
+      const extra = t.length - palabras.length;
+      // cuadra que contiene el número (o la más cercana)
+      let cuadra = null, dist = Infinity;
+      for (const c of cuadras) {
+        const dd = c[1] === 0 ? 5000   // calle sin numeración en el INDEC: solo su punto central
+          : numero < c[0] ? c[0] - numero : numero > c[1] ? numero - c[1] : 0;
+        if (dd < dist) { dist = dd; cuadra = c; }
+      }
+      const puntaje = dist * 10 + extra;
+      if (cuadra && (!mejor || puntaje < mejor.puntaje)) mejor = { puntaje, nombre, cuadra, depto: d, dist };
+    }
+  }
+  if (!mejor) return { error: "no_encontrada" };
+  const [desde, hasta, x1, y1, x2, y2] = mejor.cuadra;
+  const f = hasta > desde ? Math.min(1, Math.max(0, (numero - desde) / (hasta - desde))) : 0.5;
+  return { punto: [(x1 + (x2 - x1) * f) / 1e5, (y1 + (y2 - y1) * f) / 1e5],
+           nombre: `${mejor.nombre} ${numero}`, aproximada: mejor.dist > 50 };
+}
+
 async function buscarDireccion(texto) {
   const aviso = document.getElementById("aviso-busqueda");
   aviso.hidden = true;
@@ -739,28 +789,42 @@ async function buscarDireccion(texto) {
   if (partido?.nivel === "depto") { params.set("departamento", partido.nombre); params.set("provincia", partido.provincia); }
   else if (partido?.nivel === "prov") params.set("provincia", partido.provincia);
   else if (localidad) params.set("provincia", localidad.provincia);
-  let d;
-  try {
-    d = await fetch(`https://apis.datos.gob.ar/georef/api/direcciones?${params}`).then((r) => r.json());
-  } catch (err) { aviso.textContent = t("dir_sin_red"); aviso.hidden = false; return; }
-  const r = d.direcciones?.[0];
-  if (!r) { aviso.textContent = t("dir_no_encontrada"); aviso.hidden = false; return; }
-  const punto = [r.ubicacion.lon, r.ubicacion.lat];
+  let punto = null, nombre = null;
+  try {   // 1) servicio oficial de direcciones (versión completa)
+    const d = await fetch(`https://apis.datos.gob.ar/georef/api/direcciones?${params}`).then((r) => r.json());
+    const r = d.direcciones?.[0];
+    if (r) { punto = [r.ubicacion.lon, r.ubicacion.lat]; nombre = r.nomenclatura; }
+  } catch (err) { /* sin conexión al servicio (p. ej. dentro de claude.ai): se usa el callejero propio */ }
+  if (!punto) {   // 2) callejero propio (cuadras del INDEC publicadas con la web)
+    const loc = await buscarDireccionLocal(texto).catch(() => null);
+    if (loc?.punto) {
+      punto = loc.punto; nombre = loc.nombre + (zonaTexto());
+      if (loc.aproximada) { aviso.textContent = t("dir_aprox"); aviso.hidden = false; }
+    }
+    else {
+      aviso.textContent = t(loc?.error === "elegir_partido" ? "dir_elegir_partido" : "dir_no_encontrada");
+      aviso.hidden = false; return;
+    }
+  }
   const muni = estado.datos.municipios.features.find((f) => contiene(f.geometry, punto));
-  estado.direccion = r.nomenclatura;
+  estado.direccion = nombre;
   mapa.getSource("direccion").setData({ type: "FeatureCollection",
     features: [{ type: "Feature", geometry: { type: "Point", coordinates: punto }, properties: {} }] });
   if (muni) {
-    aplicarZona({ nombre: r.nomenclatura, tipo: t("b_direccion"), provincia: muni.properties.jur,
+    aplicarZona({ nombre, tipo: t("b_direccion"), provincia: muni.properties.jur,
       cmus: [muni.properties.cmu], nivel: "gl", caja: [punto[0] - 0.004, punto[1] - 0.003, punto[0] + 0.004, punto[1] + 0.003] }, false);
   }
   mapa.flyTo({ center: punto, zoom: 15.5, pitch: 40, duration: 2200 });
-  // Al llegar, abrir la ficha del radio censal (barrio) donde cae la dirección
   mapa.once("moveend", async () => {
     await cargarRadiosVisibles();
     const radio = estado.radios.find((f) => contiene(f.geometry, punto));
     if (radio) abrirFichaRadio(radio.properties);
   });
+}
+
+function zonaTexto() {
+  const z = estado.filtros.localidad || estado.filtros.partido;
+  return z ? `, ${z.nombre}` : "";
 }
 
 function aplicarZona(lugar, volar) {

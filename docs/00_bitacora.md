@@ -330,3 +330,9 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - **Ficha = tablero de control**: números grandes con semáforo según una meta por factor (verde ≤ meta, amarillo, rojo). Índices 0-10: meta < 4,5 (alineada con los niveles del mapa), rojo ≥ 6. Población en terreno bajo y hogares sin cloaca: meta < 20 %, rojo ≥ 50 %. NBI: < 5 %, rojo ≥ 10 % (promedio nacional ≈ 6,7 %). Materiales deficientes: < 10 %, rojo ≥ 25 %. Para una zona, valores ponderados por población.
 - Corrección: al cargar, el relato movía el mapa a la vista del país y pisaba búsquedas y links. Ahora solo lo mueve cuando la persona scrollea el relato.
 - La versión privada de claude.ai no puede mostrar calles ni buscar direcciones (bloquea servicios externos); la versión completa sí (Mac / GitHub Pages).
+
+## 2026-10-13 — Búsqueda por dirección sin servicios externos (callejero propio)
+- **Problema**: dentro de claude.ai (vista privada desde el celular) el navegador no puede llamar a la API Georef, así que la búsqueda por dirección fallaba.
+- **Solución**: callejero propio a partir de las **2 076 269 cuadras del INDEC** (descargadas de Georef, 1,1 GB). `web/preparar_callejero.py` guarda solo calle normalizada, numeración (desde-hasta) y extremos de cada cuadra, agrupado por departamento en 7 archivos (38 MB en total); el celular descarga solo el del partido elegido. La web primero intenta Georef y, si no responde, usa el callejero y ubica el número interpolando dentro de la cuadra.
+- **Limitación del dato**: solo **677 608 cuadras (33 %) traen numeración** en el INDEC. Las 96 552 calles sin numeración se guardan con un punto central: la búsqueda encuentra la calle y avisa que la ubicación es aproximada.
+- **Prueba** (con Georef bloqueado a propósito): Zárate "Justa Lima 700", Campana "Av Rocca 500", Comuna 14 "Santa Fe 3200" → ubicación correcta y ficha del radio censal abierta.
