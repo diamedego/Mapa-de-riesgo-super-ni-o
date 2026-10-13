@@ -210,3 +210,59 @@ a { color: var(--acento); }
 .kpi-ficha.atencion { background: var(--atencion-fondo); } .kpi-ficha.atencion .k-num, .kpi-ficha.atencion .k-estado { color: var(--atencion); }
 .kpi-ficha.critico { background: var(--critico-fondo); } .kpi-ficha.critico .k-num, .kpi-ficha.critico .k-estado { color: var(--critico); }
 .tablero-titulo { grid-column: 1 / -1; margin: 6px 0 0; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tinta-3); }
+
+/* Celular: el mapa manda. Ficha como panel inferior compacto, leyenda mínima, controles en una fila deslizable */
+.ficha .expandir { display: none; }
+@media (max-width: 760px) {
+  .cabecera { padding-top: 14px; gap: 10px; }
+  .cabecera h1 { font-size: 1.3rem; line-height: 1.2; margin: 0; }
+  .bajada { font-size: 0.88rem; }
+  .kpis { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 74%; overflow-x: auto;
+    scroll-snap-type: x mandatory; gap: 8px; padding: 6px 16px; scrollbar-width: none; }
+  .kpi { scroll-snap-align: start; padding: 8px 12px; gap: 2px; }
+  .kpi-etiqueta { font-size: 0.76rem; }
+  .kpi-valor { font-size: 1.45rem; }
+  .buscador { gap: 8px; padding: 4px 16px 0; }
+  .buscador .campo { flex: 1 1 calc(50% - 4px); }
+  .buscador .campo-ancho { flex: 1 1 calc(100% - 96px); }
+  .buscador label { font-size: 0.74rem; }
+  .buscador input, .boton-buscar { min-height: 38px; font-size: 16px; }   /* 16 px: el iPhone no hace zoom al escribir */
+  .boton-buscar { flex: 0 0 auto; padding: 8px 14px; }
+  .filtro-activo { max-width: 100%; font-size: 0.82rem; }
+  .meses { flex-wrap: nowrap; overflow-x: auto; padding: 6px 16px; scrollbar-width: none; }
+  #botones-mes { flex-wrap: nowrap; }
+  #botones-mes button { white-space: nowrap; min-height: 32px; padding: 2px 10px; font-size: 0.82rem; }
+  .actualizado { white-space: nowrap; }
+  .escenario { height: 74svh; min-height: 420px; margin: 6px 16px; }
+  .relato { height: 28%; }
+  .capitulo { padding: 10px 12px; font-size: 0.86rem; }
+  .escenario.con-ficha .relato { display: none; }
+  .leyenda { display: block; left: 8px; right: auto; top: 8px; bottom: auto; width: auto; max-width: calc(100% - 64px);
+    padding: 5px 8px; font-size: 0.68rem; }
+  .leyenda-titulo, .leyenda-nota, .leyenda .interruptor, .leyenda-clase .rango { display: none; }
+  .leyenda-escala { display: flex; flex-wrap: wrap; gap: 3px 8px; margin: 0; }
+  .leyenda-clase { display: flex; gap: 4px; }
+  .leyenda-clase .muestra { width: 12px; height: 10px; }
+  .ficha { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 62%; padding: 10px 12px 12px;
+    border-radius: 14px 14px 0 0; font-size: 0.82rem; }
+  .ficha h3 { font-size: 0.95rem; padding-right: 40px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ficha .provincia { font-size: 0.76rem; margin: 2px 0 6px; }
+  .ficha .nota { font-size: 0.72rem; margin: 0 0 6px; }
+  .tablero { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .kpi-ficha { padding: 6px 8px; gap: 1px; }
+  .kpi-ficha .k-etq, .kpi-ficha .k-estado { font-size: 0.68rem; line-height: 1.25; }
+  .kpi-ficha .k-meta { font-size: 0.62rem; }
+  .kpi-ficha .k-num { font-size: 1.2rem; }
+  .kpi-ficha .k-num small { font-size: 0.68rem; }
+  .kpi-ficha.destacado { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+  .kpi-ficha.destacado .k-etq { flex-basis: 100%; }
+  .kpi-ficha.destacado .k-num { font-size: 1.6rem; }
+  .ficha.compacta .tablero > :not(.destacado), .ficha.compacta .nota { display: none; }
+  .ficha .expandir { display: block; width: 100%; margin-top: 8px; min-height: 34px; }
+  .ficha, .leyenda { z-index: 3; }   /* por encima de los controles y créditos del mapa */
+  .bloque { margin: 16px; padding: 12px; }
+  .kpis { scroll-padding-inline: 16px; }
+  .fila-calor { grid-template-columns: minmax(70px, 1fr) repeat(7, 34px); }
+  .fila-calor .etq { font-size: 0.74rem; }
+  .fila-calor .celda { font-size: 0.66rem; min-height: 26px; }
+}

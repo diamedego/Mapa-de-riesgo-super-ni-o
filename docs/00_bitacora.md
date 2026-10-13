@@ -336,3 +336,8 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - **Solución**: callejero propio a partir de las **2 076 269 cuadras del INDEC** (descargadas de Georef, 1,1 GB). `web/preparar_callejero.py` guarda solo calle normalizada, numeración (desde-hasta) y extremos de cada cuadra, agrupado por departamento en 7 archivos (38 MB en total); el celular descarga solo el del partido elegido. La web primero intenta Georef y, si no responde, usa el callejero y ubica el número interpolando dentro de la cuadra.
 - **Limitación del dato**: solo **677 608 cuadras (33 %) traen numeración** en el INDEC. Las 96 552 calles sin numeración se guardan con un punto central: la búsqueda encuentra la calle y avisa que la ubicación es aproximada.
 - **Prueba** (con Georef bloqueado a propósito): Zárate "Justa Lima 700", Campana "Av Rocca 500", Comuna 14 "Santa Fe 3200" → ubicación correcta y ficha del radio censal abierta.
+
+## 2026-10-13 — Versión para celular
+- **Pedido**: en el celular la ficha de la dirección tapaba todo el mapa. Causa: una regla de estilo posterior pisaba la de pantallas chicas.
+- **Cambios (≤ 760 px)**: ficha como panel inferior que arranca compacto (solo el riesgo y su semáforo) y se despliega con "Ver detalle" en una grilla de 3 columnas; la historia del mapa se oculta mientras hay ficha abierta; leyenda mínima arriba; KPIs en carrusel; partido y localidad lado a lado; meses en una fila deslizable; al buscar se cierra el teclado y la página baja sola hasta el mapa; mapa de calor ajustado al ancho. Misma web, mismo formato: solo cambia la disposición.
+- **Prueba**: capturas a 390 px de ancho (Zárate y Palermo), ficha compacta y desplegada.

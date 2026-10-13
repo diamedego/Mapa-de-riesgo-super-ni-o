@@ -30,6 +30,7 @@ const TEXTOS = {
     b_localidad_ph: "Ej.: Lomas del Río Luján", b_direccion: "Dirección exacta", b_direccion_ph: "Ej.: Mitre 500", b_buscar: "Buscar",
     dir_no_encontrada: "No encontramos esa dirección. Probá con calle y altura (ej.: Mitre 500) y elegí el partido.",
     dir_elegir_partido: "Para buscar una dirección, elegí primero el partido o la localidad.",
+    ver_detalle: "Ver detalle ▴", ver_menos: "Ver menos ▾",
     dir_aprox: "Ubicación aproximada: el INDEC no tiene la numeración de esa cuadra, se muestra la más cercana de la calle.",
     t_riesgo: "Riesgo de inundación", t_amenaza: "Amenaza", t_expo: "Exposición", t_vuln: "Vulnerabilidad",
     t_agua: "Agua en superficie", t_rio: "Crecida de ríos", t_quebrada: "Quebradas", t_personas: "Personas en riesgo",
@@ -92,6 +93,7 @@ const TEXTOS = {
     b_localidad_ph: "E.g.: Lomas del Río Luján", b_direccion: "Exact address", b_direccion_ph: "E.g.: Mitre 500", b_buscar: "Search",
     dir_no_encontrada: "Address not found. Try street and number (e.g.: Mitre 500) and pick the district.",
     dir_elegir_partido: "To search an address, first pick the district or town.",
+    ver_detalle: "Show details ▴", ver_menos: "Show less ▾",
     dir_aprox: "Approximate location: INDEC has no house numbers for that block; showing the nearest point on the street.",
     t_riesgo: "Flood risk", t_amenaza: "Hazard", t_expo: "Exposure", t_vuln: "Vulnerability",
     t_agua: "Surface water", t_rio: "River flood", t_quebrada: "Flash floods", t_personas: "People at risk",
@@ -454,8 +456,27 @@ function valoresZona(cmus, i) {
   };
 }
 
+// En el celular la ficha es un panel inferior: arranca compacta (solo el riesgo) y se despliega con "Ver detalle"
+function mostrarFicha(html) {
+  const ficha = document.getElementById("ficha");
+  ficha.hidden = false;
+  ficha.classList.add("compacta");
+  ficha.parentElement.classList.add("con-ficha");
+  ficha.innerHTML = `<button class="boton-chico cerrar" aria-label="${t("cerrar")}">✕</button>${html}
+    <button class="boton-chico expandir" aria-expanded="false">${t("ver_detalle")}</button>`;
+  ficha.querySelector(".cerrar").onclick = cerrarFicha;
+  const exp = ficha.querySelector(".expandir");
+  exp.onclick = () => {
+    const abierta = ficha.classList.toggle("compacta") === false;
+    exp.setAttribute("aria-expanded", abierta);
+    exp.textContent = t(abierta ? "ver_menos" : "ver_detalle");
+  };
+}
+
 function cerrarFicha() {
-  document.getElementById("ficha").hidden = true;
+  const ficha = document.getElementById("ficha");
+  ficha.hidden = true;
+  ficha.parentElement.classList.remove("con-ficha");
   if (mapa) mapa.setFilter("municipios-seleccion", ["==", ["get", "cmu"], ""]);
 }
 
@@ -464,10 +485,7 @@ function abrirFicha() {
   if (!z) return cerrarFicha();
   const i = estado.riesgo.meses.indexOf(estado.mes);
   const v = valoresZona(z.cmus, i);
-  const ficha = document.getElementById("ficha");
-  ficha.hidden = false;
-  ficha.innerHTML = `
-    <button class="boton-chico cerrar" aria-label="${t("cerrar")}">✕</button>
+  mostrarFicha(`
     <h3>${z.nombre}</h3><p class="provincia">${z.tipo} · ${z.provincia ?? ""} · ${nombreMes(estado.mes)}</p>
     <div class="tablero">
       ${tarjeta("riesgo", v.riesgo, { destacado: true })}
@@ -478,8 +496,7 @@ function abrirFicha() {
       ${tarjeta("expo", v.expo)}${tarjeta("vuln", v.vuln)}
       ${tarjeta("bajo", v.bajo, { pct: true })}${tarjeta("cloaca", v.cloaca, { pct: true })}
       ${tarjeta("nbi", v.nbi, { pct: true })}${tarjeta("materiales", v.materiales, { pct: true })}
-    </div>`;
-  ficha.querySelector(".cerrar").onclick = cerrarFicha;
+    </div>`);
 }
 
 // Radio censal (al buscar una dirección o tocar el mapa de cerca)
@@ -487,10 +504,7 @@ function abrirFichaRadio(p) {
   const i = estado.riesgo.meses.indexOf(estado.mes);
   const d = estado.riesgo.cmu[p.cmu];
   const muni = estado.porCmu.get(p.cmu) || {};
-  const ficha = document.getElementById("ficha");
-  ficha.hidden = false;
-  ficha.innerHTML = `
-    <button class="boton-chico cerrar" aria-label="${t("cerrar")}">✕</button>
+  mostrarFicha(`
     <h3>${estado.direccion ?? `${t("radio_titulo")} ${p.cod_indec}`}</h3>
     <p class="provincia">${muni.nam ?? ""} · ${muni.jur ?? ""} · ${nombreMes(estado.mes)}</p>
     <p class="nota">${t("radio_nota")}</p>
@@ -500,8 +514,7 @@ function abrirFichaRadio(p) {
       ${tarjeta("vuln", Number(p.V))}${tarjeta("bajo", Number(p.pct_area_hand_2m), { pct: true })}
       ${tarjeta("cloaca", 100 - Number(p.pct_cloaca), { pct: true })}
       ${d ? `<p class="tablero-titulo">${t("g_amenazas")}</p>${tarjeta("agua", d.ha[i])}${tarjeta("rio", d.hr[i])}${tarjeta("quebrada", d.hq[i])}` : ""}
-    </div>`;
-  ficha.querySelector(".cerrar").onclick = cerrarFicha;
+    </div>`);
 }
 
 // ---------- KPIs, meses, leyenda, tabla ----------
@@ -715,6 +728,10 @@ function prepararBuscador() {
   // Botón Buscar: usa la dirección si hay; si no, lo más específico elegido (localidad > partido)
   document.getElementById("form-buscar").addEventListener("submit", (e) => {
     e.preventDefault();
+    if (matchMedia("(max-width: 760px)").matches) {   // celular: cerrar el teclado y bajar hasta el mapa
+      document.activeElement?.blur();
+      document.querySelector(".escenario").scrollIntoView({ behavior: "smooth", block: "end" });
+    }
     const dir = document.getElementById("buscar-direccion").value.trim();
     if (dir) return buscarDireccion(dir);
     const l = estado.filtros.localidad || estado.filtros.partido;
