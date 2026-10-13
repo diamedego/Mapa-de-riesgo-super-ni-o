@@ -32,6 +32,7 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
 - Re-medir consumo de IA (`consumo_ia/`) en 1-2 semanas.
 - Lanzamiento (antes del 30-nov): pulir web, video 30-60 s, post ES/EN, README, repo público + GitHub Pages.
 - Versión privada en claude.ai: https://claude.ai/artifact/2LcKXVqiZ3ZiGc9ZnnNbyU (actualizar con `web/construir_artifact.py`).
-  Al republicar subir también `datos/callejero/*` si se regeneró (`web/preparar_callejero.py`, búsqueda por dirección sin Georef).
+  Al republicar subir también `datos/callejero/*` (`web/preparar_callejero.py`) y `datos/base/*` (`web/preparar_mapa_base.py`:
+  calles y agua propias, no se commitea; en dos publicaciones porque supera 64 MB) si se regeneraron.
 - Cloudflare Pages (gratis, versión completa con calles y Georef): ella crea la cuenta y conecta el repo (Framework None,
   build vacío, output `web`). Después: botón "Abrir mapa completo" en el artifact con ese link.

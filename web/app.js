@@ -153,7 +153,7 @@ function alturaRiesgo(campo) {
 const radioEstacion = (campo) => ["interpolate", ["linear"], ["coalesce", ["get", campo], 0], 0, 3, 1, 10];
 
 const estado = { idioma: "es", mes: null, datos: {}, ranking: "top_relativo", seleccion: null, reproduciendo: null,
-  radios: [], provinciasCargadas: new Set(), altura: false, zona: null, porCmu: new Map() };
+  radios: [], cargasRadios: new Map(), altura: false, zona: null, porCmu: new Map() };
 const t = (clave) => TEXTOS[estado.idioma][clave];
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const temaOscuro = () => {
@@ -177,8 +177,11 @@ const SIN_TESELAS = window.SIN_TESELAS === true;
 
 function estiloBase() {
   if (SIN_TESELAS) {
-    return { version: 8, sources: {}, layers: [{ id: "fondo", type: "background",
-      paint: { "background-color": css("--plano") } }] };
+    // Sin teselas externas: calles, agua y nombres salen de archivos propios (web/preparar_mapa_base.py).
+    // Las letras son glifos de MapLibre (protobuf) guardados como .woff porque claude.ai no sirve .pbf
+    const base = document.baseURI.replace(/[^/]*([?#].*)?$/, "");
+    return { version: 8, sources: {}, glyphs: `${base}datos/base/fuentes/{fontstack}/{range}.woff`,
+      layers: [{ id: "fondo", type: "background", paint: { "background-color": css("--plano") } }] };
   }
   // Claro: estilo "liberty" (calles, ríos, puntos de interés: hospitales, escuelas, estaciones…)
   return `https://tiles.openfreemap.org/styles/${temaOscuro() ? "dark" : "liberty"}`;
@@ -247,6 +250,8 @@ function agregarCapasDatos(m) {
   mapa.addLayer({ id: "radios-3d", type: "fill", source: "radios", minzoom: 9.6,
     paint: { "fill-color": colorMapa(`r_${m}`), "fill-opacity": opacidadRelleno } }, antes);
 
+  if (SIN_TESELAS) agregarMapaBasePropio();
+
   mapa.addLayer({ id: "provincias-borde", type: "line", source: "provincias",
     paint: { "line-color": css("--tinta-3"), "line-width": 0.8, "line-opacity": 0.8 } }, antes);
   // Línea fina gris oscuro solo donde cambia el nivel de riesgo (o contra zonas sin datos)
@@ -288,6 +293,8 @@ function agregarCapasDatos(m) {
   mapa.addLayer({ id: "estaciones", type: "circle", source: "estaciones", minzoom: 5.5,
     paint: { "circle-radius": radioEstacion(`pe_${m}`), "circle-color": "rgba(0,0,0,0)",
              "circle-stroke-color": css("--estacion"), "circle-stroke-width": 1.5 } });
+
+  if (SIN_TESELAS) agregarNombresPropios();
 
   // Dirección buscada
   mapa.addSource("direccion", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
@@ -382,18 +389,88 @@ function riesgoRadios(features) {
 }
 
 // Carga los radios de las provincias visibles (una sola vez cada una)
+// ---------- Mapa base propio (versión dentro de claude.ai) ----------
+function agregarMapaBasePropio() {
+  estado.base ??= { indice: null, cargados: new Set(), agua: [], calles: [] };
+  const fc = (features) => ({ type: "FeatureCollection", features });
+  mapa.addSource("base-agua", { type: "geojson", data: fc(estado.base.agua),
+    attribution: "Agua: © colaboradores de OpenStreetMap" });
+  mapa.addSource("base-calles", { type: "geojson", data: fc(estado.base.calles), attribution: "Calles: INDEC (Georef)" });
+  mapa.addLayer({ id: "agua-areas", type: "fill", source: "base-agua", filter: ["==", ["geometry-type"], "Polygon"],
+    paint: { "fill-color": css("--agua") } });
+  mapa.addLayer({ id: "agua-lineas", type: "line", source: "base-agua", filter: ["==", ["geometry-type"], "LineString"],
+    minzoom: 7, layout: { "line-cap": "round", "line-join": "round" },
+    paint: { "line-color": css("--agua"), "line-width": ["interpolate", ["linear"], ["zoom"],
+      7, ["match", ["get", "c"], 1, 1, 0.4], 14, ["match", ["get", "c"], 1, 5, 2]] } });
+  mapa.addLayer({ id: "calles", type: "line", source: "base-calles", minzoom: 11.5,
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: { "line-color": ["match", ["get", "c"], 3, css("--tinta-3"), css("--calle")],
+      "line-opacity": ["interpolate", ["linear"], ["zoom"], 11.5, 0.35, 14, 0.9],
+      "line-width": ["interpolate", ["exponential", 1.6], ["zoom"],
+        12, ["match", ["get", "c"], 2, 2, 1, 1.4, 0.6], 17, ["match", ["get", "c"], 2, 12, 1, 10, 6]] } });
+  mapa.on("moveend", cargarMapaBaseVisible);
+  cargarMapaBaseVisible();
+}
+
+function agregarNombresPropios() {
+  const texto = { "text-font": ["noto"], "text-field": ["get", "n"], "text-max-angle": 30 };
+  const halo = { "text-color": css("--tinta-2"), "text-halo-color": css("--plano"), "text-halo-width": 1.5 };
+  mapa.addLayer({ id: "calles-nombre", type: "symbol", source: "base-calles", minzoom: 14,
+    filter: ["all", ["!=", ["get", "n"], ""], ["!=", ["get", "c"], 3]],
+    layout: { ...texto, "symbol-placement": "line", "text-size": ["interpolate", ["linear"], ["zoom"], 14, 10, 18, 13] },
+    paint: halo });
+  const aguaTexto = { ...halo, "text-color": css("--agua-texto") };
+  mapa.addLayer({ id: "agua-nombre-rios", type: "symbol", source: "base-agua", minzoom: 8,
+    filter: ["all", ["==", ["geometry-type"], "LineString"], ["!=", ["get", "n"], ""],
+      ["any", ["==", ["get", "c"], 1], [">=", ["zoom"], 12]]],
+    layout: { ...texto, "symbol-placement": "line", "text-size": 12, "text-letter-spacing": 0.05 }, paint: aguaTexto });
+  mapa.addLayer({ id: "agua-nombre-lagos", type: "symbol", source: "base-agua", minzoom: 9,
+    filter: ["all", ["==", ["geometry-type"], "Polygon"], ["!=", ["get", "n"], ""]],
+    layout: { ...texto, "text-size": 12 }, paint: aguaTexto });
+}
+
+function decodificarBase(d) {
+  const linea = (a, k) => { const c = []; let x = 0, y = 0;
+    for (; k < a.length; k += 2) { x += a[k]; y += a[k + 1]; c.push([x / 1e5, y / 1e5]); } return c; };
+  const props = (f, c) => ({ n: d.n[f[0]] ?? "", c });
+  return [
+    ...d.p.map((f) => ({ type: "Feature", properties: props(f, -1),
+      geometry: { type: "Polygon", coordinates: f.slice(1).map((r) => linea(r, 0)) } })),
+    ...d.l.map((f) => ({ type: "Feature", properties: props(f, f[1]),
+      geometry: { type: "LineString", coordinates: linea(f, 2) } })),
+  ];
+}
+
+async function cargarMapaBaseVisible() {
+  const z = mapa.getZoom(), b = mapa.getBounds(), base = estado.base;
+  base.indice ??= await fetch("datos/base/indice.json").then((r) => r.json());
+  const visibles = (lista) => lista.filter(([archivo, [x0, y0, x1, y1]]) => !base.cargados.has(archivo)
+    && x0 < b.getEast() && x1 > b.getWest() && y0 < b.getNorth() && y1 > b.getSouth()).map(([a]) => a);
+  for (const [capa, desde] of [["agua", 6.5], ["calles", 11.5]]) {
+    if (z < desde) continue;
+    const nuevos = visibles(base.indice[capa]);
+    if (!nuevos.length) continue;
+    nuevos.forEach((a) => base.cargados.add(a));
+    const datos = await Promise.all(nuevos.map((a) => fetch(`datos/base/${a}`).then((r) => r.json())));
+    datos.forEach((d) => base[capa].push(...decodificarBase(d)));
+    mapa.getSource(`base-${capa}`)?.setData({ type: "FeatureCollection", features: base[capa] });
+  }
+}
+
 async function cargarRadiosVisibles() {
   if (mapa.getZoom() < 9) return;
   const b = mapa.getBounds();
-  const pendientes = Object.entries(estado.datos.cajas).filter(([prov, [x0, y0, x1, y1]]) =>
-    !estado.provinciasCargadas.has(prov) && x0 < b.getEast() && x1 > b.getWest() && y0 < b.getNorth() && y1 > b.getSouth());
-  for (const [prov] of pendientes) {
-    estado.provinciasCargadas.add(prov);
-    const geo = await fetch(`datos/radios/${prov}.geojson`).then((r) => r.json());
-    riesgoRadios(geo.features);
-    estado.radios.push(...geo.features);
+  const visibles = Object.entries(estado.datos.cajas).filter(([, [x0, y0, x1, y1]]) =>
+    x0 < b.getEast() && x1 > b.getWest() && y0 < b.getNorth() && y1 > b.getSouth()).map(([prov]) => prov);
+  // Una sola descarga por provincia; quien llegue después espera la misma (evita buscar antes de que lleguen los datos)
+  for (const prov of visibles.filter((p) => !estado.cargasRadios.has(p))) {
+    estado.cargasRadios.set(prov, fetch(`datos/radios/${prov}.geojson`).then((r) => r.json()).then((geo) => {
+      riesgoRadios(geo.features);
+      estado.radios.push(...geo.features);
+      mapa.getSource("radios")?.setData({ type: "FeatureCollection", features: estado.radios });
+    }));
   }
-  if (pendientes.length) mapa.getSource("radios").setData({ type: "FeatureCollection", features: estado.radios });
+  await Promise.all(visibles.map((p) => estado.cargasRadios.get(p)));
 }
 
 function mostrarTooltipEstacion(e) {
@@ -456,14 +533,14 @@ function valoresZona(cmus, i) {
   };
 }
 
-// En el celular la ficha es un panel inferior: arranca compacta (solo el riesgo) y se despliega con "Ver detalle"
+// En el celular la ficha es un panel inferior: se abre con todo el detalle y se puede achicar con "Ver menos"
 function mostrarFicha(html) {
   const ficha = document.getElementById("ficha");
   ficha.hidden = false;
-  ficha.classList.add("compacta");
+  ficha.classList.remove("compacta");
   ficha.parentElement.classList.add("con-ficha");
   ficha.innerHTML = `<button class="boton-chico cerrar" aria-label="${t("cerrar")}">✕</button>${html}
-    <button class="boton-chico expandir" aria-expanded="false">${t("ver_detalle")}</button>`;
+    <button class="boton-chico expandir" aria-expanded="true">${t("ver_menos")}</button>`;
   ficha.querySelector(".cerrar").onclick = cerrarFicha;
   const exp = ficha.querySelector(".expandir");
   exp.onclick = () => {
@@ -831,12 +908,36 @@ async function buscarDireccion(texto) {
     aplicarZona({ nombre, tipo: t("b_direccion"), provincia: muni.properties.jur,
       cmus: [muni.properties.cmu], nivel: "gl", caja: [punto[0] - 0.004, punto[1] - 0.003, punto[0] + 0.004, punto[1] + 0.003] }, false);
   }
-  mapa.flyTo({ center: punto, zoom: 15.5, pitch: 40, duration: 2200 });
+  // El punto se corre para que no quede debajo de la ficha (abajo en el celular, a la derecha en la computadora)
+  const cont = mapa.getContainer(), movil = matchMedia("(max-width: 760px)").matches;
+  mapa.flyTo({ center: punto, zoom: 15.5, pitch: 40, duration: 2200,
+    offset: movil ? [0, -cont.clientHeight * 0.27] : [-Math.min(220, cont.clientWidth * 0.22), 0] });
   mapa.once("moveend", async () => {
     await cargarRadiosVisibles();
-    const radio = estado.radios.find((f) => contiene(f.geometry, punto));
+    // La dirección cae sobre la calle, que es el borde entre radios: si no queda adentro de ninguno, el más cercano
+    const radio = estado.radios.find((f) => contiene(f.geometry, punto)) ?? radioMasCercano(punto, muni?.properties.cmu);
     if (radio) abrirFichaRadio(radio.properties);
   });
+}
+
+function radioMasCercano([x, y], cmu, maxGrados = 0.0015) {
+  const dist2 = ([ax, ay], [bx, by]) => {   // distancia² del punto al segmento a-b
+    const dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy;
+    const t = l ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l)) : 0;
+    return (ax + t * dx - x) ** 2 + (ay + t * dy - y) ** 2;
+  };
+  let mejor = null, dMin = maxGrados ** 2;
+  for (const f of estado.radios) {
+    if (cmu && f.properties.cmu !== cmu) continue;
+    const pols = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
+    for (const anillo of pols.map((p) => p[0])) {
+      for (let k = 1; k < anillo.length; k++) {
+        const d = dist2(anillo[k - 1], anillo[k]);
+        if (d < dMin) { dMin = d; mejor = f; }
+      }
+    }
+  }
+  return mejor;
 }
 
 function zonaTexto() {

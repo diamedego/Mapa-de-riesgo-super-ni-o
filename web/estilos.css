@@ -2,6 +2,7 @@
 :root {
   color-scheme: light;
   --plano: #f9f9f7;
+  --agua: #9cc6e8; --agua-texto: #2f6690; --calle: #ffffff;
   --superficie: #fcfcfb;
   --tinta-1: #0b0b0b;
   --tinta-2: #52514e;
@@ -26,6 +27,7 @@
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
+    --agua: #1d3d5c; --agua-texto: #8ab8de; --calle: #6e6d68;
     --plano: #0d0d0d; --superficie: #1a1a19; --tinta-1: #ffffff; --tinta-2: #c3c2b7; --tinta-3: #898781;
     --grilla: #2c2c2a; --eje: #383835; --borde: rgba(255, 255, 255, 0.10); --acento: #3987e5;
     /* En oscuro, más riesgo = más claro (azul 600 → 100) */
@@ -40,6 +42,7 @@
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
+  --agua: #1d3d5c; --agua-texto: #8ab8de; --calle: #6e6d68;
   --plano: #0d0d0d; --superficie: #1a1a19; --tinta-1: #ffffff; --tinta-2: #c3c2b7; --tinta-3: #898781;
   --grilla: #2c2c2a; --eje: #383835; --borde: rgba(255, 255, 255, 0.10); --acento: #3987e5;
   --r1: #55482f; --r2: #8f6c25; --r3: #c9922e; --r4: #f07c2e; --r5: #ff3a2f;
@@ -243,7 +246,7 @@ a { color: var(--acento); }
   .leyenda-escala { display: flex; flex-wrap: wrap; gap: 3px 8px; margin: 0; }
   .leyenda-clase { display: flex; gap: 4px; }
   .leyenda-clase .muestra { width: 12px; height: 10px; }
-  .ficha { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 62%; padding: 10px 12px 12px;
+  .ficha { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 52%; padding: 10px 12px 12px;
     border-radius: 14px 14px 0 0; font-size: 0.82rem; }
   .ficha h3 { font-size: 0.95rem; padding-right: 40px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ficha .provincia { font-size: 0.76rem; margin: 2px 0 6px; }
