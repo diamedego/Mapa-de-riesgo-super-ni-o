@@ -50,13 +50,14 @@
 </form>
 
 <nav class="meses" aria-label="Mes">
-  <button id="btn-play" class="boton-chico" aria-label="Reproducir la secuencia de meses">▶</button>
+  <button id="btn-play" class="boton-chico boton-play" aria-label="Simular la evolución mes a mes"><span id="play-ico" aria-hidden="true">▶</span> <span data-i18n="simular">Simular 6 meses</span></button>
   <div class="selectores-mes"><select id="sel-mes" aria-label="Mes"></select><select id="sel-anio" aria-label="Año"></select></div>
   <span class="actualizado" id="actualizado"></span>
 </nav>
 
 <main class="escenario">
   <div id="mapa" role="region" aria-label="Mapa 3D de riesgo de inundación"></div>
+  <div id="reproductor" class="reproductor" hidden aria-live="polite"><strong id="rep-mes"></strong><div class="rep-barra"><span id="rep-prog"></span></div></div>
 
   <aside class="leyenda" aria-label="Leyenda">
     <p class="leyenda-titulo" data-i18n="leyenda_titulo">Riesgo de inundación (0-10)</p>
@@ -91,6 +92,12 @@
   </div>
 </main>
 
+<section class="bloque" aria-labelledby="t-evolucion">
+  <h2 id="t-evolucion"><span data-i18n="evolucion_t">Riesgo y amenazas, mes a mes</span> <span class="zona-titulo"></span></h2>
+  <p class="nota" data-i18n="evolucion_nota">Promedio de los municipios de la zona, en la misma escala de 0 a 10. Pasá el mouse para ver también las personas en riesgo.</p>
+  <div id="grafico-meses" class="grafico" role="img" aria-describedby="t-evolucion"></div>
+</section>
+
 <section class="bloque" aria-labelledby="t-pareto">
   <h2 id="t-pareto"><span data-i18n="pareto_t">¿Dónde se concentra el riesgo?</span> <span class="zona-titulo"></span></h2>
   <p class="hallazgo" id="pareto-hallazgo"></p>
@@ -104,11 +111,6 @@
   <div id="grafico-calor" class="calor" role="img" aria-labelledby="t-calor"></div>
 </section>
 
-<section class="bloque" aria-labelledby="t-evolucion">
-  <h2 id="t-evolucion"><span data-i18n="evolucion_t">Riesgo y amenazas, mes a mes</span> <span class="zona-titulo"></span></h2>
-  <p class="nota" data-i18n="evolucion_nota">Promedio de los municipios de la zona, en la misma escala de 0 a 10. Pasá el mouse para ver también las personas en riesgo.</p>
-  <div id="grafico-meses" class="grafico" role="img" aria-describedby="t-evolucion"></div>
-</section>
 
 <section class="bloque" id="tabla" aria-labelledby="t-tabla">
   <h2 id="t-tabla"><span data-i18n="tabla_t">Los 20 municipios prioritarios del mes</span> <span class="zona-titulo"></span></h2>

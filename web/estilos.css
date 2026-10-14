@@ -268,3 +268,14 @@ a { color: var(--acento); }
   .fila-calor .etq { font-size: 0.74rem; }
   .fila-calor .celda { font-size: 0.66rem; min-height: 26px; }
 }
+
+/* Simulación mes a mes */
+.reproductor { position: absolute; z-index: 3; top: 12px; left: 50%; transform: translateX(-50%); min-width: 170px; text-align: center;
+  padding: 8px 18px 10px; border-radius: 12px; background: color-mix(in srgb, var(--superficie) 92%, transparent);
+  border: 1px solid var(--borde); box-shadow: var(--sombra); backdrop-filter: blur(6px); }
+.reproductor strong { display: block; font-size: 1.5rem; line-height: 1.2; text-transform: capitalize; }
+.rep-barra { height: 4px; border-radius: 2px; background: var(--grilla); margin-top: 6px; overflow: hidden; }
+.rep-barra span { display: block; height: 100%; background: var(--acento); transition: width 0.6s; }
+.boton-play { display: inline-flex; align-items: center; gap: 6px; }
+@media (max-width: 760px) { .reproductor { top: 74px; left: 8px; transform: none; min-width: 120px; padding: 4px 12px 6px; }
+  .reproductor strong { font-size: 1.1rem; } }

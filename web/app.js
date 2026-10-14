@@ -23,8 +23,9 @@ const TEXTOS = {
     c4_p: "En el conurbano el riesgo relativo es medio, pero la cantidad de personas en terreno bajo y sin cloaca lo vuelve prioritario: La Matanza, Lomas de Zamora, Lanús, Quilmes.",
     c5_t: "CABA: lluvia y sumideros",
     c5_p: "Con 13 años de reclamos al 147, el modelo anticipa el doble de reclamos por sumideros y calles anegadas que un promedio histórico en días de tormenta. Para diciembre y enero espera entre 3 % y 5 % más.",
-    evolucion_t: "Riesgo y amenazas, mes a mes",
-    evolucion_nota: "Promedio de los municipios de la zona, en la misma escala de 0 a 10. Pasá el mouse para ver también las personas en riesgo.",
+    simular: "Simular 6 meses", serie_pais: "Total del país", serie_riesgo_dir: "Riesgo en la dirección",
+    evolucion_t: "Evolución del riesgo, mes a mes",
+    evolucion_nota: "Riesgo total de la selección (línea gruesa) y de cada amenaza, comparado con el total del país (línea punteada), en la misma escala de 0 a 10. Pasá el mouse para ver los valores y las personas en riesgo.",
     tabla_t: "Los 20 municipios prioritarios del mes",
     b_partido: "Partido o departamento", b_partido_ph: "Ej.: Campana", b_localidad: "Localidad o municipio",
     b_localidad_ph: "Ej.: Lomas del Río Luján", b_direccion: "Dirección exacta", b_direccion_ph: "Ej.: Mitre 500", b_buscar: "Buscar",
@@ -86,8 +87,9 @@ const TEXTOS = {
     c4_p: "Around Buenos Aires the relative risk is moderate, but the number of people on low ground without sewers makes it a priority: La Matanza, Lomas de Zamora, Lanús, Quilmes.",
     c5_t: "Buenos Aires City: rain and storm drains",
     c5_p: "Trained on 13 years of 147 citizen reports, the model anticipates twice as many clogged-drain and flooded-street reports as a historical average on stormy days. It expects 3-5 % more in December and January.",
-    evolucion_t: "Risk and hazards, month by month",
-    evolucion_nota: "Average across the area's municipalities, on the same 0-10 scale. Hover to also see people at risk.",
+    simular: "Simulate 6 months", serie_pais: "Whole country", serie_riesgo_dir: "Risk at the address",
+    evolucion_t: "Risk evolution, month by month",
+    evolucion_nota: "Total risk of the selection (thick line) and of each hazard, against the whole-country total (dotted line), on the same 0-10 scale. Hover for values and people at risk.",
     tabla_t: "The 20 priority municipalities of the month",
     b_partido: "District", b_partido_ph: "E.g.: Campana", b_localidad: "Town or municipality",
     b_localidad_ph: "E.g.: Lomas del Río Luján", b_direccion: "Exact address", b_direccion_ph: "E.g.: Mitre 500", b_buscar: "Search",
@@ -316,7 +318,10 @@ function agregarCapasDatos(m) {
 function actualizarMes() {
   const m = estado.mes;
   if (!mapa || !mapa.getLayer("municipios-3d")) return;
-  for (const id of ["municipios-3d", "radios-3d"]) mapa.setPaintProperty(id, "fill-color", colorMapa(`r_${m}`));
+  for (const id of ["municipios-3d", "radios-3d"]) {
+    mapa.setPaintProperty(id, "fill-color-transition", { duration: 900, delay: 0 });   // el cambio de mes se ve como una mezcla
+    mapa.setPaintProperty(id, "fill-color", colorMapa(`r_${m}`));
+  }
   for (const id of ["municipios-alto", "radios-alto"]) {
     mapa.setLayoutProperty(id, "visibility", estado.altura ? "visible" : "none");
     mapa.setPaintProperty(id, "fill-extrusion-color", colorMapa(`r_${m}`));
@@ -551,6 +556,7 @@ function mostrarFicha(html) {
 }
 
 function cerrarFicha() {
+  estado.radioSel = null;
   const ficha = document.getElementById("ficha");
   ficha.hidden = true;
   ficha.parentElement.classList.remove("con-ficha");
@@ -559,6 +565,7 @@ function cerrarFicha() {
 
 function abrirFicha() {
   const z = estado.zona;
+  if (estado.radioSel) { estado.radioSel = null; pintarGrafico(); }
   if (!z) return cerrarFicha();
   const i = estado.riesgo.meses.indexOf(estado.mes);
   const v = valoresZona(z.cmus, i);
@@ -578,6 +585,7 @@ function abrirFicha() {
 
 // Radio censal (al buscar una dirección o tocar el mapa de cerca)
 function abrirFichaRadio(p) {
+  estado.radioSel = p; pintarGrafico();
   const i = estado.riesgo.meses.indexOf(estado.mes);
   const d = estado.riesgo.cmu[p.cmu];
   const muni = estado.porCmu.get(p.cmu) || {};
@@ -600,13 +608,23 @@ function cmusZona() {
   return estado.zona ? estado.zona.cmus : Object.keys(estado.riesgo.cmu);
 }
 
-function agregado() {
+// Riesgo promedio de todo el país por mes (referencia del gráfico de evolución)
+function serieNacional() {
+  estado.nacional ??= (() => {
+    const ds = Object.values(estado.riesgo.cmu);
+    return estado.riesgo.meses.map((_, i) => ds.reduce((a, d) => a + (d.r[i] ?? 0), 0) / ds.length);
+  })();
+  return estado.nacional;
+}
+
+function agregado(conRadio = false) {
   const meses = estado.riesgo.meses, cmus = cmusZona().filter((c) => estado.riesgo.cmu[c]);
   const serie = (clave, fn) => meses.map((_, i) => fn(cmus.map((c) => estado.riesgo.cmu[c][clave][i] ?? 0)));
   const prom = (v) => (v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0);
   const suma = (v) => v.reduce((a, b) => a + b, 0);
-  return { meses, n: cmus.length,
-    riesgo: serie("r", prom), agua: serie("ha", prom), rio: serie("hr", prom), quebrada: serie("hq", prom),
+  const radio = conRadio && estado.radioSel;   // dirección exacta: el riesgo es el de su radio censal
+  return { meses, n: cmus.length, pais: serieNacional(),
+    riesgo: radio ? meses.map((m) => Number(radio[`r_${m}`])) : serie("r", prom), agua: serie("ha", prom), rio: serie("hr", prom), quebrada: serie("hq", prom),
     personas: serie("p", suma), alto: serie("r", (v) => v.filter((x) => x >= 7).length) };
 }
 
@@ -643,7 +661,12 @@ function elegirMes(m) {
   pintarKpis();
   actualizarMes();
   pintarPareto(); pintarCalor(); pintarGrafico(); pintarTabla();
-  if (estado.zona) abrirFicha();
+  const radio = estado.radioSel;
+  if (radio) abrirFichaRadio(radio); else if (estado.zona) abrirFicha();
+  const meses = estado.datos.resumen.meses, rep = document.getElementById("reproductor");
+  document.getElementById("rep-mes").textContent = nombreMes(m);
+  document.getElementById("rep-prog").style.width = `${((meses.indexOf(m) + 1) / meses.length) * 100}%`;
+  rep.hidden = !estado.reproduciendo && !estado.finReproduccion;
 }
 
 function pintarLeyenda() {
@@ -698,9 +721,10 @@ function pintarTabla() {
 // ---------- Gráfico: personas en riesgo por mes (una serie, un eje) ----------
 function pintarGrafico() {
   const cont = document.getElementById("grafico-meses");
-  const ag = agregado(), meses = ag.meses;
+  const ag = agregado(true), meses = ag.meses;
   const series = [
-    { clave: "riesgo", color: "var(--s-riesgo)", ancho: 2.5 },
+    ...(estado.zona ? [{ clave: "pais", color: "var(--tinta-3)", ancho: 1.6, punteada: true }] : []),
+    { clave: "riesgo", color: "var(--s-riesgo)", ancho: 3, etq: estado.radioSel ? "serie_riesgo_dir" : "serie_riesgo" },
     { clave: "agua", color: "var(--s-agua)", ancho: 2 },
     { clave: "rio", color: "var(--s-rio)", ancho: 2 },
     { clave: "quebrada", color: "var(--s-quebrada)", ancho: 2 },
@@ -718,10 +742,10 @@ function pintarGrafico() {
     <line x1="${izq}" x2="${W - der}" y1="${y(0)}" y2="${y(0)}" stroke="var(--eje)"/>
     <line x1="${x(sel)}" x2="${x(sel)}" y1="${arr}" y2="${y(0)}" stroke="var(--eje)" stroke-dasharray="0"/>
     ${series.map((s) => `<path d="${ag[s.clave].map((v, i) => `${i ? "L" : "M"}${x(i)},${y(v)}`).join("")}"
-        fill="none" stroke="${s.color}" stroke-width="${s.ancho}" stroke-linejoin="round"/>
+        fill="none" stroke="${s.color}" stroke-width="${s.ancho}" stroke-linejoin="round"${s.punteada ? ' stroke-dasharray="2 4" stroke-linecap="round"' : ""}/>
       <circle cx="${x(sel)}" cy="${y(ag[s.clave][sel])}" r="4.5" fill="${s.color}" stroke="var(--superficie)" stroke-width="2"/>`).join("")}
     ${finales.map((f) => `<text x="${W - der + 10}" y="${f.yy + 4}" font-size="12" fill="var(--tinta-2)">
-        <tspan fill="${f.s.color}">●</tspan> ${t("serie_" + f.s.clave)}</text>`).join("")}
+        <tspan fill="${f.s.color}">●</tspan> ${t(f.s.etq ?? "serie_" + f.s.clave)}</text>`).join("")}
     ${meses.map((m, i) => `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--tinta-3)">${nombreMes(m)}</text>`).join("")}
     <line id="cruz" y1="${arr}" y2="${y(0)}" stroke="var(--tinta-3)" visibility="hidden"/>
     <rect x="${izq}" y="${arr}" width="${W - izq - der}" height="${H - arr - aba}" fill="transparent" id="zona"/>
@@ -734,7 +758,7 @@ function pintarGrafico() {
     cruz.setAttribute("x1", x(i)); cruz.setAttribute("x2", x(i)); cruz.setAttribute("visibility", "visible");
     tip.hidden = false;
     tip.innerHTML = `<strong>${nombreMes(meses[i])}</strong><br>` + series.map((s) =>
-      `<span style="color:${s.color}">●</span> ${t("serie_" + s.clave)}: ${ag[s.clave][i].toFixed(1)}`).join("<br>") +
+      `<span style="color:${s.color}">●</span> ${t(s.etq ?? "serie_" + s.clave)}: ${ag[s.clave][i].toFixed(1)}`).join("<br>") +
       `<br>${formatoPersonas(ag.personas[i])} ${t("personas")}`;
     tip.style.left = `${Math.min(x(i) + 12, W - 220)}px`; tip.style.top = `${arr}px`;
   });
@@ -1213,12 +1237,19 @@ async function iniciar() {
     elegirMes(delAnio.find((m) => m.slice(5) === estado.mes.slice(5)) ?? delAnio[0]);
   };
   document.getElementById("btn-borrar").onclick = borrarFiltros;
+  // Simulación: arranca en el mes actual (el primero) y avanza un mes cada 2 s hasta el último (+6 meses)
   document.getElementById("btn-play").onclick = () => {
-    const btn = document.getElementById("btn-play");
-    if (estado.reproduciendo) { clearInterval(estado.reproduciendo); estado.reproduciendo = null; btn.textContent = "▶"; return; }
-    btn.textContent = "❚❚";
-    const meses = resumen.meses;
-    estado.reproduciendo = setInterval(() => elegirMes(meses[(meses.indexOf(estado.mes) + 1) % meses.length]), 1400);
+    const ico = document.getElementById("play-ico"), meses = resumen.meses;
+    if (estado.reproduciendo) { clearInterval(estado.reproduciendo); estado.reproduciendo = null; ico.textContent = "▶"; return; }
+    estado.finReproduccion = true;   // el cartel del mes queda visible al terminar
+    ico.textContent = "❚❚";
+    let i = 0;
+    estado.reproduciendo = true;
+    elegirMes(meses[0]);
+    estado.reproduciendo = setInterval(() => {
+      elegirMes(meses[++i]);
+      if (i >= meses.length - 1) { clearInterval(estado.reproduciendo); estado.reproduciendo = null; ico.textContent = "↻"; }
+    }, 2000);
   };
   document.querySelectorAll(".pestanas button").forEach((b) => b.onclick = () => {
     document.querySelectorAll(".pestanas button").forEach((o) => o.setAttribute("aria-selected", String(o === b)));

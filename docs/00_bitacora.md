@@ -355,3 +355,8 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - **Entiende lo escrito**: al buscar, lo que está en partido o localidad sin elegir de la lista se interpreta solo (coincidencia exacta primero: "campana" → Campana); si no existe se avisa.
 - **Dirección con lugar**: "Mitre 500, Campana" separa la calle de la localidad o partido y completa el filtro. Si se busca una dirección sin lugar, al elegirlo después (Enter en la lista) la dirección se busca sola, sin volver a tocarla.
 - **Prueba** con Chrome real (computadora y 390 px): los tres recorridos y el cambio de año.
+
+## 2026-10-14 — Simulación mes a mes y gráfico de evolución de la selección
+- **Simular 6 meses**: botón con texto (▶ / ❚❚ / ↻) que arranca en el mes actual (oct 26) y avanza un mes cada 2 s hasta abr 27 y se detiene; cartel con el mes y barra de progreso sobre el mapa, cambio de color con mezcla de 0,9 s, y la ficha, el gráfico y los rankings se actualizan en vivo.
+- **Gráfico de evolución** ahora justo debajo del mapa: riesgo total de la selección (línea gruesa) y cada amenaza (agua en superficie, crecida de ríos, quebradas), más el total del país como línea punteada de referencia. Con una dirección exacta, la línea de riesgo es la de su radio censal ("Riesgo en la dirección").
+- Corregido: al cambiar de mes con una dirección elegida la ficha volvía a la del municipio; ahora conserva la del radio.
