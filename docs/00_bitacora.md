@@ -348,3 +348,10 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - **Ficha**: se abre con todo el detalle (en el celular se puede achicar con "Ver menos"); el punto buscado se corre para no quedar debajo de la ficha.
 - **Errores corregidos**: (1) las direcciones caen sobre la calle, que es el borde entre radios simplificados: si el punto no queda adentro de ninguno se toma el radio más cercano del mismo municipio; (2) carrera entre dos cargas de radios: la segunda buscaba antes de que llegaran los datos; ahora ambas esperan la misma descarga.
 - **Prueba**: Chrome controlado en tiempo real (protocolo DevTools) con Georef y teselas bloqueados: Los Polvorines "dardo rocha 3732" y Zárate-Campana (Paraná de las Palmas con nombre). El modo de tiempo simulado de Chrome no sirve para esta versión (el mapa nunca termina de cargar).
+
+## 2026-10-14 — Buscador más inteligente, meses en desplegables, botón Borrar filtros
+- **Meses y años** como dos desplegables (ocupan una fila corta); al cambiar de año se mantiene el mismo mes si existe, si no el primero disponible.
+- **Borrar filtros**: botón chico que aparece apenas hay algo escrito o una zona elegida y limpia partido, localidad, dirección, marca y ficha.
+- **Entiende lo escrito**: al buscar, lo que está en partido o localidad sin elegir de la lista se interpreta solo (coincidencia exacta primero: "campana" → Campana); si no existe se avisa.
+- **Dirección con lugar**: "Mitre 500, Campana" separa la calle de la localidad o partido y completa el filtro. Si se busca una dirección sin lugar, al elegirlo después (Enter en la lista) la dirección se busca sola, sin volver a tocarla.
+- **Prueba** con Chrome real (computadora y 390 px): los tres recorridos y el cambio de año.

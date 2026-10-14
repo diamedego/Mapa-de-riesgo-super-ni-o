@@ -44,13 +44,14 @@
     <input id="buscar-direccion" type="search" data-i18n-ph="b_direccion_ph" placeholder="Ej.: Mitre 500">
   </div>
   <button type="submit" class="boton-buscar" data-i18n="b_buscar">Buscar</button>
+  <button type="button" id="btn-borrar" class="boton-borrar" hidden><span aria-hidden="true">✕</span> <span data-i18n="borrar_filtros">Borrar filtros</span></button>
   <span id="filtro-activo" class="filtro-activo" hidden></span>
   <p id="aviso-busqueda" class="aviso-busqueda" hidden></p>
 </form>
 
 <nav class="meses" aria-label="Mes">
   <button id="btn-play" class="boton-chico" aria-label="Reproducir la secuencia de meses">▶</button>
-  <div id="botones-mes" role="radiogroup" aria-label="Mes"></div>
+  <div class="selectores-mes"><select id="sel-mes" aria-label="Mes"></select><select id="sel-anio" aria-label="Año"></select></div>
   <span class="actualizado" id="actualizado"></span>
 </nav>
 

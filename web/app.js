@@ -29,7 +29,7 @@ const TEXTOS = {
     b_partido: "Partido o departamento", b_partido_ph: "Ej.: Campana", b_localidad: "Localidad o municipio",
     b_localidad_ph: "Ej.: Lomas del Río Luján", b_direccion: "Dirección exacta", b_direccion_ph: "Ej.: Mitre 500", b_buscar: "Buscar",
     dir_no_encontrada: "No encontramos esa dirección. Probá con calle y altura (ej.: Mitre 500) y elegí el partido.",
-    dir_elegir_partido: "Para buscar una dirección, elegí primero el partido o la localidad.",
+    dir_elegir_partido: "Falta la localidad o el partido: elegila abajo (la búsqueda sigue sola) o escribí la dirección así: Mitre 500, Campana.",
     ver_detalle: "Ver detalle ▴", ver_menos: "Ver menos ▾",
     dir_aprox: "Ubicación aproximada: el INDEC no tiene la numeración de esa cuadra, se muestra la más cercana de la calle.",
     t_riesgo: "Riesgo de inundación", t_amenaza: "Amenaza", t_expo: "Exposición", t_vuln: "Vulnerabilidad",
@@ -38,7 +38,7 @@ const TEXTOS = {
     g_amenazas: "Amenazas del mes", g_social: "Exposición y vulnerabilidad", meta: "Meta", sin_meta: "Sin meta: cantidad",
     e_ok: "● En meta", e_atencion: "▲ Atención", e_critico: "✖ Crítico", radio_titulo: "Radio censal",
     radio_nota: "Detalle de manzanas alrededor de la dirección (radio censal del Censo 2022).",
-    sin_resultados: "Sin resultados", quitar_filtro: "Quitar filtro", en: "en", pareto_acum: "Acumulado",
+    sin_resultados: "Sin resultados", borrar_filtros: "Borrar filtros", lugar_no_encontrado: (x) => `No encontramos «${x}». Probá con otro nombre.`, quitar_filtro: "Quitar filtro", en: "en", pareto_acum: "Acumulado",
     pareto_t: "¿Dónde se concentra el riesgo?", calor_t: "Riesgo por zona, mes a mes",
     pareto_nota: "Barras: parte de las personas en riesgo de la zona que aporta cada una. Línea: porcentaje acumulado. Hacé clic en una barra para ver adentro.",
     calor_nota: "Riesgo promedio de cada zona, ponderado por población, con los mismos colores del mapa. Hacé clic en una fila para ver adentro.",
@@ -92,7 +92,7 @@ const TEXTOS = {
     b_partido: "District", b_partido_ph: "E.g.: Campana", b_localidad: "Town or municipality",
     b_localidad_ph: "E.g.: Lomas del Río Luján", b_direccion: "Exact address", b_direccion_ph: "E.g.: Mitre 500", b_buscar: "Search",
     dir_no_encontrada: "Address not found. Try street and number (e.g.: Mitre 500) and pick the district.",
-    dir_elegir_partido: "To search an address, first pick the district or town.",
+    dir_elegir_partido: "The town or district is missing: pick it below (the search continues on its own) or type the address like: Mitre 500, Campana.",
     ver_detalle: "Show details ▴", ver_menos: "Show less ▾",
     dir_aprox: "Approximate location: INDEC has no house numbers for that block; showing the nearest point on the street.",
     t_riesgo: "Flood risk", t_amenaza: "Hazard", t_expo: "Exposure", t_vuln: "Vulnerability",
@@ -101,7 +101,7 @@ const TEXTOS = {
     g_amenazas: "Hazards this month", g_social: "Exposure and vulnerability", meta: "Target", sin_meta: "No target: count",
     e_ok: "● On target", e_atencion: "▲ Watch", e_critico: "✖ Critical", radio_titulo: "Census tract",
     radio_nota: "Blocks around the address (2022 Census tract).",
-    sin_resultados: "No results", quitar_filtro: "Clear filter", en: "in", pareto_acum: "Cumulative",
+    sin_resultados: "No results", borrar_filtros: "Clear filters", lugar_no_encontrado: (x) => `Couldn't find “${x}”. Try another name.`, quitar_filtro: "Clear filter", en: "in", pareto_acum: "Cumulative",
     pareto_t: "Where is the risk concentrated?", calor_t: "Risk by area, month by month",
     pareto_nota: "Bars: each area's share of the people at risk. Line: cumulative percentage. Click a bar to drill down.",
     calor_nota: "Population-weighted average risk of each area, with the map's colors. Click a row to drill down.",
@@ -628,16 +628,12 @@ function pintarKpis() {
 }
 
 function pintarMeses() {
-  const cont = document.getElementById("botones-mes");
-  cont.innerHTML = "";
-  estado.datos.resumen.meses.forEach((m) => {
-    const b = document.createElement("button");
-    b.role = "radio";
-    b.textContent = nombreMes(m);
-    b.setAttribute("aria-checked", String(m === estado.mes));
-    b.onclick = () => elegirMes(m);
-    cont.appendChild(b);
-  });
+  const meses = estado.datos.resumen.meses, anio = estado.mes.slice(0, 4);
+  const opcion = (v, txt, sel) => `<option value="${v}"${sel ? " selected" : ""}>${txt}</option>`;
+  document.getElementById("sel-anio").innerHTML =
+    [...new Set(meses.map((m) => m.slice(0, 4)))].map((a) => opcion(a, a, a === anio)).join("");
+  document.getElementById("sel-mes").innerHTML =
+    meses.filter((m) => m.startsWith(anio)).map((m) => opcion(m, t("meses")[m.slice(5, 7)], m === estado.mes)).join("");
   document.getElementById("actualizado").textContent = t("actualizado")(estado.datos.resumen.calculado);
 }
 
@@ -767,6 +763,8 @@ function prepararBuscador() {
       .sort((a, b) => (b.clave.startsWith(q) - a.clave.startsWith(q)) || (orden[a.tipo] ?? 3) - (orden[b.tipo] ?? 3)
         || a.clave.length - b.clave.length).slice(0, 10);
   };
+  estado.candidatos = candidatos;
+  document.querySelectorAll(".buscador input").forEach((x) => x.addEventListener("input", actualizarBorrar));
   document.querySelectorAll(".buscador input[data-nivel]").forEach((input) => {
     const nivel = input.dataset.nivel, lista = input.nextElementSibling;
     let activos = [], pos = -1;
@@ -781,6 +779,8 @@ function prepararBuscador() {
       input.value = l.nombre; cerrar();
       estado.filtros[nivel] = l;
       if (nivel === "partido") { estado.filtros.localidad = null; document.getElementById("buscar-localidad").value = ""; }
+      const dir = document.getElementById("buscar-direccion").value.trim();
+      if (estado.dirPendiente && dir) return buscarDireccion(dir);   // la dirección esperaba este dato: se busca sola
       aplicarZona(l, true);
     };
     input.addEventListener("input", () => {
@@ -809,11 +809,49 @@ function prepararBuscador() {
       document.activeElement?.blur();
       document.querySelector(".escenario").scrollIntoView({ behavior: "smooth", block: "end" });
     }
+    document.getElementById("aviso-busqueda").hidden = true;
+    if (!resolverEscritos()) return;
     const dir = document.getElementById("buscar-direccion").value.trim();
     if (dir) return buscarDireccion(dir);
     const l = estado.filtros.localidad || estado.filtros.partido;
     if (l) aplicarZona(l, true);
   });
+}
+
+// Mejor lugar para un texto: coincidencia exacta primero, si no el primer candidato
+function mejorLugar(nivel, texto) {
+  const q = normalizar(texto);
+  if (q.length < 2) return null;
+  const c = estado.candidatos(nivel, q);
+  return c.find((l) => l.clave === q) ?? c[0] ?? null;
+}
+
+// Lo escrito en partido/localidad sin elegir de la lista se interpreta solo al buscar
+function resolverEscritos() {
+  const aviso = document.getElementById("aviso-busqueda");
+  for (const nivel of ["partido", "localidad"]) {
+    const input = document.getElementById(`buscar-${nivel}`), txt = input.value.trim();
+    if (!txt) { estado.filtros[nivel] = null; continue; }
+    const actual = estado.filtros[nivel];
+    if (actual && normalizar(actual.nombre) === normalizar(txt)) continue;
+    const l = mejorLugar(nivel, txt);
+    if (!l) { aviso.textContent = t("lugar_no_encontrado")(txt); aviso.hidden = false; return false; }
+    estado.filtros[nivel] = l; input.value = l.nombre;
+    if (nivel === "partido") { estado.filtros.localidad = null; document.getElementById("buscar-localidad").value = ""; }
+  }
+  return true;
+}
+
+// "Mitre 500, Campana": la parte después de la coma es la localidad o el partido
+function separarLugarDeDireccion(texto) {
+  const i = texto.lastIndexOf(",");
+  if (i < 0) return texto;
+  const lugar = texto.slice(i + 1).trim(), calle = texto.slice(0, i).trim();
+  const l = mejorLugar("localidad", lugar);
+  if (l) { estado.filtros.localidad = l; document.getElementById("buscar-localidad").value = l.nombre; return calle; }
+  const p = mejorLugar("partido", lugar);
+  if (p) { estado.filtros.partido = p; document.getElementById("buscar-partido").value = p.nombre; return calle; }
+  return texto;
 }
 
 // Punto dentro de polígono (ray casting) para saber en qué municipio cae una dirección
@@ -878,6 +916,7 @@ async function buscarDireccionLocal(texto) {
 async function buscarDireccion(texto) {
   const aviso = document.getElementById("aviso-busqueda");
   aviso.hidden = true;
+  texto = separarLugarDeDireccion(texto);
   const params = new URLSearchParams({ direccion: texto, max: "1" });
   const partido = estado.filtros.partido, localidad = estado.filtros.localidad;
   if (partido?.nivel === "depto") { params.set("departamento", partido.nombre); params.set("provincia", partido.provincia); }
@@ -896,10 +935,12 @@ async function buscarDireccion(texto) {
       if (loc.aproximada) { aviso.textContent = t("dir_aprox"); aviso.hidden = false; }
     }
     else {
-      aviso.textContent = t(loc?.error === "elegir_partido" ? "dir_elegir_partido" : "dir_no_encontrada");
+      estado.dirPendiente = loc?.error === "elegir_partido";   // al elegir el lugar, la búsqueda sigue sola
+      aviso.textContent = t(estado.dirPendiente ? "dir_elegir_partido" : "dir_no_encontrada");
       aviso.hidden = false; return;
     }
   }
+  estado.dirPendiente = false;
   const muni = estado.datos.municipios.features.find((f) => contiene(f.geometry, punto));
   estado.direccion = nombre;
   mapa.getSource("direccion").setData({ type: "FeatureCollection",
@@ -959,12 +1000,7 @@ function aplicarZona(lugar, volar) {
     chip.hidden = false;
     chip.innerHTML = `<span>${lugar.nombre} <small>(${lugar.tipo})</small></span>
       <button aria-label="${t("quitar_filtro")}" title="${t("quitar_filtro")}">✕</button>`;
-    chip.querySelector("button").onclick = () => {
-      estado.filtros = { partido: null, localidad: null }; estado.direccion = null;
-      document.querySelectorAll(".buscador input").forEach((x) => { x.value = ""; });
-      if (mapa?.getSource("direccion")) mapa.getSource("direccion").setData({ type: "FeatureCollection", features: [] });
-      aplicarZona(null, false);
-    };
+    chip.querySelector("button").onclick = borrarFiltros;
     if (volar && mapa) {
       const [x0, y0, x1, y1] = lugar.caja;
       mapa.fitBounds([[x0, y0], [x1, y1]], { padding: 60, pitch: 45, duration: 1800, maxZoom: 12 });
@@ -974,6 +1010,21 @@ function aplicarZona(lugar, volar) {
   }
   pintarTodo();
   if (lugar && lugar.tipo !== t("b_direccion")) abrirFicha(); else if (!lugar) cerrarFicha();
+  actualizarBorrar();
+}
+
+// Quita partido, localidad y dirección de una vez
+function borrarFiltros() {
+  estado.filtros = { partido: null, localidad: null }; estado.direccion = null; estado.dirPendiente = false;
+  document.querySelectorAll(".buscador input").forEach((x) => { x.value = ""; });
+  document.getElementById("aviso-busqueda").hidden = true;
+  if (mapa?.getSource("direccion")) mapa.getSource("direccion").setData({ type: "FeatureCollection", features: [] });
+  aplicarZona(null, false);
+}
+
+function actualizarBorrar() {
+  const hay = estado.zona || [...document.querySelectorAll(".buscador input")].some((x) => x.value.trim());
+  document.getElementById("btn-borrar").hidden = !hay;
 }
 
 function pintarTodo() {
@@ -1156,6 +1207,12 @@ async function iniciar() {
   document.getElementById("btn-idioma").onclick = () => { estado.idioma = estado.idioma === "es" ? "en" : "es"; aplicarIdioma(); };
   document.getElementById("btn-tema").onclick = cambiarTema;
   document.getElementById("chk-altura").onchange = (e) => { estado.altura = e.target.checked; actualizarMes(); };
+  document.getElementById("sel-mes").onchange = (e) => elegirMes(e.target.value);
+  document.getElementById("sel-anio").onchange = (e) => {   // mismo mes del otro año si existe; si no, el primero disponible
+    const delAnio = resumen.meses.filter((m) => m.startsWith(e.target.value));
+    elegirMes(delAnio.find((m) => m.slice(5) === estado.mes.slice(5)) ?? delAnio[0]);
+  };
+  document.getElementById("btn-borrar").onclick = borrarFiltros;
   document.getElementById("btn-play").onclick = () => {
     const btn = document.getElementById("btn-play");
     if (estado.reproduciendo) { clearInterval(estado.reproduciendo); estado.reproduciendo = null; btn.textContent = "▶"; return; }

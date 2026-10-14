@@ -79,12 +79,12 @@ a { color: var(--acento); }
 .kpi-valor { font-size: 2rem; font-weight: 650; }
 
 .meses { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px clamp(16px, 3vw, 32px); }
-#botones-mes { display: flex; flex-wrap: wrap; gap: 4px; }
-#botones-mes button {
-  font: inherit; font-size: 0.9rem; min-height: 36px; padding: 4px 12px; border-radius: 18px; cursor: pointer;
-  border: 1px solid var(--borde); background: var(--superficie); color: var(--tinta-2);
-}
-#botones-mes button[aria-checked="true"] { background: var(--acento); color: #fff; border-color: transparent; }
+.selectores-mes { display: flex; gap: 6px; }
+.selectores-mes select { font: inherit; font-size: 0.9rem; min-height: 36px; padding: 4px 28px 4px 12px; border-radius: 18px;
+  border: 1px solid var(--borde); background: var(--superficie); color: var(--tinta-1); cursor: pointer; }
+.boton-borrar { font: inherit; font-size: 0.78rem; padding: 4px 10px; min-height: 28px; border-radius: 14px; align-self: center;
+  border: 1px solid var(--borde); background: transparent; color: var(--tinta-2); cursor: pointer; }
+.boton-borrar:hover { background: var(--grilla); color: var(--tinta-1); }
 .actualizado { color: var(--tinta-3); font-size: 0.8rem; margin-left: auto; }
 
 .escenario { position: relative; height: min(78vh, 820px); min-height: 520px; margin: 8px clamp(16px, 3vw, 32px); border-radius: 14px; overflow: hidden; border: 1px solid var(--borde); }
@@ -233,8 +233,7 @@ a { color: var(--acento); }
   .boton-buscar { flex: 0 0 auto; padding: 8px 14px; }
   .filtro-activo { max-width: 100%; font-size: 0.82rem; }
   .meses { flex-wrap: nowrap; overflow-x: auto; padding: 6px 16px; scrollbar-width: none; }
-  #botones-mes { flex-wrap: nowrap; }
-  #botones-mes button { white-space: nowrap; min-height: 32px; padding: 2px 10px; font-size: 0.82rem; }
+  .selectores-mes select { min-height: 32px; font-size: 16px; }
   .actualizado { white-space: nowrap; }
   .escenario { height: 74svh; min-height: 420px; margin: 6px 16px; }
   .relato { height: 28%; }
