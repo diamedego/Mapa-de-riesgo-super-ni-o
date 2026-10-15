@@ -18,7 +18,7 @@ MAPLIBRE = "https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl"
 def main(salida: Path) -> None:
     html = (WEB / "index.html").read_text()
     cuerpo = re.search(r"<body>(.*)</body>", html, re.S).group(1)
-    cuerpo = re.sub(r'<script src="app.js"></script>', "", cuerpo)
+    cuerpo = re.sub(r'<script src="(app|tiempo).js"></script>', "", cuerpo)
     cuerpo = re.sub(r'<script src="https://cdn.jsdelivr.net/npm/maplibre-gl[^"]+"></script>', "", cuerpo)
     css_maplibre = urllib.request.urlopen(f"{MAPLIBRE}.css", timeout=60).read().decode()
     pagina = f"""<title>Argentina frente a El Niño 2026-27</title>
@@ -27,6 +27,7 @@ def main(salida: Path) -> None:
 {cuerpo.strip()}
 <script src="{MAPLIBRE}.js"></script>
 <script>window.SIN_TESELAS = true;</script>
+<script>{(WEB / "tiempo.js").read_text()}</script>
 <script>{(WEB / "app.js").read_text()}</script>
 """
     salida.write_text(pagina)

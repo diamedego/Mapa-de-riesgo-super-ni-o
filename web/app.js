@@ -154,7 +154,7 @@ function alturaRiesgo(campo) {
 }
 const radioEstacion = (campo) => ["interpolate", ["linear"], ["coalesce", ["get", campo], 0], 0, 3, 1, 10];
 
-const estado = { idioma: "es", mes: null, datos: {}, ranking: "top_relativo", seleccion: null, reproduciendo: null,
+const estado = { idioma: "es", capa: "riesgo", tiempoDia: 0, mes: null, datos: {}, ranking: "top_relativo", seleccion: null, reproduciendo: null,
   radios: [], cargasRadios: new Map(), altura: false, zona: null, porCmu: new Map() };
 const t = (clave) => TEXTOS[estado.idioma][clave];
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -215,6 +215,7 @@ function agregarCapas() {
   nombresEnEspanol();
   if (!SIN_TESELAS) agregarRelieve();
   agregarCapasDatos(m);
+  agregarCapaTiempo();   // tiempo.js: lluvia, viento y temperatura, separadas del riesgo
 }
 
 function agregarRelieve() {
@@ -323,7 +324,7 @@ function actualizarMes() {
     mapa.setPaintProperty(id, "fill-color", colorMapa(`r_${m}`));
   }
   for (const id of ["municipios-alto", "radios-alto"]) {
-    mapa.setLayoutProperty(id, "visibility", estado.altura ? "visible" : "none");
+    mapa.setLayoutProperty(id, "visibility", estado.altura && estado.capa === "riesgo" ? "visible" : "none");
     mapa.setPaintProperty(id, "fill-extrusion-color", colorMapa(`r_${m}`));
     mapa.setPaintProperty(id, "fill-extrusion-height", alturaRiesgo(`r_${m}`));
   }
@@ -1188,6 +1189,7 @@ function aplicarIdioma() {
   b.setAttribute("aria-label", estado.idioma === "es" ? "Change language to English" : "Cambiar el idioma a español");
   document.title = t("titulo");
   pintarMeses(); pintarKpis(); pintarPareto(); pintarCalor(); pintarTabla(); pintarGrafico();
+  if (estado.capa) pintarControlesTiempo();
   if (estado.zona) abrirFicha();
 }
 
@@ -1264,6 +1266,7 @@ async function iniciar() {
     if (cap) document.getElementById("relato").scrollTop = cap.offsetTop;
   }
   prepararRelato();
+  prepararTiempo();
   const q = new URLSearchParams(location.search);
   if (q.get("partido") || q.get("dir") || q.get("lugar")) {
     const alCargar = (fn) => (mapa.loaded() ? fn() : mapa.once("load", fn));

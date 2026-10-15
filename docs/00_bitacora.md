@@ -360,3 +360,9 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - **Simular 6 meses**: botón con texto (▶ / ❚❚ / ↻) que arranca en el mes actual (oct 26) y avanza un mes cada 2 s hasta abr 27 y se detiene; cartel con el mes y barra de progreso sobre el mapa, cambio de color con mezcla de 0,9 s, y la ficha, el gráfico y los rankings se actualizan en vivo.
 - **Gráfico de evolución** ahora justo debajo del mapa: riesgo total de la selección (línea gruesa) y cada amenaza (agua en superficie, crecida de ríos, quebradas), más el total del país como línea punteada de referencia. Con una dirección exacta, la línea de riesgo es la de su radio censal ("Riesgo en la dirección").
 - Corregido: al cambiar de mes con una dirección elegida la ficha volvía a la del municipio; ahora conserva la del radio.
+
+## 2026-10-14 — Capas del tiempo (lluvia, viento, temperatura) separadas del riesgo
+- **Pedido**: ver vientos, lluvias y más en el mapa, con un filtro propio para no mezclarlos con el riesgo.
+- **Datos**: `ingesta/tiempo_grilla.py` baja de Open-Meteo (gratis) lluvia, viento máximo, ráfagas, dirección y temperatura máxima a 16 días en una grilla de 1° (458 puntos alrededor del país, 261 KB → `web/datos/tiempo.json`). Corre todos los días en Actions con el pronóstico corto. Puntos de la grilla guardados en `data/referencia/grilla_tiempo_puntos.json` (Actions no tiene los límites originales).
+- **Mapa** (`web/tiempo.js`): selector Riesgo | Lluvia | Viento | Temperatura; al elegir una capa del tiempo se apaga el riesgo. Se dibuja como imagen suave (interpolación bilineal en proyección Mercator), el viento además con flechas (dirección y tamaño por velocidad). Línea de 16 días con play, lluvia acumulada opcional, leyenda con escala y cuadro al tocar con los valores del lugar. Mismo código en la versión de claude.ai.
+- **Límite**: la grilla de 1° (~100 km) muestra patrones regionales, no el detalle de una ciudad.

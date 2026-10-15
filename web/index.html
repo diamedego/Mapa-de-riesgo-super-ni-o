@@ -55,11 +55,27 @@
   <span class="actualizado" id="actualizado"></span>
 </nav>
 
+<section class="capas" aria-label="Capa del mapa">
+  <div class="capas-fila">
+    <span id="capas-etq" class="capas-etq"></span>
+    <div id="capas-botones" class="capas-botones" role="radiogroup"></div>
+  </div>
+  <div id="tiempo-barra" class="tiempo-barra" hidden>
+    <button id="tiempo-play" class="boton-chico" aria-label="Reproducir los 16 días">▶</button>
+    <input id="tiempo-dia" type="range" min="0" max="15" value="0" step="1" aria-label="Día">
+    <strong id="tiempo-fecha" class="tiempo-fecha"></strong>
+    <label id="tiempo-acum-campo" class="tiempo-acum" hidden><input id="tiempo-acum" type="checkbox"> <span id="tiempo-acum-txt"></span></label>
+  </div>
+  <p id="aviso-tiempo" class="nota" hidden></p>
+  <p id="tiempo-fuente" class="nota tiempo-fuente"></p>
+</section>
+
 <main class="escenario">
   <div id="mapa" role="region" aria-label="Mapa 3D de riesgo de inundación"></div>
   <div id="reproductor" class="reproductor" hidden aria-live="polite"><strong id="rep-mes"></strong><div class="rep-barra"><span id="rep-prog"></span></div></div>
 
-  <aside class="leyenda" aria-label="Leyenda">
+  <aside id="leyenda-tiempo" class="leyenda leyenda-tiempo" aria-label="Leyenda del tiempo"></aside>
+  <aside class="leyenda leyenda-riesgo" aria-label="Leyenda">
     <p class="leyenda-titulo" data-i18n="leyenda_titulo">Riesgo de inundación (0-10)</p>
     <div id="leyenda-escala" class="leyenda-escala"></div>
     <label class="interruptor"><input type="checkbox" id="chk-altura"> <span data-i18n="leyenda_altura">Mostrar el riesgo también como altura</span></label>
@@ -140,6 +156,7 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+<script src="tiempo.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

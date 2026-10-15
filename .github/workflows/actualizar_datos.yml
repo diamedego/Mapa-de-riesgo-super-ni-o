@@ -54,6 +54,10 @@ jobs:
           fi
           echo "tarea=$t" >> "$GITHUB_OUTPUT"
 
+      - name: Grilla del tiempo (lluvia, viento, temperatura a 16 días)
+        if: steps.tarea.outputs.tarea == 'ina'
+        run: python ingesta/tiempo_grilla.py
+
       - name: Alertas SMN
         if: steps.tarea.outputs.tarea == 'smn'
         run: python ingesta/smn_alertas.py
@@ -90,6 +94,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f data/archivo data/gold web/datos/riesgo.json web/datos/estaciones.geojson web/datos/resumen.json
+          git add -f data/archivo data/gold web/datos/riesgo.json web/datos/estaciones.geojson web/datos/resumen.json web/datos/tiempo.json
           git diff --cached --quiet || git commit -m "Datos automáticos: ${{ steps.tarea.outputs.tarea }} $(date -u +%F\ %H:%M) UTC"
           git pull --rebase --autostash && git push

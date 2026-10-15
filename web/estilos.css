@@ -279,3 +279,33 @@ a { color: var(--acento); }
 .boton-play { display: inline-flex; align-items: center; gap: 6px; }
 @media (max-width: 760px) { .reproductor { top: 74px; left: 8px; transform: none; min-width: 120px; padding: 4px 12px 6px; }
   .reproductor strong { font-size: 1.1rem; } }
+
+/* Capas del tiempo */
+.capas { padding: 4px clamp(16px, 3vw, 32px) 0; }
+.capas-fila { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.capas-etq { font-size: 0.8rem; color: var(--tinta-2); }
+.capas-botones { display: flex; gap: 6px; flex-wrap: wrap; }
+.capas-botones button { font: inherit; font-size: 0.9rem; min-height: 34px; padding: 4px 14px; border-radius: 17px; cursor: pointer;
+  border: 1px solid var(--borde); background: var(--superficie); color: var(--tinta-2); }
+.capas-botones button[aria-checked="true"] { background: var(--acento); color: #fff; border-color: transparent; }
+.tiempo-barra { display: flex; align-items: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+.tiempo-barra input[type="range"] { flex: 1 1 220px; min-width: 140px; max-width: 520px; accent-color: var(--acento); }
+.tiempo-fecha { min-width: 7.5em; font-variant-numeric: tabular-nums; text-transform: capitalize; }
+.tiempo-acum { font-size: 0.85rem; color: var(--tinta-2); display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.leyenda-tiempo { display: none; }
+.escenario.modo-tiempo .leyenda-tiempo { display: block; }
+.escenario.modo-tiempo .leyenda-riesgo, .escenario.modo-tiempo .reproductor { display: none; }
+.degradado { height: 12px; border-radius: 3px; margin: 4px 0 2px; border: 1px solid var(--borde); }
+.degradado-rotulos { display: flex; justify-content: space-between; color: var(--tinta-3); font-variant-numeric: tabular-nums; }
+.popup-tiempo { font-size: 0.82rem; line-height: 1.5; color: #1c1c1b; }
+@media (max-width: 760px) {
+  .capas { padding: 4px 16px 0; }
+  .capas-fila { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .capas-botones { flex-wrap: nowrap; }
+  .capas-botones button { white-space: nowrap; min-height: 32px; font-size: 0.82rem; padding: 2px 12px; }
+  .escenario.modo-tiempo .leyenda-tiempo { display: block; top: 8px; left: 8px; right: auto; bottom: auto; width: 200px; max-width: calc(100% - 64px); }
+  .leyenda-tiempo .leyenda-titulo { display: block; }
+}
+.tiempo-fuente { margin: 4px 0 0; } .tiempo-barra[hidden] ~ .tiempo-fuente { display: none; }
+.escenario.modo-tiempo .relato { display: none; }
+.capas-etq { white-space: nowrap; }
