@@ -31,6 +31,8 @@ const ESCALAS = {
          [26, [250, 170, 60, 0.7]], [34, [220, 60, 40, 0.75]], [42, [140, 20, 60, 0.8]]],
 };
 const CAPAS = ["riesgo", "lluvia", "viento", "temp"];
+// Extensión de la grilla (igual que ingesta/tiempo_grilla.py); el lienzo se dibuja directo sobre el mapa, sin imágenes externas
+const GRILLA = { lon0: -74, lat0: -21, lon1: -53, latSur: -55, px: 14 };
 const CAPAS_DE_RIESGO = ["sin-datos", "municipios-3d", "radios-3d", "municipios-alto", "radios-alto", "bordes-riesgo"];
 
 function escalaActual() {
@@ -78,11 +80,8 @@ function dibujarTiempo() {
   const g = estado.tiempo, capa = estado.capa;
   if (!g || capa === "riesgo" || !mapa.getSource("tiempo-img")) return;
   const dia = estado.tiempoDia, escala = escalaActual(), serie = serieTiempo(capa);
-  const lon1 = g.lon0 + (g.nx - 1) * g.paso, latSur = g.lat0 - (g.ny - 1) * g.paso;
-  const W = (g.nx - 1) * 14;
+  const cv = lienzoTiempo(), W = cv.width, H = cv.height, lon1 = GRILLA.lon1, latSur = GRILLA.latSur;
   const yTop = mercY(g.lat0), yBot = mercY(latSur);
-  const H = Math.round((W * (yTop - yBot)) / (((lon1 - g.lon0) * Math.PI) / 180));
-  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
   const ctx = cv.getContext("2d"), img = ctx.createImageData(W, H);
   for (let py = 0; py < H; py++) {
     const lat = latDeMercY(yTop - ((yTop - yBot) * (py + 0.5)) / H);
@@ -96,7 +95,10 @@ function dibujarTiempo() {
     }
   }
   ctx.putImageData(img, 0, 0);
-  mapa.getSource("tiempo-img").updateImage({ url: cv.toDataURL(), coordinates: [[g.lon0, g.lat0], [lon1, g.lat0], [lon1, latSur], [g.lon0, latSur]] });
+  // El lienzo se sube a la tarjeta gráfica solo mientras se anima: unos cuadros y se pausa
+  const fuente = mapa.getSource("tiempo-img");
+  fuente.play(); mapa.triggerRepaint();
+  requestAnimationFrame(() => requestAnimationFrame(() => fuente.pause()));
   if (capa === "viento") {
     const feats = [];
     for (let k = 0; k < g.nx * g.ny; k++) {
@@ -107,6 +109,16 @@ function dibujarTiempo() {
     }
     mapa.getSource("tiempo-flechas").setData({ type: "FeatureCollection", features: feats });
   }
+}
+
+function lienzoTiempo() {
+  if (!estado.lienzo) {
+    const cv = document.createElement("canvas"), yTop = mercY(GRILLA.lat0), yBot = mercY(GRILLA.latSur);
+    cv.width = (GRILLA.lon1 - GRILLA.lon0) * GRILLA.px;
+    cv.height = Math.round((cv.width * (yTop - yBot)) / (((GRILLA.lon1 - GRILLA.lon0) * Math.PI) / 180));
+    estado.lienzo = cv;
+  }
+  return estado.lienzo;
 }
 
 function iconoFlecha() {
@@ -120,8 +132,9 @@ function iconoFlecha() {
 // Se llama cada vez que se (re)crean las capas del mapa (arranque y cambio de tema)
 function agregarCapaTiempo() {
   const antes = mapa.getLayer("agua-areas") ? "agua-areas" : SIN_TESELAS ? "provincias-borde" : primeraCapaDelMapaBase();
-  const vacia = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-  mapa.addSource("tiempo-img", { type: "image", url: vacia, coordinates: [[-74, -21], [-53, -21], [-53, -55], [-74, -55]] });
+  mapa.addSource("tiempo-img", { type: "canvas", canvas: lienzoTiempo(), animate: true,
+    coordinates: [[GRILLA.lon0, GRILLA.lat0], [GRILLA.lon1, GRILLA.lat0], [GRILLA.lon1, GRILLA.latSur], [GRILLA.lon0, GRILLA.latSur]] });
+  mapa.getSource("tiempo-img").pause();
   mapa.addLayer({ id: "tiempo-raster", type: "raster", source: "tiempo-img", layout: { visibility: "none" },
     paint: { "raster-opacity": 0.9, "raster-resampling": "linear", "raster-fade-duration": 0 } }, antes);
   if (!mapa.hasImage("flecha")) mapa.addImage("flecha", iconoFlecha());
