@@ -1,7 +1,7 @@
 {
  "calculado": "2026-10-19",
  "corrida_seas5": "2026-10-06",
- "corrida_glofas": "2026-10-12",
+ "corrida_glofas": "2026-10-19",
  "meses": [
   "2026-10",
   "2026-11",
@@ -16,43 +16,43 @@
  "verificacion_lluvia": "verificado",
  "por_mes": {
   "2026-10": {
-   "personas_en_riesgo": 8813946.4,
+   "personas_en_riesgo": 8826500.1,
    "riesgo_medio": 3.9,
-   "municipios_riesgo_alto": 15.0,
-   "estaciones_prob_evacuacion_50": 6
+   "municipios_riesgo_alto": 30.0,
+   "estaciones_prob_evacuacion_50": 12
   },
   "2026-11": {
-   "personas_en_riesgo": 9038866.6,
+   "personas_en_riesgo": 9040458.6,
    "riesgo_medio": 3.9,
-   "municipios_riesgo_alto": 52.0,
-   "estaciones_prob_evacuacion_50": 20
+   "municipios_riesgo_alto": 56.0,
+   "estaciones_prob_evacuacion_50": 22
   },
   "2026-12": {
-   "personas_en_riesgo": 9143813.1,
+   "personas_en_riesgo": 9140213.3,
    "riesgo_medio": 3.9,
-   "municipios_riesgo_alto": 55.0,
+   "municipios_riesgo_alto": 53.0,
    "estaciones_prob_evacuacion_50": 20
   },
   "2027-01": {
-   "personas_en_riesgo": 9173356.8,
+   "personas_en_riesgo": 9170446.2,
    "riesgo_medio": 4.0,
    "municipios_riesgo_alto": 51.0,
    "estaciones_prob_evacuacion_50": 17
   },
   "2027-02": {
-   "personas_en_riesgo": 9189130.6,
+   "personas_en_riesgo": 9186507.6,
    "riesgo_medio": 3.9,
    "municipios_riesgo_alto": 52.0,
    "estaciones_prob_evacuacion_50": 17
   },
   "2027-03": {
-   "personas_en_riesgo": 9194363.9,
+   "personas_en_riesgo": 9187562.2,
    "riesgo_medio": 3.9,
    "municipios_riesgo_alto": 51.0,
    "estaciones_prob_evacuacion_50": 17
   },
   "2027-04": {
-   "personas_en_riesgo": 9026212.0,
+   "personas_en_riesgo": 9019601.4,
    "riesgo_medio": 3.9,
    "municipios_riesgo_alto": 50.0,
    "estaciones_prob_evacuacion_50": 17
@@ -63,16 +63,16 @@
    "cmu": "180188",
    "nam": "Cecilio Echavarría",
    "jur": "Corrientes",
-   "riesgo": 8.68,
-   "personas_en_riesgo": 1132.84,
+   "riesgo": 8.69,
+   "personas_en_riesgo": 1134.13,
    "pct_simulaciones_top10": 100.0
   },
   {
    "cmu": "220399",
    "nam": "Fontana",
    "jur": "Chaco",
-   "riesgo": 8.28,
-   "personas_en_riesgo": 30766.08,
+   "riesgo": 8.31,
+   "personas_en_riesgo": 30864.28,
    "pct_simulaciones_top10": 98.8
   },
   {
@@ -80,144 +80,144 @@
    "nam": "Helvecia",
    "jur": "Santa Fe",
    "riesgo": 8.14,
-   "personas_en_riesgo": 5078.42,
+   "personas_en_riesgo": 5072.4,
    "pct_simulaciones_top10": 99.9
   },
   {
    "cmu": "220385",
    "nam": "Barranqueras",
    "jur": "Chaco",
-   "riesgo": 8.08,
-   "personas_en_riesgo": 33543.4,
+   "riesgo": 8.1,
+   "personas_en_riesgo": 33632.1,
    "pct_simulaciones_top10": 98.2
   },
   {
    "cmu": "820142",
    "nam": "Recreo",
    "jur": "Santa Fe",
-   "riesgo": 8.03,
-   "personas_en_riesgo": 14874.27,
+   "riesgo": 8.01,
+   "personas_en_riesgo": 14844.04,
    "pct_simulaciones_top10": 98.7
   },
   {
    "cmu": "220406",
    "nam": "Puerto Vilelas",
    "jur": "Chaco",
-   "riesgo": 7.93,
-   "personas_en_riesgo": 4871.05,
+   "riesgo": 7.95,
+   "personas_en_riesgo": 4883.33,
    "pct_simulaciones_top10": 96.3
   },
   {
    "cmu": "180140",
    "nam": "Goya",
    "jur": "Corrientes",
-   "riesgo": 7.9,
-   "personas_en_riesgo": 66110.81,
+   "riesgo": 7.91,
+   "personas_en_riesgo": 66182.57,
    "pct_simulaciones_top10": 94.8
   },
   {
    "cmu": "820217",
    "nam": "Villa Gobernador Gálvez",
    "jur": "Santa Fe",
-   "riesgo": 7.89,
-   "personas_en_riesgo": 34878.48,
-   "pct_simulaciones_top10": 97.0
-  },
-  {
-   "cmu": "824030",
-   "nam": "Timbúes",
-   "jur": "Santa Fe",
-   "riesgo": 7.83,
-   "personas_en_riesgo": 5037.06,
-   "pct_simulaciones_top10": 97.0
+   "riesgo": 7.85,
+   "personas_en_riesgo": 34693.5,
+   "pct_simulaciones_top10": 96.9
   },
   {
    "cmu": "180210",
    "nam": "Santa Lucía",
    "jur": "Corrientes",
-   "riesgo": 7.79,
-   "personas_en_riesgo": 5523.25,
+   "riesgo": 7.8,
+   "personas_en_riesgo": 5530.41,
    "pct_simulaciones_top10": 94.3
+  },
+  {
+   "cmu": "824030",
+   "nam": "Timbúes",
+   "jur": "Santa Fe",
+   "riesgo": 7.79,
+   "personas_en_riesgo": 5015.3,
+   "pct_simulaciones_top10": 97.0
   },
   {
    "cmu": "820119",
    "nam": "Villa Ocampo",
    "jur": "Santa Fe",
-   "riesgo": 7.76,
-   "personas_en_riesgo": 12376.78,
+   "riesgo": 7.77,
+   "personas_en_riesgo": 12393.92,
    "pct_simulaciones_top10": 96.6
   },
   {
    "cmu": "822952",
    "nam": "Arroyo Aguiar",
    "jur": "Santa Fe",
-   "riesgo": 7.74,
-   "personas_en_riesgo": 1259.78,
+   "riesgo": 7.72,
+   "personas_en_riesgo": 1257.33,
    "pct_simulaciones_top10": 95.1
   },
   {
    "cmu": "820158",
    "nam": "Sauce Viejo",
    "jur": "Santa Fe",
-   "riesgo": 7.71,
-   "personas_en_riesgo": 6866.06,
-   "pct_simulaciones_top10": 97.0
-  },
-  {
-   "cmu": "823421",
-   "nam": "Piñero",
-   "jur": "Santa Fe",
-   "riesgo": 7.68,
-   "personas_en_riesgo": 1080.52,
-   "pct_simulaciones_top10": 98.1
+   "riesgo": 7.7,
+   "personas_en_riesgo": 6851.96,
+   "pct_simulaciones_top10": 96.9
   },
   {
    "cmu": "180028",
    "nam": "Riachuelo",
    "jur": "Corrientes",
-   "riesgo": 7.67,
-   "personas_en_riesgo": 3423.2,
+   "riesgo": 7.69,
+   "personas_en_riesgo": 3431.8,
+   "pct_simulaciones_top10": 98.6
+  },
+  {
+   "cmu": "823421",
+   "nam": "Piñero",
+   "jur": "Santa Fe",
+   "riesgo": 7.64,
+   "personas_en_riesgo": 1074.45,
+   "pct_simulaciones_top10": 98.0
+  },
+  {
+   "cmu": "220364",
+   "nam": "Colonia Benítez",
+   "jur": "Chaco",
+   "riesgo": 7.63,
+   "personas_en_riesgo": 2485.66,
    "pct_simulaciones_top10": 98.3
   },
   {
    "cmu": "820143",
    "nam": "San José del Rincón",
    "jur": "Santa Fe",
-   "riesgo": 7.62,
-   "personas_en_riesgo": 5632.58,
-   "pct_simulaciones_top10": 94.6
-  },
-  {
-   "cmu": "220364",
-   "nam": "Colonia Benítez",
-   "jur": "Chaco",
    "riesgo": 7.61,
-   "personas_en_riesgo": 2480.2,
-   "pct_simulaciones_top10": 98.2
+   "personas_en_riesgo": 5624.89,
+   "pct_simulaciones_top10": 94.5
   },
   {
-   "cmu": "820203",
-   "nam": "Pérez",
-   "jur": "Santa Fe",
+   "cmu": "220413",
+   "nam": "Resistencia",
+   "jur": "Chaco",
    "riesgo": 7.6,
-   "personas_en_riesgo": 11822.06,
-   "pct_simulaciones_top10": 95.1
+   "personas_en_riesgo": 189255.74,
+   "pct_simulaciones_top10": 92.6
   },
   {
    "cmu": "820112",
    "nam": "Reconquista",
    "jur": "Santa Fe",
-   "riesgo": 7.59,
-   "personas_en_riesgo": 32588.05,
+   "riesgo": 7.6,
+   "personas_en_riesgo": 32618.75,
    "pct_simulaciones_top10": 92.2
   },
   {
-   "cmu": "824002",
-   "nam": "Luis Palacios",
+   "cmu": "822959",
+   "nam": "Arroyo Leyes",
    "jur": "Santa Fe",
-   "riesgo": 7.58,
-   "personas_en_riesgo": 1170.09,
-   "pct_simulaciones_top10": 94.8
+   "riesgo": 7.57,
+   "personas_en_riesgo": 2060.84,
+   "pct_simulaciones_top10": 94.4
   }
  ],
  "top_personas": [
@@ -233,17 +233,17 @@
    "cmu": "820210",
    "nam": "Rosario",
    "jur": "Santa Fe",
-   "riesgo": 6.85,
-   "personas_en_riesgo": 372675.92,
-   "pct_simulaciones_top10": 73.9
+   "riesgo": 6.81,
+   "personas_en_riesgo": 370500.79,
+   "pct_simulaciones_top10": 73.2
   },
   {
    "cmu": "820147",
    "nam": "Santa Fe",
    "jur": "Santa Fe",
-   "riesgo": 7.44,
-   "personas_en_riesgo": 232827.78,
-   "pct_simulaciones_top10": 89.9
+   "riesgo": 7.43,
+   "personas_en_riesgo": 232349.54,
+   "pct_simulaciones_top10": 89.8
   },
   {
    "cmu": "060490",
@@ -257,9 +257,9 @@
    "cmu": "220413",
    "nam": "Resistencia",
    "jur": "Chaco",
-   "riesgo": 7.58,
-   "personas_en_riesgo": 188704.81,
-   "pct_simulaciones_top10": 92.3
+   "riesgo": 7.6,
+   "personas_en_riesgo": 189255.74,
+   "pct_simulaciones_top10": 92.6
   },
   {
    "cmu": "060434",
@@ -297,9 +297,9 @@
    "cmu": "180021",
    "nam": "Corrientes",
    "jur": "Corrientes",
-   "riesgo": 7.44,
-   "personas_en_riesgo": 146682.64,
-   "pct_simulaciones_top10": 88.4
+   "riesgo": 7.46,
+   "personas_en_riesgo": 147010.0,
+   "pct_simulaciones_top10": 88.7
   },
   {
    "cmu": "140077",
@@ -347,7 +347,7 @@
    "jur": "Formosa",
    "riesgo": 6.32,
    "personas_en_riesgo": 113431.9,
-   "pct_simulaciones_top10": 68.7
+   "pct_simulaciones_top10": 68.4
   },
   {
    "cmu": "060441",

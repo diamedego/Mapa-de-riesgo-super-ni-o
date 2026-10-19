@@ -26,9 +26,9 @@
   },
   "rios": {
     "estado": "verificado",
-    "pares": 995,
-    "error_medio_m": 1.2,
-    "sesgo_m": -0.62
+    "pares": 1010,
+    "error_medio_m": 1.21,
+    "sesgo_m": -0.63
   },
   "actualizado": "2026-10-19"
 }
