@@ -218,3 +218,4 @@ fecha_descarga,fuente,dataset,url,archivo,formato,registros,licencia,estado,nota
 2026-11-01T16:57:27,Open-Meteo (ECMWF IFS 0.25°),pronóstico diario de lluvia 16 días por gobierno local,https://api.open-meteo.com/v1/forecast,data/archivo/pronostico_corto/2026-11-01.parquet,Parquet,43358,"CC BY 4.0, uso no comercial gratuito",ok,
 2026-11-01T16:57:30,INA,catálogo de series de altura,https://alerta.ina.gob.ar/a5/obs/puntual/series?var_id=2,data/archivo/ina/series.parquet,GeoParquet,1143,"Datos públicos INA, citar fuente",ok,
 2026-11-01T16:58:59,INA,alturas diarias desde 2026-10-22 (series con nivel de alerta),https://alerta.ina.gob.ar/a5/obs/puntual/observaciones,data/archivo/ina/alturas_2026-11-01.parquet,Parquet,3851,"Datos públicos INA, citar fuente",ok,175 series
+2026-11-01T19:44:10,SMN,alertas CAP vigentes,https://ssl.smn.gob.ar/CAP/AR.php,data/archivo/smn_cap/alertas_2026-11-01.parquet,GeoParquet,215,CC BY 4.0 (SMN),ok,81 avisos en el feed
