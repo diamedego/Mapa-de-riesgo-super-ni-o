@@ -127,8 +127,8 @@ function pintarLineaTiempo() {
   cont.hidden = false;
   const [a, b] = seleccionLinea(tipo), rango = tipo === "dia" || (tipo === "mes" && estado.modo === "futuro");
   const jugando = estado.reproduciendo != null;
-  const anchoPista = Math.max(120, cont.clientWidth - (esMovil() ? 70 : 290));   // rótulo cada ~44 px como mínimo
-  const cada = Math.max(1, Math.ceil(items.length / Math.floor(anchoPista / (tipo === "hora" ? 46 : 38))));
+  const anchoPista = Math.max(120, cont.clientWidth - (innerWidth > 1280 ? 290 : 70));   // rótulo cada ~40 px como mínimo
+  const cada = tipo === "mes" ? 1 : Math.max(1, Math.ceil(items.length / Math.floor(anchoPista / (tipo === "hora" ? 46 : 38))));
   // Rótulo cada "cada" marcas; el elegido siempre, y sin vecinos que se le peguen
   const visible = (i) => i === a || (i % cada === 0 && (cada === 1 || Math.abs(i - a) > cada / 2));
   cont.innerHTML = `<button type="button" class="lt-play" aria-label="${jugando ? t("pausar") : t("reproducir")}" title="${jugando ? t("pausar") : t("reproducir")}">${icono(jugando ? "pausa" : "play")}</button>
