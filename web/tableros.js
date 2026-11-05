@@ -202,7 +202,7 @@ function tipoViento(dir, vel, raf, punto, provincia) {
   const [lon, lat] = punto;
   const enRango = (a, b) => (a <= b ? dir >= a && dir <= b : dir >= a || dir <= b);
   if (PROV_ZONDA.includes(provincia) && lon < -64 && enRango(230, 340) && raf >= 40) return "zonda";
-  if (lon > -60.8 && lat > -36.8 && lat < -32.5 && enRango(95, 175) && vel >= 25) return "sudestada";
+  if (lon > -60.8 && lat > -36.8 && lat < -32.5 && enRango(100, 162) && vel >= 25) return "sudestada";   // del sudeste (ESE a SSE)
   if (PROV_PATAGONIA.includes(provincia) && enRango(225, 315) && raf >= 55) return "patagonico";
   if (PROV_PAMPA.includes(provincia) && enRango(190, 260) && raf >= 40) return "pampero";
   if ((PROV_PAMPA.includes(provincia) || ["Corrientes", "Chaco", "Santiago del Estero"].includes(provincia)) && enRango(330, 45) && vel >= 22) return "norte";
