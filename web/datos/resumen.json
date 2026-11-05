@@ -383,5 +383,10 @@
   }
  ],
  "municipios": 2282,
- "estaciones_confiables": 43
+ "estaciones_confiables": 43,
+ "rios_hoy": {
+  "normal": 62,
+  "evacuacion": 7,
+  "alerta": 4
+ }
 }

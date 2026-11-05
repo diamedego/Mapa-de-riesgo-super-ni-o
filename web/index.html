@@ -2,161 +2,124 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Argentina frente a El Niño 2026-27</title>
-<meta name="description" content="Mapa 3D del riesgo de inundación por El Niño 2026-27 en los 2 282 gobiernos locales de Argentina, con datos públicos y pronósticos que se actualizan solos.">
+<meta name="description" content="Riesgo de inundación y tiempo en los 2 282 gobiernos locales de la Argentina durante El Niño 2026-27, con datos públicos que se actualizan solos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css">
 <link rel="stylesheet" href="estilos.css">
 </head>
 <body>
-<a class="saltar" href="#tabla" data-i18n="saltar">Ir a la tabla de datos</a>
+<a class="saltar" href="#analisis" data-i18n="saltar">Ir al análisis</a>
 
-<header class="cabecera">
-  <div class="titulo">
-    <h1 data-i18n="titulo">Argentina frente a El Niño 2026-27</h1>
-    <p class="bajada" data-i18n="bajada">Riesgo de inundación en los 2 282 gobiernos locales, mes a mes, con datos públicos que se actualizan solos.</p>
+<header class="banda">
+  <div class="banda-arriba">
+    <div class="marca">
+      <svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="#0e7490"/>
+        <path d="M8 24c3 0 3-2 6-2s3 2 6 2 3-2 6-2 3 2 6 2" fill="none" stroke="#22d3ee" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M8 30c3 0 3-2 6-2s3 2 6 2 3-2 6-2 3 2 6 2" fill="none" stroke="#a5f3fc" stroke-width="2.4" stroke-linecap="round" opacity=".7"/>
+        <path d="M20 8c3 3.6 5 6.3 5 8.8a5 5 0 0 1-10 0c0-2.5 2-5.2 5-8.8Z" fill="#ecfeff"/></svg>
+      <div class="marca-textos">
+        <h1 data-i18n="titulo">Argentina frente a El Niño 2026-27</h1>
+        <p class="bajada" data-i18n="bajada">Riesgo de inundación y tiempo en los 2 282 gobiernos locales, con datos públicos que se actualizan solos.</p>
+      </div>
+    </div>
+    <div class="banda-acciones">
+      <span class="estado-datos" id="estado-datos"></span>
+      <button id="btn-recorrido" class="btn-banda" type="button"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5.5v13l10.5-6.5L8 5.5Z"/></svg><span data-i18n="recorrido">Recorrido guiado</span></button>
+      <button id="btn-idioma" class="btn-banda" type="button" data-i18n-aria="idioma_aria" aria-label="Change language to English"><span>EN</span></button>
+      <button id="btn-tema" class="btn-banda" type="button" data-i18n-aria="tema_aria" aria-label="Cambiar entre tema claro y oscuro"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17Z" fill="currentColor"/></svg></button>
+    </div>
   </div>
-  <div class="controles-globales">
-    <button id="btn-idioma" class="boton-chico" aria-label="Change language to English">EN</button>
-    <button id="btn-tema" class="boton-chico" aria-label="Cambiar tema claro u oscuro">◐</button>
-  </div>
+  <p class="kpis-alcance" id="kpis-alcance"></p>
+  <div class="kpis" id="kpis" aria-live="polite"></div>
 </header>
 
-<section class="kpis" aria-label="Indicadores del mes seleccionado">
-  <div class="kpi"><span class="kpi-etiqueta" data-i18n="kpi_personas">Personas en terreno bajo, ponderadas por riesgo</span><span class="kpi-valor" id="kpi-personas">–</span></div>
-  <div class="kpi"><span class="kpi-etiqueta" data-i18n="kpi_municipios">Municipios con riesgo alto (≥ 7 de 10)</span><span class="kpi-valor" id="kpi-municipios">–</span></div>
-  <div class="kpi"><span class="kpi-etiqueta" data-i18n="kpi_estaciones">Estaciones de río con ≥ 50 % de probabilidad de nivel de evacuación (escenario GloFAS)</span><span class="kpi-valor" id="kpi-estaciones">–</span></div>
+<section class="controles" aria-label="Búsqueda y período">
+  <form id="form-buscar" class="buscador" role="search" autocomplete="off">
+    <div class="campo">
+      <label for="b-provincia" data-i18n="b_provincia">Provincia</label>
+      <input id="b-provincia" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" data-i18n-ph="b_provincia_ph" placeholder="Ej.: Corrientes" spellcheck="false">
+      <ul class="sugerencias" role="listbox" hidden></ul>
+    </div>
+    <div class="campo">
+      <label for="b-partido" data-i18n="b_partido">Partido o departamento</label>
+      <input id="b-partido" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" data-i18n-ph="b_partido_ph" placeholder="Ej.: Campana" spellcheck="false">
+      <ul class="sugerencias" role="listbox" hidden></ul>
+    </div>
+    <div class="campo">
+      <label for="b-localidad" data-i18n="b_localidad">Localidad o municipio</label>
+      <input id="b-localidad" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" data-i18n-ph="b_localidad_ph" placeholder="Ej.: Zárate" spellcheck="false">
+      <ul class="sugerencias" role="listbox" hidden></ul>
+    </div>
+    <div class="campo campo-ancho">
+      <label for="b-direccion" data-i18n="b_direccion">Dirección</label>
+      <input id="b-direccion" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" data-i18n-ph="b_direccion_ph" placeholder="Calle y altura · Ej.: Mitre 500" spellcheck="false">
+      <ul class="sugerencias" role="listbox" hidden></ul>
+    </div>
+    <div class="campo campo-radio">
+      <label for="b-radio" data-i18n="b_radio">Radio</label>
+      <select id="b-radio"><option value="1">1 km</option><option value="2" selected>2 km</option><option value="5">5 km</option><option value="10">10 km</option><option value="20">20 km</option></select>
+    </div>
+    <div class="buscador-botones">
+      <button type="submit" class="btn-primario"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><span data-i18n="b_buscar">Buscar</span></button>
+      <button type="button" id="btn-borrar" class="btn-texto" hidden data-i18n="borrar_filtros">Borrar filtros</button>
+    </div>
+  </form>
+  <p id="aviso-busqueda" class="aviso" role="status" hidden></p>
+  <div class="modo-fila">
+    <div class="segmentado" id="modo" role="radiogroup" aria-label="Período">
+      <button type="button" role="radio" aria-checked="true" data-modo="actual"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span data-i18n="modo_actual">Condiciones actuales</span></button>
+      <button type="button" role="radio" aria-checked="false" data-modo="futuro"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span data-i18n="modo_futuro">Condiciones futuras</span></button>
+    </div>
+    <div class="presets" id="presets"></div>
+    <span class="periodo-texto" id="periodo-texto"></span>
+  </div>
 </section>
 
-<form class="buscador" role="search" id="form-buscar" autocomplete="off">
-  <div class="campo">
-    <label for="buscar-partido" data-i18n="b_partido">Partido o departamento</label>
-    <input id="buscar-partido" type="search" data-nivel="partido" data-i18n-ph="b_partido_ph" placeholder="Ej.: Campana">
-    <ul class="resultados" role="listbox" hidden></ul>
-  </div>
-  <div class="campo">
-    <label for="buscar-localidad" data-i18n="b_localidad">Localidad o municipio</label>
-    <input id="buscar-localidad" type="search" data-nivel="localidad" data-i18n-ph="b_localidad_ph" placeholder="Ej.: Lomas del Río Luján">
-    <ul class="resultados" role="listbox" hidden></ul>
-  </div>
-  <div class="campo campo-ancho">
-    <label for="buscar-direccion" data-i18n="b_direccion">Dirección exacta</label>
-    <input id="buscar-direccion" type="search" data-i18n-ph="b_direccion_ph" placeholder="Ej.: Mitre 500">
-  </div>
-  <button type="submit" class="boton-buscar" data-i18n="b_buscar">Buscar</button>
-  <button type="button" id="btn-borrar" class="boton-borrar" hidden><span aria-hidden="true">✕</span> <span data-i18n="borrar_filtros">Borrar filtros</span></button>
-  <span id="filtro-activo" class="filtro-activo" hidden></span>
-  <p id="aviso-busqueda" class="aviso-busqueda" hidden></p>
-</form>
-
-<nav class="meses" aria-label="Mes">
-  <button id="btn-play" class="boton-chico boton-play" aria-label="Simular la evolución mes a mes"><span id="play-ico" aria-hidden="true">▶</span> <span data-i18n="simular">Simular 6 meses</span></button>
-  <div class="selectores-mes"><select id="sel-mes" aria-label="Mes"></select><select id="sel-anio" aria-label="Año"></select></div>
-  <span class="actualizado" id="actualizado"></span>
-</nav>
-
-<section class="capas" aria-label="Capa del mapa">
-  <div class="capas-fila">
-    <span id="capas-etq" class="capas-etq"></span>
-    <div id="capas-botones" class="capas-botones" role="radiogroup"></div>
-  </div>
-  <div id="tiempo-barra" class="tiempo-barra" hidden>
-    <button id="tiempo-play" class="boton-chico" aria-label="Reproducir los 16 días">▶</button>
-    <input id="tiempo-dia" type="range" min="0" max="15" value="0" step="1" aria-label="Día">
-    <strong id="tiempo-fecha" class="tiempo-fecha"></strong>
-    <label id="tiempo-acum-campo" class="tiempo-acum" hidden><input id="tiempo-acum" type="checkbox"> <span id="tiempo-acum-txt"></span></label>
-  </div>
-  <p id="aviso-tiempo" class="nota" hidden></p>
-  <p id="tiempo-fuente" class="nota tiempo-fuente"></p>
-</section>
-
-<main class="escenario">
-  <div id="mapa" role="region" aria-label="Mapa 3D de riesgo de inundación"></div>
-  <div id="reproductor" class="reproductor" hidden aria-live="polite"><strong id="rep-mes"></strong><div class="rep-barra"><span id="rep-prog"></span></div></div>
-
-  <aside id="leyenda-tiempo" class="leyenda leyenda-tiempo" aria-label="Leyenda del tiempo"></aside>
-  <aside class="leyenda leyenda-riesgo" aria-label="Leyenda">
-    <p class="leyenda-titulo" data-i18n="leyenda_titulo">Riesgo de inundación (0-10)</p>
-    <div id="leyenda-escala" class="leyenda-escala"></div>
-    <label class="interruptor"><input type="checkbox" id="chk-altura"> <span data-i18n="leyenda_altura">Mostrar el riesgo también como altura</span></label>
-    <p class="leyenda-nota"><span class="punto-estacion"></span> <span data-i18n="leyenda_estacion">Estación de río: el tamaño es la probabilidad de superar el nivel de evacuación.</span></p>
-  </aside>
-
-  <article id="ficha" class="ficha" hidden aria-live="polite"></article>
-
-  <div class="relato" id="relato">
-    <section class="capitulo" data-vista="pais">
-      <h2 data-i18n="c1_t">Un Niño de los más fuertes</h2>
-      <p data-i18n="c1_p">NOAA da más del 90 % de probabilidad de un Niño muy fuerte. En Argentina eso significa más lluvia en el Litoral y la región pampeana, y ríos que crecen con semanas de retraso. Cada municipio se colorea según su riesgo; el relieve en 3D es el terreno real.</p>
-    </section>
-    <section class="capitulo" data-vista="litoral">
-      <h2 data-i18n="c2_t">El Litoral concentra el riesgo más alto</h2>
-      <p data-i18n="c2_p">Corrientes, Chaco y Santa Fe combinan terreno bajo, historia de inundaciones y ríos grandes. Sus municipios siguen en el 10 % más riesgoso en más del 90 % de las 1 000 simulaciones con pesos distintos.</p>
-    </section>
-    <section class="capitulo" data-vista="rios">
-      <h2 data-i18n="c3_t">Los ríos: un escenario, no una certeza</h2>
-      <p data-i18n="c3_p">GloFAS pronostica caudales del Paraná comparables a El Niño 2015-16. El INA hoy informa aguas medias y no emite pronóstico estacional: por eso se muestra como escenario, y el modelo se corrige cada día con las alturas medidas.</p>
-    </section>
-    <section class="capitulo" data-vista="conurbano">
-      <h2 data-i18n="c4_t">Donde más gente hay en riesgo</h2>
-      <p data-i18n="c4_p">En el conurbano el riesgo relativo es medio, pero la cantidad de personas en terreno bajo y sin cloaca lo vuelve prioritario: La Matanza, Lomas de Zamora, Lanús, Quilmes.</p>
-    </section>
-    <section class="capitulo" data-vista="caba">
-      <h2 data-i18n="c5_t">CABA: lluvia y sumideros</h2>
-      <p data-i18n="c5_p">Con 13 años de reclamos al 147, el modelo anticipa el doble de reclamos por sumideros y calles anegadas que un promedio histórico en días de tormenta. Para diciembre y enero espera entre 3 % y 5 % más.</p>
-    </section>
-  </div>
+<main class="escenario" id="escenario">
+  <section class="vista" aria-label="Mapa">
+    <div class="vista-cabeza">
+      <div class="capas-tabs" role="tablist" aria-label="Capa en grande">
+        <button type="button" role="tab" data-capa="riesgo" aria-selected="true"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3.5 4.2 6 7.4 6 10.5A6 6 0 0 1 6 13.5C6 10.4 8.5 7.2 12 3Z"/></svg><span data-i18n="capa_riesgo">Riesgo</span></button>
+        <button type="button" role="tab" data-capa="lluvia" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15.5a4.5 4.5 0 1 1 1.3-8.8A5.5 5.5 0 0 1 18.8 9 3.3 3.3 0 0 1 17 15.5Z"/><path d="M9 18.5l-1 2M13 18.5l-1 2M17 18.5l-1 2"/></svg><span data-i18n="capa_lluvia">Lluvia</span></button>
+        <button type="button" role="tab" data-capa="viento" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5h10.5a2.5 2.5 0 1 0-2.5-2.5"/><path d="M3 12.5h15a2.5 2.5 0 1 1-2.5 2.5"/><path d="M3 16.5h7"/></svg><span data-i18n="capa_viento">Viento</span></button>
+        <button type="button" role="tab" data-capa="temp" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14.8V5a2 2 0 1 1 4 0v9.8a4 4 0 1 1-4 0Z"/><path d="M12 16.5v-6"/></svg><span data-i18n="capa_temp">Temperatura</span></button>
+      </div>
+      <button type="button" class="btn-3d" id="btn-3d" aria-pressed="false">3D</button>
+    </div>
+    <div class="mapa-marco">
+      <div id="mapa" role="region" aria-label="Mapa de la Argentina"></div>
+      <canvas id="particulas" hidden aria-hidden="true"></canvas>
+      <div class="mapa-titulo" id="mapa-titulo"></div>
+      <div class="leyenda" id="leyenda"></div>
+      <div class="linea-tiempo" id="linea-tiempo" hidden></div>
+      <div class="cartel-recorrido" id="cartel-recorrido" hidden aria-live="polite"></div>
+    </div>
+  </section>
+  <aside class="tablero" id="tablero" aria-live="polite" aria-label="Tablero"></aside>
+  <aside class="miniaturas" id="miniaturas" aria-label="Otras capas"></aside>
 </main>
 
-<section class="bloque" aria-labelledby="t-evolucion">
-  <h2 id="t-evolucion"><span data-i18n="evolucion_t">Riesgo y amenazas, mes a mes</span> <span class="zona-titulo"></span></h2>
-  <p class="nota" data-i18n="evolucion_nota">Promedio de los municipios de la zona, en la misma escala de 0 a 10. Pasá el mouse para ver también las personas en riesgo.</p>
-  <div id="grafico-meses" class="grafico" role="img" aria-describedby="t-evolucion"></div>
-</section>
-
-<section class="bloque" aria-labelledby="t-pareto">
-  <h2 id="t-pareto"><span data-i18n="pareto_t">¿Dónde se concentra el riesgo?</span> <span class="zona-titulo"></span></h2>
-  <p class="hallazgo" id="pareto-hallazgo"></p>
-  <div id="grafico-pareto" class="grafico grafico-pareto" role="img" aria-labelledby="t-pareto pareto-hallazgo"></div>
-  <p class="nota" data-i18n="pareto_nota">Barras: parte de las personas en riesgo de la zona que aporta cada una. Línea: porcentaje acumulado. Hacé clic en una barra para ver adentro.</p>
-</section>
-
-<section class="bloque" aria-labelledby="t-calor">
-  <h2 id="t-calor"><span data-i18n="calor_t">Riesgo por zona, mes a mes</span> <span class="zona-titulo"></span></h2>
-  <p class="nota" data-i18n="calor_nota">Riesgo promedio de cada zona, ponderado por población, con los mismos colores del mapa. Hacé clic en una fila para ver adentro.</p>
-  <div id="grafico-calor" class="calor" role="img" aria-labelledby="t-calor"></div>
-</section>
-
-
-<section class="bloque" id="tabla" aria-labelledby="t-tabla">
-  <h2 id="t-tabla"><span data-i18n="tabla_t">Los 20 municipios prioritarios del mes</span> <span class="zona-titulo"></span></h2>
-  <div class="pestanas" role="tablist">
-    <button role="tab" aria-selected="true" data-ranking="top_relativo" data-i18n="tab_relativo">Por riesgo relativo</button>
-    <button role="tab" aria-selected="false" data-ranking="top_personas" data-i18n="tab_personas">Por cantidad de personas</button>
-  </div>
-  <div id="grafico-ranking" class="ranking" role="img" aria-describedby="t-tabla"></div>
-  <details class="ver-tabla"><summary data-i18n="ver_tabla">Ver los datos en tabla</summary>
-  <table class="tabla">
-    <thead><tr>
-      <th data-i18n="col_mun">Municipio</th><th data-i18n="col_prov">Provincia</th>
-      <th class="num" data-i18n="col_riesgo">Riesgo</th><th class="num" data-i18n="col_personas">Personas en riesgo</th>
-      <th class="num" data-i18n="col_robustez">Robustez</th>
-    </tr></thead>
-    <tbody id="tabla-cuerpo"></tbody>
-  </table>
-  </details>
-  <p class="nota" data-i18n="robustez_nota_grafico">Robustez: % de 1 000 simulaciones con pesos aleatorios en las que el municipio queda en el 10 % de mayor riesgo.</p>
-</section>
+<section class="analisis" id="analisis" aria-label="Análisis por zonas"></section>
 
 <footer class="pie">
   <p data-i18n="pie_oficial"><strong>No es un producto oficial.</strong> Ante una emergencia, seguí las indicaciones de Defensa Civil, el SMN y el INA.</p>
-  <p data-i18n="pie_metodo">Riesgo = (amenaza × exposición × vulnerabilidad)^⅓, estructura INFORM. Amenaza: agua en superficie, crecida de ríos y quebradas. Exposición: población en terreno bajo. Vulnerabilidad: falta de cloacas, NBI, materiales de la vivienda y barrios populares.</p>
-  <p data-i18n="pie_fuentes">Fuentes: INDEC (Censo 2022), IGN, INA, SMN, ECMWF SEAS5, GloFAS, ERA5, MapBiomas Argentina, JRC, Dynamic World, RENABAP, BA Data, OpenStreetMap (© colaboradores, ODbL). Relieve: AWS Terrain Tiles. Mapa base: OpenFreeMap.</p>
+  <p data-i18n="pie_metodo"></p>
+  <p data-i18n="pie_fuentes"></p>
   <p><a href="https://github.com/diamedego/Mapa-de-riesgo-super-ni-o" data-i18n="pie_repo">Código, datos y metodología en GitHub</a></p>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+<script src="textos.js"></script>
+<script src="utiles.js"></script>
+<script src="graficos.js"></script>
 <script src="tiempo.js"></script>
+<script src="mapa.js"></script>
+<script src="buscador.js"></script>
+<script src="tableros.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

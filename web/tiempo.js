@@ -1,252 +1,492 @@
-// Capas del tiempo (lluvia, viento, temperatura) sobre el mapa, separadas del riesgo.
-// Datos: datos/tiempo.json (ingesta/tiempo_grilla.py, Open-Meteo, pronóstico a 16 días en una grilla de 1°).
-// Se dibuja como imagen suave (interpolación bilineal de la grilla) y, para el viento, flechas.
-// Usa lo definido en app.js (mapa, estado, SIN_TESELAS, css, primeraCapaDelMapaBase, t, normalizar).
+// Capas del tiempo: lluvia, viento y temperatura sobre el mapa, separadas del riesgo.
+// Datos: datos/tiempo.json (ingesta/tiempo_grilla.py, Open-Meteo): grilla de 0,5° con 48 h cada 3 h y 16 días.
+// Se dibuja como una imagen suave (interpolación bicúbica) recortada al contorno del país; el viento, además,
+// con partículas animadas que siguen el campo de viento.
 
-const TT = {
-  es: { capa: "Capa del mapa", riesgo: "Riesgo", lluvia: "Lluvia", viento: "Viento", temp: "Temperatura máx.",
-        acum: "Acumulado hasta ese día", play: "Reproducir los 16 días", nota: "Pronóstico a 16 días: Open-Meteo.com. No es un producto oficial.",
-        u_lluvia: "mm", u_viento: "km/h", u_temp: "°C", rafaga: "Ráfagas", dir: "Viento desde el", acumulado: "Lluvia acumulada",
-        t_lluvia: "Lluvia del día (mm)", t_lluvia_acum: "Lluvia acumulada (mm)", t_viento: "Viento máximo del día (km/h)",
-        t_temp: "Temperatura máxima (°C)", cargando: "Cargando el pronóstico…", sin_datos: "No se pudo cargar el pronóstico del tiempo.",
-        puntos: ["N", "NE", "E", "SE", "S", "SO", "O", "NO"] },
-  en: { capa: "Map layer", riesgo: "Risk", lluvia: "Rain", viento: "Wind", temp: "Max. temperature",
-        acum: "Accumulated up to that day", play: "Play the 16 days", nota: "16-day forecast: Open-Meteo.com. Not an official product.",
-        u_lluvia: "mm", u_viento: "km/h", u_temp: "°C", rafaga: "Gusts", dir: "Wind from", acumulado: "Accumulated rain",
-        t_lluvia: "Daily rain (mm)", t_lluvia_acum: "Accumulated rain (mm)", t_viento: "Daily max. wind (km/h)",
-        t_temp: "Max. temperature (°C)", cargando: "Loading forecast…", sin_datos: "Couldn't load the weather forecast.",
-        puntos: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] },
-};
-const tt = (k) => TT[estado.idioma][k];
-
-// Escalas: [valor, [r, g, b, alfa]]; entre dos valores se mezcla el color
+// Escalas semánticas con leyenda: [valor, [r, g, b, alfa]]. Lluvia en franjas (como un radar), el resto continuo.
 const ESCALAS = {
-  lluvia: [[0, [255, 255, 255, 0]], [1, [190, 225, 255, 0.35]], [5, [110, 175, 240, 0.6]], [15, [40, 110, 220, 0.72]],
-           [30, [30, 60, 190, 0.8]], [60, [110, 40, 170, 0.85]], [100, [190, 20, 120, 0.9]]],
-  lluvia_acum: [[0, [255, 255, 255, 0]], [5, [190, 225, 255, 0.35]], [20, [110, 175, 240, 0.6]], [50, [40, 110, 220, 0.72]],
-                [100, [30, 60, 190, 0.8]], [200, [110, 40, 170, 0.85]], [400, [190, 20, 120, 0.9]]],
-  viento: [[0, [255, 255, 255, 0]], [10, [200, 235, 220, 0.3]], [25, [120, 200, 150, 0.5]], [40, [240, 220, 90, 0.6]],
-           [55, [240, 150, 50, 0.7]], [70, [220, 60, 40, 0.8]], [90, [150, 20, 120, 0.85]]],
-  temp: [[-10, [70, 60, 180, 0.65]], [0, [90, 150, 230, 0.65]], [10, [130, 210, 200, 0.65]], [18, [250, 240, 150, 0.65]],
-         [26, [250, 170, 60, 0.7]], [34, [220, 60, 40, 0.75]], [42, [140, 20, 60, 0.8]]],
+  lluvia3h: [[0.2, [150, 225, 160, 0]], [0.5, [150, 225, 160, 0.55]], [2, [92, 196, 112, 0.7]], [5, [38, 150, 78, 0.78]],
+    [10, [240, 214, 52, 0.84]], [20, [244, 150, 38, 0.86]], [35, [222, 60, 46, 0.88]], [60, [186, 32, 128, 0.9]], [90, [118, 44, 168, 0.92]]],
+  lluviaDia: [[0.5, [150, 225, 160, 0]], [1, [150, 225, 160, 0.55]], [5, [92, 196, 112, 0.7]], [10, [38, 150, 78, 0.78]],
+    [20, [240, 214, 52, 0.84]], [35, [244, 150, 38, 0.86]], [60, [222, 60, 46, 0.88]], [90, [186, 32, 128, 0.9]], [130, [118, 44, 168, 0.92]]],
+  lluviaAcum: [[1, [150, 225, 160, 0]], [5, [150, 225, 160, 0.55]], [15, [92, 196, 112, 0.7]], [30, [38, 150, 78, 0.78]],
+    [50, [240, 214, 52, 0.84]], [80, [244, 150, 38, 0.86]], [120, [222, 60, 46, 0.88]], [180, [186, 32, 128, 0.9]], [250, [118, 44, 168, 0.92]]],
+  viento: [[0, [88, 110, 182, 0.5]], [10, [52, 148, 210, 0.58]], [20, [44, 178, 160, 0.62]], [30, [112, 198, 86, 0.66]],
+    [40, [222, 208, 60, 0.7]], [55, [240, 150, 42, 0.74]], [70, [226, 76, 52, 0.78]], [90, [182, 40, 112, 0.82]], [120, [118, 32, 140, 0.86]]],
+  temp: [[-10, [104, 64, 172, 0.72]], [-5, [86, 96, 204, 0.72]], [0, [58, 134, 222, 0.72]], [5, [42, 174, 222, 0.72]],
+    [10, [62, 200, 188, 0.72]], [15, [124, 214, 140, 0.72]], [20, [204, 224, 108, 0.72]], [25, [246, 214, 88, 0.74]],
+    [30, [246, 164, 60, 0.76]], [35, [230, 98, 46, 0.78]], [40, [198, 40, 42, 0.8]], [45, [140, 22, 64, 0.82]]],
 };
-const CAPAS = ["riesgo", "lluvia", "viento", "temp"];
-// Extensión de la grilla (igual que ingesta/tiempo_grilla.py); el lienzo se dibuja directo sobre el mapa, sin imágenes externas
-const GRILLA = { lon0: -74, lat0: -21, lon1: -53, latSur: -55, px: 14 };
-const CAPAS_DE_RIESGO = ["sin-datos", "municipios-3d", "radios-3d", "municipios-alto", "radios-alto", "bordes-riesgo"];
 
-function escalaActual() {
-  const c = estado.capa;
-  return ESCALAS[c === "lluvia" && estado.tiempoAcum ? "lluvia_acum" : c];
+// Ciudades de referencia para los valores sobre el mapa (capitales y ciudades grandes)
+const CIUDADES = [["Buenos Aires", -58.38, -34.6], ["Córdoba", -64.18, -31.42], ["Rosario", -60.64, -32.95], ["Mendoza", -68.84, -32.89],
+  ["Tucumán", -65.22, -26.82], ["Salta", -65.41, -24.79], ["Santa Fe", -60.7, -31.63], ["Corrientes", -58.83, -27.47],
+  ["Posadas", -55.9, -27.37], ["Resistencia", -58.99, -27.45], ["Formosa", -58.18, -26.18], ["Santiago del Estero", -64.26, -27.8],
+  ["San Juan", -68.53, -31.54], ["San Luis", -66.34, -33.3], ["La Rioja", -66.85, -29.41], ["Catamarca", -65.78, -28.47],
+  ["Jujuy", -65.3, -24.19], ["Neuquén", -68.06, -38.95], ["Santa Rosa", -64.29, -36.62], ["Viedma", -62.99, -40.81],
+  ["Rawson", -65.1, -43.3], ["Río Gallegos", -69.22, -51.62], ["Ushuaia", -68.3, -54.8], ["Mar del Plata", -57.55, -38.0],
+  ["Bahía Blanca", -62.27, -38.72], ["Comodoro Rivadavia", -67.48, -45.86], ["Bariloche", -71.31, -41.13], ["Paraná", -60.52, -31.73],
+  ["Concordia", -58.02, -31.39], ["Río Cuarto", -64.35, -33.12], ["La Plata", -57.95, -34.92], ["Puerto Madryn", -65.04, -42.77],
+  ["Esquel", -71.31, -42.91]];
+
+// ---------- Datos ----------
+function decodificarTiempo(raw) {
+  const n = raw.puntos.length, celdas = raw.nx * raw.ny;
+  const mapa = new Int32Array(celdas).fill(-1);
+  raw.puntos.forEach((g, p) => { mapa[g] = p; });
+  const dentro = new Uint8Array(celdas);
+  raw.dentro.forEach((g) => { dentro[g] = 1; });
+  const bloque = (b) => Object.fromEntries(Object.entries(b).map(([nombre, v]) => {
+    const bytes = Uint8Array.from(atob(v.b64), (c) => c.charCodeAt(0));
+    const crudo = v.tipo === "u8" ? bytes : new Uint16Array(bytes.buffer, bytes.byteOffset, bytes.length / 2);
+    const nulo = v.tipo === "u8" ? 255 : 65535;
+    const out = new Float32Array(crudo.length);
+    for (let i = 0; i < crudo.length; i++) out[i] = crudo[i] === nulo ? NaN : crudo[i] * v.escala + v.desplaz;
+    return [nombre, out];
+  }));
+  return { ...raw, n, mapa, dentro, dentroLista: raw.dentro, diario: bloque(raw.diario), horario: bloque(raw.horario),
+    horasMs: raw.horas.map((h) => fechaIso(h).getTime()), lon1: raw.lon0 + (raw.nx - 1) * raw.paso, latS: raw.lat0 - (raw.ny - 1) * raw.paso };
 }
 
-function colorEscala(escala, v) {
-  if (v <= escala[0][0]) return escala[0][1];
-  for (let k = 1; k < escala.length; k++) {
-    if (v <= escala[k][0]) {
-      const [v0, c0] = escala[k - 1], [v1, c1] = escala[k], f = (v - v0) / (v1 - v0);
-      return c0.map((x, i) => x + (c1[i] - x) * f);
+async function cargarTiempo() {
+  if (estado.tiempo) return estado.tiempo;
+  estado.cargaTiempo ??= fetch("datos/tiempo.json", { cache: "no-cache" }).then((r) => r.json()).then((raw) => {
+    estado.tiempo = decodificarTiempo(raw);
+    return estado.tiempo;
+  });
+  return estado.cargaTiempo;
+}
+
+// Paso de 3 h más cercano a ahora (si el pronóstico quedó viejo, el primero)
+function pasoAhora(T = estado.tiempo) {
+  const ahora = Date.now();
+  let k = 0, d = Infinity;
+  T.horasMs.forEach((ms, i) => { if (Math.abs(ms - ahora) < d) { d = Math.abs(ms - ahora); k = i; } });
+  return k;
+}
+// Día del pronóstico que corresponde a hoy
+function diaHoy(T = estado.tiempo) { return Math.max(0, T.dias.indexOf(hoyLocal())); }
+
+// Grilla completa (nx × ny) de una variable en un paso; NaN donde no hay punto
+function grillaPaso(T, arr, k) {
+  const out = new Float32Array(T.nx * T.ny).fill(NaN);
+  for (let g = 0; g < out.length; g++) { const p = T.mapa[g]; if (p >= 0) out[g] = arr[k * T.n + p]; }
+  return out;
+}
+function grillaAgregada(T, arr, a, b, modo) {
+  const out = new Float32Array(T.nx * T.ny).fill(NaN);
+  for (let g = 0; g < out.length; g++) {
+    const p = T.mapa[g];
+    if (p < 0) continue;
+    let acc = modo === "max" ? -Infinity : modo === "min" ? Infinity : 0, ok = false;
+    for (let k = a; k <= b; k++) {
+      const v = arr[k * T.n + p];
+      if (Number.isNaN(v)) continue;
+      ok = true;
+      acc = modo === "max" ? Math.max(acc, v) : modo === "min" ? Math.min(acc, v) : acc + v;
     }
+    if (ok) out[g] = acc;
   }
-  return escala[escala.length - 1][1];
+  return out;
 }
-
-// Valor de la grilla en un punto (bilineal; ignora las esquinas sin dato). Devuelve [valor, peso disponible 0..1]
-function valorEn(g, serie, dia, lon, lat) {
-  const fx = (lon - g.lon0) / g.paso, fy = (g.lat0 - lat) / g.paso;
-  if (fx < 0 || fy < 0 || fx > g.nx - 1 || fy > g.ny - 1) return [null, 0];
-  const x0 = Math.min(Math.floor(fx), g.nx - 2), y0 = Math.min(Math.floor(fy), g.ny - 2), ax = fx - x0, ay = fy - y0;
-  let suma = 0, peso = 0;
-  for (const [dx, dy, w] of [[0, 0, (1 - ax) * (1 - ay)], [1, 0, ax * (1 - ay)], [0, 1, (1 - ax) * ay], [1, 1, ax * ay]]) {
-    const v = serie(dia, (y0 + dy) * g.nx + x0 + dx);
-    if (v != null) { suma += v * w; peso += w; }
-  }
-  return peso > 0 ? [suma / peso, peso] : [null, 0];
-}
-
-// Serie de un día; la lluvia puede ser acumulada hasta ese día
-function serieTiempo(nombre) {
-  const g = estado.tiempo;
-  if (nombre === "lluvia" && estado.tiempoAcum) {
-    return (dia, k) => { let s = 0; for (let d = 0; d <= dia; d++) { const v = g.lluvia[d * g.nx * g.ny + k]; if (v == null) return null; s += v; } return s; };
-  }
-  return (dia, k) => g[nombre][dia * g.nx * g.ny + k];
-}
-
-const mercY = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
-const latDeMercY = (y) => (2 * Math.atan(Math.exp(y)) - Math.PI / 2) * (180 / Math.PI);
-
-function dibujarTiempo() {
-  const g = estado.tiempo, capa = estado.capa;
-  if (!g || capa === "riesgo" || !mapa.getSource("tiempo-img")) return;
-  const dia = estado.tiempoDia, escala = escalaActual(), serie = serieTiempo(capa);
-  const cv = lienzoTiempo(), W = cv.width, H = cv.height, lon1 = GRILLA.lon1, latSur = GRILLA.latSur;
-  const yTop = mercY(g.lat0), yBot = mercY(latSur);
-  const ctx = cv.getContext("2d"), img = ctx.createImageData(W, H);
-  for (let py = 0; py < H; py++) {
-    const lat = latDeMercY(yTop - ((yTop - yBot) * (py + 0.5)) / H);
-    for (let px = 0; px < W; px++) {
-      const lon = g.lon0 + ((lon1 - g.lon0) * (px + 0.5)) / W;
-      const [v, peso] = valorEn(g, serie, dia, lon, lat);
-      if (v == null || peso < 0.35) continue;
-      const [r, gg, b, a] = colorEscala(escala, v), o = (py * W + px) * 4;
-      img.data[o] = r; img.data[o + 1] = gg; img.data[o + 2] = b;
-      img.data[o + 3] = Math.round(255 * a * Math.min(1, (peso - 0.35) / 0.4));   // borde que se desvanece
+// Viento medio de varios días como vector (u, v en km/h, hacia donde sopla)
+function grillaVientoMedio(T, a, b) {
+  const u = new Float32Array(T.nx * T.ny).fill(NaN), v = new Float32Array(T.nx * T.ny).fill(NaN);
+  for (let g = 0; g < u.length; g++) {
+    const p = T.mapa[g];
+    if (p < 0) continue;
+    let su = 0, sv = 0, n = 0;
+    for (let k = a; k <= b; k++) {
+      const vel = T.diario.viento[k * T.n + p], dir = T.diario.dir[k * T.n + p];
+      if (Number.isNaN(vel) || Number.isNaN(dir)) continue;
+      const r = (dir * Math.PI) / 180;
+      su += -vel * Math.sin(r); sv += -vel * Math.cos(r); n++;
     }
+    if (n) { u[g] = su / n; v[g] = sv / n; }
   }
-  ctx.putImageData(img, 0, 0);
-  // El lienzo se sube a la tarjeta gráfica solo mientras se anima: unos cuadros y se pausa
-  const fuente = mapa.getSource("tiempo-img");
-  fuente.play(); mapa.triggerRepaint();
-  requestAnimationFrame(() => requestAnimationFrame(() => fuente.pause()));
+  return { u, v };
+}
+function vientoUV(vel, dir) {
+  const u = new Float32Array(vel.length), v = new Float32Array(vel.length);
+  for (let g = 0; g < vel.length; g++) {
+    const r = (dir[g] * Math.PI) / 180;
+    u[g] = -vel[g] * Math.sin(r); v[g] = -vel[g] * Math.cos(r);
+  }
+  return { u, v };
+}
+
+// Valor interpolado (bilineal, ignora los vecinos sin dato) en un punto de una grilla completa
+function valorEnGrilla(T, grilla, lon, lat) {
+  const fx = (lon - T.lon0) / T.paso, fy = (T.lat0 - lat) / T.paso;
+  if (fx < 0 || fy < 0 || fx > T.nx - 1 || fy > T.ny - 1) return NaN;
+  const i0 = Math.min(Math.floor(fx), T.nx - 2), j0 = Math.min(Math.floor(fy), T.ny - 2), ax = fx - i0, ay = fy - j0;
+  let s = 0, w = 0;
+  for (const [di, dj, p] of [[0, 0, (1 - ax) * (1 - ay)], [1, 0, ax * (1 - ay)], [0, 1, (1 - ax) * ay], [1, 1, ax * ay]]) {
+    const v = grilla[(j0 + dj) * T.nx + i0 + di];
+    if (!Number.isNaN(v) && p > 0) { s += v * p; w += p; }
+  }
+  return w > 0.2 ? s / w : NaN;
+}
+// Serie de una variable en un punto (todos los pasos de un bloque)
+function seriePunto(T, arr, pasos, lon, lat) {
+  const fx = (lon - T.lon0) / T.paso, fy = (T.lat0 - lat) / T.paso;
+  const i0 = limitar(Math.floor(fx), 0, T.nx - 2), j0 = limitar(Math.floor(fy), 0, T.ny - 2), ax = fx - i0, ay = fy - j0;
+  const vecinos = [[0, 0, (1 - ax) * (1 - ay)], [1, 0, ax * (1 - ay)], [0, 1, (1 - ax) * ay], [1, 1, ax * ay]]
+    .map(([di, dj, w]) => [T.mapa[(j0 + dj) * T.nx + i0 + di], w]).filter(([p, w]) => p >= 0 && w > 0);
+  const out = [];
+  for (let k = 0; k < pasos; k++) {
+    let s = 0, w = 0;
+    for (const [p, wp] of vecinos) { const v = arr[k * T.n + p]; if (!Number.isNaN(v)) { s += v * wp; w += wp; } }
+    out.push(w > 0.2 ? s / w : null);
+  }
+  return out;
+}
+// Dirección media de varias series diarias (promedio vectorial, ponderado por la velocidad)
+function direccionMedia(dirs, vels) {
+  let su = 0, sv = 0;
+  dirs.forEach((d, i) => { if (d == null || vels[i] == null) return; const r = (d * Math.PI) / 180; su += vels[i] * Math.sin(r); sv += vels[i] * Math.cos(r); });
+  return ((Math.atan2(su, sv) * 180) / Math.PI + 360) % 360;
+}
+
+// ---------- Período de la vista del tiempo ----------
+// Condiciones actuales: un paso de 3 h. Condiciones futuras: un rango de días (o un día mientras se reproduce).
+function periodoTiempo() {
+  const T = estado.tiempo;
+  if (estado.modo === "actual") return { tipo: "hora", k: estado.paso3h ?? pasoAhora(T) };
+  if (estado.diaReproduciendo != null) return { tipo: "dias", a: estado.diaReproduciendo, b: estado.diaReproduciendo };
+  const [a, b] = estado.rangoDias;
+  return { tipo: "dias", a, b };
+}
+
+// Campo de la capa en el período elegido: valores en la grilla, escala y textos
+function campoTiempo(capa, P = periodoTiempo()) {
+  const T = estado.tiempo;
+  if (!T) return null;
+  const hora = P.tipo === "hora";
+  if (capa === "lluvia") {
+    const valores = hora ? grillaPaso(T, T.horario.lluvia, P.k) : grillaAgregada(T, T.diario.lluvia, P.a, P.b, "suma");
+    const escala = hora ? ESCALAS.lluvia3h : P.a === P.b ? ESCALAS.lluviaDia : ESCALAS.lluviaAcum;
+    return { capa, valores, escala, escalonada: true, unidad: "mm", P,
+      titulo: hora ? t("ley_lluvia_3h") : P.a === P.b ? t("ley_lluvia_dia") : t("ley_lluvia_acum") };
+  }
   if (capa === "viento") {
-    const feats = [];
-    for (let k = 0; k < g.nx * g.ny; k++) {
-      const v = g.viento[dia * g.nx * g.ny + k], d = g.direccion[dia * g.nx * g.ny + k];
-      if (v == null || d == null) continue;
-      feats.push({ type: "Feature", properties: { v, dir: d },
-        geometry: { type: "Point", coordinates: [g.lon0 + (k % g.nx) * g.paso, g.lat0 - Math.floor(k / g.nx) * g.paso] } });
-    }
-    mapa.getSource("tiempo-flechas").setData({ type: "FeatureCollection", features: feats });
+    const valores = hora ? grillaPaso(T, T.horario.viento, P.k) : grillaAgregada(T, T.diario.viento, P.a, P.b, "max");
+    const uv = hora ? vientoUV(valores, grillaPaso(T, T.horario.dir, P.k)) : grillaVientoMedio(T, P.a, P.b);
+    return { capa, valores, ...uv, escala: ESCALAS.viento, unidad: "km/h", P,
+      titulo: hora ? t("ley_viento_ahora") : t("ley_viento_max") };
   }
+  const valores = hora ? grillaPaso(T, T.horario.temp, P.k) : grillaAgregada(T, T.diario.tmax, P.a, P.b, "max");
+  return { capa, valores, escala: ESCALAS.temp, unidad: "°C", P, titulo: hora ? t("ley_temp_ahora") : t("ley_temp_max") };
+}
+
+// ---------- Dibujo del campo en un lienzo recortado al país ----------
+const LIENZO_PX = 24;   // píxeles por grado de longitud
+
+function geometriaLienzo(T) {
+  const W = Math.round((T.lon1 - T.lon0) * LIENZO_PX);
+  const yTop = mercY(T.lat0), yBot = mercY(T.latS);
+  const H = Math.round((W * (yTop - yBot)) / (((T.lon1 - T.lon0) * Math.PI) / 180));
+  return { W, H, yTop, yBot };
+}
+
+// Pesos de Catmull-Rom (interpolación bicúbica): bordes suaves y redondeados
+function pesosCubicos(f) {
+  const f2 = f * f, f3 = f2 * f;
+  return [(-f3 + 2 * f2 - f) / 2, (3 * f3 - 5 * f2 + 2) / 2, (-3 * f3 + 4 * f2 + f) / 2, (f3 - f2) / 2];
+}
+
+// Pinta el campo en un ImageData de W × H que cubre la caja [oeste, norte, este, sur] (Mercator en Y)
+function rasterizarCampo(T, campo, W, H, caja = [T.lon0, T.lat0, T.lon1, T.latS]) {
+  const img = new ImageData(W, H), d = img.data, g = campo.valores, nx = T.nx, ny = T.ny;
+  const [x0, yN, x1, yS] = caja, mTop = mercY(yN), mBot = mercY(yS);
+  const lut = new Map();
+  const colorDe = (v) => {
+    const clave = campo.escalonada ? v : Math.round(v * 4) / 4;
+    let c = lut.get(clave);
+    if (c === undefined) { c = colorEscala(campo.escala, clave, campo.escalonada); if (!campo.escalonada) lut.set(clave, c); }
+    return c;
+  };
+  const cols = [], filas = [];
+  for (let px = 0; px < W; px++) {
+    const fx = (x0 + ((x1 - x0) * (px + 0.5)) / W - T.lon0) / T.paso, i = Math.floor(fx);
+    cols.push([i, fx - i, pesosCubicos(fx - i)]);
+  }
+  for (let py = 0; py < H; py++) {
+    const lat = latDeMercY(mTop - ((mTop - mBot) * (py + 0.5)) / H);
+    const fy = (T.lat0 - lat) / T.paso, j = Math.floor(fy);
+    filas.push([j, fy - j, pesosCubicos(fy - j)]);
+  }
+  const val = (i, j) => (i < 0 || j < 0 || i >= nx || j >= ny ? NaN : g[j * nx + i]);
+  for (let py = 0; py < H; py++) {
+    const [j, ay, wy] = filas[py];
+    if (j < -1 || j > ny) continue;
+    for (let px = 0; px < W; px++) {
+      const [i, ax, wx] = cols[px];
+      if (i < -1 || i > nx) continue;
+      let s = 0, ok = true;
+      for (let b = 0; b < 4 && ok; b++) {
+        let fila = 0;
+        for (let a = 0; a < 4; a++) {
+          const v = val(i - 1 + a, j - 1 + b);
+          if (Number.isNaN(v)) { ok = false; break; }
+          fila += v * wx[a];
+        }
+        s += fila * wy[b];
+      }
+      if (!ok) {   // cerca del borde de la grilla: bilineal con los vecinos que haya
+        let sw = 0; s = 0;
+        for (const [di, dj, w] of [[0, 0, (1 - ax) * (1 - ay)], [1, 0, ax * (1 - ay)], [0, 1, (1 - ax) * ay], [1, 1, ax * ay]]) {
+          const v = val(i + di, j + dj);
+          if (!Number.isNaN(v) && w > 0) { s += v * w; sw += w; }
+        }
+        if (sw < 0.25) continue;
+        s /= sw;
+      }
+      const c = colorDe(s);
+      if (!c || c[3] <= 0) continue;
+      const o = (py * W + px) * 4;
+      d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = c[3] * 255;
+    }
+  }
+  return img;
+}
+
+// Silueta del país (provincias): máscara para recortar el campo al territorio
+function trazarGeo(ctx, geom, proyectar) {
+  const pols = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
+  for (const p of pols) for (const anillo of p) {
+    anillo.forEach(([x, y], k) => { const [px, py] = proyectar(x, y); k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); });
+    ctx.closePath();
+  }
+}
+function mascaraPais(W, H, proyectar) {
+  const cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "#000";
+  ctx.beginPath();
+  estado.datos.provincias.features.forEach((f) => trazarGeo(ctx, f.geometry, proyectar));
+  ctx.fill("evenodd");
+  return cv;
 }
 
 function lienzoTiempo() {
+  const T = estado.tiempo;
   if (!estado.lienzo) {
-    const cv = document.createElement("canvas"), yTop = mercY(GRILLA.lat0), yBot = mercY(GRILLA.latSur);
-    cv.width = (GRILLA.lon1 - GRILLA.lon0) * GRILLA.px;
-    cv.height = Math.round((cv.width * (yTop - yBot)) / (((GRILLA.lon1 - GRILLA.lon0) * Math.PI) / 180));
-    estado.lienzo = cv;
+    const { W, H, yTop, yBot } = geometriaLienzo(T);
+    const nuevo = () => { const c = document.createElement("canvas"); c.width = W; c.height = H; return c; };
+    const proyectar = (x, y) => [((x - T.lon0) / (T.lon1 - T.lon0)) * W, ((yTop - mercY(y)) / (yTop - yBot)) * H];
+    estado.lienzo = { cv: nuevo(), aux: nuevo(), W, H, mascara: mascaraPais(W, H, proyectar) };
   }
   return estado.lienzo;
 }
 
-function iconoFlecha() {
-  const n = 48, cv = document.createElement("canvas"); cv.width = cv.height = n;
-  const c = cv.getContext("2d");
-  c.beginPath(); c.moveTo(n / 2, 4); c.lineTo(n - 12, n - 8); c.lineTo(n / 2, n - 16); c.lineTo(12, n - 8); c.closePath();
-  c.fillStyle = "#1c1c1b"; c.strokeStyle = "#ffffff"; c.lineWidth = 3; c.lineJoin = "round"; c.stroke(); c.fill();
-  return c.getImageData(0, 0, n, n);
+function dibujarCampoEnMapa(campo) {
+  const T = estado.tiempo, L = lienzoTiempo();
+  const ax = L.aux.getContext("2d");
+  ax.clearRect(0, 0, L.W, L.H);
+  ax.putImageData(rasterizarCampo(T, campo, L.W, L.H), 0, 0);
+  ax.globalCompositeOperation = "destination-in";
+  ax.drawImage(L.mascara, 0, 0);
+  ax.globalCompositeOperation = "source-over";
+  const ctx = L.cv.getContext("2d");
+  ctx.clearRect(0, 0, L.W, L.H);
+  ctx.drawImage(L.aux, 0, 0);
+  const fuente = mapa.getSource("tiempo-img");
+  if (!fuente) return;
+  fuente.play(); mapa.triggerRepaint();   // el lienzo se sube a la tarjeta gráfica unos cuadros y se pausa
+  requestAnimationFrame(() => requestAnimationFrame(() => fuente.pause()));
 }
 
-// Se llama cada vez que se (re)crean las capas del mapa (arranque y cambio de tema)
-function agregarCapaTiempo() {
-  const antes = mapa.getLayer("agua-areas") ? "agua-areas" : SIN_TESELAS ? "provincias-borde" : primeraCapaDelMapaBase();
-  mapa.addSource("tiempo-img", { type: "canvas", canvas: lienzoTiempo(), animate: true,
-    coordinates: [[GRILLA.lon0, GRILLA.lat0], [GRILLA.lon1, GRILLA.lat0], [GRILLA.lon1, GRILLA.latSur], [GRILLA.lon0, GRILLA.latSur]] });
-  mapa.getSource("tiempo-img").pause();
-  mapa.addLayer({ id: "tiempo-raster", type: "raster", source: "tiempo-img", layout: { visibility: "none" },
-    paint: { "raster-opacity": 0.9, "raster-resampling": "linear", "raster-fade-duration": 0 } }, antes);
-  if (!mapa.hasImage("flecha")) mapa.addImage("flecha", iconoFlecha());
-  mapa.addSource("tiempo-flechas", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-  mapa.addLayer({ id: "tiempo-flechas", type: "symbol", source: "tiempo-flechas", layout: { visibility: "none",
-    "icon-image": "flecha", "icon-rotate": ["+", ["get", "dir"], 180], "icon-rotation-alignment": "map", "icon-allow-overlap": false,
-    "icon-padding": 6, "icon-size": ["interpolate", ["linear"], ["get", "v"], 0, 0.28, 40, 0.42, 90, 0.62] },
-    paint: { "icon-opacity": 0.85 } });
-  aplicarCapa();
+// ---------- Valores en ciudades (etiquetas sobre el mapa) ----------
+function textoValor(capa, v) {
+  if (v == null || Number.isNaN(v)) return "–";
+  if (capa === "temp") return `${fmt(v)}°`;
+  if (capa === "lluvia") return v < 0.5 ? "0" : fmt(v, v < 10 ? 1 : 0);
+  return fmt(v);
+}
+function datosCiudades(campo) {
+  const T = estado.tiempo;
+  const feats = CIUDADES.map(([nombre, lon, lat]) => {
+    const v = valorEnGrilla(T, campo.valores, lon, lat);
+    if (Number.isNaN(v)) return null;
+    const c = colorEscala(campo.escala, v, campo.escalonada);
+    return { type: "Feature", geometry: { type: "Point", coordinates: [lon, lat] },
+      properties: { nombre, texto: textoValor(campo.capa, v), color: c && c[3] > 0.05 ? rgba([...c.slice(0, 3), 1]) : "#9aa6b2" } };
+  }).filter(Boolean);
+  return { type: "FeatureCollection", features: feats };
 }
 
-async function elegirCapa(capa) {
-  estado.capa = capa;
-  pintarControlesTiempo();
-  if (capa !== "riesgo" && !estado.tiempo) {
-    const aviso = document.getElementById("aviso-tiempo");
-    aviso.textContent = tt("cargando"); aviso.hidden = false;
-    try {
-      estado.tiempo = await fetch("datos/tiempo.json").then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
-      aviso.hidden = true;
-      document.getElementById("tiempo-dia").max = estado.tiempo.dias.length - 1;
-    } catch (e) { aviso.textContent = tt("sin_datos"); estado.capa = "riesgo"; pintarControlesTiempo(); }
+// ---------- Dónde está el extremo (para titulares) ----------
+function extremoCampo(campo, signo = 1) {
+  const T = estado.tiempo;
+  let mejor = null;
+  for (const g of T.dentroLista) {
+    const v = campo.valores[g];
+    if (Number.isNaN(v)) continue;
+    if (!mejor || v * signo > mejor.v * signo) mejor = { v, g };
   }
-  aplicarCapa();
+  if (!mejor) return null;
+  const lon = T.lon0 + (mejor.g % T.nx) * T.paso, lat = T.lat0 - Math.floor(mejor.g / T.nx) * T.paso;
+  return { v: mejor.v, lon, lat, lugar: lugarCercano([lon, lat]) };
 }
-
-// Muestra u oculta lo que corresponde a la capa elegida (el riesgo y el tiempo no se mezclan)
-function aplicarCapa() {
-  if (!mapa || !mapa.getLayer("tiempo-raster")) return;
-  const tiempo = estado.capa !== "riesgo" && estado.tiempo;
-  for (const id of CAPAS_DE_RIESGO) {
-    if (!mapa.getLayer(id)) continue;
-    const alto = id.endsWith("-alto");
-    mapa.setLayoutProperty(id, "visibility", tiempo ? "none" : alto && !estado.altura ? "none" : "visible");
+function lugarCercano(punto) {
+  let mejor = null, dmin = Infinity;
+  for (const [cmu, d] of Object.entries(estado.riesgo.cmu)) {
+    if (!d.c) continue;
+    const dd = distanciaKm(punto, d.c);
+    if (dd < dmin) { dmin = dd; mejor = cmu; }
   }
-  mapa.setLayoutProperty("tiempo-raster", "visibility", tiempo ? "visible" : "none");
-  mapa.setLayoutProperty("tiempo-flechas", "visibility", tiempo && estado.capa === "viento" ? "visible" : "none");
-  document.querySelector(".escenario").classList.toggle("modo-tiempo", !!tiempo);
-  document.getElementById("tiempo-barra").hidden = !tiempo;
-  document.getElementById("tiempo-acum-campo").hidden = estado.capa !== "lluvia";
-  if (tiempo) { dibujarTiempo(); pintarLeyendaTiempo(); pintarFechaTiempo(); }
+  const m = estado.porCmu.get(mejor);
+  return m ? { nombre: m.nam, provincia: m.jur, cmu: mejor, km: dmin } : null;
 }
 
-function fechaLinda(iso) {
-  return new Date(`${iso}T12:00:00Z`).toLocaleDateString(estado.idioma === "es" ? "es-AR" : "en-US",
-    { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+// ---------- Partículas de viento ----------
+const Particulas = {
+  activo: false, parts: [], raf: 0, movido: true,
+  iniciar(campo) {
+    this.campo = campo;
+    this.cv ??= document.getElementById("particulas");
+    if (!this.cv) return;
+    this.ctx ??= this.cv.getContext("2d");
+    if (!this.enlazado) {
+      this.enlazado = true;
+      mapa.on("move", () => { this.movido = true; });
+      mapa.on("resize", () => this.ajustar());
+      document.addEventListener("visibilitychange", () => {
+        this.pausa = document.hidden;
+        if (!this.pausa && this.activo) this.bucle();
+      });
+    }
+    this.cv.hidden = false;
+    if (this.activo) return;
+    this.ajustar();
+    this.activo = true;
+    this.sembrar();
+    this.bucle();
+  },
+  detener() {
+    this.activo = false;
+    cancelAnimationFrame(this.raf);
+    if (this.ctx) this.ctx.clearRect(0, 0, this.cv.width, this.cv.height);
+    if (this.cv) this.cv.hidden = true;
+  },
+  ajustar() {
+    if (!this.cv) return;
+    const r = mapa.getContainer().getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+    this.dpr = dpr;
+    this.cv.width = Math.round(r.width * dpr); this.cv.height = Math.round(r.height * dpr);
+    this.cv.style.width = `${r.width}px`; this.cv.style.height = `${r.height}px`;
+    this.cantidad = Math.round(limitar((r.width * r.height) / 240, 700, 3800));
+    this.movido = true;
+  },
+  nueva() {
+    const T = estado.tiempo;
+    for (let intento = 0; intento < 6; intento++) {   // un punto al azar de la pantalla que caiga sobre el país
+      const ll = mapa.unproject([Math.random() * this.cv.width / this.dpr, Math.random() * this.cv.height / this.dpr]);
+      const gx = Math.round((ll.lng - T.lon0) / T.paso), gy = Math.round((T.lat0 - ll.lat) / T.paso);
+      if (gx >= 0 && gy >= 0 && gx < T.nx && gy < T.ny && T.dentro[gy * T.nx + gx]) return { lon: ll.lng, lat: ll.lat, edad: (Math.random() * 80) | 0, x: null, y: null };
+    }
+    const lista = T.dentroLista, g = lista[(Math.random() * lista.length) | 0];
+    return { lon: T.lon0 + ((g % T.nx) + Math.random() - 0.5) * T.paso, lat: T.lat0 - (Math.floor(g / T.nx) + Math.random() - 0.5) * T.paso,
+      edad: (Math.random() * 80) | 0, x: null, y: null };
+  },
+  sembrar() { this.parts = Array.from({ length: this.cantidad }, () => this.nueva()); },
+  bucle() {
+    if (!this.activo || this.pausa) return;
+    cancelAnimationFrame(this.raf);
+    this.raf = requestAnimationFrame(() => this.bucle());
+    const T = estado.tiempo, c = this.campo, ctx = this.ctx, dpr = this.dpr;
+    if (!c?.u) return;
+    if (this.parts.length !== this.cantidad) this.sembrar();
+    if (this.movido) {
+      ctx.clearRect(0, 0, this.cv.width, this.cv.height);
+      this.parts.forEach((p) => { p.x = null; });
+      this.movido = false;
+    } else {
+      ctx.globalCompositeOperation = "destination-in";
+      ctx.fillStyle = "rgba(0,0,0,0.92)";
+      ctx.fillRect(0, 0, this.cv.width, this.cv.height);
+      ctx.globalCompositeOperation = "source-over";
+    }
+    const pxGrado = (512 * 2 ** mapa.getZoom()) / 360, k = 0.055;   // ~1,6 px por cuadro con 30 km/h, a cualquier zoom
+    ctx.lineWidth = 1.25 * dpr;
+    ctx.strokeStyle = "rgba(255,255,255,0.88)";
+    ctx.beginPath();
+    for (const p of this.parts) {
+      const gx = Math.round((p.lon - T.lon0) / T.paso), gy = Math.round((T.lat0 - p.lat) / T.paso);
+      if (p.edad++ > 90 || gx < 0 || gy < 0 || gx >= T.nx || gy >= T.ny || !T.dentro[gy * T.nx + gx]) { Object.assign(p, this.nueva(), { edad: 0 }); continue; }
+      const u = valorEnGrilla(T, c.u, p.lon, p.lat), v = valorEnGrilla(T, c.v, p.lon, p.lat);
+      if (Number.isNaN(u) || Number.isNaN(v)) { Object.assign(p, this.nueva(), { edad: 0 }); continue; }
+      p.lon += (u * k) / pxGrado;
+      p.lat += (v * k * Math.cos((p.lat * Math.PI) / 180)) / pxGrado;
+      const s = mapa.project([p.lon, p.lat]), x = s.x * dpr, y = s.y * dpr;
+      if (p.x != null && Math.abs(x - p.x) < 40 * dpr && Math.abs(y - p.y) < 40 * dpr) { ctx.moveTo(p.x, p.y); ctx.lineTo(x, y); }
+      p.x = x; p.y = y;
+    }
+    ctx.stroke();
+  },
+};
+
+// ---------- Miniaturas (mapas chicos de las otras capas) ----------
+const CAJA_PAIS = [-73.6, -21.7, -53.5, -55.2];   // oeste, norte, este, sur
+function proyeccionMini(W, H, pad = 6) {
+  const [x0, yN, x1, yS] = CAJA_PAIS, mN = mercY(yN), mS = mercY(yS);
+  const ancho = ((x1 - x0) * Math.PI) / 180, alto = mN - mS;
+  const esc = Math.min((W - 2 * pad) / ancho, (H - 2 * pad) / alto);
+  const ox = (W - ancho * esc) / 2, oy = (H - alto * esc) / 2;
+  return (x, y) => [ox + (((x - x0) * Math.PI) / 180) * esc, oy + (mN - mercY(y)) * esc];
 }
 
-function pintarFechaTiempo() {
-  const g = estado.tiempo;
-  document.getElementById("tiempo-dia").value = estado.tiempoDia;
-  document.getElementById("tiempo-fecha").textContent = fechaLinda(g.dias[estado.tiempoDia]);
-  document.getElementById("tiempo-fuente").textContent = `${tt("nota")} (${g.corrida})`;
-}
-
-function pintarLeyendaTiempo() {
-  const esc = escalaActual(), c = estado.capa;
-  const titulo = c === "lluvia" && estado.tiempoAcum ? tt("t_lluvia_acum") : tt("t_" + c);
-  const min = esc[0][0], max = esc[esc.length - 1][0];
-  const tramo = esc.map(([v, [r, g, b, a]]) => `rgba(${r},${g},${b},${Math.max(a, 0.25)}) ${((v - min) / (max - min)) * 100}%`).join(", ");
-  document.getElementById("leyenda-tiempo").innerHTML = `<p class="leyenda-titulo">${titulo}</p>
-    <div class="degradado" style="background:linear-gradient(90deg, ${tramo})"></div>
-    <div class="degradado-rotulos">${esc.map(([v]) => `<span>${v}</span>`).join("")}</div>`;
-}
-
-function pintarControlesTiempo() {
-  document.getElementById("capas-etq").textContent = tt("capa");
-  const cont = document.getElementById("capas-botones");
-  cont.innerHTML = CAPAS.map((c) => `<button role="radio" aria-checked="${c === estado.capa}" data-capa="${c}">${tt(c)}</button>`).join("");
-  cont.querySelectorAll("button").forEach((b) => { b.onclick = () => elegirCapa(b.dataset.capa); });
-  document.getElementById("tiempo-acum-txt").textContent = tt("acum");
-  document.getElementById("tiempo-play").setAttribute("aria-label", tt("play"));
-  if (estado.tiempo && estado.capa !== "riesgo") { pintarLeyendaTiempo(); pintarFechaTiempo(); }
-}
-
-function popupTiempo(e) {
-  if (estado.capa === "riesgo" || !estado.tiempo) return;
-  const g = estado.tiempo, d = estado.tiempoDia, { lng, lat } = e.lngLat;
-  const val = (n, acum = false) => { const prev = estado.tiempoAcum; estado.tiempoAcum = acum;
-    const [v] = valorEn(g, serieTiempo(n), d, lng, lat); estado.tiempoAcum = prev; return v; };
-  const lluvia = val("lluvia"), acum = val("lluvia", true), viento = val("viento"), rafaga = val("rafaga"), temp = val("temp");
-  if (lluvia == null) return;
-  const [dirv] = valorEn(g, serieTiempo("direccion"), d, lng, lat);
-  const punto = tt("puntos")[Math.round((dirv ?? 0) / 45) % 8];
-  new maplibregl.Popup({ closeButton: false, maxWidth: "240px" }).setLngLat(e.lngLat).setHTML(`<div class="popup-tiempo">
-    <strong>${fechaLinda(g.dias[d])}</strong><br>
-    ${tt("lluvia")}: ${lluvia.toFixed(1)} mm · ${tt("acumulado")}: ${acum.toFixed(0)} mm<br>
-    ${tt("viento")}: ${Math.round(viento)} ${tt("u_viento")} (${tt("dir")} ${punto})<br>
-    ${tt("rafaga")}: ${Math.round(rafaga)} ${tt("u_viento")}<br>
-    ${tt("temp")}: ${temp.toFixed(0)} ${tt("u_temp")}</div>`).addTo(mapa);
-}
-
-function prepararTiempo() {
-  estado.capa = "riesgo"; estado.tiempoDia = 0; estado.tiempoAcum = false; estado.tiempo = null;
-  pintarControlesTiempo();
-  document.getElementById("tiempo-dia").oninput = (e) => { estado.tiempoDia = Number(e.target.value); dibujarTiempo(); pintarFechaTiempo(); };
-  document.getElementById("tiempo-acum").onchange = (e) => { estado.tiempoAcum = e.target.checked; dibujarTiempo(); pintarLeyendaTiempo(); };
-  document.getElementById("tiempo-play").onclick = () => {
-    const btn = document.getElementById("tiempo-play");
-    if (estado.tiempoReproduce) { clearInterval(estado.tiempoReproduce); estado.tiempoReproduce = null; btn.textContent = "▶"; return; }
-    btn.textContent = "❚❚";
-    if (estado.tiempoDia >= estado.tiempo.dias.length - 1) estado.tiempoDia = 0;
-    estado.tiempoReproduce = setInterval(() => {
-      estado.tiempoDia++; dibujarTiempo(); pintarFechaTiempo();
-      if (estado.tiempoDia >= estado.tiempo.dias.length - 1) { clearInterval(estado.tiempoReproduce); estado.tiempoReproduce = null; btn.textContent = "↻"; }
-    }, 1100);
-  };
-  mapa.on("click", popupTiempo);
-  const q = new URLSearchParams(location.search);
-  if (CAPAS.includes(q.get("capa"))) elegirCapa(q.get("capa")).then(() => {
-    estado.tiempoDia = Math.min(Number(q.get("dia") ?? 0), (estado.tiempo?.dias.length ?? 1) - 1);
-    if (q.get("acum")) { estado.tiempoAcum = true; document.getElementById("tiempo-acum").checked = true; }
-    aplicarCapa();
-  });
+function pintarMini(canvas, capa) {
+  const dpr = Math.min(2, devicePixelRatio || 1), r = canvas.getBoundingClientRect();
+  if (!r.width) return;
+  const W = Math.round(r.width * dpr), H = Math.round(r.height * dpr);
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d"), proyectar = proyeccionMini(W, H);
+  const silueta = () => { ctx.beginPath(); estado.datos.provincias.features.forEach((f) => trazarGeo(ctx, f.geometry, proyectar)); };
+  ctx.clearRect(0, 0, W, H);
+  silueta();
+  ctx.fillStyle = css("--mini-tierra");
+  ctx.fill("evenodd");
+  if (capa === "riesgo") {
+    const valores = valoresRiesgoVista();
+    for (const f of estado.datos.municipios.features) {
+      const v = valores.get(f.properties.cmu);
+      if (v == null) continue;
+      ctx.beginPath();
+      trazarGeo(ctx, f.geometry, proyectar);
+      ctx.fillStyle = css(`--r${nivelRiesgo(v)}`);
+      ctx.fill("evenodd");
+    }
+  } else if (estado.tiempo) {
+    const campo = campoTiempo(capa);
+    const a = proyectar(CAJA_PAIS[0], CAJA_PAIS[1]), b = proyectar(CAJA_PAIS[2], CAJA_PAIS[3]);
+    const w = Math.max(1, Math.round(b[0] - a[0])), h = Math.max(1, Math.round(b[1] - a[1]));
+    const aux = document.createElement("canvas");
+    aux.width = w; aux.height = h;
+    aux.getContext("2d").putImageData(rasterizarCampo(estado.tiempo, campo, w, h, CAJA_PAIS), 0, 0);
+    ctx.save();
+    silueta();
+    ctx.clip("evenodd");
+    ctx.drawImage(aux, a[0], a[1]);
+    ctx.restore();
+    if (capa === "viento" && campo.u) {   // flechas cada ~2°
+      const T = estado.tiempo;
+      ctx.strokeStyle = css("--tinta-1"); ctx.lineWidth = dpr; ctx.globalAlpha = 0.5;
+      for (let j = 2; j < T.ny; j += 4) for (let i = 2; i < T.nx; i += 4) {
+        const g = j * T.nx + i;
+        if (!T.dentro[g] || Number.isNaN(campo.u[g])) continue;
+        const [px, py] = proyectar(T.lon0 + i * T.paso, T.lat0 - j * T.paso);
+        const vel = Math.hypot(campo.u[g], campo.v[g]) || 1, l = 5 * dpr;
+        const dx = (campo.u[g] / vel) * l, dy = (-campo.v[g] / vel) * l;
+        ctx.beginPath(); ctx.moveTo(px - dx, py - dy); ctx.lineTo(px + dx, py + dy);
+        ctx.lineTo(px + dx * 0.4 - dy * 0.5, py + dy * 0.4 + dx * 0.5); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+  silueta();
+  ctx.strokeStyle = css("--mini-borde"); ctx.lineWidth = 0.6 * dpr;
+  ctx.stroke();
 }

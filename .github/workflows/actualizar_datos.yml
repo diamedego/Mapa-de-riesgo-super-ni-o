@@ -8,10 +8,12 @@ on:
     - cron: "40 10 * * *"    # todos los días 07:40 ART: alturas de ríos INA
     - cron: "0 11 * * 1"     # lunes 08:00 ART: pronóstico de caudal GloFAS
     - cron: "0 12 6 * *"     # día 6 de cada mes: pronóstico estacional SEAS5 (sale el día 5)
+    - cron: "20 8 * * *"     # 05:20 y 17:20 ART: grilla del tiempo (corridas 00 y 12 UTC de los modelos)
+    - cron: "20 20 * * *"
   workflow_dispatch:
     inputs:
       tarea:
-        description: "smn | ina | glofas | estacional"
+        description: "smn | ina | glofas | estacional | tiempo"
         required: true
         default: smn
 
@@ -50,17 +52,20 @@ jobs:
               "40 10 * * *")  t=ina ;;
               "0 11 * * 1")   t=glofas ;;
               "0 12 6 * *")   t=estacional ;;
+              "20 8 * * *" | "20 20 * * *") t=tiempo ;;
             esac
           fi
           echo "tarea=$t" >> "$GITHUB_OUTPUT"
 
-      - name: Grilla del tiempo (lluvia, viento, temperatura a 16 días)
-        if: steps.tarea.outputs.tarea == 'ina'
+      - name: Grilla del tiempo (lluvia, viento, temperatura: 48 h cada 3 h y 16 días)
+        if: steps.tarea.outputs.tarea == 'tiempo'
         run: python ingesta/tiempo_grilla.py
 
       - name: Alertas SMN
         if: steps.tarea.outputs.tarea == 'smn'
-        run: python ingesta/smn_alertas.py
+        run: |
+          python ingesta/smn_alertas.py
+          python web/exportar_alertas.py
 
       - name: Pronóstico de lluvia a 16 días (ECMWF)
         if: steps.tarea.outputs.tarea == 'ina'
@@ -94,6 +99,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f data/archivo data/gold web/datos/riesgo.json web/datos/estaciones.geojson web/datos/resumen.json web/datos/tiempo.json
+          git add -f data/archivo data/gold web/datos/riesgo.json web/datos/estaciones.geojson web/datos/resumen.json web/datos/tiempo.json web/datos/alertas.geojson
           git diff --cached --quiet || git commit -m "Datos automáticos: ${{ steps.tarea.outputs.tarea }} $(date -u +%F\ %H:%M) UTC"
           git pull --rebase --autostash && git push
