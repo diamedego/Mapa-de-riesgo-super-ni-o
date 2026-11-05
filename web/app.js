@@ -428,7 +428,7 @@ async function iniciar() {
   document.getElementById("btn-tema").onclick = cambiarTema;
   document.getElementById("btn-recorrido").onclick = () => recorrido(0);
   document.getElementById("btn-3d").onclick = alternar3d;
-  if (SIN_TESELAS) document.getElementById("btn-3d").hidden = true;
+  if (SIN_TESELAS) { document.getElementById("btn-3d").hidden = true; document.getElementById("enlace-completo").hidden = false; }
   addEventListener("resize", demorar(() => { pintarTablero(); pintarAnalisis(); pintarMinis(); }, 250));
 
   aplicarIdioma();

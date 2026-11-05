@@ -40,5 +40,6 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
   Al republicar subir también `datos/callejero/*` (`web/preparar_callejero.py`) y `datos/base/*` (`web/preparar_mapa_base.py`:
   calles y agua propias, no se commitea; en dos publicaciones porque supera 64 MB) si se regeneraron.
 - Rediseño 5-nov: probar en el celular y elegir entre las opciones de diseño enviadas (A implementada).
-- Cloudflare Pages (gratis, versión completa con calles y Georef): ella crea la cuenta y conecta el repo (Framework None,
-  build vacío, output `web`). Después: botón "Abrir mapa completo" en el artifact con ese link.
+- Sitio público (Cloudflare Workers, gratis): https://mapa-de-riesgo-super-nino.diamedego.workers.dev — se publica solo con cada push
+  (configuración en `wrangler.jsonc` y `web/.assetsignore`; ~11 publicaciones por día, plan gratis 500 por mes).
+- Próximo: simulación de llenado de bajos con relieve real (sin exagerar) según los mm de lluvia, en la versión pública.

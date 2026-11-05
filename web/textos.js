@@ -3,7 +3,7 @@ const TEXTOS = {
   es: {
     titulo: "Argentina frente a El Niño 2026-27",
     bajada: "Riesgo de inundación y tiempo en los 2 282 gobiernos locales, con datos públicos que se actualizan solos.",
-    saltar: "Ir al análisis", recorrido: "Recorrido guiado", idioma_aria: "Change language to English", tema_aria: "Cambiar entre tema claro y oscuro",
+    saltar: "Ir al análisis", recorrido: "Recorrido guiado", version_completa: "Versión completa", idioma_aria: "Change language to English", tema_aria: "Cambiar entre tema claro y oscuro",
     datos_al: (d, h) => `Datos al ${d}, ${h} h`, datos_al_dia: (d) => `Datos al ${d}`,
     kpis_de: (n) => `Indicadores · ${n}`,
     kpi_riesgo: "Riesgo de inundación", kpi_personas: "Personas en riesgo alto",
@@ -160,7 +160,7 @@ const TEXTOS = {
   en: {
     titulo: "Argentina facing El Niño 2026-27",
     bajada: "Flood risk and weather across 2,282 local governments, built from public data that updates itself.",
-    saltar: "Skip to analysis", recorrido: "Guided tour", idioma_aria: "Cambiar el idioma a español", tema_aria: "Switch between light and dark theme",
+    saltar: "Skip to analysis", recorrido: "Guided tour", version_completa: "Full version", idioma_aria: "Cambiar el idioma a español", tema_aria: "Switch between light and dark theme",
     datos_al: (d, h) => `Data as of ${d}, ${h}`, datos_al_dia: (d) => `Data as of ${d}`,
     kpis_de: (n) => `Indicators · ${n}`,
     kpi_riesgo: "Flood risk", kpi_personas: "People at high risk",
