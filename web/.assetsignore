@@ -1,0 +1,7 @@
+# No se publican los scripts de preparación ni archivos auxiliares
+*.py
+__pycache__
+datos/base
+_artifact.html
+_prueba_movil.html
+_diag.html

@@ -1,0 +1,7 @@
+// Publicación en Cloudflare (Workers con archivos estáticos): sirve la carpeta web/ tal cual.
+// Cloudflare la vuelve a publicar sola con cada commit (incluidas las actualizaciones automáticas de datos).
+{
+  "name": "mapa-de-riesgo-super-nino",
+  "compatibility_date": "2026-10-01",
+  "assets": { "directory": "./web" }
+}
