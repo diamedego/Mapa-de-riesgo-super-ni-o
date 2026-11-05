@@ -242,7 +242,9 @@ async function buscarDireccion(texto) {
     try {   // 1) servicio oficial de direcciones (versión completa)
       const params = new URLSearchParams({ direccion: texto, max: "10" });
       const p = estado.filtros.partido, prov = estado.filtros.provincia ?? (zona && { nombre: zona.provincia });
-      if (p?.nivel === "depto") params.set("departamento", p.nombre);
+      // Partido o departamento: el elegido, o el que contiene a la localidad elegida
+      const depto = p?.nivel === "depto" ? p : zona && estado.lugares.find((l) => l.nivel === "depto" && l.provincia === zona.provincia && l.cmus.includes(zona.cmus[0]));
+      if (depto) params.set("departamento", depto.nombre);
       if (prov) params.set("provincia", prov.nombre);
       const d = await fetch(`https://apis.datos.gob.ar/georef/api/direcciones?${params}`).then((r) => r.json());
       // El servicio puede devolver la misma calle en otro pueblo: solo vale un resultado dentro de la zona elegida
