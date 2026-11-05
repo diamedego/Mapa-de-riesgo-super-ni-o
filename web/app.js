@@ -392,10 +392,10 @@ const hoyDeFecha = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: ZONA_HORA
 
 // ---------- Inicio ----------
 async function iniciar() {
-  // Arranca siempre en claro (como el diseño); el oscuro queda a un toque y se recuerda si la persona lo elige
+  // Arranca siempre en oscuro; el claro queda a un toque y se recuerda si la persona lo elige
   let tm = null;
   try { tm = localStorage.getItem("tema"); } catch (e) { /* sin almacenamiento */ }
-  document.documentElement.dataset.theme = tm || "light";
+  document.documentElement.dataset.theme = tm || "dark";
   const q = new URLSearchParams(location.search);
   if (q.get("tema")) document.documentElement.dataset.theme = q.get("tema") === "oscuro" || q.get("tema") === "dark" ? "dark" : "light";
   if (q.get("lang") === "en") estado.idioma = "en";
