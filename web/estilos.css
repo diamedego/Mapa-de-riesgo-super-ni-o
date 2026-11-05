@@ -440,28 +440,19 @@ button { cursor: pointer; }
 .pie { padding: 12px var(--gutter) 40px; color: var(--tinta-2); font-size: 0.82rem; max-width: 110ch; }
 
 /* ---------- Adaptable ---------- */
-@media (max-width: 1180px) { .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } .kpi .spark { width: 70px; } }
+@media (max-width: 1240px) { .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } .kpi .spark { width: 70px; } }
 @media (max-width: 1280px) {
-  /* Pantallas medianas (p. ej. la ventana de claude.ai): siguen las tres columnas, más angostas */
-  .escenario { grid-template-columns: minmax(280px, 330px) minmax(0, 1fr) 176px; }
-  .tablero { padding: 14px 12px 18px; }
-  .mini { min-height: 140px; padding: 8px; }
-  .mini-cab { font-size: 0.82rem; }
-  .capas-tabs button { padding: 0 12px; }
-  .buscador { grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.3fr) 88px auto; }
-  .lt-texto { display: none; }
-}
-@media (max-width: 1100px) {
-  .capas-tabs button span { display: none; }
-  .buscador { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .campo-ancho { grid-column: span 2; }
-}
-@media (max-width: 960px) {
-  .escenario { grid-template-columns: 1fr; grid-template-areas: "vista" "minis" "tablero"; height: auto; }
+  .escenario { grid-template-columns: minmax(320px, 360px) minmax(0, 1fr); grid-template-areas: "tablero vista" "minis minis"; height: auto; }
+  .vista { height: min(820px, max(600px, calc(100vh - 24px))); }
+  .tablero { max-height: min(820px, max(600px, calc(100vh - 24px))); }
   .miniaturas { flex-direction: row; overflow: visible; }
   .minis-titulo { display: none; }
   .mini { min-height: 210px; }
-  .capas-tabs button span { display: inline; }
+  .buscador { grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.3fr); }
+  .campo-radio { grid-column: auto; }
+}
+@media (max-width: 1024px) {
+  .escenario { grid-template-columns: 1fr; grid-template-areas: "vista" "minis" "tablero"; }
   .vista { height: min(78vh, 720px); }
   .tablero { max-height: none; overflow: visible; }
   .an-grilla { grid-template-columns: 1fr; }

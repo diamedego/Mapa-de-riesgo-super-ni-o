@@ -127,8 +127,8 @@ function pintarLineaTiempo() {
   cont.hidden = false;
   const [a, b] = seleccionLinea(tipo), rango = tipo === "dia" || (tipo === "mes" && estado.modo === "futuro");
   const jugando = estado.reproduciendo != null;
-  const anchoPista = Math.max(120, cont.clientWidth - (innerWidth > 1280 ? 290 : 70));   // rótulo cada ~40 px como mínimo
-  const cada = tipo === "mes" ? 1 : Math.max(1, Math.ceil(items.length / Math.floor(anchoPista / (tipo === "hora" ? 46 : 38))));
+  const anchoPista = Math.max(120, cont.clientWidth - (esMovil() ? 70 : 290));   // rótulo cada ~44 px como mínimo
+  const cada = Math.max(1, Math.ceil(items.length / Math.floor(anchoPista / (tipo === "hora" ? 46 : 38))));
   // Rótulo cada "cada" marcas; el elegido siempre, y sin vecinos que se le peguen
   const visible = (i) => i === a || (i % cada === 0 && (cada === 1 || Math.abs(i - a) > cada / 2));
   cont.innerHTML = `<button type="button" class="lt-play" aria-label="${jugando ? t("pausar") : t("reproducir")}" title="${jugando ? t("pausar") : t("reproducir")}">${icono(jugando ? "pausa" : "play")}</button>
@@ -392,10 +392,10 @@ const hoyDeFecha = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: ZONA_HORA
 
 // ---------- Inicio ----------
 async function iniciar() {
-  // Arranca siempre en oscuro; el claro queda a un toque y se recuerda si la persona lo elige
+  // Arranca siempre en claro (como el diseño); el oscuro queda a un toque y se recuerda si la persona lo elige
   let tm = null;
   try { tm = localStorage.getItem("tema"); } catch (e) { /* sin almacenamiento */ }
-  document.documentElement.dataset.theme = tm || "dark";
+  document.documentElement.dataset.theme = tm || "light";
   const q = new URLSearchParams(location.search);
   if (q.get("tema")) document.documentElement.dataset.theme = q.get("tema") === "oscuro" || q.get("tema") === "dark" ? "dark" : "light";
   if (q.get("lang") === "en") estado.idioma = "en";
