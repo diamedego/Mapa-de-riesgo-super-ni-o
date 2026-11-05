@@ -240,12 +240,15 @@ async function buscarDireccion(texto) {
   let punto = null, nombre = null;
   if (!SIN_TESELAS) {
     try {   // 1) servicio oficial de direcciones (versión completa)
-      const params = new URLSearchParams({ direccion: texto, max: "1" });
+      const params = new URLSearchParams({ direccion: texto, max: "10" });
       const p = estado.filtros.partido, prov = estado.filtros.provincia ?? (zona && { nombre: zona.provincia });
       if (p?.nivel === "depto") params.set("departamento", p.nombre);
       if (prov) params.set("provincia", prov.nombre);
       const d = await fetch(`https://apis.datos.gob.ar/georef/api/direcciones?${params}`).then((r) => r.json());
-      const r = d.direcciones?.[0];
+      // El servicio puede devolver la misma calle en otro pueblo: solo vale un resultado dentro de la zona elegida
+      const enZona = (r) => { if (!zona) return true; const [x0, y0, x1, y1] = zona.caja, m = 0.02;
+        return r.ubicacion.lon >= x0 - m && r.ubicacion.lon <= x1 + m && r.ubicacion.lat >= y0 - m && r.ubicacion.lat <= y1 + m; };
+      const r = (d.direcciones ?? []).find((x) => x.ubicacion?.lon != null && enZona(x));
       if (r) { punto = [r.ubicacion.lon, r.ubicacion.lat]; nombre = nombreCalle(r.nomenclatura.split(",")[0]); }
     } catch (err) { /* sin conexión al servicio: se usa el callejero propio */ }
   }
