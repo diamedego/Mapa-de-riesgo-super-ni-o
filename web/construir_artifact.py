@@ -13,7 +13,7 @@ from pathlib import Path
 
 WEB = Path(__file__).resolve().parent
 MAPLIBRE = "https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl"
-MODULOS = ["textos", "utiles", "graficos", "tiempo", "mapa", "buscador", "tableros", "app"]
+MODULOS = ["textos", "utiles", "graficos", "tiempo", "mapa", "buscador", "tableros", "simulador", "app"]
 
 
 def main(salida: Path) -> None:

@@ -235,7 +235,7 @@ function cabeceraTablero() {
   const verMuni = s?.tipo === "punto" && s.cmu ? `<button class="btn-texto" data-accion="municipio">${t("ver_municipio")(estado.porCmu.get(s.cmu)?.nam ?? "")}</button>` : "";
   return `<header class="tb-cabeza"><div class="tb-titulos"><span class="tb-tipo">${icono(s?.tipo === "punto" ? "objetivo" : "pin")}${tipo}</span>
       <h2>${escapar(titulo)}</h2><p>${escapar(sub)}</p></div>${acciones}</header>
-    ${radios}<p class="tb-periodo">${icono(estado.modo === "actual" ? "reloj" : "calendario")}<span>${escapar(textoPeriodo())}</span>${verMuni}</p>`;
+    ${radios}${s?.tipo === "punto" ? `<button type="button" class="btn-sim" data-accion="simular">${icono("lluvia")}<span><b>${t("sim_boton")}</b><small>${t("sim_boton_sub")}</small></span></button>` : ""}<p class="tb-periodo">${icono(estado.modo === "actual" ? "reloj" : "calendario")}<span>${escapar(textoPeriodo())}</span>${verMuni}</p>`;
 }
 
 function bloqueSituacion(nivel, parrafos, acciones) {
@@ -575,6 +575,7 @@ async function pintarTablero() {
   }
   cont.querySelectorAll("[data-km]").forEach((b) => { b.onclick = () => cambiarRadio(Number(b.dataset.km)); });
   cont.querySelector('[data-accion="quitar"]')?.addEventListener("click", borrarFiltros);
+  cont.querySelector('[data-accion="simular"]')?.addEventListener("click", abrirSimulador);
   cont.querySelector('[data-accion="municipio"]')?.addEventListener("click", () => {
     const l = estado.lugares.find((x) => x.nivel === "gl" && x.cmus[0] === estado.sel.cmu);
     if (l) elegirLugar("localidad", l);

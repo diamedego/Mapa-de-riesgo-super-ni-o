@@ -440,6 +440,50 @@ a.btn-banda { text-decoration: none; }
 .tabla .num { text-align: right; font-variant-numeric: tabular-nums; }
 .pie { padding: 12px var(--gutter) 40px; color: var(--tinta-2); font-size: 0.82rem; max-width: 110ch; }
 
+/* ---------- Simulador de lluvia ---------- */
+.btn-sim { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 10px; padding: 10px 12px; text-align: left; border-radius: var(--radio-2);
+  border: 1px solid var(--cian); background: var(--cian-suave); color: var(--tinta-1); }
+.btn-sim .ico { width: 24px; height: 24px; color: var(--cian); }
+.btn-sim span { display: flex; flex-direction: column; line-height: 1.25; }
+.btn-sim b { font-size: 0.95rem; } .btn-sim small { font-size: 0.74rem; color: var(--tinta-2); }
+.btn-sim:hover { background: var(--cian); color: var(--cian-tinta); } .btn-sim:hover .ico, .btn-sim:hover small { color: inherit; }
+body.sim-abierto { overflow: hidden; }
+.sim { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(5, 12, 18, 0.62); backdrop-filter: blur(4px); }
+.sim-caja { display: flex; flex-direction: column; width: min(1320px, 100%); height: min(860px, calc(100vh - 32px)); background: var(--superficie);
+  border-radius: var(--radio-3); box-shadow: var(--sombra-2); overflow: hidden; }
+.sim-cabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--borde); }
+.sim-cabeza h2 { font-family: var(--f-num); font-size: 1.4rem; margin-top: 2px; }
+.sim-cabeza p { margin: 2px 0 0; color: var(--tinta-2); font-size: 0.86rem; }
+.sim-cuerpo { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 360px; }
+.sim-mapa-marco { position: relative; min-height: 0; background: var(--mapa-fondo); }
+#sim-mapa { position: absolute; inset: 0; }
+.sim-estado { position: absolute; z-index: 2; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; padding: 8px 14px; border-radius: var(--radio-2);
+  background: var(--superficie); color: var(--tinta-2); box-shadow: var(--sombra-1); font-size: 0.9rem; }
+.sim-estado:empty { display: none; }
+.sim-panel { overflow-y: auto; padding: 16px; border-left: 1px solid var(--borde); display: flex; flex-direction: column; gap: 12px; }
+.sim-mm { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.sim-mm-valor { font-family: var(--f-num); font-weight: 700; font-size: 3.6rem; line-height: 0.9; color: var(--cian); }
+.sim-mm-u { font-family: var(--f-num); font-size: 1.2rem; font-weight: 600; color: var(--tinta-2); }
+.sim-mm-etq { width: 100%; font-size: 0.8rem; color: var(--tinta-2); }
+.sim-control { display: flex; align-items: center; gap: 10px; }
+.sim-control input[type="range"] { flex: 1; accent-color: var(--cian); height: 28px; }
+.sim-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.sim-presets .chip { font-size: 0.78rem; min-height: 30px; padding: 0 10px; }
+.sim-datos { margin: 0; }
+.sim-leyenda { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 0.72rem; color: var(--tinta-2); }
+.sim-leyenda i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.sim-h3 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tinta-2); margin: 4px 0 0; }
+.sim-metodo summary { cursor: pointer; color: var(--cian); font-size: 0.86rem; }
+.sim-metodo p { font-size: 0.8rem; color: var(--tinta-2); margin: 6px 0 0; }
+.sim-aviso { margin: 0; color: var(--tinta-2); }
+@media (max-width: 860px) {
+  .sim { padding: 0; }
+  .sim-caja { width: 100%; height: 100%; border-radius: 0; }
+  .sim-cuerpo { grid-template-columns: 1fr; grid-template-rows: 52svh auto; overflow-y: auto; }
+  .sim-panel { border-left: 0; border-top: 1px solid var(--borde); overflow: visible; }
+  .sim-mm-valor { font-size: 2.8rem; }
+}
+
 /* ---------- Adaptable ---------- */
 @media (max-width: 1240px) { .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } .kpi .spark { width: 70px; } }
 @media (max-width: 1280px) {
