@@ -41,7 +41,8 @@ function colorRiesgoExpr(meses) {
 const OPAC_RELLENO = [[4, 0.86], [10, 0.78], [13, 0.55], [16, 0.42]];
 function opacidadRiesgo(paradas) {
   const cmus = estado.sel?.tipo === "zona" ? estado.sel.lugar.cmus : null;
-  const valor = (v) => (cmus ? ["case", ["in", ["get", "cmu"], ["literal", cmus]], v, v * 0.38] : v);
+  const f = estado.relieve ? 0.5 : 1;   // con el relieve prendido, el riesgo se vuelve más transparente para ver el terreno
+  const valor = (v) => (cmus ? ["case", ["in", ["get", "cmu"], ["literal", cmus]], v * f, v * f * 0.38] : v * f);
   return ["interpolate", ["linear"], ["zoom"], ...paradas.flatMap(([z, v]) => [z, valor(v)])];
 }
 
@@ -141,14 +142,79 @@ function agregarCapas() {
   cargarRadiosVisibles();
 }
 
+// Relieve del mapa principal (botón "Relieve", apagado por defecto): sombreado, colores por altura ajustados a la zona
+// visible y curvas de nivel de cerca. Con el botón 3D, además, el terreno se levanta.
+const DEM_TERRARIUM = { type: "raster-dem", encoding: "terrarium", tileSize: 256, maxzoom: 14,
+  tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"] };
+const COLORES_RELIEVE = ["rgb(38,120,120)", "rgb(92,160,110)", "rgb(180,196,120)", "rgb(205,170,110)", "rgb(170,120,80)"];
+let demCurvas = null;
 function agregarRelieve() {
-  mapa.addSource("relieve", {
-    type: "raster-dem", encoding: "terrarium", tileSize: 256, maxzoom: 14,
-    tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"], attribution: "Relieve: AWS Terrain Tiles",
-  });
-  if (estado.relieve3d) mapa.setTerrain({ source: "relieve", exaggeration: 1.5 });
-  mapa.addLayer({ id: "sombreado", type: "hillshade", source: "relieve", layout: { visibility: estado.relieve3d ? "visible" : "none" },
-    paint: { "hillshade-exaggeration": 0.3, "hillshade-shadow-color": temaOscuro() ? "#000" : "#5d6672" } });
+  mapa.addSource("relieve", { ...DEM_TERRARIUM, attribution: "Relieve: AWS Terrain Tiles" });
+  mapa.addSource("relieve-sombra", DEM_TERRARIUM);   // una fuente por uso: MapLibre dibuja mejor el sombreado y los colores así
+  mapa.addSource("relieve-color", DEM_TERRARIUM);
+  const antes = primeraCapa(["line", "symbol"]), visible = estado.relieve ? "visible" : "none";
+  mapa.addLayer({ id: "relieve-colores", type: "color-relief", source: "relieve-color", layout: { visibility: visible },
+    paint: { "color-relief-color": coloresRelieve(0, 200), "color-relief-opacity": 0.55 } }, antes);
+  mapa.addLayer({ id: "sombreado", type: "hillshade", source: "relieve-sombra", layout: { visibility: estado.relieve || estado.relieve3d ? "visible" : "none" },
+    paint: { "hillshade-exaggeration": 0.35, "hillshade-shadow-color": temaOscuro() ? "#000" : "#4a5562" } }, antes);
+  if (window.mlcontour) {
+    if (!demCurvas) {
+      demCurvas = new mlcontour.DemSource({ url: DEM_TERRARIUM.tiles[0], encoding: "terrarium", maxzoom: 13, worker: true, cacheSize: 100, timeoutMs: 10000 });
+      demCurvas.setupMaplibre(maplibregl);
+    }
+    mapa.addSource("curvas", { type: "vector", maxzoom: 15, tiles: [demCurvas.contourProtocolUrl({ multiplier: 1, contourLayer: "contours", elevationKey: "ele", levelKey: "level",
+      thresholds: { 11: [20, 100], 12: [10, 50], 13: [5, 25], 14: [2, 10] } })] });
+    mapa.addLayer({ id: "curvas", type: "line", source: "curvas", "source-layer": "contours", minzoom: 11, layout: { visibility: visible },
+      paint: { "line-color": temaOscuro() ? "rgba(230,215,190,0.5)" : "rgba(90,70,50,0.55)", "line-width": ["match", ["get", "level"], 1, 1.1, 0.5] } }, antes);
+    mapa.addLayer({ id: "curvas-texto", type: "symbol", source: "curvas", "source-layer": "contours", minzoom: 12, filter: [">", ["get", "level"], 0],
+      layout: { visibility: visible, "symbol-placement": "line", "text-field": ["concat", ["number-format", ["get", "ele"], {}], " m"], "text-font": fuenteMapa(), "text-size": 10 },
+      paint: { "text-color": temaOscuro() ? "#e8dcc6" : "#5a4632", "text-halo-color": temaOscuro() ? "#000" : "#fff", "text-halo-width": 1.2 } });
+  }
+  terrenoMapa();
+  claveRelieve = "";
+  if (!agregarRelieve.escuchando) { mapa.on("idle", ajustarColoresRelieve); agregarRelieve.escuchando = true; }
+}
+// Terreno: exageración 1,5 con el botón 3D; escala real con solo el relieve (hace falta para medir alturas)
+function terrenoMapa() {
+  if (SIN_TESELAS || !mapa.getSource("relieve")) return;
+  mapa.setTerrain(estado.relieve3d ? { source: "relieve", exaggeration: 1.5 } : estado.relieve ? { source: "relieve", exaggeration: 1 } : null);
+}
+function coloresRelieve(a, b) {
+  if (!(b > a + 1)) b = a + 2;
+  return ["interpolate", ["linear"], ["elevation"], ...COLORES_RELIEVE.flatMap((c, i) => [a + ((b - a) * i) / (COLORES_RELIEVE.length - 1), c])];
+}
+// Colores por altura con la escala de la zona visible (percentiles 2 y 98 de una grilla de 16 × 16 puntos)
+let claveRelieve = "";
+function ajustarColoresRelieve() {
+  if (!estado.relieve || !mapa.getLayer("relieve-colores") || !mapa.getTerrain()) return;
+  const c = mapa.getCanvas(), clave = `${mapa.getCenter().lng.toFixed(4)},${mapa.getCenter().lat.toFixed(4)},${mapa.getZoom().toFixed(2)},${c.clientWidth}`;
+  if (clave === claveRelieve) return;
+  const ex = mapa.getTerrain().exaggeration || 1, alturas = [];
+  for (let i = 0; i < 16; i++) for (let j = 0; j < 16; j++) {
+    const h = mapa.queryTerrainElevation(mapa.unproject([((i + 0.5) / 16) * c.clientWidth, ((j + 0.5) / 16) * c.clientHeight]));
+    if (h != null && Number.isFinite(h)) alturas.push(Math.max(0, h / ex));
+  }
+  if (alturas.length < 40) return;   // las teselas todavía no llegaron: se vuelve a intentar en el próximo "idle"
+  claveRelieve = clave;
+  alturas.sort((x, y) => x - y);
+  const a = Math.floor(alturas[Math.floor((alturas.length - 1) * 0.02)]), b = Math.ceil(alturas[Math.floor((alturas.length - 1) * 0.98)]);
+  mapa.setPaintProperty("relieve-colores", "color-relief-color", coloresRelieve(a, b));
+  const ley = document.getElementById("ley-relieve");
+  ley.innerHTML = `<span>${t("relieve_ley")(fmt(a), fmt(b))}</span><span class="sim-degradado"></span>`;
+}
+function alternarRelieve() {
+  estado.relieve = !estado.relieve;
+  claveRelieve = "";
+  document.getElementById("btn-relieve").setAttribute("aria-pressed", String(estado.relieve));
+  document.getElementById("ley-relieve").hidden = !estado.relieve;
+  if (!estado.relieve) document.getElementById("ley-relieve").innerHTML = "";
+  if (!mapa.getSource("relieve")) return;
+  const vis = estado.relieve ? "visible" : "none";
+  for (const id of ["relieve-colores", "curvas", "curvas-texto"]) if (mapa.getLayer(id)) mapa.setLayoutProperty(id, "visibility", vis);
+  mapa.setLayoutProperty("sombreado", "visibility", estado.relieve || estado.relieve3d ? "visible" : "none");
+  terrenoMapa();
+  for (const id of ["riesgo-mun", "riesgo-radio"]) mapa.setPaintProperty(id, "fill-opacity", opacidadRiesgo(OPAC_RELLENO));
+  mapa.triggerRepaint();
 }
 
 function alturaRiesgo(meses) {

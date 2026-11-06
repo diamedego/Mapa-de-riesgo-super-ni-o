@@ -7,7 +7,7 @@ const estado = {
   idioma: "es", capa: "riesgo", modo: "actual", sel: null, km: 2,
   iMesActual: 0, rangoMeses: [0, 0], rangoDias: [0, 6], paso3h: null,
   mesReproduciendo: null, diaReproduciendo: null, reproduciendo: null,
-  verRios: true, verAlertas: true, riesgo3d: false, relieve3d: false, ranking: "r",
+  verRios: true, verAlertas: true, riesgo3d: false, relieve3d: false, relieve: false, ranking: "r",
   datos: {}, riesgo: null, porCmu: new Map(), radios: [], cargasRadios: new Map(), tiempo: null,
 };
 const t = (clave) => TEXTOS[estado.idioma][clave] ?? TEXTOS.es[clave] ?? clave;
@@ -374,8 +374,8 @@ function alternar3d() {
   estado.relieve3d = !estado.relieve3d;
   document.getElementById("btn-3d").setAttribute("aria-pressed", String(estado.relieve3d));
   if (!SIN_TESELAS && mapa.getSource("relieve")) {
-    mapa.setTerrain(estado.relieve3d ? { source: "relieve", exaggeration: 1.5 } : null);
-    mapa.setLayoutProperty("sombreado", "visibility", estado.relieve3d ? "visible" : "none");
+    terrenoMapa();
+    mapa.setLayoutProperty("sombreado", "visibility", estado.relieve || estado.relieve3d ? "visible" : "none");
   }
   mapa.easeTo({ pitch: estado.relieve3d ? 55 : 0, bearing: estado.relieve3d ? -12 : 0, duration: 900 });
 }
@@ -428,7 +428,8 @@ async function iniciar() {
   document.getElementById("btn-tema").onclick = cambiarTema;
   document.getElementById("btn-recorrido").onclick = () => recorrido(0);
   document.getElementById("btn-3d").onclick = alternar3d;
-  if (SIN_TESELAS) { document.getElementById("btn-3d").hidden = true; document.getElementById("enlace-completo").hidden = false; }
+  document.getElementById("btn-relieve").onclick = alternarRelieve;
+  if (SIN_TESELAS) { document.getElementById("btn-3d").hidden = true; document.getElementById("btn-relieve").hidden = true; document.getElementById("enlace-completo").hidden = false; }
   addEventListener("resize", demorar(() => { pintarTablero(); pintarAnalisis(); pintarMinis(); }, 250));
 
   aplicarIdioma();

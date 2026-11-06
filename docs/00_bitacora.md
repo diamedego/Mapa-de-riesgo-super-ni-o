@@ -391,3 +391,13 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - **Iteraciones**: la primera versión mandaba toda el agua al río Paraná (lo más bajo) → se excluyen ríos y lagunas; después aparecían "pozos" de 8 m (ruido del relieve en orillas) → orilla excluida y tope de profundidad.
 - **Resultados de prueba** (círculo de 2 km): La Plata, 392 mm (como en 2013) → ~16 % del área con agua, concentrada en la franja baja del centro-oeste; Corrientes, 150 mm → ~7,5 %.
 - Solo en la versión completa (el relieve viene de un servidor externo); en claude.ai el botón explica y enlaza al sitio público.
+
+## 2026-11-06 — Simulador v2 y relieve en el mapa principal
+- Simulador: filtros (Todos, Colores por altura, Curvas cada 2 m, Drenaje, Corte) y Relieve ×5 opcional (escala real por defecto).
+  - Colores por altura entre los percentiles 2 y 98 del círculo; curvas cada 2 m sobre el relieve suavizado.
+  - Drenaje: dirección D8 sobre el relieve suavizado ~200 m; cauces que juntan ~10 ha o más, línea celeste muy clara con borde oscuro.
+  - Corte oeste-este del terreno con el agua (tocando el mapa se elige otra latitud) y altura al pasar el cursor o tocar.
+  - En celular, filtros y corte quedan en el panel debajo del mapa.
+- Mapa principal: botón "Relieve" (apagado por defecto). Sombreado, colores por altura ajustados a la zona visible y curvas de nivel
+  desde zoom 11 (maplibre-contour 0.1.0). Con el relieve prendido, el riesgo se dibuja con la mitad de opacidad. Solo en la versión completa.
+- Capturas: docs/img/diseno/simulador_v2_*.png y mapa_relieve.png.
