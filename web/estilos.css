@@ -20,7 +20,7 @@
   --alerta-amarilla: #e0ae00; --alerta-naranja: #ef8a00; --alerta-roja: #d03b3b;
   --lluvia-4: #e8a33c; --lluvia-5: #d6453a;
   /* Mapa */
-  --suelo-corte: #d9c9a8; --suelo-borde: #8a6f48;
+  --suelo-corte: #d9c9a8; --suelo-borde: #8a6f48; --maq-1: #f4f6f8; --maq-2: #d9dee4; --maq-3: #c9cfd6;
   --mapa-fondo: #e7ecf0; --agua: #a9cfe9; --agua-texto: #2f6690; --calle: #ffffff; --velo: #ffffff;
   --mapa-texto: #0e1726; --mapa-halo-texto: rgba(255, 255, 255, 0.95);
   --mini-tierra: #dfe5eb; --mini-borde: rgba(14, 23, 38, 0.32); --tinta-calor: #1d2533;
@@ -46,7 +46,7 @@
     --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70;
     --ok: #3ccf6e; --atencion: #fab219; --critico: #ff6b6b; --rio-normal: #58a6e6;
     --ok-fondo: rgba(60, 207, 110, 0.12); --atencion-fondo: rgba(250, 178, 25, 0.14); --critico-fondo: rgba(255, 107, 107, 0.14);
-    --suelo-corte: #5b4a33; --suelo-borde: #b39368;
+    --suelo-corte: #5b4a33; --suelo-borde: #b39368; --maq-1: #2a3540; --maq-2: #172029; --maq-3: #0e151c;
   --mapa-fondo: #0b1219; --agua: #16324a; --agua-texto: #8ab8de; --calle: #4a5765; --velo: #000000;
     --mapa-texto: #f1f6fb; --mapa-halo-texto: rgba(5, 11, 16, 0.92);
     --mini-tierra: #172331; --mini-borde: rgba(255, 255, 255, 0.32); --tinta-calor: #0b1118;
@@ -65,7 +65,7 @@
   --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70;
   --ok: #3ccf6e; --atencion: #fab219; --critico: #ff6b6b; --rio-normal: #58a6e6;
   --ok-fondo: rgba(60, 207, 110, 0.12); --atencion-fondo: rgba(250, 178, 25, 0.14); --critico-fondo: rgba(255, 107, 107, 0.14);
-  --suelo-corte: #5b4a33; --suelo-borde: #b39368;
+  --suelo-corte: #5b4a33; --suelo-borde: #b39368; --maq-1: #2a3540; --maq-2: #172029; --maq-3: #0e151c;
   --mapa-fondo: #0b1219; --agua: #16324a; --agua-texto: #8ab8de; --calle: #4a5765; --velo: #000000;
   --mapa-texto: #f1f6fb; --mapa-halo-texto: rgba(5, 11, 16, 0.92);
   --mini-tierra: #172331; --mini-borde: rgba(255, 255, 255, 0.32); --tinta-calor: #0b1118;
@@ -492,7 +492,7 @@ body.sim-abierto { overflow: hidden; }
 .sim-corte-svg .eje { font-size: 10px; fill: var(--tinta-2); font-family: var(--f-mono); }
 .sim-suelo { fill: var(--suelo-corte); stroke: var(--suelo-borde); stroke-width: 1.2; }
 .sim-agua-corte rect { fill: rgba(30, 120, 210, 0.85); }
-.sim-leyenda-mapa { position: absolute; z-index: 2; left: 10px; bottom: 28px; display: flex; flex-direction: column; gap: 4px; max-width: 220px; padding: 8px 10px;
+.sim-leyenda-mapa { position: absolute; z-index: 3; left: 10px; bottom: 28px; display: flex; flex-direction: column; gap: 4px; max-width: 220px; padding: 8px 10px;
   border-radius: var(--radio-2); background: var(--superficie); box-shadow: var(--sombra-1); font-size: 0.72rem; color: var(--tinta-2); }
 .sim-leyenda-mapa b { color: var(--tinta-1); font-size: 0.74rem; }
 .sim-degradado { display: block; height: 8px; border-radius: 4px; background: linear-gradient(90deg, rgb(38,120,120), rgb(92,160,110), rgb(180,196,120), rgb(205,170,110), rgb(170,120,80)); }
@@ -501,6 +501,19 @@ body.sim-abierto { overflow: hidden; }
 .sim-ley-fila i { display: inline-block; width: 22px; flex: none; }
 .ley-drenaje { height: 4px; background: rgb(224, 250, 255); box-shadow: 0 0 0 1px rgb(14, 70, 90); border-radius: 2px; }
 .ley-curva { height: 0; border-top: 1px solid rgb(90, 75, 60); }
+.sim-vistas { position: absolute; z-index: 4; left: 10px; top: 10px; display: flex; padding: 3px; border-radius: var(--radio-2); background: var(--superficie); box-shadow: var(--sombra-1); }
+.sim-vistas button { min-height: 32px; padding: 0 12px; border: 0; border-radius: calc(var(--radio-2) - 2px); background: transparent; color: var(--tinta-2); font-weight: 600; font-size: 0.84rem; }
+.sim-vistas button[aria-pressed="true"] { background: var(--cian); color: var(--cian-tinta); }
+.sim-maqueta { position: absolute; inset: 0; z-index: 2; background: radial-gradient(ellipse at 50% 40%, var(--maq-1) 0%, var(--maq-2) 70%, var(--maq-3) 100%); cursor: grab; }
+.sim-maqueta:active { cursor: grabbing; }
+.sim-maqueta canvas { display: block; width: 100%; height: 100%; }
+.sim-maqueta-ayuda { position: absolute; left: 10px; bottom: 10px; max-width: 62%; margin: 0; padding: 4px 10px; border-radius: var(--radio-2); background: var(--superficie); color: var(--tinta-2); font-size: 0.74rem; box-shadow: var(--sombra-1); pointer-events: none; }
+.sim-lluvia-estado { position: absolute; right: 10px; top: 10px; margin: 0; padding: 6px 12px; border-radius: var(--radio-2); background: rgba(12, 22, 32, 0.84);
+  color: #e8f4ff; font-family: var(--f-mono); font-size: 0.8rem; font-variant-numeric: tabular-nums; pointer-events: none; }
+.sim-credito-sat { position: absolute; right: 8px; bottom: 6px; max-width: 34%; text-align: right; margin: 0; font-size: 0.66rem; color: var(--tinta-2); }
+.sim-credito-sat a { color: inherit; }
+.sim-leyenda-mapa.oculta-maqueta { display: none; }
+.sim-filtros .chip:disabled { opacity: 0.45; cursor: not-allowed; }
 .ley-relieve { position: absolute; z-index: 2; right: 52px; top: 10px; padding: 6px 10px; border-radius: var(--radio-2); background: var(--superficie);
   box-shadow: var(--sombra-1); font-size: 0.72rem; color: var(--tinta-2); display: flex; flex-direction: column; gap: 4px; min-width: 170px; }
 .ley-relieve .sim-degradado { height: 6px; }

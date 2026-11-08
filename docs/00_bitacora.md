@@ -401,3 +401,18 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - Mapa principal: botón "Relieve" (apagado por defecto). Sombreado, colores por altura ajustados a la zona visible y curvas de nivel
   desde zoom 11 (maplibre-contour 0.1.0). Con el relieve prendido, el riesgo se dibuja con la mitad de opacidad. Solo en la versión completa.
 - Capturas: docs/img/diseno/simulador_v2_*.png y mapa_relieve.png.
+
+## 2026-11-08 — Mails de error de GitHub y maqueta 3D con lluvia animada
+- **Mails "Run failed … No jobs were run"**: desde el 5-nov el archivo `.github/workflows/actualizar_datos.yml` era inválido
+  (el nombre de un paso tenía "temperatura: 48 h" y los dos puntos rompen el YAML). No corría ninguna actualización automática
+  y GitHub mandaba un mail por cada push. Corregido y validado con PyYAML. También se corrigió `web/exportar_alertas.py`
+  (polígonos de avisos del SMN con huecos fuera del borde: `make_valid` + redondeo punto a punto).
+- **Simulador, vista "Maqueta 3D"** (botón Mapa / Maqueta 3D, aprobado tras el reel de CutSheetRX):
+  - El círculo recortado como maqueta, con paredes de tierra, imagen satelital Sentinel-2 sin nubes 2023 (EOX, ~10 m)
+    y cámara que gira (arrastrar) y acerca (rueda o pellizco). Escala real por defecto; Relieve ×5 opcional.
+  - ▶ o los botones de lluvia hacen llover ~7 s y escurrir ~5 s: el terreno se moja, líneas blancas bajan siguiendo la
+    pendiente y se juntan donde se descarga el agua, y los bajos se llenan.
+  - Las líneas y la película de agua salen de un modelo de escurrimiento ("caños virtuales") sobre el relieve suavizado
+    ~120 m; los bajos llenos y las cifras salen del mismo cálculo de llenado del mapa, así todo coincide.
+  - Descartados (no volver a proponer): colores fuertes rojo→azul y flechas.
+  - Límite: el relieve nacional gratis es de ~30 m; de cerca (una manzana) no se ve el detalle del reel, que usa LiDAR de 1 m.

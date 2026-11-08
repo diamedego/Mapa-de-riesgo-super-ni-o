@@ -28,6 +28,7 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
 - Este archivo resume el proyecto: no re-explorar el repo para ubicarse.
 - Antes de publicar algo nuevo, contrastar cifras extremas (p. ej. GloFAS vs INA) y presentarlas como escenario.
 - Commits con la línea `Co-Authored-By` que indique el sistema; `git pull --rebase` antes de `push` (Actions sube datos solos).
+- Antes de subir cambios al workflow, validarlo (`yaml.safe_load`): un nombre con ": " lo dejó inválido del 5 al 8-nov.
 
 ## Pendientes (actualizar al terminar cada tarea)
 - Databricks: login por navegador en la Mac (perfil `mapa-nino`) y correr `sql/correr_databricks.py`.
@@ -42,4 +43,5 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
 - Rediseño 5-nov: probar en el celular y elegir entre las opciones de diseño enviadas (A implementada).
 - Sitio público (Cloudflare Workers, gratis): https://mapa-de-riesgo-super-nino.diamedego.workers.dev — se publica solo con cada push
   (configuración en `wrangler.jsonc` y `web/.assetsignore`; ~11 publicaciones por día, plan gratis 500 por mes).
-- Próximo: simulación de llenado de bajos con relieve real (sin exagerar) según los mm de lluvia, en la versión pública.
+- Simulador (versión pública): vista Mapa + Maqueta 3D con lluvia animada (estilo reel CutSheetRX). Posible mejora: relieve
+  de 5 m (IGN / IDECOR) en ciudades puntuales para ver el escurrimiento de cerca.
