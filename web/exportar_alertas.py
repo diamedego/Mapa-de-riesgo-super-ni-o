@@ -41,7 +41,8 @@ def main() -> None:
     df["geometry"] = df["geometry"].apply(lambda g: wkb.loads(g) if isinstance(g, (bytes, bytearray)) else g)
     g = gpd.GeoDataFrame(df, geometry="geometry", crs=4326)
     g = g[g.geometry.notna() & ~g.geometry.is_empty]
-    g["geometry"] = g.geometry.simplify(0.01).set_precision(1e-3)
+    # make_valid + redondeo punto a punto: algunos avisos traen polígonos con huecos fuera del borde y GEOS fallaba
+    g["geometry"] = g.geometry.make_valid().simplify(0.01).set_precision(1e-3, mode="pointwise")
     g["nivel"] = g["severidad"].map(NIVEL).fillna("amarilla")
     g["tipo"] = [tipo(e or "", t or "") for e, t in zip(g["evento"], g["titulo"])]
     g["aviso"] = g["urgencia"].eq("Immediate")     # aviso a corto plazo (horas)

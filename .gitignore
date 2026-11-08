@@ -23,3 +23,6 @@ data/consumo_ia/
 
 # Mapa base propio para la versión en claude.ai (se regenera con web/preparar_mapa_base.py; 64 MB)
 web/datos/base/
+
+# Notas de reels (transcripciones de contenido ajeno: no van al repo público)
+REELS/
