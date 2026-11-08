@@ -57,7 +57,7 @@ jobs:
           fi
           echo "tarea=$t" >> "$GITHUB_OUTPUT"
 
-      - name: Grilla del tiempo (lluvia, viento, temperatura: 48 h cada 3 h y 16 días)
+      - name: Grilla del tiempo (lluvia, viento y temperatura, 48 h cada 3 h y 16 días)
         if: steps.tarea.outputs.tarea == 'tiempo'
         run: python ingesta/tiempo_grilla.py
 
