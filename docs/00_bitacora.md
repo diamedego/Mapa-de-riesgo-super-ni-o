@@ -416,3 +416,5 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
     ~120 m; los bajos llenos y las cifras salen del mismo cálculo de llenado del mapa, así todo coincide.
   - Descartados (no volver a proponer): colores fuertes rojo→azul y flechas.
   - Límite: el relieve nacional gratis es de ~30 m; de cerca (una manzana) no se ve el detalle del reel, que usa LiDAR de 1 m.
+- Confirmado el 9-nov: con el workflow corregido volvieron las corridas automáticas (grilla del tiempo 23:48 UTC del 8-nov,
+  alertas SMN 00:56 UTC del 9-nov, esta última ya con `alertas.geojson` actualizado). GitHub atrasó la primera ~3,5 h.
