@@ -97,6 +97,8 @@ function agregarCapas() {
   mapa.addLayer({ id: "alertas-borde", type: "line", source: "alertas", layout: { visibility: "none", "line-join": "round" },
     paint: { "line-color": colorAlerta, "line-width": 1.6, "line-dasharray": [2, 1.5] } });
 
+  agregarReferencias();
+
   // Selección: zona (bordes exteriores en cian) o círculo alrededor de un punto
   mapa.addLayer({ id: "sel-zona-halo", type: "line", source: "bordes", filter: ["==", "a", "-"],
     layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": css("--halo"), "line-width": 6.5, "line-opacity": 0.55, "line-blur": 1 } });
@@ -217,6 +219,58 @@ function alternarRelieve() {
   mapa.triggerRepaint();
 }
 
+// ---------- Referencias para ubicarse ----------
+// Nombres de los municipios (de lejos), plantas y parques industriales (OpenStreetMap, preparar_referencias.py) y, del mapa
+// base, hospitales, universidades, clubes, estaciones, municipalidades, escuelas y empresas desde antes de que el mapa base
+// los muestre (z 15); desde ahí siguen los íconos propios del mapa base.
+const GRUPOS_REF = {
+  salud: "#c0392b", educacion: "#2f6ea8", deporte: "#2e8b57", gobierno: "#7a5c99", transporte: "#56707c", empresa: "#9a6b2f", industria: "#6d5a46",
+};
+const nombreRef = ["coalesce", ["get", "name:es"], ["get", "name"]];
+const textoRef = (tam) => ({ "text-field": nombreRef, "text-font": fuenteMapa(), "text-size": tam, "text-anchor": "top", "text-offset": [0, 0.45],
+  "text-max-width": 9, "text-padding": 3, "text-optional": true });
+const pintaRef = (color) => ({ "text-color": color, "text-halo-color": css("--mapa-halo-texto"), "text-halo-width": 1.4 });
+function agregarReferencias() {
+  const vis = estado.verReferencias === false ? "none" : "visible";
+  const antes = primeraCapa(["symbol"]);
+  // Municipios: nombre en mayúsculas, de lejos (después los nombres de las localidades del mapa base toman el relevo)
+  mapa.addSource("ref-municipios", { type: "geojson", data: "datos/municipios_etiquetas.geojson" });
+  mapa.addLayer({ id: "ref-municipios", type: "symbol", source: "ref-municipios", minzoom: 6.6, maxzoom: 10.5,
+    layout: { visibility: vis, "text-field": ["get", "n"], "text-font": fuenteMapa(true), "text-transform": "uppercase", "text-letter-spacing": 0.06,
+      "text-size": ["interpolate", ["linear"], ["zoom"], 7, 9, 10, 11.5], "text-max-width": 8, "text-padding": 6 },
+    paint: { "text-color": css("--tinta-2"), "text-opacity": 0.85, "text-halo-color": css("--mapa-halo-texto"), "text-halo-width": 1.5 } });
+  // Plantas y parques industriales: los grandes y los parques desde z 9,5; el resto desde z 12
+  mapa.addSource("ref-industrias", { type: "geojson", data: "datos/industrias.geojson" });
+  const grande = ["any", ["==", ["get", "t"], "parque"], [">=", ["get", "ha"], 30]];
+  for (const [id, filtro, minzoom] of [["ref-ind-grandes", grande, 9.5], ["ref-ind-resto", ["!", grande], 12]]) {
+    mapa.addLayer({ id: `${id}-punto`, type: "circle", source: "ref-industrias", minzoom, filter: filtro, layout: { visibility: vis },
+      paint: { "circle-radius": 3.6, "circle-color": GRUPOS_REF.industria, "circle-stroke-color": css("--mapa-halo-texto"), "circle-stroke-width": 1.2 } });
+    mapa.addLayer({ id, type: "symbol", source: "ref-industrias", minzoom, filter: filtro,
+      layout: { visibility: vis, ...textoRef(11), "text-field": ["get", "n"], "symbol-sort-key": ["-", 0, ["get", "ha"]] }, paint: pintaRef(GRUPOS_REF.industria) });
+  }
+  // Lugares del mapa base (OpenMapTiles: capa "poi"); en la versión sin teselas externas no están
+  const fuentes = Object.entries(mapa.getStyle().sources);
+  const base = (fuentes.find(([k, f]) => k === "openmaptiles" && f.type === "vector") ?? fuentes.find(([k, f]) => f.type === "vector" && !["curvas", "ref-industrias"].includes(k)))?.[0];
+  if (SIN_TESELAS || !base) return;
+  const c = (v) => ["==", ["get", "class"], v], sc = (v) => ["==", ["get", "subclass"], v];
+  const grupo = ["case", c("hospital"), GRUPOS_REF.salud, ["any", c("college"), c("school")], GRUPOS_REF.educacion,
+    ["any", c("stadium"), c("sports_centre"), c("pitch"), c("swimming_pool")], GRUPOS_REF.deporte,
+    ["any", c("town_hall"), c("police"), c("fire_station")], GRUPOS_REF.gobierno, ["any", c("railway"), c("bus")], GRUPOS_REF.transporte, GRUPOS_REF.empresa];
+  const conNombre = ["has", "name"];
+  const principales = ["all", conNombre, ["any", ["all", c("hospital"), sc("hospital")], ["all", c("college"), sc("university")], c("stadium"), c("town_hall"),
+    ["all", c("railway"), sc("station")], ["all", c("bus"), sc("bus_station")], ["all", c("shop"), sc("mall")]]];
+  const secundarios = ["all", conNombre, ["!", principales], ["any", c("sports_centre"), c("pitch"), c("school"), c("college"), c("police"),
+    c("fire_station"), c("office"), c("hospital")]];
+  for (const [id, filtro, minzoom, tam] of [["ref-poi-principales", principales, 12, 11.5], ["ref-poi-secundarios", secundarios, 13.5, 10.5]]) {
+    mapa.addLayer({ id: `${id}-punto`, type: "circle", source: base, "source-layer": "poi", minzoom, maxzoom: 15, filter: filtro, layout: { visibility: vis },
+      paint: { "circle-radius": 3.4, "circle-color": grupo, "circle-stroke-color": css("--mapa-halo-texto"), "circle-stroke-width": 1.1 } }, antes);
+    mapa.addLayer({ id, type: "symbol", source: base, "source-layer": "poi", minzoom, maxzoom: 15, filter: filtro,
+      layout: { visibility: vis, ...textoRef(tam), "symbol-sort-key": ["get", "rank"] }, paint: { ...pintaRef(css("--mapa-texto")), "text-color": grupo } }, antes);
+  }
+}
+const CAPAS_REFERENCIAS = ["ref-municipios", "ref-ind-grandes", "ref-ind-grandes-punto", "ref-ind-resto", "ref-ind-resto-punto",
+  "ref-poi-principales", "ref-poi-principales-punto", "ref-poi-secundarios", "ref-poi-secundarios-punto"];
+
 function alturaRiesgo(meses) {
   const exceso = ["^", ["max", ["-", exprRiesgo(meses), 3], 0], 2];
   return ["interpolate", ["linear"], ["zoom"], 4, ["*", exceso, 2400], 7, ["*", exceso, 500], 10, ["*", exceso, 60], 13, ["*", exceso, 8]];
@@ -257,6 +311,7 @@ function aplicarCapaEnMapa() {
   mapa.setFilter("bordes-riesgo", filtroBordes(meses));
   CAPAS_RIESGO.forEach((id) => vis(id, riesgo));
   vis("estaciones", riesgo && estado.verRios);
+  for (const id of CAPAS_REFERENCIAS) vis(id, estado.verReferencias !== false);
   const est = estiloEstaciones();
   mapa.setFilter("estaciones", est.filter ?? null);
   Object.entries(est.paint).forEach(([k, v]) => mapa.setPaintProperty("estaciones", k, v));

@@ -432,3 +432,11 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   - Orden de búsqueda: Georef (primero filtrando por la localidad) → OpenStreetMap/Nominatim (rutas, colectoras; variantes sin
     "Km" ni "Colectora"; máx. 1 consulta por segundo; el resultado tiene que ser de la misma localidad) → callejero propio del
     INDEC → si no aparece la calle, se muestra la localidad con un aviso. Probado con 13 casos.
+- 9-nov, buscador libre y referencias en el mapa:
+  - Campo "Buscar" con sugerencias mientras se escribe, como Google Maps: coordenadas, localidades y partidos propios, calles del
+    callejero y Photon (Komoot, gratis, sobre OpenStreetMap: empresas y plantas, clubes, hospitales, escuelas, comercios, calles),
+    filtrado a la Argentina y sesgado a la zona elegida. Al apretar Buscar, si no hay dirección exacta, va al mejor resultado y
+    ofrece las otras opciones ("¿Era otro?").
+  - Referencias en el mapa (interruptor en la leyenda): nombres de los 2 282 municipios de lejos, 5 194 plantas y parques
+    industriales con nombre (Overpass, `web/preparar_referencias.py`) y, del mapa base, hospitales, universidades, estadios,
+    municipalidades, estaciones, clubes, escuelas y empresas desde z 12-13,5 (el mapa base los muestra recién en z 15).

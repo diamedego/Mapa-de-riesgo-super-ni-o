@@ -139,31 +139,101 @@ async function callesDeZona(zona) {
 }
 const zonaDireccion = () => estado.filtros.localidad || estado.filtros.partido;
 
+// ---------- Búsqueda libre (como en Google Maps): sugerencias mientras se escribe ----------
+// Mezcla, en este orden: coordenadas, localidades y partidos propios, calles del callejero (si hay zona elegida) y
+// resultados de Photon (buscador gratuito sobre OpenStreetMap: empresas, plantas, clubes, hospitales, comercios y calles).
+const PHOTON = "https://photon.komoot.io/api/";
+const CATEGORIAS_OSM = [
+  [/^(man_made:works|landuse:industrial|industrial:|office:company|craft:)/, "cat_industria"],
+  [/^(leisure:(sports_centre|stadium|pitch|sports_hall|swimming_pool)|club:sport)/, "cat_club"],
+  [/^amenity:(hospital|clinic|doctors)|^healthcare:/, "cat_salud"],
+  [/^amenity:(university|college|school|kindergarten)/, "cat_educacion"],
+  [/^amenity:(townhall|police|fire_station|courthouse)|^office:government/, "cat_gobierno"],
+  [/^(railway:(station|halt)|amenity:bus_station|aeroway:aerodrome|public_transport:station)/, "cat_transporte"],
+  [/^(shop:|amenity:(restaurant|cafe|fast_food|bank|fuel|pharmacy|bar))/, "cat_comercio"],
+  [/^highway:(bus_stop|platform)/, "cat_parada"],
+  [/^highway:/, "cat_calle"],
+  [/^place:(city|town|village|hamlet|suburb|neighbourhood|quarter|locality)/, "cat_lugar"],
+  [/^(building:|office:)/, "cat_edificio"],
+  [/^(leisure:park|tourism:|historic:)/, "cat_paseo"],
+];
+const categoriaOSM = (p) => (CATEGORIAS_OSM.find(([re]) => re.test(`${p.osm_key}:${p.osm_value}`))?.[1]) ?? "cat_lugar_osm";
+let photonVersion = 0;
+async function buscarPhoton(texto, { limite = 8 } = {}) {
+  const zona = zonaDireccion() ?? estado.filtros.provincia;
+  const centro = zona?.caja ? [(zona.caja[0] + zona.caja[2]) / 2, (zona.caja[1] + zona.caja[3]) / 2] : mapa ? mapa.getCenter().toArray() : null;
+  const params = new URLSearchParams({ q: texto, limit: String(limite * 2), bbox: "-74,-56,-53,-21.5" });
+  if (centro) { params.set("lon", centro[0].toFixed(4)); params.set("lat", centro[1].toFixed(4)); params.set("location_bias_scale", "0.3"); }
+  const d = await fetch(`${PHOTON}?${params}`).then((r) => (r.ok ? r.json() : { features: [] }));
+  const vistos = new Set();
+  return d.features.filter((f) => (f.properties.countrycode ?? "AR") === "AR").map((f) => {
+    const p = f.properties, cat = categoriaOSM(p);
+    const lugar = p.city || p.town || p.village || p.district || p.county || "";
+    const calle = p.street ? `${p.street}${p.housenumber ? ` ${p.housenumber}` : ""}` : "";
+    return { tipo: "osm", nombre: p.name || calle || lugar, cat, punto: f.geometry.coordinates,
+      detalle: [p.name ? calle : "", lugar, p.state].filter(Boolean).filter((v, k, a) => a.indexOf(v) === k).join(" · "),
+      orden: cat === "cat_parada" ? 2 : 0 };
+  }).filter((x) => x.nombre && !vistos.has(`${normalizar(x.nombre)}|${x.detalle}`) && vistos.add(`${normalizar(x.nombre)}|${x.detalle}`))
+    .sort((a, b) => a.orden - b.orden).slice(0, limite);
+}
+
+async function sugerenciasLibres(texto) {
+  const q = texto.trim(), items = [];
+  if (q.length < 2) return items;
+  const c = coordenadasDe(q);
+  if (c?.punto) return [{ tipo: "coords", nombre: t("sug_coords"), detalle: `${c.punto[1].toFixed(5)}, ${c.punto[0].toFixed(5)}`, punto: c.punto }];
+  if (/[,;]/.test(q) && q.length > 12) items.push({ tipo: "buscar", nombre: t("sug_buscar")(q), detalle: t("sug_buscar_sub") });   // dirección completa pegada
+  // Localidades, partidos y provincias propios (solo si el texto no parece una dirección con número)
+  if (!/\d/.test(q) && !q.includes(",")) {
+    for (const nivel of ["localidad", "partido", "provincia"]) for (const l of candidatos(nivel, q).slice(0, nivel === "localidad" ? 2 : 1)) {
+      if (!items.some((x) => x.lugar?.clave === l.clave && x.lugar?.provincia === l.provincia)) items.push({ tipo: "lugar", nivel, lugar: l, nombre: l.nombre, detalle: `${l.tipo}${l.nivel === "prov" ? "" : ` · ${l.provincia}`}` });
+    }
+  }
+  // Calles del callejero propio, si ya hay localidad o partido elegido
+  const m = q.match(/^(.*?)(?:[\s,]+(\d{1,5}))?\s*$/), fichas = fichasCalle(m?.[1] ?? q), zona = zonaDireccion();
+  if (zona && fichas.length && !q.includes(",")) {
+    const vistos = new Map();
+    for (const [, calles] of await callesDeZona(zona)) for (const [nombre, cuadras] of Object.entries(calles)) {
+      const pal = nombre.split(" ");
+      if (fichas.every((f) => pal.some((p) => p.startsWith(f)))) vistos.set(nombre, (vistos.get(nombre) ?? 0) + cuadras.length);
+    }
+    for (const [nombre] of [...vistos.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3))
+      items.push({ tipo: "calle", nombre: `${nombreCalle(nombre)} ${m?.[2] ?? ""}`.trim(), numero: m?.[2] ?? "", detalle: `${t("calle")} · ${zona.nombre}` });
+  }
+  // Photon, con una pausa corta para no consultar en cada letra
+  if (!SIN_TESELAS && q.length >= 3) {
+    const v = ++photonVersion;
+    await demora(260);
+    if (v === photonVersion) items.push(...await buscarPhoton(q).catch(() => []));
+  }
+  return items.slice(0, 10);
+}
+
 function autocompletarDireccion(input) {
   listaSugerencias(input, {
-    buscarItems: async (texto) => {
-      const m = texto.match(/^(.*?)(?:[\s,]+(\d{1,5}))?\s*(?:,.*)?$/);
-      const fichas = fichasCalle(m?.[1] ?? texto);
-      const zona = zonaDireccion();
-      if (!fichas.length || !zona || texto.includes(",")) return [];
-      const vistos = new Map();
-      for (const [, calles] of await callesDeZona(zona)) {
-        for (const [nombre, cuadras] of Object.entries(calles)) {
-          const pal = nombre.split(" ");
-          if (!fichas.every((f) => pal.some((p) => p.startsWith(f)))) continue;
-          vistos.set(nombre, (vistos.get(nombre) ?? 0) + cuadras.length);
-        }
-      }
-      return [...vistos.entries()].sort((a, b) => b[1] - a[1]).slice(0, 7)
-        .map(([nombre]) => ({ nombre: nombreCalle(nombre), numero: m?.[2] ?? "", zona: zona.nombre }));
+    buscarItems: sugerenciasLibres,
+    pintarItem: (it) => {
+      const ic = it.tipo === "lugar" ? "pin" : it.tipo === "coords" ? "objetivo" : it.tipo === "buscar" ? "buscar" : "pin";
+      const etiqueta = it.tipo === "osm" ? t(it.cat) : it.tipo === "lugar" ? "" : "";
+      return `<span class="sug-nombre">${icono(ic, "ico ico-sug")}<span>${resaltar(it.nombre, input.value)}</span></span>
+        <span class="sug-tipo">${etiqueta ? `<b class="sug-cat">${escapar(etiqueta)}</b> · ` : ""}${escapar(it.detalle ?? "")}</span>`;
     },
-    pintarItem: (c) => `<span class="sug-nombre">${icono("pin", "ico ico-sug")}<span>${escapar(c.nombre)} ${escapar(c.numero)}</span></span>
-      <span class="sug-tipo">${t("calle")} · ${escapar(c.zona)}</span>`,
-    elegir: (c) => {
-      input.value = `${c.nombre} ${c.numero}`.trim() + (c.numero ? "" : " ");
-      if (c.numero) buscar(); else input.focus();
-    },
+    elegir: (it) => elegirSugerencia(input, it),
   });
+}
+
+function elegirSugerencia(input, it) {
+  const aviso = document.getElementById("aviso-busqueda");
+  aviso.hidden = true;
+  if (it.tipo === "buscar") return buscarDireccion(input.value.trim());
+  if (it.tipo === "lugar") { input.value = ""; return elegirLugar(it.nivel, it.lugar); }
+  if (it.tipo === "calle") {
+    input.value = `${it.nombre}${it.numero ? "" : " "}`;
+    if (it.numero) buscar(); else input.focus();
+    return;
+  }
+  input.value = it.tipo === "osm" ? `${it.nombre}${it.detalle ? `, ${it.detalle.split(" · ").slice(-2).join(", ")}` : ""}` : it.detalle;
+  seleccionarPunto(it.punto, { nombre: it.tipo === "osm" ? it.nombre : t("punto_coords")(it.punto[1].toFixed(5), it.punto[0].toFixed(5)), origen: "direccion", volar: true });
 }
 
 // ---------- Buscar ----------
@@ -290,6 +360,14 @@ async function buscarEnOSM(calle, zona) {
 }
 const demora = (ms) => new Promise((ok) => setTimeout(ok, ms));
 
+// "¿Era otro?": las demás opciones encontradas, para elegir con un toque
+function mostrarOpciones(op) {
+  const aviso = document.getElementById("aviso-busqueda");
+  aviso.innerHTML = `<span>${t("sug_otras")}</span> ` + op.slice(1).map((o, k) => `<button type="button" class="btn-texto" data-k="${k + 1}">${escapar(o.nombre)}${o.detalle ? ` <small>(${escapar(o.detalle.split(" · ").slice(-2).join(", "))})</small>` : ""}</button>`).join(" · ");
+  aviso.hidden = false;
+  aviso.querySelectorAll("button[data-k]").forEach((b) => { b.onclick = () => { elegirSugerencia(document.getElementById("b-direccion"), op[+b.dataset.k]); mostrarOpciones([op[+b.dataset.k], ...op.filter((x, k) => k !== +b.dataset.k)]); }; });
+}
+
 async function buscarDireccionLocal(texto) {
   const m = texto.trim().match(/^(.*?)[\s,]+(\d{1,5})\s*$/);
   if (!m) return null;
@@ -357,6 +435,14 @@ async function buscarDireccion(texto) {
       const r = (d.direcciones ?? []).find((x) => x.ubicacion?.lon != null && enZona(x) && (!esLocalidad || mismoPueblo(x)));
       if (r) { punto = [r.ubicacion.lon, r.ubicacion.lat]; nombre = nombreCalle(r.nomenclatura.split(",")[0]); }
     } catch (err) { /* sin conexión al servicio */ }
+    if (!punto && !/\d/.test(calle)) {   // 2) nombres de lugares (empresas, clubes, hospitales…): Photon con opciones para elegir
+      const op = await buscarPhoton([calle, zona?.nombre].filter(Boolean).join(" "), { limite: 6 }).catch(() => []);
+      if (op.length) {
+        elegirSugerencia(document.getElementById("b-direccion"), op[0]);
+        if (op.length > 1) mostrarOpciones(op);
+        return;
+      }
+    }
     if (!punto) {   // 2) OpenStreetMap: rutas, colectoras, kilómetros y calles que el servicio oficial no tiene
       const o = await buscarEnOSM(calle, zona).catch(() => null);
       if (o) ({ punto, nombre, aproximada } = o);

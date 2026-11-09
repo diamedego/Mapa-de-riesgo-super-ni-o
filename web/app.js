@@ -7,7 +7,7 @@ const estado = {
   idioma: "es", capa: "riesgo", modo: "actual", sel: null, km: 2,
   iMesActual: 0, rangoMeses: [0, 0], rangoDias: [0, 6], paso3h: null,
   mesReproduciendo: null, diaReproduciendo: null, reproduciendo: null,
-  verRios: true, verAlertas: true, riesgo3d: false, relieve3d: false, relieve: false, ranking: "r",
+  verRios: true, verAlertas: true, verReferencias: true, riesgo3d: false, relieve3d: false, relieve: false, ranking: "r",
   datos: {}, riesgo: null, porCmu: new Map(), radios: [], cargasRadios: new Map(), tiempo: null,
 };
 const t = (clave) => TEXTOS[estado.idioma][clave] ?? TEXTOS.es[clave] ?? clave;
@@ -239,6 +239,7 @@ function pintarLeyenda() {
   const interruptores = [
     ...(capa === "riesgo" ? [["verRios", t("ley_rios")]] : []),
     ...(estado.modo === "actual" ? [["verAlertas", t("ley_alertas")]] : []),
+    ["verReferencias", t("ley_referencias")],
     ...(capa === "riesgo" ? [["riesgo3d", t("ley_3d")]] : []),
   ].map(([k, etq]) => `<label class="interruptor"><input type="checkbox" data-k="${k}"${estado[k] ? " checked" : ""}><span>${etq}</span></label>`).join("");
   let cuerpo;
