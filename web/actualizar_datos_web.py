@@ -5,6 +5,8 @@
 - estaciones.geojson: estaciones del INA con la altura medida más reciente (estado: normal, alerta o evacuación,
   y cambio en 24 h) y, en las que validan bien, la probabilidad mensual de alerta y evacuación (escenario GloFAS).
 - resumen.json: indicadores nacionales por mes, rankings y fechas de las corridas.
+- lluvia_estacional.json: lluvia media mensual pronosticada por gobierno local (SEAS5), para el simulador
+  cuando el período elegido pasa los 16 días del pronóstico diario.
 
 No necesita datos crudos: solo data/gold y data/referencia (versionados).
 """
@@ -42,6 +44,20 @@ def estado_actual_rios(est: gpd.GeoDataFrame) -> pd.DataFrame:
     a.loc[a["nivel_evacuacion"].notna() & (a["h"] >= a["nivel_evacuacion"]), "estado"] = "evacuacion"
     a["hf"] = a["fecha"].dt.tz_convert("America/Argentina/Buenos_Aires").dt.strftime("%Y-%m-%dT%H:%M")
     return a[["estacion_id", "h", "hf", "dh", "estado"]]
+
+
+def lluvia_estacional() -> None:
+    archivos = sorted(glob.glob(str(RAIZ / "data" / "archivo" / "open_meteo" / "estacional_2*.parquet")))
+    if not archivos:
+        return
+    d = pd.read_parquet(archivos[-1])
+    d = d[d["variable"] == "precipitation_mean"]
+    meses = sorted(d["mes"].astype(str).str[:7].unique())
+    t = d.assign(mes=d["mes"].astype(str).str[:7]).pivot_table(index="cmu", columns="mes", values="valor").reindex(columns=meses)
+    salida = {"corrida": str(d["fecha_corrida"].iloc[0])[:10], "meses": meses,
+              "cmu": {c: [None if pd.isna(v) else round(float(v), 1) for v in fila] for c, fila in t.iterrows()}}
+    (SALIDA / "lluvia_estacional.json").write_text(json.dumps(salida, separators=(",", ":")))
+    print(f"lluvia_estacional.json: {len(salida['cmu'])} gobiernos locales, {meses[0]} a {meses[-1]}")
 
 
 def main() -> None:
@@ -114,6 +130,7 @@ def main() -> None:
         "rios_hoy": {k: int(v) for k, v in e["estado"].value_counts().items()},
     }
     (SALIDA / "resumen.json").write_text(json.dumps(resumen, ensure_ascii=False, indent=1, default=float))
+    lluvia_estacional()
     for n in ("riesgo.json", "estaciones.geojson", "resumen.json"):
         print(f"{n}: {(SALIDA / n).stat().st_size / 1e3:.0f} KB")
 

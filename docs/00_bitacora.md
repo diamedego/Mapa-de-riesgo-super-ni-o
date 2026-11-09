@@ -440,3 +440,12 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   - Referencias en el mapa (interruptor en la leyenda): nombres de los 2 282 municipios de lejos, 5 194 plantas y parques
     industriales con nombre (Overpass, `web/preparar_referencias.py`) y, del mapa base, hospitales, universidades, estadios,
     municipalidades, estaciones, clubes, escuelas y empresas desde z 12-13,5 (el mapa base los muestra recién en z 15).
+- 9-nov, simulador (pedidos desde el celular):
+  - Calidad con radios chicos: el relieve se baja con zoom adaptativo (radio 1 km: z 15, ~4 m por píxel; antes siempre z 13,
+    ~16 m), con suavizado y orilla de ríos definidos en metros: líneas de drenaje y curvas finas, igual que con 5 km.
+  - Período de lluvia pronosticada (desde/hasta y botones de 3 días a 3 meses): los primeros 16 días salen del pronóstico
+    diario del punto; más allá, del estacional SEAS5 del municipio (`web/datos/lluvia_estacional.json`, lo escribe
+    `actualizar_datos_web.py`). Se simula como si toda la lluvia cayera junta (escenario más desfavorable), y se aclara.
+  - "Ver el corte en 3D": en Mapa, la cámara se pone de frente a la línea del corte; en la Maqueta, además, se corta el
+    terreno por esa línea y se ve la tajada con suelo y agua.
+  - Imagen satelital: mosaico Sentinel-2 sin nubes 2025 de EOX (el de 2026 todavía no existe), hasta z 15.

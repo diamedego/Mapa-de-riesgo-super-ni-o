@@ -48,7 +48,7 @@ function cerrarSimulador() {
   document.getElementById("sim").hidden = true;
   document.body.classList.remove("sim-abierto");
   SIM.mapa?.remove(); SIM.mapa = null; SIM.datos = null;
-  cerrarMaqueta(); SIM.vista = "mapa";
+  cerrarMaqueta(); SIM.vista = "mapa"; SIM.corte3d = false;
   document.querySelectorAll(".sim-leyenda-mapa, .sim-vistas").forEach((el) => el.remove());
   Tip.ocultar();
 }
@@ -61,7 +61,8 @@ const yDeLat = (lat, z) => ((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / 
 
 async function relieveDe(caja) {
   const [x0, y0, x1, y1] = caja;
-  let z = 13;   // ~15 m por píxel en la Argentina; se baja si el área necesitaría más de 5 × 5 teselas
+  let z = 15;   // hasta ~4 m por píxel en radios chicos (el relieve de base es de ~30 m, pero así las líneas quedan finas);
+  // se baja de a un nivel mientras el área necesite más de 5 × 5 teselas (radio de 1 km: z 15; 2 km: z 14; 5 km o más: z 13 o menos)
   while (z > 9 && (Math.floor(xDeLon(x1, z)) - Math.floor(xDeLon(x0, z)) > 4 || Math.floor(yDeLat(y0, z)) - Math.floor(yDeLat(y1, z)) > 4)) z--;
   const tx0 = Math.floor(xDeLon(x0, z)), tx1 = Math.floor(xDeLon(x1, z)), ty0 = Math.floor(yDeLat(y1, z)), ty1 = Math.floor(yDeLat(y0, z));
   const W = (tx1 - tx0 + 1) * 256, H = (ty1 - ty0 + 1) * 256;
@@ -129,18 +130,19 @@ async function prepararSimulacion(s) {
   if (estado.sel !== s || document.getElementById("sim").hidden) return;
   const { W, H } = D, N = W * H;
   const aPx = (lon, lat) => [(xDeLon(lon, D.z) - D.tx0) * 256, (yDeLat(lat, D.z) - D.ty0) * 256];
-  const agua = mascaraAgua(D, aPx);
+  const mPx0 = (40075016 * Math.cos((s.punto[1] * Math.PI) / 180)) / (256 * 2 ** D.z);
+  const agua = mascaraAgua(D, aPx, Math.max(1, Math.round(30 / mPx0)));   // ~30 m de orilla
   // Coordenadas de cada píxel y máscara del círculo (sin ríos ni lagunas)
   const lonP = new Float64Array(W), latP = new Float64Array(H);
   for (let x = 0; x < W; x++) lonP[x] = lonDeX(D.tx0 + (x + 0.5) / 256, D.z);
   for (let y = 0; y < H; y++) latP[y] = latDeY(D.ty0 + (y + 0.5) / 256, D.z);
   const dentro = new Uint8Array(N);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!agua[y * W + x] && distanciaKm(s.punto, [lonP[x], latP[y]]) <= s.km) dentro[y * W + x] = 1;
-  // Suavizado 5 × 5 (~75 m: baja el ruido de edificios y árboles); el agua no cuenta como bajo
-  const hs = promedioLocal(Float32Array.from(D.h, (v, i) => (agua[i] ? Infinity : v)), W, H, 2);
+  // Suavizado de ~75 m (baja el ruido de edificios y árboles; igual en metros con cualquier resolución); el agua no cuenta como bajo
+  const metrosPx = (40075016 * Math.cos((s.punto[1] * Math.PI) / 180)) / (256 * 2 ** D.z);
+  const hs = promedioLocal(Float32Array.from(D.h, (v, i) => (agua[i] ? Infinity : v)), W, H, Math.max(1, Math.round(37 / metrosPx)));
   for (let i = 0; i < N; i++) if (agua[i]) hs[i] = Infinity;
   // Altura relativa (dos escalas: el bajo del barrio y el de la zona)
-  const metrosPx = (40075016 * Math.cos((s.punto[1] * Math.PI) / 180)) / (256 * 2 ** D.z);
   const m500 = minimoLocal(hs, W, H, Math.max(2, Math.round(500 / metrosPx)));
   const m2500 = minimoLocal(hs, W, H, Math.max(4, Math.round(2500 / metrosPx)));
   const celdas = [];
@@ -208,7 +210,7 @@ async function prepararSimulacion(s) {
 }
 
 // Ríos, lagunas y embalses del mapa base, rasterizados a la grilla del relieve
-function mascaraAgua(D, aPx) {
+function mascaraAgua(D, aPx, r = 2) {
   const cv = new OffscreenCanvas(D.W, D.H), c = cv.getContext("2d", { willReadFrequently: true });
   const fuente = Object.entries(SIM.mapa?.getStyle()?.sources ?? {}).find(([, f]) => f.type === "vector")?.[0];
   if (fuente) {
@@ -226,7 +228,7 @@ function mascaraAgua(D, aPx) {
   const out = new Uint8Array(base.length);
   for (let y = 0; y < D.H; y++) for (let x = 0; x < D.W; x++) {
     if (!base[y * D.W + x]) continue;
-    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
       const xx = x + dx, yy = y + dy;
       if (xx >= 0 && yy >= 0 && xx < D.W && yy < D.H) out[yy * D.W + xx] = 1;
     }
@@ -347,7 +349,7 @@ function dibujarAgua() {
 //     bajas según la diferencia de nivel, sobre el relieve suavizado ~120 m para no seguir cada edificio).
 //   - Los bajos llenos y las cifras del panel salen del mismo cálculo de llenado que el mapa (así todo coincide).
 const THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js";
-const SATELITE = "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/g/{z}/{y}/{x}.jpg";
+const SATELITE = "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/{z}/{y}/{x}.jpg";   // mosaico sin nubes de 2025 (el más nuevo)
 const FPS_LLUVIA = 24, CUADROS_LLUVIA = 170, CUADROS_ESCURRE = 130, SUBPASOS = 6, LARGO_COLA = 10;
 let cargaThree = null;
 const cargarThree = () => (cargaThree ??= new Promise((ok, mal) => {
@@ -404,7 +406,7 @@ async function sateliteDe(D, x0, y0, bw, bh, S) {
   cv.width = Math.round(bw * S); cv.height = Math.round(bh * S);
   const c = cv.getContext("2d");
   c.fillStyle = "rgb(150,140,110)"; c.fillRect(0, 0, cv.width, cv.height);
-  const k = Math.max(0, Math.min(Math.ceil(Math.log2(S)), 14 - D.z)), z = D.z + k, f = 2 ** k;   // la imagen llega hasta ~10 m (z 14)
+  const k = Math.min(Math.ceil(Math.log2(S)), 15 - D.z), z = D.z + k, f = 2 ** k;   // la imagen llega hasta z 15 (detalle real ~10 m)
   const gx0 = D.tx0 * 256 + x0, gy0 = D.ty0 * 256 + y0;   // píxeles globales del relieve en el zoom D.z
   const tiles = [];
   for (let tx = Math.floor((gx0 * f) / 256); tx <= Math.floor(((gx0 + bw) * f) / 256); tx++)
@@ -436,10 +438,11 @@ async function crearMaqueta() {
   const capa = document.createElement("div");
   capa.className = "sim-maqueta";
   capa.innerHTML = `<p class="sim-maqueta-ayuda">${t("sim_maqueta_ayuda")}</p><p class="sim-lluvia-estado" hidden></p>
-    <p class="sim-credito-sat"><a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless 2023 · EOX</a> (${t("sim_credito_sat")})</p>`;
+    <p class="sim-credito-sat"><a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless 2025 · EOX</a> (${t("sim_credito_sat")})</p>`;
   marco.appendChild(capa);
   const ren = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
   ren.setPixelRatio(Math.min(2, devicePixelRatio));
+  ren.localClippingEnabled = true;   // para cortar la maqueta por la línea del corte
   capa.prepend(ren.domElement);
   // Malla: un vértice cada `paso` píxeles del relieve dentro del círculo (~260 por lado como máximo)
   const cx = (x0 + x1 + 1) / 2, cy = (y0 + y1 + 1) / 2, R = bw / 2;
@@ -465,7 +468,8 @@ async function crearMaqueta() {
   const tex = new THREE.CanvasTexture(textura);
   tex.anisotropy = 4;
   const escena = new THREE.Scene();
-  escena.add(new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ map: tex })));
+  const matTerreno = new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide });
+  escena.add(new THREE.Mesh(geo, matTerreno));
   // Paredes con capas de tierra y base
   const N = 360, borde = [];
   for (let k = 0; k <= N; k++) {
@@ -483,8 +487,10 @@ async function crearMaqueta() {
   pared.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array((N + 1) * 4 * 3), 3));
   pared.setAttribute("color", new THREE.Float32BufferAttribute(borde.flatMap(() => capas.flatMap(([, c]) => c.map((v) => v / 255))), 3));
   pared.setIndex(pi);
-  escena.add(new THREE.Mesh(pared, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide })));
-  const base = new THREE.Mesh(new THREE.CircleGeometry(R * m, 128), new THREE.MeshLambertMaterial({ color: 0x4f3e2c, side: THREE.DoubleSide }));
+  const matPared = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+  escena.add(new THREE.Mesh(pared, matPared));
+  const matBase = new THREE.MeshLambertMaterial({ color: 0x4f3e2c, side: THREE.DoubleSide });
+  const base = new THREE.Mesh(new THREE.CircleGeometry(R * m, 128), matBase);
   base.rotation.x = Math.PI / 2; escena.add(base);
   const sombra = new THREE.Mesh(new THREE.CircleGeometry(R * m * 1.07, 96), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.12 }));
   sombra.rotation.x = -Math.PI / 2; escena.add(sombra);
@@ -492,7 +498,9 @@ async function crearMaqueta() {
   const sol = new THREE.DirectionalLight(0xffffff, 0.75); sol.position.set(-1, 1.4, -0.6); escena.add(sol);
   const cam = new THREE.PerspectiveCamera(32, 1, 10, 1e7);
   const M = { capa, ren, escena, cam, geo, pared, base, sombra, tex, textura, sat, celdas, borde, R: R * m,
-    x0, y0, bw, bh, S, azimut: 0.9, elevacion: 0.42, distancia: 0.7, dibujar: 0, mmCharcos: null };
+    x0, y0, bw, bh, S, cx, cy, materiales: [matTerreno, matPared, matBase], plano: new THREE.Plane(new THREE.Vector3(0, 0, -1), 0), tapa: new THREE.Group(),
+    azimut: 0.9, elevacion: 0.42, distancia: 0.7, dibujar: 0, mmCharcos: null };
+  escena.add(M.tapa);
   M.lluvia = prepararLluvia(d, x0, y0, bw, bh);
   M.charcos = document.createElement("canvas"); M.charcos.width = bw; M.charcos.height = bh;
   M.pelicula = document.createElement("canvas"); M.pelicula.width = M.lluvia.nx; M.pelicula.height = M.lluvia.ny;
@@ -619,7 +627,7 @@ function avanzarLluvia(L, meta) {
 function alturasMaqueta() {
   const M = SIM.maqueta, d = SIM.datos;
   const ex = SIM.capas.x5 ? 5 : 1, L = nivelAgua(d, SIM.mm), piso = d.hMin - 2;
-  const fondo = -Math.max(40, (d.hMax - d.hMin) * 0.6) * ex;
+  const fondo = -Math.max(10, (d.hMax - d.hMin) * 0.35) * ex;   // base de tierra: un tercio del desnivel (mínimo 10 m)
   const altura = (i) => {
     if (i < 0) return 0;
     if (!d.dentro[i]) return ((Number.isFinite(d.hLago[i]) ? d.hLago[i] - 0.3 : d.hMin) - piso) * ex;   // ríos y lagunas: a la altura de la orilla
@@ -700,7 +708,7 @@ function actualizarMaqueta(alturas = false) {
   if (!M || !SIM.datos) return;
   // Las alturas (con los bajos llenos) se recalculan cada 4 mm mientras llueve, para no frenar la animación
   const cambio = M.mmAlturas == null ? Infinity : Math.abs(M.mmAlturas - SIM.mm);
-  if (alturas || cambio >= 4 || (!M.lluvia.activa && cambio > 0)) { alturasMaqueta(); M.mmAlturas = SIM.mm; }
+  if (alturas || cambio >= 4 || (!M.lluvia.activa && cambio > 0)) { alturasMaqueta(); M.mmAlturas = SIM.mm; if (SIM.corte3d) tapaCorte(); }
   texturaMaqueta();
   pedirCuadroMaqueta();
 }
@@ -767,6 +775,74 @@ function detenerAnimaciones() {
   if (btn) btn.innerHTML = icono("play");
 }
 
+// ---------- El corte en 3D ----------
+// Mapa: la cámara se pone al sur de la línea del corte, mirando hacia el norte. Maqueta: además se corta el terreno por
+// esa línea y se ve la "tajada" de frente (suelo marrón y agua azul), igual que el gráfico del corte.
+function verCorteEn3D() {
+  const d = SIM.datos;
+  if (!d) return;
+  SIM.corte3d = !SIM.corte3d;
+  const xs = filaCorte(d), lat = d.latP[d.filaCorte];
+  if (SIM.vista === "mapa" && xs.length > 1 && SIM.corte3d) {
+    const lon0 = d.lonP[xs[0]], lon1 = d.lonP[xs[xs.length - 1]], dLat = (lon1 - lon0) * 0.12;
+    SIM.mapa.fitBounds([[lon0, lat - dLat], [lon1, lat + dLat]], { pitch: 72, bearing: 0, padding: 30, duration: movimientoReducido() ? 0 : 1200 });
+  } else if (SIM.vista === "mapa") {   // de vuelta al círculo entero
+    const [x0, y0, x1, y1] = cajaCirculo(d.s.punto, d.s.km * 1.05);
+    SIM.mapa.fitBounds([[x0, y0], [x1, y1]], { pitch: 62, bearing: -20, padding: 20, duration: movimientoReducido() ? 0 : 1200 });
+  }
+  const M = SIM.maqueta;
+  if (M) {
+    for (const mat of M.materiales) mat.clippingPlanes = SIM.corte3d ? [M.plano] : [];
+    if (SIM.corte3d) { M.antes = { azimut: M.azimut, elevacion: M.elevacion, distancia: M.distancia }; Object.assign(M, { azimut: 0, elevacion: 0.08, distancia: 0.64 }); }
+    else if (M.antes) Object.assign(M, M.antes);
+    tapaCorte();
+    pedirCuadroMaqueta();
+  }
+  pintarCorte();
+}
+
+function tapaCorte() {
+  const M = SIM.maqueta, d = SIM.datos;
+  if (!M || !d) return;
+  for (const h of [...M.tapa.children]) { h.geometry.dispose(); M.tapa.remove(h); }
+  if (!SIM.corte3d) return;
+  const W = d.D.W, m = d.metrosPx, ex = SIM.capas.x5 ? 5 : 1, L = nivelAgua(d, SIM.mm), piso = d.hMin - 2;
+  const fondo = M.fondo ?? -40 * ex, zc = (d.filaCorte + 0.5 - M.cy) * m;
+  M.plano.constant = zc;   // se ve lo que queda al norte de la línea (z ≤ zc)
+  const puntos = [];
+  for (let x = 0; x < W; x++) {
+    const i = d.filaCorte * W + x;
+    if (!d.circulo[i]) continue;
+    const lago = !d.dentro[i], suelo = lago ? (Number.isFinite(d.hLago[i]) ? d.hLago[i] - 0.6 : d.hMin - 0.3) : d.hs[i];
+    const agua = lago ? 0.3 : Math.max(0, profundidad(L, d.relGrilla[i]));
+    puntos.push({ X: (x + 0.5 - M.cx) * m, suelo: (suelo - piso) * ex, agua: agua >= AGUA_MIN || lago ? (suelo + agua - piso) * ex : null });
+  }
+  if (puntos.length < 2) return;
+  const forma = new THREE.Shape();
+  forma.moveTo(puntos[0].X, fondo);
+  for (const q of puntos) forma.lineTo(q.X, q.suelo);
+  forma.lineTo(puntos.at(-1).X, fondo);
+  const agregar = (sh, color, opacidad = 1) => {
+    const g = new THREE.ShapeGeometry(sh), malla = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, transparent: opacidad < 1, opacity: opacidad, side: THREE.DoubleSide }));
+    malla.position.z = zc + 0.5; M.tapa.add(malla);
+  };
+  agregar(forma, 0x8a6a48);
+  // Agua: un polígono por tramo con agua, entre el suelo y la superficie
+  let tramo = [];
+  const cerrar = () => {
+    if (tramo.length > 1) {
+      const w = new THREE.Shape();
+      w.moveTo(tramo[0].X, tramo[0].agua);
+      for (const q of tramo) w.lineTo(q.X, q.agua);
+      for (const q of [...tramo].reverse()) w.lineTo(q.X, q.suelo);
+      agregar(w, 0x1f74c9, 0.9);
+    }
+    tramo = [];
+  };
+  for (const q of puntos) { if (q.agua != null) tramo.push(q); else cerrar(); }
+  cerrar();
+}
+
 function cerrarMaqueta() {
   const M = SIM.maqueta;
   if (!M) return;
@@ -785,6 +861,7 @@ function moverCorte(lngLat) {
   if (y < 0 || y >= d.D.H) return;
   d.filaCorte = y;
   actualizarCorteEnMapa();
+  if (SIM.corte3d) { tapaCorte(); pedirCuadroMaqueta(); }
   pintarCorte();
 }
 function filaCorte(d) {
@@ -818,7 +895,8 @@ function pintarCorte() {
   const agua = perfil.map((p, k) => (p[1] >= AGUA_MIN
     ? `<rect x="${(sx(k) - paso / 2).toFixed(1)}" y="${sy(p[0] + p[1]).toFixed(1)}" width="${(paso + 0.6).toFixed(2)}" height="${(sy(p[0]) - sy(p[0] + p[1])).toFixed(1)}"/>` : "")).join("");
   const km = (n * d.metrosPx) / 1000;
-  cont.innerHTML = `<p class="sim-corte-titulo"><b>${t("sim_corte")}</b> · ${t("sim_corte_ayuda")}</p>
+  cont.innerHTML = `<p class="sim-corte-titulo"><b>${t("sim_corte")}</b> · ${t("sim_corte_ayuda")}
+      <button type="button" class="btn-corte3d" id="sim-ver-corte" aria-pressed="${!!SIM.corte3d}">${t(SIM.corte3d ? "sim_corte3d_salir" : "sim_corte3d")}</button></p>
     <svg width="${ancho}" height="${alto}" class="sim-corte-svg" role="img" aria-label="${t("sim_corte")}">
       <line class="grilla" x1="${izq}" x2="${ancho - der}" y1="${sy(hi)}" y2="${sy(hi)}"/><line class="grilla" x1="${izq}" x2="${ancho - der}" y1="${sy(lo)}" y2="${sy(lo)}"/>
       <path d="${suelo}" class="sim-suelo"/><g class="sim-agua-corte">${agua}</g>
@@ -826,6 +904,7 @@ function pintarCorte() {
       <text class="eje" x="${izq - 4}" y="${sy(lo) + 4}" text-anchor="end">${fmt(lo)} m</text>
       <text class="eje" x="${izq}" y="${alto - 4}">${t("sim_oeste")}</text>
       <text class="eje" x="${ancho - der}" y="${alto - 4}" text-anchor="end">${t("sim_este")} · ${fmt(km, 1)} km</text></svg>`;
+  document.getElementById("sim-ver-corte").onclick = verCorteEn3D;
 }
 
 // ---------- Leyenda sobre el mapa y altura al pasar ----------
@@ -855,15 +934,67 @@ function tooltipSimulador(e) {
 
 // ---------- Panel de control y resultados ----------
 function presetsSimulador() {
-  const p = [];
-  const T = estado.tiempo, s = estado.sel;
-  if (T && s) {
-    const serie = seriePunto(T, T.diario.lluvia, T.dias.length, s.punto[0], s.punto[1]), h = diaHoy(T);
-    const suma = (n) => Math.round(sumar(serie.slice(h, h + n).filter((v) => v != null)));
-    p.push([t("sim_pron_3"), suma(3)], [t("sim_pron_7"), suma(7)]);
+  return [[t("sim_50"), 50], [t("sim_150"), 150], [t("sim_laplata"), 392]];
+}
+
+// ---------- Lluvia pronosticada en un período ----------
+// Días dentro del pronóstico diario (16 días, por punto): suma del pronóstico. Días más lejanos: lluvia media mensual del
+// pronóstico estacional (SEAS5) del municipio, repartida por día. Se simula como si toda esa lluvia cayera junta.
+let lluviaEstacional = null;
+const fechaISO = (d) => d.toISOString().slice(0, 10);
+const sumarDias = (iso, n) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return fechaISO(d); };
+function limitesPeriodo() {
+  const T = estado.tiempo, hoy = T ? T.dias[diaHoy(T)] : hoyLocal();
+  const ultimoMes = lluviaEstacional?.meses.at(-1);
+  const fin = ultimoMes ? fechaISO(new Date(Date.UTC(+ultimoMes.slice(0, 4), +ultimoMes.slice(5, 7), 0, 12))) : T?.dias.at(-1) ?? hoy;
+  return { hoy, fin };
+}
+function lluviaPeriodo(desde, hasta) {
+  const T = estado.tiempo, s = estado.sel, E = lluviaEstacional;
+  if (!s || desde > hasta) return null;
+  const serie = T ? seriePunto(T, T.diario.lluvia, T.dias.length, s.punto[0], s.punto[1]) : [];
+  const mensual = E?.cmu[s.cmu] ?? null;
+  let diario = 0, estacional = 0, diasDiario = 0, diasEst = 0, sinDato = 0, hastaDiario = null;
+  for (let d = desde; d <= hasta; d = sumarDias(d, 1)) {
+    const k = T ? T.dias.indexOf(d) : -1;
+    if (k >= 0 && serie[k] != null) { diario += serie[k]; diasDiario++; hastaDiario = d; continue; }
+    const m = E ? E.meses.indexOf(d.slice(0, 7)) : -1;
+    if (m >= 0 && mensual?.[m] != null) {
+      const diasMes = new Date(Date.UTC(+d.slice(0, 4), +d.slice(5, 7), 0)).getUTCDate();
+      estacional += mensual[m] / diasMes; diasEst++;
+    } else sinDato++;
   }
-  p.push([t("sim_50"), 50], [t("sim_150"), 150], [t("sim_laplata"), 392]);
-  return p;
+  return { total: Math.round(diario + estacional), diario: Math.round(diario), estacional: Math.round(estacional), diasDiario, diasEst, sinDato, hastaDiario };
+}
+async function prepararPeriodo() {
+  const cont = document.getElementById("sim-periodo");
+  if (!cont) return;
+  if (!lluviaEstacional) lluviaEstacional = await fetch("datos/lluvia_estacional.json").then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  const { hoy, fin } = limitesPeriodo(), desde = document.getElementById("sim-desde"), hasta = document.getElementById("sim-hasta");
+  for (const x of [desde, hasta]) { x.min = hoy; x.max = fin; }
+  if (!desde.value) desde.value = hoy;
+  if (!hasta.value) hasta.value = sumarDias(hoy, 6);
+  const calcular = () => {
+    if (hasta.value < desde.value) hasta.value = desde.value;
+    const r = lluviaPeriodo(desde.value, hasta.value), res = document.getElementById("sim-periodo-res"), btn = document.getElementById("sim-periodo-ir");
+    if (!r) { res.textContent = "–"; btn.disabled = true; return; }
+    btn.disabled = !SIM.datos;
+    const partes = [];
+    if (r.diasDiario) partes.push(t("sim_per_diario")(fmt(r.diario), fmtDia(r.hastaDiario)));
+    if (r.diasEst) partes.push(t("sim_per_estacional")(fmt(r.estacional)));
+    if (r.sinDato) partes.push(t("sim_per_sindato")(r.sinDato));
+    res.innerHTML = `<b>${fmt(r.total)} mm</b> ${t("sim_per_en")(r.diasDiario + r.diasEst + r.sinDato)}<br><small>${partes.join(" + ")}</small>`;
+    btn.dataset.mm = r.total;
+  };
+  desde.onchange = calcular; hasta.onchange = calcular;
+  cont.querySelectorAll("[data-dias]").forEach((b) => { b.onclick = () => { desde.value = hoy; hasta.value = [sumarDias(hoy, +b.dataset.dias - 1), fin].sort()[0]; calcular(); }; });
+  document.getElementById("sim-periodo-ir").onclick = (e) => {
+    const mm = Number(e.currentTarget.dataset.mm) || 0;
+    const barra = document.getElementById("sim-barra");
+    if (mm > Number(barra.max)) barra.max = String(Math.ceil(mm / 50) * 50);
+    reproducirSimulador(mm);
+  };
+  calcular();
 }
 
 // Filtros: "Todos" prende o apaga las cuatro capas; Relieve ×5 es aparte (la escala real es la de siempre)
@@ -902,6 +1033,15 @@ function pintarPanelSimulador(d) {
       <button type="button" class="lt-play" id="sim-play" aria-label="${t("sim_reproducir")}">${icono(SIM.reproduciendo ? "pausa" : "play")}</button>
       <input type="range" id="sim-barra" min="0" max="400" step="5" value="${SIM.mm}" aria-label="${t("sim_lluvia_caida")}"${d ? "" : " disabled"}>
     </div>
+    <div class="sim-periodo" id="sim-periodo">
+      <h3 class="sim-h3">${t("sim_periodo")}</h3>
+      <div class="sim-fechas"><label>${t("sim_desde")}<input type="date" id="sim-desde"></label><label>${t("sim_hasta")}<input type="date" id="sim-hasta"></label></div>
+      <div class="sim-presets">${[[3, "sim_per_3d"], [7, "sim_per_1s"], [14, "sim_per_2s"], [21, "sim_per_3s"], [30, "sim_per_1m"], [90, "sim_per_3m"]]
+        .map(([n, k]) => `<button type="button" class="chip" data-dias="${n}">${t(k)}</button>`).join("")}</div>
+      <p class="sim-periodo-res" id="sim-periodo-res"></p>
+      <button type="button" class="btn-primario" id="sim-periodo-ir" disabled>${t("sim_per_ir")}</button>
+      <p class="sim-periodo-nota">${t("sim_per_nota")}</p>
+    </div>
     <div class="sim-presets">${ps.map(([e, v], i) => `<button type="button" class="chip" data-i="${i}"${d ? "" : " disabled"}>${e} · ${fmt(v)} mm</button>`).join("")}</div>
     <div class="tb-datos sim-datos">
       ${dato(t("sim_area"), R ? `${fmt(R.pct, R.pct < 10 ? 1 : 0)} %` : "–", R ? `${fmt(R.km2, 2)} km²` : "")}
@@ -917,6 +1057,7 @@ function pintarPanelSimulador(d) {
   document.getElementById("sim-play").onclick = () => reproducirSimulador();
   panel.querySelectorAll(".sim-presets .chip").forEach((b) => { b.onclick = () => reproducirSimulador(ps[+b.dataset.i][1]); });
   pintarFiltrosSimulador();
+  prepararPeriodo();
   if (d) {
     pintarCorte();
     const mms = Array.from({ length: 41 }, (_, i) => i * 10);
