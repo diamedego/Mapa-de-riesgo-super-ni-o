@@ -185,6 +185,11 @@ function buscar() {
   const aviso = document.getElementById("aviso-busqueda");
   aviso.hidden = true;
   if (esMovil()) document.activeElement?.blur();
+  // Texto pegado en cualquier campo (dirección completa de Google Maps, coordenadas o un link): se interpreta entero
+  for (const nivel of ["localidad", "partido", "provincia"]) {
+    const input = document.getElementById(`b-${nivel}`), v = input.value.trim();
+    if (v && (v.includes(",") || coordenadasDe(v))) { input.value = ""; estado.filtros[nivel] = null; return buscarDireccion(v); }
+  }
   if (!resolverEscritos()) return;
   const dir = document.getElementById("b-direccion").value.trim();
   if (dir) return buscarDireccion(dir);
@@ -192,17 +197,98 @@ function buscar() {
   if (l) seleccionarZona(l, { volar: true });
 }
 
-// "Mitre 500, Campana": la parte después de la coma es la localidad o el partido
-function separarLugarDeDireccion(texto) {
-  const i = texto.lastIndexOf(",");
-  if (i < 0) return texto;
-  const lugar = texto.slice(i + 1).trim(), calle = texto.slice(0, i).trim();
-  for (const nivel of ["localidad", "partido"]) {
-    const l = mejorLugar(nivel, lugar);
-    if (l) { estado.filtros[nivel] = l; document.getElementById(`b-${nivel}`).value = l.nombre; return calle; }
+// ---------- Texto libre: coordenadas, links de Google Maps y direcciones completas ----------
+// Coordenadas en los formatos que se copian de Google Maps u otros GPS:
+//   "-34.1345, -59.0621" · "-34,1345 -59,0621" · "34.13 S, 59.06 O" · 34°08'04.4"S 59°03'43.5"W · links con @lat,lon o !3d…!4d…
+function coordenadasDe(texto) {
+  let s = texto.trim();
+  try { s = decodeURIComponent(s); } catch (e) { /* texto con % suelto */ }
+  s = s.replace(/\s+/g, " ");
+  const n = (v) => Number(String(v).replace(",", "."));
+  let m = s.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/) ?? s.match(/@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/)
+    ?? s.match(/[?&](?:q|ll|query|destination|center|sll)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/i);
+  if (m) return enArgentina(n(m[1]), n(m[2]));
+  const gms = [...s.matchAll(/(\d{1,3}(?:[.,]\d+)?)\s*[°º˚]\s*(?:(\d{1,2}(?:[.,]\d+)?)\s*['′’´]\s*)?(?:(\d{1,2}(?:[.,]\d+)?)\s*(?:"|″|”|''|′′)\s*)?([NSEOW])?/gi)];
+  if (gms.length === 2) {
+    const v = gms.map(([, g, mi, se, h]) => (/[SOW]/i.test(h ?? "") ? -1 : 1) * (n(g) + n(mi ?? 0) / 60 + n(se ?? 0) / 3600));
+    return enArgentina(v[0], v[1], gms.some((x) => x[4]));
   }
-  return texto;
+  m = s.match(/^(-?\d{1,3}\.\d+)\s*°?\s*([NS])?\s*[,; ]\s*(-?\d{1,3}\.\d+)\s*°?\s*([EOW])?$/i)
+    ?? s.match(/^(-?\d{1,3},\d+)\s*°?\s*([NS])?\s*[; ]\s*(-?\d{1,3},\d+)\s*°?\s*([EOW])?$/i);
+  if (m) {
+    const lat = n(m[1]) * (/S/i.test(m[2] ?? "") ? -1 : 1), lon = n(m[3]) * (/[OW]/i.test(m[4] ?? "") ? -1 : 1);
+    return enArgentina(lat, lon, !!(m[2] || m[4]));
+  }
+  return null;
 }
+// Ordena latitud y longitud (si vinieron al revés) y acepta valores sin signo, porque la Argentina está al sur y al oeste
+function enArgentina(a, b, conHemisferio = true) {
+  if (!conHemisferio && a > 0 && b > 0) { a = -a; b = -b; }
+  const lat = (v) => v >= -56 && v <= -21, lon = (v) => v >= -75 && v <= -53;
+  if (lat(a) && lon(b)) return { punto: [b, a] };
+  if (lat(b) && lon(a)) return { punto: [a, b] };
+  return { fuera: true };
+}
+
+const ALIAS_PROV = { "ciudad autonoma de buenos aires": "CABA", "capital federal": "CABA", "ciudad de buenos aires": "CABA",
+  "c.a.b.a.": "CABA", "caba": "CABA", "tierra del fuego": "Tierra del Fuego, Antártida e Islas del Atlántico Sur" };
+const sinPrefijo = (p) => p.replace(/^(provincia|pcia\.?|prov\.?|partido|pdo\.?|departamento|dpto\.?|depto\.?|municipio|municipalidad|localidad)\s+(de(l)?\s+)?/i, "").trim();
+function lugarExacto(nivel, texto) {
+  const q = normalizar(texto);
+  if (!q) return null;
+  return candidatos(nivel, texto).find((l) => l.clave === q) ?? null;
+}
+// "Ruta Nacional 9, Colectora Sur Km 87.5, B2800 Zárate, Provincia de Buenos Aires" → lugares en los campos + "Ruta Nacional 9, Colectora Sur Km 87.5"
+function interpretarTexto(texto) {
+  let partes = texto.split(/[,;\n]+/).map((p) => p.trim())
+    .map((p) => p.replace(/^[A-Z]?\d{4}(?:[A-Z]{3})?\s+(?=\D)/i, "").trim())   // código postal delante de la localidad (B2800, 2800, B2800ABC)
+    .filter((p) => p && !/^[A-Z]?\d{4}(?:[A-Z]{3})?$/i.test(p) && !/^(rep[uú]blica\s+)?argentina$/i.test(p));
+  const hallados = {};
+  const anteriores = { ...estado.filtros };
+  estado.filtros = { provincia: null, partido: null, localidad: null };
+  let fin = partes.length;
+  for (let i = partes.length - 1; i >= 0 && i > 0; i--) {   // de atrás hacia adelante; la primera parte siempre es la calle
+    const q = sinPrefijo(partes[i]), alias = ALIAS_PROV[normalizar(q)];
+    let l;
+    if (!hallados.provincia && (l = lugarExacto("provincia", alias ?? q))) { hallados.provincia = l; estado.filtros.provincia = l; fin = i; continue; }
+    if (!hallados.localidad && (l = lugarExacto("localidad", q))) { hallados.localidad = l; fin = i; continue; }
+    if (!hallados.partido && (l = lugarExacto("partido", q))) { hallados.partido = l; fin = i; continue; }
+    break;
+  }
+  if (partes.length === 1) {   // una sola parte: puede ser solo un lugar ("Zárate") o solo una calle
+    const q = sinPrefijo(partes[0]), l = lugarExacto("localidad", q) ?? lugarExacto("partido", q) ?? lugarExacto("provincia", ALIAS_PROV[normalizar(q)] ?? q);
+    if (l && !/\d/.test(q)) { hallados[l.nivel === "prov" ? "provincia" : l.nivel === "depto" ? "partido" : "localidad"] = l; fin = 0; }
+  }
+  if (Object.keys(hallados).length) {
+    Object.assign(estado.filtros, hallados);
+    for (const nivel of ["provincia", "partido", "localidad"]) document.getElementById(`b-${nivel}`).value = estado.filtros[nivel]?.nombre ?? "";
+  } else estado.filtros = anteriores;
+  return { calle: partes.slice(0, fin).join(", "), hallados };
+}
+
+// OpenStreetMap (Nominatim, gratis): encuentra rutas, colectoras y calles que el servicio oficial no tiene.
+// Se prueban variantes cada vez más simples (sin "Km 87,5" ni "Colectora") y solo vale un resultado dentro de la zona.
+async function buscarEnOSM(calle, zona) {
+  const prov = estado.filtros.provincia, area = zona ?? prov;
+  const limpia = calle.replace(/\b(km|kil[oó]metro)\s*\d+([.,]\d+)?/gi, " ").replace(/\b(colectora|lateral|calle\s+colectora)\s*(sur|norte|este|oeste)?\b/gi, " ")
+    .replace(/\bs\/n\b/gi, " ").replace(/\s{2,}/g, " ").replace(/\s*,\s*,/g, ",").replace(/^[\s,]+|[\s,]+$/g, "");
+  const variantes = [...new Set([calle, limpia, limpia.split(",")[0].trim()].filter((v) => v.length > 2))];
+  for (const [k, v] of variantes.entries()) {
+    if (k) await demora(1100);   // política de uso de Nominatim: hasta una consulta por segundo
+    const params = new URLSearchParams({ q: [v, zona?.nombre, prov?.nombre ?? zona?.provincia].filter(Boolean).join(", "),
+      format: "jsonv2", countrycodes: "ar", limit: "5", addressdetails: "1", "accept-language": "es" });
+    if (area?.caja) { const [x0, y0, x1, y1] = area.caja, m = 0.03; params.set("viewbox", `${x0 - m},${y1 + m},${x1 + m},${y0 - m}`); params.set("bounded", "1"); }
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?${params}`).then((x) => (x.ok ? x.json() : []));
+    // Con una localidad elegida, el resultado tiene que ser de esa localidad (o de su partido, si es la cabecera)
+    const esLocalidad = zona && (zona.nivel === "gl" || zona.nivel === "loc");
+    const deLaZona = (e) => !esLocalidad || ["city", "town", "village", "municipality", "county", "city_district"]
+      .some((k) => e.address?.[k] && normalizar(e.address[k]).replace(/^(partido|departamento) de /, "") === zona.clave);
+    const x = r.find((e) => e.lat && e.lon && deLaZona(e));
+    if (x) return { punto: [Number(x.lon), Number(x.lat)], nombre: calle.split(",")[0], aproximada: k > 0 || /\bkm\b/i.test(calle) };
+  }
+  return null;
+}
+const demora = (ms) => new Promise((ok) => setTimeout(ok, ms));
 
 async function buscarDireccionLocal(texto) {
   const m = texto.trim().match(/^(.*?)[\s,]+(\d{1,5})\s*$/);
@@ -234,38 +320,61 @@ async function buscarDireccionLocal(texto) {
 
 async function buscarDireccion(texto) {
   const aviso = document.getElementById("aviso-busqueda");
+  const avisar = (msj) => { aviso.textContent = msj; aviso.hidden = false; };
   aviso.hidden = true;
-  texto = separarLugarDeDireccion(texto);
+  // 0) Coordenadas o link de un mapa
+  const c = coordenadasDe(texto);
+  if (c?.fuera) return avisar(t("coords_fuera"));
+  if (c) {
+    const [lon, lat] = c.punto;
+    document.getElementById("b-direccion").value = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+    return seleccionarPunto(c.punto, { nombre: t("punto_coords")(lat.toFixed(5), lon.toFixed(5)), origen: "direccion", volar: true });
+  }
+  const { calle } = interpretarTexto(texto);
+  document.getElementById("b-direccion").value = calle;
   const zona = zonaDireccion();
-  let punto = null, nombre = null;
+  if (!calle) {   // solo lugares: se muestra la zona
+    const l = estado.filtros.localidad || estado.filtros.partido || estado.filtros.provincia;
+    return l ? seleccionarZona(l, { volar: true }) : avisar(t("dir_no_encontrada"));
+  }
+  let punto = null, nombre = null, aproximada = false;
   if (!SIN_TESELAS) {
     try {   // 1) servicio oficial de direcciones (versión completa)
-      const params = new URLSearchParams({ direccion: texto, max: "10" });
+      const params = new URLSearchParams({ direccion: calle, max: "10" });
       const p = estado.filtros.partido, prov = estado.filtros.provincia ?? (zona && { nombre: zona.provincia });
       // Partido o departamento: el elegido, o el que contiene a la localidad elegida
       const depto = p?.nivel === "depto" ? p : zona && estado.lugares.find((l) => l.nivel === "depto" && l.provincia === zona.provincia && l.cmus.includes(zona.cmus[0]));
       if (depto) params.set("departamento", depto.nombre);
       if (prov) params.set("provincia", prov.nombre);
-      const d = await fetch(`https://apis.datos.gob.ar/georef/api/direcciones?${params}`).then((r) => r.json());
-      // El servicio puede devolver la misma calle en otro pueblo: solo vale un resultado dentro de la zona elegida
+      const georef = (extra = {}) => fetch(`https://apis.datos.gob.ar/georef/api/direcciones?${new URLSearchParams({ ...Object.fromEntries(params), ...extra })}`).then((x) => x.json());
+      // El servicio puede devolver la misma calle en otro pueblo del partido: con una localidad elegida, solo vale esa localidad
       const enZona = (r) => { if (!zona) return true; const [x0, y0, x1, y1] = zona.caja, m = 0.02;
         return r.ubicacion.lon >= x0 - m && r.ubicacion.lon <= x1 + m && r.ubicacion.lat >= y0 - m && r.ubicacion.lat <= y1 + m; };
-      const r = (d.direcciones ?? []).find((x) => x.ubicacion?.lon != null && enZona(x));
+      const esLocalidad = zona && (zona.nivel === "gl" || zona.nivel === "loc");
+      const mismoPueblo = (x) => [x.localidad_censal?.nombre, x.localidad?.nombre].some((n) => n && normalizar(n) === zona.clave);
+      let d = esLocalidad ? await georef({ localidad_censal: zona.nombre }) : null;
+      if (!d?.direcciones?.length) d = await georef();
+      const r = (d.direcciones ?? []).find((x) => x.ubicacion?.lon != null && enZona(x) && (!esLocalidad || mismoPueblo(x)));
       if (r) { punto = [r.ubicacion.lon, r.ubicacion.lat]; nombre = nombreCalle(r.nomenclatura.split(",")[0]); }
-    } catch (err) { /* sin conexión al servicio: se usa el callejero propio */ }
-  }
-  if (!punto) {   // 2) callejero propio (cuadras del INDEC publicadas con la web)
-    const loc = await buscarDireccionLocal(texto).catch(() => null);
-    if (loc?.punto) {
-      punto = loc.punto; nombre = loc.nombre;
-      if (loc.aproximada) { aviso.textContent = t("dir_aprox"); aviso.hidden = false; }
-    } else {
-      estado.dirPendiente = loc?.error === "elegir_partido";   // al elegir el lugar, la búsqueda sigue sola
-      aviso.textContent = t(estado.dirPendiente ? "dir_elegir_partido" : "dir_no_encontrada");
-      aviso.hidden = false;
-      return;
+    } catch (err) { /* sin conexión al servicio */ }
+    if (!punto) {   // 2) OpenStreetMap: rutas, colectoras, kilómetros y calles que el servicio oficial no tiene
+      const o = await buscarEnOSM(calle, zona).catch(() => null);
+      if (o) ({ punto, nombre, aproximada } = o);
     }
   }
+  if (!punto) {   // 3) callejero propio (cuadras del INDEC publicadas con la web)
+    const loc = await buscarDireccionLocal(calle).catch(() => null);
+    if (loc?.punto) { punto = loc.punto; nombre = loc.nombre; if (loc.aproximada) avisar(t("dir_aprox")); }
+    else if (zona || estado.filtros.provincia) {   // 4) no se encontró la calle: se muestra el lugar, avisando
+      const l = zona || estado.filtros.provincia;
+      avisar(t("dir_solo_lugar")(calle, l.nombre));
+      return seleccionarZona(l, { volar: true });
+    } else {
+      estado.dirPendiente = loc?.error === "elegir_partido";   // al elegir el lugar, la búsqueda sigue sola
+      return avisar(t(estado.dirPendiente ? "dir_elegir_partido" : "dir_no_encontrada"));
+    }
+  }
+  if (aproximada) avisar(t("dir_aprox_osm"));
   estado.dirPendiente = false;
   seleccionarPunto(punto, { nombre: zona ? `${nombre}, ${zona.nombre}` : nombre, origen: "direccion", volar: true });
 }

@@ -425,3 +425,10 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   - El botón "Simular lluvia en 3D" solo aparecía con un punto elegido: ahora siempre está (con una localidad usa su centro; con
     el país o una provincia pide elegir un punto). Relieve ×5 también sobre el mapa del simulador. Los links esperan a que las
     capas del mapa existan (antes dependían del evento "load" y en el celular a veces no hacían nada).
+- 9-nov, buscador "inteligente" (pedido: pegar direcciones de Google Maps):
+  - Entiende texto pegado en cualquier campo: direcciones completas con código postal y "Provincia de …"
+    (ej.: "Ruta Nacional 9, Colectora Sur Km 87.5, B2800 Zárate, Provincia de Buenos Aires"), coordenadas decimales con o sin
+    signo, en grados/minutos/segundos y links de Google Maps (@lat,lon o !3d…!4d…). Coordenadas fuera del país: aviso.
+  - Orden de búsqueda: Georef (primero filtrando por la localidad) → OpenStreetMap/Nominatim (rutas, colectoras; variantes sin
+    "Km" ni "Colectora"; máx. 1 consulta por segundo; el resultado tiene que ser de la misma localidad) → callejero propio del
+    INDEC → si no aparece la calle, se muestra la localidad con un aviso. Probado con 13 casos.
