@@ -1,34 +1,34 @@
 {
   "lluvia_16_dias": {
     "estado": "verificado",
-    "dias_verificados": 36,
+    "dias_verificados": 39,
     "por_plazo": {
       "0-3": {
-        "n": 244174,
+        "n": 248738,
         "correlacion": 0.706,
-        "sesgo_mm": 0.32,
-        "deteccion_20mm": 0.558
+        "sesgo_mm": 0.34,
+        "deteccion_20mm": 0.557
       },
       "4-7": {
-        "n": 232764,
+        "n": 241892,
         "correlacion": 0.45,
-        "sesgo_mm": 0.5,
-        "deteccion_20mm": 0.274
+        "sesgo_mm": 0.46,
+        "deteccion_20mm": 0.273
       },
       "8-15": {
-        "n": 399350,
-        "correlacion": 0.106,
-        "sesgo_mm": 1.03,
-        "deteccion_20mm": 0.107
+        "n": 431298,
+        "correlacion": 0.105,
+        "sesgo_mm": 0.98,
+        "deteccion_20mm": 0.106
       }
     },
-    "peso_pronostico": 0.106
+    "peso_pronostico": 0.105
   },
   "rios": {
     "estado": "verificado",
-    "pares": 3272,
-    "error_medio_m": 1.09,
-    "sesgo_m": -0.5
+    "pares": 4281,
+    "error_medio_m": 1.0,
+    "sesgo_m": -0.43
   },
-  "actualizado": "2026-11-04"
+  "actualizado": "2026-11-09"
 }
