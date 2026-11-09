@@ -222,6 +222,12 @@ function puntoSel() {
 }
 
 // ---------- Piezas comunes ----------
+// El simulador necesita un punto: con una zona de gobierno local se usa su centro; con el país o una provincia se pide elegir un punto
+function botonSimular(s) {
+  const lista = !s || (s.tipo === "zona" && s.lugar.nivel === "prov");
+  const sub = lista ? t("sim_boton_elegir") : s.tipo === "zona" ? t("sim_boton_centro") : t("sim_boton_sub");
+  return `<button type="button" class="btn-sim${lista ? " btn-sim-pide" : ""}" data-accion="simular"${lista ? ' aria-disabled="true"' : ""}>${icono("lluvia")}<span><b>${t("sim_boton")}</b><small>${sub}</small></span></button>`;
+}
 function cabeceraTablero() {
   const s = estado.sel;
   const titulo = !s ? "Argentina" : s.tipo === "zona" ? s.lugar.nombre : s.nombre ?? t("punto_en_mapa");
@@ -235,7 +241,7 @@ function cabeceraTablero() {
   const verMuni = s?.tipo === "punto" && s.cmu ? `<button class="btn-texto" data-accion="municipio">${t("ver_municipio")(estado.porCmu.get(s.cmu)?.nam ?? "")}</button>` : "";
   return `<header class="tb-cabeza"><div class="tb-titulos"><span class="tb-tipo">${icono(s?.tipo === "punto" ? "objetivo" : "pin")}${tipo}</span>
       <h2>${escapar(titulo)}</h2><p>${escapar(sub)}</p></div>${acciones}</header>
-    ${radios}${s?.tipo === "punto" ? `<button type="button" class="btn-sim" data-accion="simular">${icono("lluvia")}<span><b>${t("sim_boton")}</b><small>${t("sim_boton_sub")}</small></span></button>` : ""}<p class="tb-periodo">${icono(estado.modo === "actual" ? "reloj" : "calendario")}<span>${escapar(textoPeriodo())}</span>${verMuni}</p>`;
+    ${radios}${botonSimular(s)}<p class="tb-periodo">${icono(estado.modo === "actual" ? "reloj" : "calendario")}<span>${escapar(textoPeriodo())}</span>${verMuni}</p>`;
 }
 
 function bloqueSituacion(nivel, parrafos, acciones) {
@@ -575,7 +581,16 @@ async function pintarTablero() {
   }
   cont.querySelectorAll("[data-km]").forEach((b) => { b.onclick = () => cambiarRadio(Number(b.dataset.km)); });
   cont.querySelector('[data-accion="quitar"]')?.addEventListener("click", borrarFiltros);
-  cont.querySelector('[data-accion="simular"]')?.addEventListener("click", abrirSimulador);
+  cont.querySelector('[data-accion="simular"]')?.addEventListener("click", () => {
+    const sel = estado.sel;
+    if (sel?.tipo === "punto") return abrirSimulador();
+    if (sel?.tipo === "zona" && sel.lugar.nivel !== "prov") {   // centro de la zona, con el radio elegido
+      const [x0, y0, x1, y1] = sel.lugar.caja;
+      seleccionarPunto([(x0 + x1) / 2, (y0 + y1) / 2], { nombre: sel.lugar.nombre, origen: "zona", volar: true });
+      return abrirSimulador();
+    }
+    cont.querySelector(".btn-sim small").textContent = t("sim_boton_elegir_ya");
+  });
   cont.querySelector('[data-accion="municipio"]')?.addEventListener("click", () => {
     const l = estado.lugares.find((x) => x.nivel === "gl" && x.cmus[0] === estado.sel.cmu);
     if (l) elegirLugar("localidad", l);

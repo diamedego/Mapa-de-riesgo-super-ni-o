@@ -73,7 +73,7 @@ function contiene(geom, [x, y]) {
 }
 function cajaDe(geom) {
   let x0 = 180, y0 = 90, x1 = -180, y1 = -90;
-  const pols = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
+  const pols = geom.type === "Polygon" ? [geom.coordinates] : geom.type === "MultiPolygon" ? geom.coordinates : [];   // otros tipos: caja vacía
   for (const p of pols) for (const [x, y] of p[0]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
   return [x0, y0, x1, y1];
 }

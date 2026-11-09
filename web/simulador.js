@@ -363,6 +363,13 @@ function agregarBotonesVista() {
   el.innerHTML = ["mapa", "maqueta"].map((v) => `<button type="button" data-v="${v}" aria-pressed="${SIM.vista === v}">${t(`sim_vista_${v}`)}</button>`).join("");
   el.querySelectorAll("button").forEach((b) => { b.onclick = () => elegirVistaSimulador(b.dataset.v); });
   marco.appendChild(el);
+  // Relieve ×5 también sobre el mapa: en el celular el panel con los filtros queda debajo y no se ve
+  marco.querySelector(".sim-x5")?.remove();
+  const x5 = document.createElement("button");
+  x5.type = "button"; x5.className = "sim-x5"; x5.textContent = t("sim_f_x5"); x5.title = t("sim_f_x5_ayuda");
+  x5.setAttribute("aria-pressed", String(SIM.capas.x5));
+  x5.onclick = () => document.querySelector('#sim-filtros [data-k="x5"]')?.click();
+  marco.appendChild(x5);
 }
 
 async function elegirVistaSimulador(v) {
@@ -869,6 +876,7 @@ function pintarFiltrosSimulador() {
   cont.innerHTML = `<button type="button" class="chip" aria-pressed="${todas}" data-k="todos"${soloMapa("todos")}>${t("sim_f_todos")}</button>` +
     CAPAS_SIM.map((k) => `<button type="button" class="chip" aria-pressed="${C[k]}" data-k="${k}"${soloMapa(k)}>${t(`sim_f_${k}`)}</button>`).join("") +
     `<button type="button" class="chip chip-x5" aria-pressed="${C.x5}" data-k="x5" title="${t("sim_f_x5_ayuda")}">${t("sim_f_x5")}</button>`;
+  document.querySelector(".sim-x5")?.setAttribute("aria-pressed", String(C.x5));
   cont.querySelectorAll("button").forEach((b) => {
     b.onclick = () => {
       const k = b.dataset.k;

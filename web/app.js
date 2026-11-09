@@ -438,7 +438,14 @@ async function iniciar() {
   if (q.get("modo") === "futuro") estado.modo = "futuro";
   if (q.get("radio")) estado.km = Number(q.get("radio")) || 2;
   document.getElementById("b-radio").value = String(estado.km);
-  const alCargar = (fn) => (mapa.loaded() ? fn() : mapa.once("load", fn));
+  // Espera a que las capas del mapa existan (el evento "load" puede pasar antes de enganchar y en el celular tarda más)
+  const alCargar = (fn) => {
+    let t0 = performance.now();
+    const probar = () => {
+      if (mapa.getLayer("circulo-borde") || performance.now() - t0 > 20000) fn(); else setTimeout(probar, 150);
+    };
+    probar();
+  };
   alCargar(() => {
     actualizarTodo();
     const buscarL = (nombre, niveles) => estado.lugares.find((l) => niveles.includes(l.nivel) && l.clave === normalizar(nombre));

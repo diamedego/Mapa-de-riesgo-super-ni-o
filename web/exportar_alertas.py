@@ -18,6 +18,18 @@ SALIDA = Path(__file__).resolve().parent / "datos" / "alertas.geojson"
 NIVEL = {"Moderate": "amarilla", "Severe": "naranja", "Extreme": "roja", "Minor": "amarilla"}
 
 
+def solo_poligonos(geom):
+    """make_valid puede devolver colecciones con líneas o puntos sueltos: el mapa solo necesita los polígonos."""
+    if geom is None or geom.is_empty or geom.geom_type in ("Polygon", "MultiPolygon"):
+        return geom
+    partes = [p for g in getattr(geom, "geoms", []) for p in (solo_poligonos(g),) if p is not None and not p.is_empty]
+    if not partes:
+        return None
+    from shapely.geometry import MultiPolygon
+    pols = [q for p in partes for q in (p.geoms if p.geom_type == "MultiPolygon" else [p])]
+    return pols[0] if len(pols) == 1 else MultiPolygon(pols)
+
+
 def tipo(evento: str, titulo: str) -> str:
     x = f"{evento} {titulo}".lower()
     for clave, nombre in (("zonda", "zonda"), ("torment", "tormentas"), ("lluvia", "lluvias"), ("nev", "nevadas"),
@@ -43,6 +55,8 @@ def main() -> None:
     g = g[g.geometry.notna() & ~g.geometry.is_empty]
     # make_valid + redondeo punto a punto: algunos avisos traen polígonos con huecos fuera del borde y GEOS fallaba
     g["geometry"] = g.geometry.make_valid().simplify(0.01).set_precision(1e-3, mode="pointwise")
+    g["geometry"] = g.geometry.apply(solo_poligonos)
+    g = g[g.geometry.notna() & ~g.geometry.is_empty]
     g["nivel"] = g["severidad"].map(NIVEL).fillna("amarilla")
     g["tipo"] = [tipo(e or "", t or "") for e, t in zip(g["evento"], g["titulo"])]
     g["aviso"] = g["urgencia"].eq("Immediate")     # aviso a corto plazo (horas)

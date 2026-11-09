@@ -447,6 +447,7 @@ a.btn-banda { text-decoration: none; }
 /* ---------- Simulador de lluvia ---------- */
 .btn-sim { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 10px; padding: 10px 12px; text-align: left; border-radius: var(--radio-2);
   border: 1px solid var(--cian); background: var(--cian-suave); color: var(--tinta-1); }
+.btn-sim-pide { opacity: 0.7; border-style: dashed; }
 .btn-sim .ico { width: 24px; height: 24px; color: var(--cian); }
 .btn-sim span { display: flex; flex-direction: column; line-height: 1.25; }
 .btn-sim b { font-size: 0.95rem; } .btn-sim small { font-size: 0.74rem; color: var(--tinta-2); }
@@ -504,6 +505,9 @@ body.sim-abierto { overflow: hidden; }
 .sim-vistas { position: absolute; z-index: 4; left: 10px; top: 10px; display: flex; padding: 3px; border-radius: var(--radio-2); background: var(--superficie); box-shadow: var(--sombra-1); }
 .sim-vistas button { min-height: 32px; padding: 0 12px; border: 0; border-radius: calc(var(--radio-2) - 2px); background: transparent; color: var(--tinta-2); font-weight: 600; font-size: 0.84rem; }
 .sim-vistas button[aria-pressed="true"] { background: var(--cian); color: var(--cian-tinta); }
+.sim-x5 { position: absolute; z-index: 4; left: 10px; top: 52px; min-height: 32px; padding: 0 12px; border-radius: var(--radio-2); border: 1px dashed var(--cian);
+  background: var(--superficie); color: var(--tinta-2); font-weight: 600; font-size: 0.84rem; box-shadow: var(--sombra-1); }
+.sim-x5[aria-pressed="true"] { background: var(--cian); color: var(--cian-tinta); border-style: solid; }
 .sim-maqueta { position: absolute; inset: 0; z-index: 2; background: radial-gradient(ellipse at 50% 40%, var(--maq-1) 0%, var(--maq-2) 70%, var(--maq-3) 100%); cursor: grab; }
 .sim-maqueta:active { cursor: grabbing; }
 .sim-maqueta canvas { display: block; width: 100%; height: 100%; }
@@ -517,6 +521,7 @@ body.sim-abierto { overflow: hidden; }
 .ley-relieve { position: absolute; z-index: 2; right: 52px; top: 10px; padding: 6px 10px; border-radius: var(--radio-2); background: var(--superficie);
   box-shadow: var(--sombra-1); font-size: 0.72rem; color: var(--tinta-2); display: flex; flex-direction: column; gap: 4px; min-width: 170px; }
 .ley-relieve .sim-degradado { height: 6px; }
+@media (max-width: 720px) { .ley-relieve { right: 10px; top: 58px; min-width: 0; max-width: 60%; } }
 @media (max-width: 860px) {
   .sim { padding: 0; }
   .sim-caja { width: 100%; height: 100%; border-radius: 0; }

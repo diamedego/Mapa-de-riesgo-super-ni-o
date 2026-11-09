@@ -418,3 +418,10 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   - Límite: el relieve nacional gratis es de ~30 m; de cerca (una manzana) no se ve el detalle del reel, que usa LiDAR de 1 m.
 - Confirmado el 9-nov: con el workflow corregido volvieron las corridas automáticas (grilla del tiempo 23:48 UTC del 8-nov,
   alertas SMN 00:56 UTC del 9-nov, esta última ya con `alertas.geojson` actualizado). GitHub atrasó la primera ~3,5 h.
+- 9-nov, fallas reportadas desde el celular:
+  - **Los links con `?punto=` y toda selección de un punto se rompían**: el arreglo de alertas (`make_valid`) dejó 4 avisos como
+    GeometryCollection y `cajaDe` fallaba ("pols is not iterable"). Ahora `exportar_alertas.py` conserva solo polígonos y `cajaDe`
+    ignora tipos raros. Lección: probar el sitio con los datos nuevos después de tocar un exportador.
+  - El botón "Simular lluvia en 3D" solo aparecía con un punto elegido: ahora siempre está (con una localidad usa su centro; con
+    el país o una provincia pide elegir un punto). Relieve ×5 también sobre el mapa del simulador. Los links esperan a que las
+    capas del mapa existan (antes dependían del evento "load" y en el celular a veces no hacían nada).
