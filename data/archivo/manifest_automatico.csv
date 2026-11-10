@@ -245,3 +245,4 @@ fecha_descarga,fuente,dataset,url,archivo,formato,registros,licencia,estado,nota
 2026-11-09T21:34:30,Open-Meteo (GloFAS v4),pronóstico de caudal 210 días en estaciones INA con alerta,https://flood-api.open-meteo.com/v1/flood,data/archivo/glofas/2026-11-09,Parquet (1 archivo por estación),23377,"CC BY 4.0, uso no comercial gratuito",ok,97/97 estaciones; celda = máximo caudal medio en 3x3
 2026-11-09T22:22:07,SMN,alertas CAP vigentes,https://ssl.smn.gob.ar/CAP/AR.php,data/archivo/smn_cap/alertas_2026-11-09.parquet,GeoParquet,92,CC BY 4.0 (SMN),ok,36 avisos en el feed
 2026-11-10T07:18:24,SMN,alertas CAP vigentes,https://ssl.smn.gob.ar/CAP/AR.php,data/archivo/smn_cap/alertas_2026-11-10.parquet,GeoParquet,36,CC BY 4.0 (SMN),ok,36 avisos en el feed
+2026-11-10T17:03:35,SMN,alertas CAP vigentes,https://ssl.smn.gob.ar/CAP/AR.php,data/archivo/smn_cap/alertas_2026-11-10.parquet,GeoParquet,53,CC BY 4.0 (SMN),ok,27 avisos en el feed
