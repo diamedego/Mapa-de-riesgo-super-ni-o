@@ -67,6 +67,10 @@ async function relieveDe(caja) {
   while (z > 9 && (Math.floor(xDeLon(x1, z)) - Math.floor(xDeLon(x0, z)) > 4 || Math.floor(yDeLat(y0, z)) - Math.floor(yDeLat(y1, z)) > 4)) z--;
   const tx0 = Math.floor(xDeLon(x0, z)), tx1 = Math.floor(xDeLon(x1, z)), ty0 = Math.floor(yDeLat(y1, z)), ty1 = Math.floor(yDeLat(y0, z));
   const W = (tx1 - tx0 + 1) * 256, H = (ty1 - ty0 + 1) * 256;
+  const marco = { W, H, z, tx0, ty0, oeste: lonDeX(tx0, z), este: lonDeX(tx1 + 1, z), norte: latDeY(ty0, z), sur: latDeY(ty1 + 1, z) };
+  // En las 20 ciudades prioritarias: terreno sin edificios ni árboles (FABDEM), si cubre toda el área
+  const fab = await terrenoFabdem(marco).catch((e) => { console.warn(e); return null; });
+  if (fab) return { ...marco, h: fab, fuente: "fabdem" };
   const cv = new OffscreenCanvas(W, H), ctx = cv.getContext("2d", { willReadFrequently: true });
   const teselas = [];
   for (let tx = tx0; tx <= tx1; tx++) for (let ty = ty0; ty <= ty1; ty++) teselas.push([tx, ty]);
@@ -77,7 +81,44 @@ async function relieveDe(caja) {
   }));
   const px = ctx.getImageData(0, 0, W, H).data, h = new Float32Array(W * H);
   for (let i = 0; i < W * H; i++) h[i] = px[4 * i] * 256 + px[4 * i + 1] + px[4 * i + 2] / 256 - 32768;
-  return { h, W, H, z, tx0, ty0, oeste: lonDeX(tx0, z), este: lonDeX(tx1 + 1, z), norte: latDeY(ty0, z), sur: latDeY(ty1 + 1, z) };
+  return { ...marco, h, fuente: "aws" };
+}
+
+// Terreno FABDEM (bloques de 0,25° preparados con preparar_terreno_fabdem.py): alturas en la grilla de teselas del simulador,
+// interpoladas (bilineal) desde los puntos cada 1 segundo de arco. null si algún bloque necesario no existe.
+let indiceFabdem = null;
+async function terrenoFabdem(m) {
+  indiceFabdem ??= await fetch("datos/terreno/indice.json").then((r) => (r.ok ? r.json() : { bloques: [] })).catch(() => ({ bloques: [] }));
+  const B = indiceFabdem.bloque, PXB = indiceFabdem.px, hay = new Map((indiceFabdem.bloques ?? []).map((b) => [`${Math.round(b.lon0 / B)}_${Math.round(b.lat0 / B)}`, b]));
+  if (!hay.size) return null;
+  const necesarios = [];
+  for (let bx = Math.floor(m.oeste / B); bx <= Math.floor(m.este / B); bx++)
+    for (let by = Math.floor(m.sur / B); by <= Math.floor(m.norte / B); by++) {
+      const b = hay.get(`${bx}_${by}`);
+      if (!b) return null;
+      necesarios.push([bx, by, b]);
+    }
+  const alturas = new Map();
+  await Promise.all(necesarios.map(async ([bx, by, b]) => {
+    const img = await createImageBitmap(await fetch(`datos/terreno/${b.archivo}`).then((r) => r.blob()));
+    const cv = new OffscreenCanvas(PXB, PXB), c = cv.getContext("2d", { willReadFrequently: true });
+    c.drawImage(img, 0, 0);
+    const px = c.getImageData(0, 0, PXB, PXB).data, a = new Float32Array(PXB * PXB);
+    for (let i = 0; i < a.length; i++) a[i] = px[4 * i] * 256 + px[4 * i + 1] + px[4 * i + 2] / 256 - 32768;
+    alturas.set(`${bx}_${by}`, a);
+  }));
+  const muestra = (lon, lat) => {   // valor en un punto (bilineal dentro del bloque)
+    const bx = Math.floor(lon / B), by = Math.floor(lat / B), a = alturas.get(`${bx}_${by}`);
+    if (!a) return 0;
+    const fx = (lon - bx * B) * 3600 - 0.5, fy = ((by + 1) * B - lat) * 3600 - 0.5;
+    const x0 = limitar(Math.floor(fx), 0, PXB - 2), y0 = limitar(Math.floor(fy), 0, PXB - 2), ax = limitar(fx - x0, 0, 1), ay = limitar(fy - y0, 0, 1);
+    const i = y0 * PXB + x0;
+    return (a[i] * (1 - ax) + a[i + 1] * ax) * (1 - ay) + (a[i + PXB] * (1 - ax) + a[i + PXB + 1] * ax) * ay;
+  };
+  const h = new Float32Array(m.W * m.H), lon = new Float64Array(m.W);
+  for (let x = 0; x < m.W; x++) lon[x] = lonDeX(m.tx0 + (x + 0.5) / 256, m.z);
+  for (let y = 0; y < m.H; y++) { const lat = latDeY(m.ty0 + (y + 0.5) / 256, m.z); for (let x = 0; x < m.W; x++) h[y * m.W + x] = muestra(lon[x], lat); }
+  return h;
 }
 
 // Mínimo móvil (ventana de 2r + 1) por filas y columnas
@@ -1076,7 +1117,7 @@ function actualizarNumeros() {
   const rio = document.getElementById("sim-rio");
   if (rio) rio.hidden = !Mo.g.tipo2.some((v) => v === 3);
   const sup = document.getElementById("sim-supuestos");
-  if (sup) sup.textContent = t("sim_supuestos")(Mo.suelo.nombre, Mo.suelo.supuesto, SIM.desague, fmt(Mo.g.dx), Mo.cuenta ? fmt(100 * Mo.cuenta.infiltrada / Math.max(1, Mo.cuenta.lluvia)) : "…");
+  if (sup) sup.textContent = `${t(d.D.fuente === "fabdem" ? "sim_terreno_fabdem" : "sim_terreno_aws")} ` + t("sim_supuestos")(Mo.suelo.nombre, Mo.suelo.supuesto, SIM.desague, fmt(Mo.g.dx), Mo.cuenta ? fmt(100 * Mo.cuenta.infiltrada / Math.max(1, Mo.cuenta.lluvia)) : "…");
   pintarCorte();
 }
 function actualizarSimulador() { mostrarHora(); }

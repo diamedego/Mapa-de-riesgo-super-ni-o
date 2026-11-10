@@ -1,0 +1,354 @@
+{
+ "fuente": "FABDEM V1-2 (Hawker et al. 2022, Universidad de Bristol), CC BY-NC-SA 4.0",
+ "bloque": 0.25,
+ "px": 900,
+ "ciudades": [
+  {
+   "cmu": "060427",
+   "nombre": "La Matanza"
+  },
+  {
+   "cmu": "820210",
+   "nombre": "Rosario"
+  },
+  {
+   "cmu": "820147",
+   "nombre": "Santa Fe"
+  },
+  {
+   "cmu": "060490",
+   "nombre": "Lomas de Zamora"
+  },
+  {
+   "cmu": "220413",
+   "nombre": "Resistencia"
+  },
+  {
+   "cmu": "060434",
+   "nombre": "Lanús"
+  },
+  {
+   "cmu": "060658",
+   "nombre": "Quilmes"
+  },
+  {
+   "cmu": "060539",
+   "nombre": "Merlo"
+  },
+  {
+   "cmu": "060035",
+   "nombre": "Avellaneda"
+  },
+  {
+   "cmu": "180021",
+   "nombre": "Corrientes"
+  },
+  {
+   "cmu": "140077",
+   "nombre": "Córdoba"
+  },
+  {
+   "cmu": "060805",
+   "nombre": "Tigre"
+  },
+  {
+   "cmu": "060028",
+   "nombre": "Almirante Brown"
+  },
+  {
+   "cmu": "060560",
+   "nombre": "Moreno"
+  },
+  {
+   "cmu": "860056",
+   "nombre": "Santiago del Estero"
+  },
+  {
+   "cmu": "060412",
+   "nombre": "José C. Paz"
+  },
+  {
+   "cmu": "340028",
+   "nombre": "Formosa"
+  },
+  {
+   "cmu": "060441",
+   "nombre": "La Plata"
+  },
+  {
+   "cmu": "060357",
+   "nombre": "General Pueyrredón"
+  },
+  {
+   "cmu": "060274",
+   "nombre": "Florencio Varela"
+  }
+ ],
+ "bloques": [
+  {
+   "lon0": -59.25,
+   "lat0": -35.0,
+   "archivo": "fabdem_-237_-140.png"
+  },
+  {
+   "lon0": -59.25,
+   "lat0": -34.75,
+   "archivo": "fabdem_-237_-139.png"
+  },
+  {
+   "lon0": -59.25,
+   "lat0": -34.5,
+   "archivo": "fabdem_-237_-138.png"
+  },
+  {
+   "lon0": -59.0,
+   "lat0": -35.25,
+   "archivo": "fabdem_-236_-141.png"
+  },
+  {
+   "lon0": -59.0,
+   "lat0": -35.0,
+   "archivo": "fabdem_-236_-140.png"
+  },
+  {
+   "lon0": -59.0,
+   "lat0": -34.75,
+   "archivo": "fabdem_-236_-139.png"
+  },
+  {
+   "lon0": -59.0,
+   "lat0": -34.5,
+   "archivo": "fabdem_-236_-138.png"
+  },
+  {
+   "lon0": -59.0,
+   "lat0": -34.25,
+   "archivo": "fabdem_-236_-137.png"
+  },
+  {
+   "lon0": -58.75,
+   "lat0": -35.25,
+   "archivo": "fabdem_-235_-141.png"
+  },
+  {
+   "lon0": -58.75,
+   "lat0": -35.0,
+   "archivo": "fabdem_-235_-140.png"
+  },
+  {
+   "lon0": -58.75,
+   "lat0": -34.75,
+   "archivo": "fabdem_-235_-139.png"
+  },
+  {
+   "lon0": -58.75,
+   "lat0": -34.5,
+   "archivo": "fabdem_-235_-138.png"
+  },
+  {
+   "lon0": -58.75,
+   "lat0": -34.25,
+   "archivo": "fabdem_-235_-137.png"
+  },
+  {
+   "lon0": -58.5,
+   "lat0": -35.5,
+   "archivo": "fabdem_-234_-142.png"
+  },
+  {
+   "lon0": -58.5,
+   "lat0": -35.25,
+   "archivo": "fabdem_-234_-141.png"
+  },
+  {
+   "lon0": -58.5,
+   "lat0": -35.0,
+   "archivo": "fabdem_-234_-140.png"
+  },
+  {
+   "lon0": -58.5,
+   "lat0": -34.75,
+   "archivo": "fabdem_-234_-139.png"
+  },
+  {
+   "lon0": -58.5,
+   "lat0": -34.5,
+   "archivo": "fabdem_-234_-138.png"
+  },
+  {
+   "lon0": -58.5,
+   "lat0": -34.25,
+   "archivo": "fabdem_-234_-137.png"
+  },
+  {
+   "lon0": -58.25,
+   "lat0": -38.5,
+   "archivo": "fabdem_-233_-154.png"
+  },
+  {
+   "lon0": -58.25,
+   "lat0": -38.25,
+   "archivo": "fabdem_-233_-153.png"
+  },
+  {
+   "lon0": -58.25,
+   "lat0": -38.0,
+   "archivo": "fabdem_-233_-152.png"
+  },
+  {
+   "lon0": -58.25,
+   "lat0": -37.75,
+   "archivo": "fabdem_-233_-151.png"
+  },
+  {
+   "lon0": -58.25,
+   "lat0": -35.5,
+   "archivo": "fabdem_-233_-142.png"
+  },
+  {
+   "lon0": -58.25,
+   "lat0": -35.25,
+   "archivo": "fabdem_-233_-141.png"
+  },
+  {
+   "lon0": -58.25,
+   "lat0": -35.0,
+   "archivo": "fabdem_-233_-140.png"
+  },
+  {
+   "lon0": -58.25,
+   "lat0": -34.75,
+   "archivo": "fabdem_-233_-139.png"
+  },
+  {
+   "lon0": -58.25,
+   "lat0": -34.5,
+   "archivo": "fabdem_-233_-138.png"
+  },
+  {
+   "lon0": -58.25,
+   "lat0": -34.25,
+   "archivo": "fabdem_-233_-137.png"
+  },
+  {
+   "lon0": -58.0,
+   "lat0": -38.5,
+   "archivo": "fabdem_-232_-154.png"
+  },
+  {
+   "lon0": -58.0,
+   "lat0": -38.25,
+   "archivo": "fabdem_-232_-153.png"
+  },
+  {
+   "lon0": -58.0,
+   "lat0": -38.0,
+   "archivo": "fabdem_-232_-152.png"
+  },
+  {
+   "lon0": -58.0,
+   "lat0": -37.75,
+   "archivo": "fabdem_-232_-151.png"
+  },
+  {
+   "lon0": -58.0,
+   "lat0": -35.5,
+   "archivo": "fabdem_-232_-142.png"
+  },
+  {
+   "lon0": -58.0,
+   "lat0": -35.25,
+   "archivo": "fabdem_-232_-141.png"
+  },
+  {
+   "lon0": -58.0,
+   "lat0": -35.0,
+   "archivo": "fabdem_-232_-140.png"
+  },
+  {
+   "lon0": -58.0,
+   "lat0": -34.75,
+   "archivo": "fabdem_-232_-139.png"
+  },
+  {
+   "lon0": -58.0,
+   "lat0": -34.5,
+   "archivo": "fabdem_-232_-138.png"
+  },
+  {
+   "lon0": -58.0,
+   "lat0": -34.25,
+   "archivo": "fabdem_-232_-137.png"
+  },
+  {
+   "lon0": -57.75,
+   "lat0": -38.5,
+   "archivo": "fabdem_-231_-154.png"
+  },
+  {
+   "lon0": -57.75,
+   "lat0": -38.25,
+   "archivo": "fabdem_-231_-153.png"
+  },
+  {
+   "lon0": -57.75,
+   "lat0": -38.0,
+   "archivo": "fabdem_-231_-152.png"
+  },
+  {
+   "lon0": -57.75,
+   "lat0": -37.75,
+   "archivo": "fabdem_-231_-151.png"
+  },
+  {
+   "lon0": -57.75,
+   "lat0": -35.5,
+   "archivo": "fabdem_-231_-142.png"
+  },
+  {
+   "lon0": -57.75,
+   "lat0": -35.25,
+   "archivo": "fabdem_-231_-141.png"
+  },
+  {
+   "lon0": -57.75,
+   "lat0": -35.0,
+   "archivo": "fabdem_-231_-140.png"
+  },
+  {
+   "lon0": -57.75,
+   "lat0": -34.75,
+   "archivo": "fabdem_-231_-139.png"
+  },
+  {
+   "lon0": -57.75,
+   "lat0": -34.5,
+   "archivo": "fabdem_-231_-138.png"
+  },
+  {
+   "lon0": -57.75,
+   "lat0": -34.25,
+   "archivo": "fabdem_-231_-137.png"
+  },
+  {
+   "lon0": -57.5,
+   "lat0": -38.5,
+   "archivo": "fabdem_-230_-154.png"
+  },
+  {
+   "lon0": -57.5,
+   "lat0": -38.25,
+   "archivo": "fabdem_-230_-153.png"
+  },
+  {
+   "lon0": -57.5,
+   "lat0": -38.0,
+   "archivo": "fabdem_-230_-152.png"
+  },
+  {
+   "lon0": -57.5,
+   "lat0": -37.75,
+   "archivo": "fabdem_-230_-151.png"
+  }
+ ]
+}
