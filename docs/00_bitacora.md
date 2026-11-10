@@ -449,3 +449,20 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   - "Ver el corte en 3D": en Mapa, la cámara se pone de frente a la línea del corte; en la Maqueta, además, se corta el
     terreno por esa línea y se ve la tajada con suelo y agua.
   - Imagen satelital: mosaico Sentinel-2 sin nubes 2025 de EOX (el de 2026 todavía no existe), hasta z 15.
+
+## 2026-11-10 — Simulador: modelo hidráulico 2D (etapa 1)
+- Respaldo previo: tag `respaldo-2026-11-10`. Plan completo del pedido en `docs/02_plan_cambios_nov.md`.
+- `web/hidraulica.js` (Web Worker): aproximación inercial local de aguas poco profundas (Bates 2010; familia LISFLOOD-FP /
+  HEC-RAS 2D onda difusa), paso adaptativo, Manning por cobertura, infiltración Green-Ampt con humedad que evoluciona,
+  desagües supuestos (10 mm/h en superficies impermeables), evaporación (ET0), lagunas como almacenamiento con nivel propio,
+  ríos con nivel fijo + crecida ajustable, salida libre en los bordes; horas secas sin mover el agua (períodos largos viables).
+- `web/modelo_inundacion.js`: lluvia horaria de Open-Meteo (14 días de análisis = dato real; 16 días de pronóstico) y, más
+  allá, escenario estacional SEAS5 repartido en días de lluvia típicos (21 años de archivo Open-Meteo); grilla de 20 a 60 m;
+  arroyos y canales grabados en el terreno; impermeable y rugosidad desde el mapa base; personas por celda (radios censales).
+- Validación numérica (`herramientas/pruebas/`): cuenco → balance de agua exacto y nivel final 49,6 cm vs 49,8 cm teórico;
+  ladera con lluvia constante → profundidad 93-95 % de la solución de Manning. Casos reales con balance 0,00 %:
+  La Plata 21 días en 12 s; Corrientes 3 meses (2 496 h) en 101 s; lagunas de Corrientes suben 20-32 cm con 150 mm.
+- Interfaz: línea de tiempo con dato real / pronóstico / escenario, hitos (hoy, fin del pronóstico, más agua), ▶ por horas,
+  maqueta con líneas que siguen la pendiente del agua del modelo, nivel del río, tormentas de prueba, supuestos visibles.
+- Pendiente de esta etapa: terreno FABDEM en las 20 ciudades (descargando), mapa nacional de suelos (SoilGrids),
+  validación contra inundaciones reales (satélite 2015-16 / 2023-24, La Plata 2013), cámara que no se reinicia al cambiar de vista.

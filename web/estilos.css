@@ -476,6 +476,22 @@ body.sim-abierto { overflow: hidden; }
 .sim-control { display: flex; align-items: center; gap: 10px; }
 .sim-control input[type="range"] { flex: 1; accent-color: var(--cian); height: 28px; }
 .sim-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.sim-progreso { margin: 0; padding: 8px 10px; border-radius: var(--radio-1); background: var(--cian-suave); color: var(--tinta-1); font-size: 0.84rem; }
+.sim-ahora { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.sim-ahora-fecha { font-family: var(--f-num); font-size: 1.35rem; font-weight: 700; color: var(--tinta-1); }
+.sim-ahora-tipo { padding: 2px 8px; border-radius: 10px; color: #fff; font-size: 0.72rem; font-weight: 600; }
+.sim-ahora-lluvia { width: 100%; font-size: 0.8rem; color: var(--tinta-2); }
+.sim-linea svg { display: block; max-width: 100%; cursor: pointer; touch-action: none; }
+.sim-pendiente { fill: var(--superficie-2); opacity: 0.7; }
+.sim-linea-area { fill: none; stroke: #1f74c9; stroke-width: 2; }
+.sim-hito { stroke: var(--tinta-3); stroke-dasharray: 2 3; }
+.sim-hito-txt { font-size: 10px; fill: var(--tinta-2); font-family: var(--f-mono); }
+.sim-marca { stroke: var(--cian); stroke-width: 2.5; }
+.sim-linea-ley { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.72rem; color: var(--tinta-2); margin-top: 4px; }
+.sim-linea-ley i { display: inline-block; width: 12px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.sim-linea-ley .sim-ley-linea { height: 0; border-top: 2px solid #1f74c9; border-radius: 0; }
+.sim-rio { display: flex; flex-direction: column; gap: 6px; }
+.sim-rio b { font-family: var(--f-num); min-width: 64px; text-align: right; }
 .sim-periodo { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: var(--radio-2); background: var(--cian-suave); }
 .sim-periodo .sim-h3 { margin: 0; }
 .sim-fechas { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

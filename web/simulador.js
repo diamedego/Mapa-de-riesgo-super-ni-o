@@ -11,8 +11,9 @@
 // Solo en la versión completa (las teselas de relieve vienen de un servidor externo).
 
 const SIM = { mapa: null, mm: 0, reproduciendo: 0, datos: null,
-  capas: { colores: true, curvas: true, drenaje: true, corte: true, x5: false }, vista: "mapa", maqueta: null };
-const PERDIDA_MM = 10, ESCORRENTIA = 0.5, AGUA_MIN = 0.1, PROF_MAX = 1.5;   // ningún bajo junta más de 1,5 m: el resto desborda
+  capas: { colores: true, curvas: true, drenaje: true, corte: true, x5: false }, vista: "mapa", maqueta: null,
+  modelo: null, desague: 10, crecida: 0 };   // desagües pluviales supuestos: 10 mm/h en superficies impermeables (no hay datos)
+const AGUA_MIN = 0.1;   // desde 10 cm se cuenta como zona con agua
 const TERRARIUM = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
 // Agua: de celeste translúcido a azul profundo. Altura: del verde azulado de los bajos al marrón de las lomas.
 const COLOR_AGUA = [[0.1, [125, 211, 252, 0.5]], [0.3, [56, 170, 235, 0.65]], [0.6, [30, 120, 210, 0.76]], [1, [22, 82, 180, 0.84]], [1.5, [14, 50, 130, 0.9]]];
@@ -35,7 +36,6 @@ function abrirSimulador() {
       <a class="btn-primario" href="https://mapa-de-riesgo-super-nino.diamedego.workers.dev/" target="_blank" rel="noopener">${t("version_completa")} ↗</a>`;
     return;
   }
-  SIM.mm = 0;
   pintarPanelSimulador(null);
   prepararSimulacion(s).catch((e) => {
     document.getElementById("sim-estado").textContent = t("sim_error");
@@ -48,6 +48,7 @@ function cerrarSimulador() {
   document.getElementById("sim").hidden = true;
   document.body.classList.remove("sim-abierto");
   SIM.mapa?.remove(); SIM.mapa = null; SIM.datos = null;
+  SIM.modelo?.worker?.terminate(); SIM.modelo = null;
   cerrarMaqueta(); SIM.vista = "mapa"; SIM.corte3d = false;
   document.querySelectorAll(".sim-leyenda-mapa, .sim-vistas").forEach((el) => el.remove());
   Tip.ocultar();
@@ -142,15 +143,8 @@ async function prepararSimulacion(s) {
   const metrosPx = (40075016 * Math.cos((s.punto[1] * Math.PI) / 180)) / (256 * 2 ** D.z);
   const hs = promedioLocal(Float32Array.from(D.h, (v, i) => (agua[i] ? Infinity : v)), W, H, Math.max(1, Math.round(37 / metrosPx)));
   for (let i = 0; i < N; i++) if (agua[i]) hs[i] = Infinity;
-  // Altura relativa (dos escalas: el bajo del barrio y el de la zona)
-  const m500 = minimoLocal(hs, W, H, Math.max(2, Math.round(500 / metrosPx)));
-  const m2500 = minimoLocal(hs, W, H, Math.max(4, Math.round(2500 / metrosPx)));
   const celdas = [];
   for (let i = 0; i < N; i++) if (dentro[i]) celdas.push(i);
-  const rel = new Float32Array(celdas.length), relGrilla = new Float32Array(N);
-  celdas.forEach((i, k) => { rel[k] = Math.max(0, hs[i] - m500[i]) + 0.5 * Math.max(0, hs[i] - m2500[i]); relGrilla[i] = rel[k]; });
-  const orden = Float32Array.from(rel).sort(), acum = new Float64Array(orden.length + 1);
-  for (let k = 0; k < orden.length; k++) acum[k + 1] = acum[k] + orden[k];
   // Colores por altura: escala entre los percentiles 2 y 98 del círculo (un pico aislado no aplana el resto)
   const alturas = Float32Array.from(celdas, (i) => hs[i]).sort();
   const hMin = alturas[Math.floor((alturas.length - 1) * 0.02)], hMax = alturas[Math.floor((alturas.length - 1) * 0.98)];
@@ -202,11 +196,12 @@ async function prepararSimulacion(s) {
   for (let i = 0; i < N; i++) celdasRadio[pr[4 * i] + pr[4 * i + 1] * 256]++;   // superficie total de cada radio (dentro y fuera)
   // Corte: por defecto, de oeste a este por el centro del círculo (tocando el mapa se elige otra latitud)
   const filaCorte = limitar(Math.round((yDeLat(s.punto[1], D.z) - D.ty0) * 256), 0, H - 1);
-  SIM.datos = { D, s, celdas, rel, relGrilla, orden, acum, radios, radioDe, celdasRadio, areaCelda: metrosPx ** 2, metrosPx,
+  SIM.datos = { D, s, celdas, radios, radioDe, celdasRadio, areaCelda: metrosPx ** 2, metrosPx,
     hs, dentro, hMin, hMax, curva, cauce, orilla, lonP, latP, filaCorte, circulo, hLago };
   est.textContent = "";
   agregarAguaAlMapa(D);
   pintarPanelSimulador(SIM.datos);
+  simularPeriodo(sumarDias(limitesPeriodo().hoy, 6));   // al abrir: la semana que viene, desde la lluvia real de las últimas dos semanas
 }
 
 // Ríos, lagunas y embalses del mapa base, rasterizados a la grilla del relieve
@@ -236,37 +231,123 @@ function mascaraAgua(D, aPx, r = 2) {
   return out;
 }
 
-// Nivel del agua (en altura relativa) que guarda el volumen escurrido. Volumen guardado con nivel L:
-// V(L) = f(L) − f(L − PROF_MAX), con f(x) = Σ (x − h) sobre las celdas con h < x (sumas acumuladas + búsqueda binaria)
-function volumenHasta(d, x) {
-  let lo = 0, hi = d.orden.length;
-  while (lo < hi) { const m = (lo + hi) >> 1; if (d.orden[m] < x) lo = m + 1; else hi = m; }
-  return lo * x - d.acum[lo];
-}
-function nivelAgua(d, mm) {
-  const lamina = Math.max(0, mm - PERDIDA_MM) / 1000 * ESCORRENTIA;   // m de agua repartidos sobre todo el círculo
-  if (lamina <= 0) return -Infinity;
-  const V = lamina * d.orden.length;
-  let lo = d.orden[0], hi = d.orden[d.orden.length - 1] + PROF_MAX + lamina + 1;
-  for (let i = 0; i < 60; i++) {
-    const L = (lo + hi) / 2;
-    if (volumenHasta(d, L) - volumenHasta(d, L - PROF_MAX) < V) lo = L; else hi = L;
-  }
-  return (lo + hi) / 2;
-}
-const profundidad = (L, h) => Math.min(PROF_MAX, L - h);
+// ---------- Corrida del modelo hidráulico ----------
+// Corre desde hace 14 días (dato real: el suelo y las lagunas llegan a hoy como están) hasta la fecha elegida. Cada hora
+// calculada se guarda (profundidad en mm por celda) y la línea de tiempo permite recorrerlas.
+const COLOR_TIPO = ["#7b8794", "#0e7490", "#8e6bbf"];   // dato real · pronóstico · escenario estacional
+function avisoProgreso(txt) { const p = document.getElementById("sim-progreso"); if (p) { p.textContent = txt; p.hidden = !txt; } }
 
-function resultadoSim(d, mm) {
-  const L = nivelAgua(d, mm);
-  let celdasAgua = 0, maxProf = 0;
-  const conAgua = new Float64Array(d.radios.length + 1);
-  for (let k = 0; k < d.rel.length; k++) {
-    const p = profundidad(L, d.rel[k]);
-    if (p >= AGUA_MIN) { celdasAgua++; conAgua[d.radioDe[k]]++; if (p > maxProf) maxProf = p; }
+async function simularPeriodo(hastaISO, tormentaMm = 0) {
+  const d = SIM.datos;
+  if (!d) return;
+  detenerAnimaciones();
+  SIM.modelo?.worker?.terminate();
+  const M = (SIM.modelo = { frames: [], lagos: [], stats: [], hora: 0, corriendo: true, siguiendo: true, hasta: hastaISO, tormenta: tormentaMm });
+  avisoProgreso(t("sim_bajando"));
+  let met;
+  try { met = await lluviaDelPunto(d.s.punto, hastaISO); } catch (e) { console.error(e); avisoProgreso(t("sim_error_meteo")); return; }
+  if (SIM.modelo !== M) return;
+  const fin = Date.parse(`${hastaISO}T23:59:00-03:00`);
+  let n = met.horas.findIndex((x) => x > fin);
+  if (n < 0) n = met.horas.length;
+  for (const k of ["horas", "lluvia", "et0", "tipo"]) met[k] = met[k].slice(0, n);
+  M.hoy = Math.max(0, met.tipo.indexOf(1));
+  if (tormentaMm) [0.4, 0.4, 0.2].forEach((f, j) => { if (M.hoy + j < n) met.lluvia[M.hoy + j] += tormentaMm * f; });   // tormenta de prueba: ahora, en 3 h
+  const g = grillaModelo(d, n);
+  g.celdaFina = new Int32Array(d.D.W * d.D.H);
+  for (let i = 0; i < g.celdaFina.length; i++) g.celdaFina[i] = g.celdaDe(i);
+  g.nDentro = g.dentroC.reduce((a, b) => a + b, 0);
+  M.met = met; M.g = g;
+  M.suelo = SIM.suelo ?? { ...TEXTURAS.franco, nombre: "franco", supuesto: true };
+  const w = (M.worker = new Worker("hidraulica.js"));
+  w.onmessage = (e) => recibirHora(M, e.data);
+  w.onerror = (e) => { avisoProgreso(t("sim_error")); console.error(e); };
+  w.postMessage({ tipo: "iniciar", nx: g.nx, ny: g.ny, dx: g.dx, z: g.z, tipo2: g.tipo2, lago: g.lago, nMan: g.nMan, imp: g.imp,
+    suelo: M.suelo, theta0: met.theta0, desague: SIM.desague, crecida: SIM.crecida, lluvia: Float32Array.from(met.lluvia), et0: Float32Array.from(met.et0) });
+  pintarLineaSim();
+}
+
+function recibirHora(M, m) {
+  if (SIM.modelo !== M) return;
+  if (m.tipo === "hora") {
+    const f = new Uint16Array(m.h.length);
+    for (let i = 0; i < f.length; i++) f[i] = Math.min(65535, Math.round(m.h[i] * 1000));
+    M.frames.push(f); M.lagos.push(Float32Array.from(m.lagos)); M.stats.push(estadisticaHora(M, m.h));
+    const dia = Math.floor(m.k / 24) + 1, total = Math.ceil(m.horas / 24);
+    avisoProgreso(t("sim_calculando")(dia, total, t(`sim_tipo_${TIPO_DATO[M.met.tipo[m.k]]}`)));
+    if (M.siguiendo && (m.k % 3 === 0 || m.k === m.horas - 1)) { M.hora = M.frames.length - 1; mostrarHora(); }
+    else if (m.k % 6 === 0) pintarLineaSim();
+  } else if (m.tipo === "fin") {
+    M.corriendo = false; M.cuenta = m.cuenta;
+    // Al terminar: la hora con más agua desde hoy
+    let pico = M.hoy;
+    for (let k = M.hoy; k < M.stats.length; k++) if (M.stats[k].pct > M.stats[pico].pct) pico = k;
+    M.pico = pico; M.hora = pico; M.siguiendo = false;
+    avisoProgreso("");
+    mostrarHora();
   }
-  let personas = 0;
-  d.radios.forEach((f, j) => { const id = j + 1; if (d.celdasRadio[id]) personas += (Number(f.properties.poblacion) || 0) * (conAgua[id] / d.celdasRadio[id]); });
-  return { L, pct: (100 * celdasAgua) / d.rel.length, km2: (celdasAgua * d.areaCelda) / 1e6, maxProf, personas };
+}
+
+function estadisticaHora(M, h) {
+  const g = M.g;
+  let n = 0, maxP = 0, pers = 0;
+  for (let c = 0; c < g.N; c++) {
+    if (!g.dentroC[c] || g.tipo2[c] !== 1) continue;
+    const p = h[c] - g.cauce[c];   // el agua dentro de un arroyo o canal no es inundación
+    if (p >= AGUA_MIN) { n++; pers += g.pob[c]; }
+    if (p > maxP) maxP = p;
+  }
+  return { pct: (100 * n) / Math.max(1, g.nDentro), km2: (n * g.dx * g.dx) / 1e6, maxProf: maxP, personas: pers };
+}
+
+// Profundidad del agua en un píxel del relieve: el nivel del agua de su celda del modelo contra la altura fina del píxel
+// (así el borde del agua sigue el terreno con más detalle que la celda)
+function aguaFina(i) {
+  const M = SIM.modelo, d = SIM.datos;
+  if (!M?.frames.length) return 0;
+  const g = M.g, c = g.celdaFina[i];
+  if (c < 0) return 0;
+  if (g.tipo2[c] === 2) { const sube = M.lagos[M.hora]?.[g.lago[c]] ?? 0; return sube > 0.05 ? sube : 0; }
+  if (g.tipo2[c] !== 1) return 0;
+  const h = M.frames[M.hora][c] / 1000;
+  if (h < 0.01) return 0;
+  const zf = Number.isFinite(d.hs[i]) ? d.hs[i] : g.z[c];
+  return Math.max(0, Math.min(g.z[c] + h - zf, h * 3));
+}
+
+function mostrarHora() {
+  if (!SIM.datos || !SIM.modelo?.frames.length) return;
+  actualizarNumeros();
+  pintarLineaSim();
+  if (SIM.vista === "maqueta") { SIM.mapaSucio = true; actualizarMaqueta(); } else dibujarAgua();
+}
+
+// Línea de tiempo: arriba la lluvia de cada día (gris = dato real, cian = pronóstico, violeta = escenario estacional);
+// abajo, el % del círculo con agua de 10 cm o más; la marca es la hora que se ve; se puede tocar para ir a otra hora.
+function pintarLineaSim() {
+  const cont = document.getElementById("sim-linea"), M = SIM.modelo;
+  if (!cont || !M?.met) return;
+  const met = M.met, n = met.horas.length, ancho = Math.max(240, cont.clientWidth), alto = 120, iz = 4, de = 4;
+  const x = (k) => iz + (k / Math.max(1, n - 1)) * (ancho - iz - de);
+  const dias = [];
+  for (let k = 0; k < n; k += 24) { let s = 0, tp = met.tipo[k]; for (let j = k; j < Math.min(n, k + 24); j++) s += met.lluvia[j]; dias.push([k, s, tp]); }
+  const maxL = Math.max(10, ...dias.map((v) => v[1])), maxP = Math.max(1, ...M.stats.map((s) => s.pct));
+  const barras = dias.map(([k, s, tp]) => `<rect x="${x(k).toFixed(1)}" y="${(52 - (s / maxL) * 46).toFixed(1)}" width="${Math.max(1, x(k + 24) - x(k) - 1).toFixed(1)}" height="${((s / maxL) * 46).toFixed(1)}" fill="${COLOR_TIPO[tp]}"/>`).join("");
+  const linea = M.stats.map((s, k) => `${k ? "L" : "M"}${x(k).toFixed(1)},${(112 - (s.pct / maxP) * 46).toFixed(1)}`).join("");
+  const hito = (k, txt) => (k >= 0 && k < n ? `<line x1="${x(k)}" x2="${x(k)}" y1="2" y2="114" class="sim-hito"/><text x="${x(k) + 3}" y="${k > n * 0.8 ? 64 : 64}" class="sim-hito-txt"${k > n * 0.8 ? ` text-anchor="end" dx="-6"` : ""}>${txt}</text>` : "");
+  const finPron = met.tipo.indexOf(2);
+  cont.innerHTML = `<svg width="${ancho}" height="${alto}" class="sim-linea-svg" role="img" aria-label="${t("sim_linea")}">
+    <rect x="${x(M.frames.length - 1)}" y="0" width="${Math.max(0, x(n - 1) - x(M.frames.length - 1))}" height="${alto}" class="sim-pendiente"/>
+    ${barras}<path d="${linea}" class="sim-linea-area"/>
+    ${hito(M.hoy, t("sim_hito_hoy"))}${finPron > 0 ? hito(finPron, t("sim_hito_fin_pron")) : ""}${M.pico != null ? hito(M.pico, t("sim_hito_pico")) : ""}
+    <line x1="${x(M.hora)}" x2="${x(M.hora)}" y1="0" y2="${alto}" class="sim-marca"/></svg>
+    <div class="sim-linea-ley"><span><i style="background:${COLOR_TIPO[0]}"></i>${t("sim_tipo_real")}</span><span><i style="background:${COLOR_TIPO[1]}"></i>${t("sim_tipo_pronostico")}</span>${finPron > 0 ? `<span><i style="background:${COLOR_TIPO[2]}"></i>${t("sim_tipo_escenario")}</span>` : ""}<span><i class="sim-ley-linea"></i>${t("sim_area")}</span></div>`;
+  const svg = cont.querySelector("svg");
+  const ir = (ev) => {
+    const r = svg.getBoundingClientRect(), k = Math.round(((ev.clientX - r.left - iz) / (ancho - iz - de)) * (n - 1));
+    M.siguiendo = false; M.hora = limitar(k, 0, M.frames.length - 1); detenerAnimaciones(); mostrarHora();
+  };
+  svg.onpointerdown = (ev) => { ir(ev); svg.setPointerCapture(ev.pointerId); svg.onpointermove = (e2) => { if (e2.buttons) ir(e2); }; };
 }
 
 // ---------- Mapa 3D del simulador ----------
@@ -321,13 +402,13 @@ function dibujarAgua() {
   const d = SIM.datos, cv = SIM.lienzo, C = SIM.capas;
   if (!d || !cv || !SIM.mapa?.getSource("agua-sim")) return;
   const ctx = cv.getContext("2d"), img = ctx.createImageData(cv.width, cv.height), px = img.data;
-  const L = nivelAgua(d, SIM.mm), rango = d.hMax - d.hMin || 1;
+  const rango = d.hMax - d.hMin || 1;
   for (let k = 0; k < d.celdas.length; k++) {
     const i = d.celdas[k];
     let c = null;
     if (C.colores) c = colorEscala(COLOR_ALTURA, limitar((d.hs[i] - d.hMin) / rango, 0, 1));
     if (C.curvas && d.curva[i]) c = c ? [c[0] * 0.55, c[1] * 0.55, c[2] * 0.5, 0.8] : [70, 60, 50, 0.55];
-    const p = profundidad(L, d.rel[k]);
+    const p = aguaFina(i);
     if (p >= AGUA_MIN) c = colorEscala(COLOR_AGUA, p);
     if (C.drenaje) { if (d.cauce[i]) c = [224, 250, 255, 0.98]; else if (d.orilla[i]) c = [14, 70, 90, 0.8]; }
     if (!c) continue;
@@ -501,9 +582,9 @@ async function crearMaqueta() {
     x0, y0, bw, bh, S, cx, cy, materiales: [matTerreno, matPared, matBase], plano: new THREE.Plane(new THREE.Vector3(0, 0, -1), 0), tapa: new THREE.Group(),
     azimut: 0.9, elevacion: 0.42, distancia: 0.7, dibujar: 0, mmCharcos: null };
   escena.add(M.tapa);
-  M.lluvia = prepararLluvia(d, x0, y0, bw, bh);
+  M.part = crearParticulas();
   M.charcos = document.createElement("canvas"); M.charcos.width = bw; M.charcos.height = bh;
-  M.pelicula = document.createElement("canvas"); M.pelicula.width = M.lluvia.nx; M.pelicula.height = M.lluvia.ny;
+  M.pelicula = document.createElement("canvas");
   // Cámara orbital: arrastrar gira (azimut y elevación), rueda o pellizco acercan
   const lienzo = ren.domElement, toques = new Map();
   let previo = null;
@@ -537,101 +618,47 @@ async function crearMaqueta() {
   SIM.maqueta = M;
 }
 
-// ---------- Modelo de escurrimiento (para las líneas que bajan y la película de agua) ----------
-function prepararLluvia(d, x0, y0, bw, bh) {
-  const D = d.D, W = D.W, H = D.H;
-  const hSuave = promedioLocal(d.hs, W, H, Math.max(1, Math.round(60 / d.metrosPx)));   // ~120 m: sin el ruido de los edificios
-  const p = Math.max(1, Math.ceil(bw / 220)), nx = Math.floor((bw - 1) / p) + 1, ny = Math.floor((bh - 1) / p) + 1, N = nx * ny;
-  const z = new Float32Array(N), tipo = new Uint8Array(N);   // 0 afuera (pared), 1 tierra, 2 río o laguna (se lleva el agua)
-  for (let gy = 0; gy < ny; gy++) for (let gx = 0; gx < nx; gx++) {
-    const i = (y0 + gy * p) * W + x0 + gx * p, k = gy * nx + gx;
-    if (!d.circulo[i]) continue;
-    if (d.dentro[i] && Number.isFinite(hSuave[i])) { tipo[k] = 1; z[k] = hSuave[i]; }
-    else { tipo[k] = 2; z[k] = Number.isFinite(d.hLago[i]) ? d.hLago[i] - 0.3 : d.hMin; }
-  }
-  // La primera y la última fila y columna quedan como pared (así los vecinos siempre existen)
-  for (let gx = 0; gx < nx; gx++) { tipo[gx] = 0; tipo[(ny - 1) * nx + gx] = 0; }
-  for (let gy = 0; gy < ny; gy++) { tipo[gy * nx] = 0; tipo[gy * nx + nx - 1] = 0; }
-  const tierra = [];
-  for (let k = 0; k < N; k++) if (tipo[k] === 1) tierra.push(k);
+// ---------- Líneas blancas que bajan con el agua (siguen la pendiente de la superficie del agua del modelo) ----------
+function crearParticulas() {
   const NP = innerWidth < 700 ? 1500 : 2600;
-  return { p, nx, ny, N, z, tipo, tierra: Uint32Array.from(tierra), w: new Float32Array(N), fx: new Float32Array(N), fy: new Float32Array(N),
-    sale: new Float32Array(N * 4), NP, px: new Float32Array(NP), py: new Float32Array(NP), vida: new Int16Array(NP),
-    cola: new Float32Array(NP * LARGO_COLA * 2), cnt: new Uint8Array(NP), mojadura: 0, cuadro: 0, activa: false, raf: 0, semilla: 11 };
+  return { NP, px: new Float32Array(NP), py: new Float32Array(NP), vida: new Int16Array(NP), cola: new Float32Array(NP * LARGO_COLA * 2),
+    cnt: new Uint8Array(NP), semilla: 11, activa: false };
 }
-
-function reiniciarLluvia(L) {
-  L.w.fill(0); L.fx.fill(0); L.fy.fill(0); L.cnt.fill(0); L.vida.fill(0);
-  L.mojadura = 0; L.cuadro = 0;
-}
-
-// Un paso del modelo de "caños virtuales": cada celda le pasa agua a sus vecinas más bajas según la diferencia de nivel
-function pasoAgua(L, lluvia) {
-  const { tierra, w, z, tipo, sale, fx, fy, nx } = L, vec = [1, -1, nx, -nx];
-  if (lluvia > 0) for (let n = 0; n < tierra.length; n++) w[tierra[n]] += lluvia;
-  for (let n = 0; n < tierra.length; n++) {
-    const k = tierra[n], o = 4 * k;
-    if (w[k] <= 1e-6) { sale[o] = sale[o + 1] = sale[o + 2] = sale[o + 3] = 0; continue; }
-    const Hk = z[k] + w[k];
-    let tot = 0;
-    for (let j = 0; j < 4; j++) {
-      const v = k + vec[j], f = tipo[v] ? Math.max(0, Hk - z[v] - w[v]) * 0.24 : 0;
-      sale[o + j] = f; tot += f;
-    }
-    if (tot > w[k]) { const e = w[k] / tot; for (let j = 0; j < 4; j++) sale[o + j] *= e; }
-  }
-  fx.fill(0); fy.fill(0);
-  for (let n = 0; n < tierra.length; n++) {
-    const k = tierra[n], o = 4 * k;
-    for (let j = 0; j < 4; j++) {
-      const f = sale[o + j];
-      if (!f) continue;
-      const v = k + vec[j];
-      w[k] -= f;
-      if (tipo[v] === 1) w[v] += f;   // lo que llega a un río o laguna se va
-      if (j < 2) fx[k] += j === 0 ? f : -f; else fy[k] += j === 2 ? f : -f;
-    }
-  }
-}
-
-function moverLineas(L) {
-  const { nx, tipo, w, fx, fy, tierra, px, py, vida, cola, cnt, NP } = L, T = LARGO_COLA;
-  const azar = () => ((L.semilla = (L.semilla * 16807) % 2147483647) / 2147483647);
-  for (let n = 0; n < NP; n++) {
-    const k = Math.floor(py[n]) * nx + Math.floor(px[n]);
-    vida[n]--;
-    if (vida[n] <= 0 || tipo[k] !== 1 || w[k] + L.mojadura < 0.002) {   // nace otra en un lugar mojado al azar
-      const nk = tierra[Math.floor(azar() * tierra.length)];
-      px[n] = (nk % nx) + azar(); py[n] = Math.floor(nk / nx) + azar(); vida[n] = 20 + azar() * 60; cnt[n] = 0;
+function moverLineas(P) {
+  const Mo = SIM.modelo, g = Mo?.g, fr = Mo?.frames[Mo.hora];
+  if (!fr) return;
+  const T = LARGO_COLA, azar = () => ((P.semilla = (P.semilla * 16807) % 2147483647) / 2147483647);
+  const eta = (c) => (g.tipo2[c] === 1 ? g.z[c] + fr[c] / 1000 : g.tipo2[c] === 2 ? g.z[c] : g.z[c] - 2);
+  for (let n = 0; n < P.NP; n++) {
+    const cx = Math.floor((P.px[n] - g.bx0) / g.f), cy = Math.floor((P.py[n] - g.by0) / g.f), c = cy * g.nx + cx;
+    P.vida[n]--;
+    const fuera = cx < 1 || cy < 1 || cx >= g.nx - 1 || cy >= g.ny - 1;
+    if (fuera || P.vida[n] <= 0 || g.tipo2[c] !== 1 || fr[c] < 3) {   // nace otra en una celda con agua, dentro del círculo
+      for (let k = 0; k < 20; k++) {
+        const c2 = Math.floor(azar() * g.N);
+        if (g.dentroC[c2] && g.tipo2[c2] === 1 && fr[c2] >= 3) { P.px[n] = g.bx0 + ((c2 % g.nx) + azar()) * g.f; P.py[n] = g.by0 + (Math.floor(c2 / g.nx) + azar()) * g.f; break; }
+      }
+      P.vida[n] = 20 + azar() * 50; P.cnt[n] = 0;
       continue;
     }
-    const m = Math.hypot(fx[k], fy[k]);
-    if (m > 2e-6) { const paso = Math.min(0.9, 0.25 + m * 400); px[n] += (fx[k] / m) * paso; py[n] += (fy[k] / m) * paso; }
+    const gx = eta(c + 1) - eta(c - 1), gy = eta(c + g.nx) - eta(c - g.nx), m = Math.hypot(gx, gy);
+    if (m > 1e-5) { const paso = g.f * 0.45; P.px[n] -= (gx / m) * paso; P.py[n] -= (gy / m) * paso; }
     const b = n * T * 2;
-    if (cnt[n] === T) cola.copyWithin(b, b + 2, b + T * 2); else cnt[n]++;
-    cola[b + (cnt[n] - 1) * 2] = px[n]; cola[b + (cnt[n] - 1) * 2 + 1] = py[n];
+    if (P.cnt[n] === T) P.cola.copyWithin(b, b + 2, b + T * 2); else P.cnt[n]++;
+    P.cola[b + (P.cnt[n] - 1) * 2] = P.px[n]; P.cola[b + (P.cnt[n] - 1) * 2 + 1] = P.py[n];
   }
-}
-
-function avanzarLluvia(L, meta) {
-  const lloviendo = L.cuadro < CUADROS_LLUVIA;
-  const lamina = (Math.max(0, meta - PERDIDA_MM) / 1000) * ESCORRENTIA;   // lo que escurre: mismo criterio que el cálculo de llenado
-  for (let s = 0; s < SUBPASOS; s++) pasoAgua(L, lloviendo ? lamina / (CUADROS_LLUVIA * SUBPASOS) : 0);
-  L.mojadura = lloviendo ? Math.min(0.006, L.mojadura + 0.0004) : L.mojadura * 0.97;   // película que moja todo y se seca de a poco
-  moverLineas(L);
-  L.cuadro++;
 }
 
 // ---------- Dibujo de la maqueta ----------
 // Alturas (terreno + bajos llenos, ×5 si está prendido)
 function alturasMaqueta() {
   const M = SIM.maqueta, d = SIM.datos;
-  const ex = SIM.capas.x5 ? 5 : 1, L = nivelAgua(d, SIM.mm), piso = d.hMin - 2;
+  const ex = SIM.capas.x5 ? 5 : 1, piso = d.hMin - 2;
   const fondo = -Math.max(10, (d.hMax - d.hMin) * 0.35) * ex;   // base de tierra: un tercio del desnivel (mínimo 10 m)
   const altura = (i) => {
     if (i < 0) return 0;
     if (!d.dentro[i]) return ((Number.isFinite(d.hLago[i]) ? d.hLago[i] - 0.3 : d.hMin) - piso) * ex;   // ríos y lagunas: a la altura de la orilla
-    const p = profundidad(L, d.relGrilla[i]);
+    const p = aguaFina(i);
     return (d.hs[i] + (p >= AGUA_MIN ? p : 0) - piso) * ex;
   };
   const P = M.geo.attributes.position;
@@ -649,14 +676,14 @@ function alturasMaqueta() {
 
 // Bajos llenos (mismo cálculo y colores que el mapa), en el recuadro del círculo
 function pintarCharcos() {
-  const M = SIM.maqueta, d = SIM.datos, W = d.D.W;
-  if (M.mmCharcos === SIM.mm) return;
-  M.mmCharcos = SIM.mm;
-  const c = M.charcos.getContext("2d"), img = c.createImageData(M.bw, M.bh), px = img.data, L = nivelAgua(d, SIM.mm);
+  const M = SIM.maqueta, d = SIM.datos, W = d.D.W, clave = `${SIM.modelo?.frames.length ? SIM.modelo.hora : -1}|${SIM.modelo?.hasta}`;
+  if (M.claveCharcos === clave) return;
+  M.claveCharcos = clave;
+  const c = M.charcos.getContext("2d"), img = c.createImageData(M.bw, M.bh), px = img.data;
   for (let y = 0; y < M.bh; y++) for (let x = 0; x < M.bw; x++) {
     const i = (M.y0 + y) * W + M.x0 + x;
-    if (!d.dentro[i]) continue;
-    const p = profundidad(L, d.relGrilla[i]);
+    if (!d.circulo[i]) continue;
+    const p = aguaFina(i);
     if (p < AGUA_MIN) continue;
     const col = colorEscala(COLOR_AGUA, p), o = 4 * (y * M.bw + x);
     px[o] = col[0]; px[o + 1] = col[1]; px[o + 2] = col[2]; px[o + 3] = col[3] * 255;
@@ -666,36 +693,36 @@ function pintarCharcos() {
 
 // Textura: satélite → película de agua que corre → bajos llenos → líneas blancas
 function texturaMaqueta() {
-  const M = SIM.maqueta, L = M.lluvia, S = M.S, ct = M.textura.getContext("2d");
+  const M = SIM.maqueta, P = M.part, S = M.S, ct = M.textura.getContext("2d"), Mo = SIM.modelo, g = Mo?.g, fr = Mo?.frames[Mo.hora];
   ct.drawImage(M.sat, 0, 0);
   ct.imageSmoothingEnabled = true;
-  if (L.activa || L.cuadro) {
-    const cp = M.pelicula.getContext("2d"), img = cp.createImageData(L.nx, L.ny), px = img.data;
-    for (let k = 0; k < L.N; k++) {
-      const h = L.tipo[k] === 1 ? L.w[k] + L.mojadura : 0;
-      if (h < 0.0015) continue;
-      const f = Math.min(1, Math.log10(h / 0.0015) / Math.log10(0.05 / 0.0015)), o = 4 * k;   // 1,5 mm (moja) → 5 cm (corre)
-      px[o] = 150 - 40 * f; px[o + 1] = 215 - 30 * f; px[o + 2] = 250 - 10 * f; px[o + 3] = (0.32 + 0.3 * f) * 255;
+  if (fr) {   // película de agua que corre (de 2 mm a 10 cm), a la resolución del modelo
+    if (M.pelicula.width !== g.nx || M.pelicula.height !== g.ny) { M.pelicula.width = g.nx; M.pelicula.height = g.ny; }
+    const cp = M.pelicula.getContext("2d"), img = cp.createImageData(g.nx, g.ny), px = img.data;
+    for (let c = 0; c < g.N; c++) {
+      const h = g.tipo2[c] === 1 ? fr[c] : 0;
+      if (h < 2 || h >= AGUA_MIN * 1000) continue;
+      const f = Math.min(1, Math.log10(h / 2) / Math.log10(50)), o = 4 * c;
+      px[o] = 150 - 40 * f; px[o + 1] = 215 - 30 * f; px[o + 2] = 250 - 10 * f; px[o + 3] = (0.28 + 0.3 * f) * 255;
     }
     cp.putImageData(img, 0, 0);
-    ct.drawImage(M.pelicula, 0, 0, L.nx, L.ny, 0, 0, L.nx * L.p * S, L.ny * L.p * S);
+    ct.drawImage(M.pelicula, 0, 0, g.nx, g.ny, (g.bx0 - M.x0) * S, (g.by0 - M.y0) * S, g.nx * g.f * S, g.ny * g.f * S);
   }
   pintarCharcos();
   ct.drawImage(M.charcos, 0, 0, M.bw * S, M.bh * S);
-  if (L.activa) {
-    // Líneas: una pasada por tramo de cola (el más nuevo, más blanco y grueso)
-    const T = LARGO_COLA, e = L.p * S, aT = (v) => (v + 0.5 / L.p) * e;
+  if (P.activa) {   // líneas: una pasada por tramo de cola (el más nuevo, más blanco y grueso)
+    const T = LARGO_COLA, aX = (v) => (v - M.x0) * S, aY = (v) => (v - M.y0) * S;
     ct.lineCap = "round";
     for (let r = 0; r < T - 1; r++) {
       const f = 1 - r / (T - 1);
       ct.strokeStyle = `rgba(${Math.round(190 + 65 * f)},${Math.round(225 + 30 * f)},255,${(0.9 * f).toFixed(2)})`;
       ct.lineWidth = (0.4 + 0.8 * f) * S;
       ct.beginPath();
-      for (let n = 0; n < L.NP; n++) {
-        const c = L.cnt[n], a = c - 2 - r;
+      for (let n = 0; n < P.NP; n++) {
+        const a = P.cnt[n] - 2 - r;
         if (a < 0) continue;
         const b = n * T * 2;
-        ct.moveTo(aT(L.cola[b + a * 2]), aT(L.cola[b + a * 2 + 1])); ct.lineTo(aT(L.cola[b + a * 2 + 2]), aT(L.cola[b + a * 2 + 3]));
+        ct.moveTo(aX(P.cola[b + a * 2]), aY(P.cola[b + a * 2 + 1])); ct.lineTo(aX(P.cola[b + a * 2 + 2]), aY(P.cola[b + a * 2 + 3]));
       }
       ct.stroke();
     }
@@ -707,8 +734,8 @@ function actualizarMaqueta(alturas = false) {
   const M = SIM.maqueta;
   if (!M || !SIM.datos) return;
   // Las alturas (con los bajos llenos) se recalculan cada 4 mm mientras llueve, para no frenar la animación
-  const cambio = M.mmAlturas == null ? Infinity : Math.abs(M.mmAlturas - SIM.mm);
-  if (alturas || cambio >= 4 || (!M.lluvia.activa && cambio > 0)) { alturasMaqueta(); M.mmAlturas = SIM.mm; if (SIM.corte3d) tapaCorte(); }
+  const clave = `${SIM.modelo?.hora}|${SIM.modelo?.hasta}`, salto = SIM.modelo ? Math.abs((M.horaAlturas ?? -99) - SIM.modelo.hora) : 99;
+  if (alturas || (M.claveAlturas !== clave && (salto >= 3 || !SIM.reproduciendo))) { alturasMaqueta(); M.claveAlturas = clave; M.horaAlturas = SIM.modelo?.hora; if (SIM.corte3d) tapaCorte(); }
   texturaMaqueta();
   pedirCuadroMaqueta();
 }
@@ -729,48 +756,10 @@ function pedirCuadroMaqueta() {
   });
 }
 
-// Lluvia animada en la maqueta: llueve unos 7 s (los mm suben hasta la meta) y escurre otros 5 s
-function llover(meta) {
-  const M = SIM.maqueta, L = M?.lluvia, btn = document.getElementById("sim-play"), caja = M?.capa.querySelector(".sim-lluvia-estado");
-  if (!L) return;
-  reiniciarLluvia(L);
-  if (movimientoReducido()) { SIM.mm = meta; actualizarSimulador(); return; }
-  L.activa = true; L.meta = meta;
-  btn.innerHTML = icono("pausa");
-  caja.hidden = false;
-  const t0 = performance.now();
-  const tick = (ahora) => {
-    if (!L.activa) return;
-    const debidos = Math.min(CUADROS_LLUVIA + CUADROS_ESCURRE, Math.floor(((ahora - t0) / 1000) * FPS_LLUVIA));
-    let n = Math.min(3, debidos - L.cuadro);   // en equipos lentos se adelanta hasta 3 pasos por cuadro
-    if (n > 0) {
-      while (n-- > 0) avanzarLluvia(L, meta);
-      SIM.mm = Math.round(meta * Math.min(1, L.cuadro / CUADROS_LLUVIA));
-      actualizarNumeros();
-      caja.textContent = L.cuadro < CUADROS_LLUVIA ? t("sim_lloviendo")(fmt(SIM.mm), fmt(meta)) : t("sim_escurriendo")(fmt(meta));
-      actualizarMaqueta();
-    }
-    if (L.cuadro >= CUADROS_LLUVIA + CUADROS_ESCURRE) { terminarLluvia(); return; }
-    L.raf = requestAnimationFrame(tick);
-  };
-  L.raf = requestAnimationFrame(tick);
-}
-function terminarLluvia() {
-  const M = SIM.maqueta, L = M?.lluvia;
-  if (!L) return;
-  cancelAnimationFrame(L.raf);
-  const estaba = L.activa;
-  L.activa = false; L.cuadro = 0;
-  M.capa.querySelector(".sim-lluvia-estado").hidden = true;
-  const btn = document.getElementById("sim-play");
-  if (btn && estaba) btn.innerHTML = icono("repetir");
-  SIM.mapaSucio = true;
-  actualizarMaqueta();
-}
-
+// Reproducción: avanza hora por hora (12 horas por segundo); en la maqueta, además, corren las líneas blancas
 function detenerAnimaciones() {
   if (SIM.reproduciendo) { cancelAnimationFrame(SIM.reproduciendo); SIM.reproduciendo = 0; }
-  if (SIM.maqueta?.lluvia.activa) terminarLluvia();
+  if (SIM.maqueta) SIM.maqueta.part.activa = false;
   const btn = document.getElementById("sim-play");
   if (btn) btn.innerHTML = icono("play");
 }
@@ -806,7 +795,7 @@ function tapaCorte() {
   if (!M || !d) return;
   for (const h of [...M.tapa.children]) { h.geometry.dispose(); M.tapa.remove(h); }
   if (!SIM.corte3d) return;
-  const W = d.D.W, m = d.metrosPx, ex = SIM.capas.x5 ? 5 : 1, L = nivelAgua(d, SIM.mm), piso = d.hMin - 2;
+  const W = d.D.W, m = d.metrosPx, ex = SIM.capas.x5 ? 5 : 1, piso = d.hMin - 2;
   const fondo = M.fondo ?? -40 * ex, zc = (d.filaCorte + 0.5 - M.cy) * m;
   M.plano.constant = zc;   // se ve lo que queda al norte de la línea (z ≤ zc)
   const puntos = [];
@@ -814,7 +803,7 @@ function tapaCorte() {
     const i = d.filaCorte * W + x;
     if (!d.circulo[i]) continue;
     const lago = !d.dentro[i], suelo = lago ? (Number.isFinite(d.hLago[i]) ? d.hLago[i] - 0.6 : d.hMin - 0.3) : d.hs[i];
-    const agua = lago ? 0.3 : Math.max(0, profundidad(L, d.relGrilla[i]));
+    const agua = lago ? 0.3 + aguaFina(i) : aguaFina(i);
     puntos.push({ X: (x + 0.5 - M.cx) * m, suelo: (suelo - piso) * ex, agua: agua >= AGUA_MIN || lago ? (suelo + agua - piso) * ex : null });
   }
   if (puntos.length < 2) return;
@@ -846,7 +835,6 @@ function tapaCorte() {
 function cerrarMaqueta() {
   const M = SIM.maqueta;
   if (!M) return;
-  cancelAnimationFrame(M.lluvia.raf); M.lluvia.activa = false;
   cancelAnimationFrame(M.dibujar); M.observador.disconnect();
   M.ren.dispose(); M.geo.dispose(); M.pared.dispose(); M.tex.dispose();
   M.capa.remove();
@@ -882,9 +870,9 @@ function pintarCorte() {
   if (!cont) return;
   cont.hidden = !SIM.capas.corte || !d;
   if (cont.hidden) return;
-  const L = nivelAgua(d, SIM.mm), perfil = filaCorte(d).map((x) => {
+  const perfil = filaCorte(d).map((x) => {
     const i = d.filaCorte * d.D.W + x;
-    return [d.hs[i], Math.max(0, profundidad(L, d.relGrilla[i]))];
+    return [d.hs[i], aguaFina(i)];
   });
   if (perfil.length < 4) { cont.innerHTML = `<p class="sim-corte-titulo">${t("sim_corte_ayuda")}</p>`; return; }
   const ancho = Math.max(240, cont.clientWidth), alto = 130, n = perfil.length, izq = 44, der = 6, base = alto - 20;
@@ -926,14 +914,13 @@ function tooltipSimulador(e) {
   const x = Math.floor((xDeLon(e.lngLat.lng, d.D.z) - d.D.tx0) * 256), y = Math.floor((yDeLat(e.lngLat.lat, d.D.z) - d.D.ty0) * 256);
   const i = y * d.D.W + x;
   if (x < 0 || y < 0 || x >= d.D.W || y >= d.D.H || !d.dentro[i]) { Tip.ocultar(); return; }
-  const p = profundidad(nivelAgua(d, SIM.mm), d.relGrilla[i]);
+  const p = aguaFina(i);
   Tip.mostrar(`<span class="tip-fila"><b>${fmt(d.hs[i], 1)} m</b> ${t("sim_snm")}</span>
-    <span class="tip-fila"><b>${fmt(d.relGrilla[i], 1)} m</b> ${t("sim_sobre_bajo")}</span>
-    ${p >= AGUA_MIN ? `<span class="tip-fila"><b>${fmt(p * 100)} cm</b> ${t("sim_de_agua")}</span>` : ""}`, e.originalEvent);
+    ${p >= 0.01 ? `<span class="tip-fila"><b>${fmt(p * 100)} cm</b> ${t("sim_de_agua")}</span>` : ""}`, e.originalEvent);
 }
 
 // ---------- Panel de control y resultados ----------
-function presetsSimulador() {
+function presetsSimulador() {   // tormentas de prueba: caen ahora, en 3 horas, sobre el suelo como está hoy
   return [[t("sim_50"), 50], [t("sim_150"), 150], [t("sim_laplata"), 392]];
 }
 
@@ -979,6 +966,7 @@ async function prepararPeriodo() {
     const r = lluviaPeriodo(desde.value, hasta.value), res = document.getElementById("sim-periodo-res"), btn = document.getElementById("sim-periodo-ir");
     if (!r) { res.textContent = "–"; btn.disabled = true; return; }
     btn.disabled = !SIM.datos;
+    if (SIM.modelo?.hasta) hasta.value = SIM.modelo.hasta;
     const partes = [];
     if (r.diasDiario) partes.push(t("sim_per_diario")(fmt(r.diario), fmtDia(r.hastaDiario)));
     if (r.diasEst) partes.push(t("sim_per_estacional")(fmt(r.estacional)));
@@ -988,12 +976,7 @@ async function prepararPeriodo() {
   };
   desde.onchange = calcular; hasta.onchange = calcular;
   cont.querySelectorAll("[data-dias]").forEach((b) => { b.onclick = () => { desde.value = hoy; hasta.value = [sumarDias(hoy, +b.dataset.dias - 1), fin].sort()[0]; calcular(); }; });
-  document.getElementById("sim-periodo-ir").onclick = (e) => {
-    const mm = Number(e.currentTarget.dataset.mm) || 0;
-    const barra = document.getElementById("sim-barra");
-    if (mm > Number(barra.max)) barra.max = String(Math.ceil(mm / 50) * 50);
-    reproducirSimulador(mm);
-  };
+  document.getElementById("sim-periodo-ir").onclick = () => simularPeriodo(hasta.value);
   calcular();
 }
 
@@ -1022,17 +1005,25 @@ function pintarFiltrosSimulador() {
 
 function pintarPanelSimulador(d) {
   const panel = document.getElementById("sim-panel");
-  const R = d ? resultadoSim(d, SIM.mm) : null;
   const ps = presetsSimulador();
   panel.innerHTML = `
     <div class="sim-filtros" id="sim-filtros" role="group" aria-label="${t("sim_capas")}"></div>
     <div class="sim-corte" id="sim-corte" hidden></div>
-    <div class="sim-mm"><span class="sim-mm-valor" id="sim-mm-valor">${fmt(SIM.mm)}</span><span class="sim-mm-u">mm</span>
-      <span class="sim-mm-etq">${t("sim_lluvia_caida")}</span></div>
+    <p class="sim-progreso" id="sim-progreso" role="status" hidden></p>
+    <div class="sim-ahora"><span class="sim-ahora-fecha" id="sim-fecha">–</span><span class="sim-ahora-tipo" id="sim-tipo"></span>
+      <span class="sim-ahora-lluvia" id="sim-acum"></span></div>
     <div class="sim-control">
-      <button type="button" class="lt-play" id="sim-play" aria-label="${t("sim_reproducir")}">${icono(SIM.reproduciendo ? "pausa" : "play")}</button>
-      <input type="range" id="sim-barra" min="0" max="400" step="5" value="${SIM.mm}" aria-label="${t("sim_lluvia_caida")}"${d ? "" : " disabled"}>
+      <button type="button" class="lt-play" id="sim-play" aria-label="${t("sim_reproducir")}">${icono("play")}</button>
+      <input type="range" id="sim-barra" min="0" max="0" step="1" value="0" aria-label="${t("sim_linea")}">
     </div>
+    <div class="sim-linea" id="sim-linea"></div>
+    <div class="tb-datos sim-datos">
+      ${dato(t("sim_area"), "–", "")}
+      ${dato(t("sim_prof"), "–", t("sim_prof_sub"))}
+      ${dato(t("sim_personas"), "–", t("sim_personas_sub"))}
+      ${dato(t("sim_radios"), d ? fmt(d.radios.length) : "–", t("sim_radios_sub"))}
+    </div>
+    <div class="sim-leyenda">${COLOR_AGUA.map(([v, c]) => `<span><i style="background:${rgba(c, 0.6)}"></i>${v < 1 ? `${fmt(v * 100)} cm` : `${fmt(v)} m`}</span>`).join("")}</div>
     <div class="sim-periodo" id="sim-periodo">
       <h3 class="sim-h3">${t("sim_periodo")}</h3>
       <div class="sim-fechas"><label>${t("sim_desde")}<input type="date" id="sim-desde"></label><label>${t("sim_hasta")}<input type="date" id="sim-hasta"></label></div>
@@ -1042,71 +1033,70 @@ function pintarPanelSimulador(d) {
       <button type="button" class="btn-primario" id="sim-periodo-ir" disabled>${t("sim_per_ir")}</button>
       <p class="sim-periodo-nota">${t("sim_per_nota")}</p>
     </div>
-    <div class="sim-presets">${ps.map(([e, v], i) => `<button type="button" class="chip" data-i="${i}"${d ? "" : " disabled"}>${e} · ${fmt(v)} mm</button>`).join("")}</div>
-    <div class="tb-datos sim-datos">
-      ${dato(t("sim_area"), R ? `${fmt(R.pct, R.pct < 10 ? 1 : 0)} %` : "–", R ? `${fmt(R.km2, 2)} km²` : "")}
-      ${dato(t("sim_prof"), R && R.maxProf > 0 ? `${fmt(R.maxProf, 1)} m` : "–", t("sim_prof_sub"))}
-      ${dato(t("sim_personas"), R ? fmtPersonas(R.personas) : "–", t("sim_personas_sub"))}
-      ${dato(t("sim_radios"), d ? fmt(d.radios.length) : "–", t("sim_radios_sub"))}
+    <div class="sim-rio" id="sim-rio" hidden>
+      <h3 class="sim-h3">${t("sim_rio")}</h3>
+      <div class="sim-control"><input type="range" id="sim-crecida" min="-1" max="6" step="0.25" value="${SIM.crecida}" aria-label="${t("sim_rio")}"><b id="sim-crecida-v"></b></div>
+      <p class="sim-periodo-nota">${t("sim_rio_nota")}</p>
     </div>
-    <div class="sim-leyenda">${COLOR_AGUA.map(([v, c]) => `<span><i style="background:${rgba(c, 0.6)}"></i>${v < 1 ? `${fmt(v * 100)} cm` : `${fmt(v)} m`}</span>`).join("")}</div>
-    <h3 class="sim-h3">${t("sim_curva")}</h3><div id="sim-curva" class="graf-cont"></div>
-    <details class="sim-metodo"><summary>${t("sim_como")}</summary><p>${t("sim_metodo")}</p></details>`;
+    <h3 class="sim-h3">${t("sim_tormentas")}</h3>
+    <div class="sim-presets">${ps.map(([e, v], i) => `<button type="button" class="chip" data-i="${i}"${d ? "" : " disabled"}>${e} · ${fmt(v)} mm</button>`).join("")}</div>
+    <details class="sim-metodo"><summary>${t("sim_como")}</summary><p>${t("sim_metodo")}</p><p id="sim-supuestos"></p></details>`;
   const barra = document.getElementById("sim-barra");
-  barra.oninput = () => { if (SIM.maqueta?.lluvia.activa) terminarLluvia(); SIM.mm = Number(barra.value); actualizarSimulador(); };
+  barra.oninput = () => { const Mo = SIM.modelo; if (!Mo?.frames.length) return; detenerAnimaciones(); Mo.siguiendo = false; Mo.hora = Math.min(Number(barra.value), Mo.frames.length - 1); mostrarHora(); };
   document.getElementById("sim-play").onclick = () => reproducirSimulador();
-  panel.querySelectorAll(".sim-presets .chip").forEach((b) => { b.onclick = () => reproducirSimulador(ps[+b.dataset.i][1]); });
+  panel.querySelectorAll(".sim-presets .chip[data-i]").forEach((b) => { b.onclick = () => simularPeriodo(sumarDias(limitesPeriodo().hoy, 2), ps[+b.dataset.i][1]); });
+  const cre = document.getElementById("sim-crecida"), creV = document.getElementById("sim-crecida-v");
+  const pintarCre = () => { creV.textContent = `${SIM.crecida > 0 ? "+" : ""}${fmt(SIM.crecida, 2)} m`; };
+  cre.oninput = () => { SIM.crecida = Number(cre.value); pintarCre(); };
+  cre.onchange = () => { if (SIM.modelo?.hasta) simularPeriodo(SIM.modelo.hasta, SIM.modelo.tormenta); };
+  pintarCre();
   pintarFiltrosSimulador();
   prepararPeriodo();
-  if (d) {
-    pintarCorte();
-    const mms = Array.from({ length: 41 }, (_, i) => i * 10);
-    grafLineas(document.getElementById("sim-curva"), {
-      etiquetas: mms.map((v) => `${v}`), alto: 150, min: 0, max: 100, marcas: [0, 25, 50, 75, 100], formatoEje: (v) => `${v} %`,
-      formato: (v) => `${fmt(v, 1)} %`, series: [{ nombre: t("sim_area"), valores: mms.map((v) => resultadoSim(d, v).pct), color: "var(--s-1)", ancho: 2.2, area: true }],
-      marca: Math.round(SIM.mm / 10), extraTip: (i) => `<span class="tip-fila">${mms[i]} mm</span>`,
-      onClick: (i) => { SIM.mm = mms[i]; actualizarSimulador(); },
-    });
-  }
+  if (d) pintarCorte();
 }
 
-// Cifras, barra y corte (sin redibujar el mapa)
+// Cifras de la hora que se ve, fecha y tipo de dato, lluvia acumulada y supuestos
 function actualizarNumeros() {
-  const d = SIM.datos;
-  if (!d) return;
-  const R = resultadoSim(d, SIM.mm);
-  document.getElementById("sim-mm-valor").textContent = fmt(SIM.mm);
-  document.getElementById("sim-barra").value = SIM.mm;
+  const Mo = SIM.modelo, d = SIM.datos;
+  if (!d || !Mo?.frames.length) return;
+  const k = Mo.hora, R = Mo.stats[k], met = Mo.met, tp = TIPO_DATO[met.tipo[k]];
+  const fecha = new Date(met.horas[k]);
+  document.getElementById("sim-fecha").textContent = fecha.toLocaleString(estado.idioma === "en" ? "en-GB" : "es-AR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const etq = document.getElementById("sim-tipo");
+  etq.textContent = t(`sim_tipo_${tp}`); etq.style.background = COLOR_TIPO[met.tipo[k]];
+  let real = 0, pron = 0, esc = 0;
+  for (let j = 0; j <= k; j++) { const v = met.lluvia[j]; if (met.tipo[j] === 0) real += v; else if (met.tipo[j] === 1) pron += v; else esc += v; }
+  document.getElementById("sim-acum").innerHTML = t("sim_acum")(fmt(real), fmt(pron), fmt(esc));
+  const barra = document.getElementById("sim-barra");
+  barra.max = String(met.horas.length - 1); barra.value = String(k);
   const vals = document.querySelectorAll(".sim-datos .tb-dato-valor"), ext = document.querySelectorAll(".sim-datos .tb-dato-extra");
   vals[0].textContent = `${fmt(R.pct, R.pct < 10 ? 1 : 0)} %`; ext[0].textContent = `${fmt(R.km2, 2)} km²`;
-  vals[1].textContent = R.maxProf > 0 ? `${fmt(R.maxProf, 1)} m` : "–";
+  vals[1].textContent = R.maxProf >= 0.01 ? `${fmt(R.maxProf, 2)} m` : "–";
   vals[2].textContent = fmtPersonas(R.personas);
+  const rio = document.getElementById("sim-rio");
+  if (rio) rio.hidden = !Mo.g.tipo2.some((v) => v === 3);
+  const sup = document.getElementById("sim-supuestos");
+  if (sup) sup.textContent = t("sim_supuestos")(Mo.suelo.nombre, Mo.suelo.supuesto, SIM.desague, fmt(Mo.g.dx), Mo.cuenta ? fmt(100 * Mo.cuenta.infiltrada / Math.max(1, Mo.cuenta.lluvia)) : "…");
   pintarCorte();
 }
-function actualizarSimulador() {
-  if (!SIM.datos) return;
-  actualizarNumeros();
-  if (SIM.vista === "maqueta") { SIM.mapaSucio = true; actualizarMaqueta(); } else dibujarAgua();
-}
+function actualizarSimulador() { mostrarHora(); }
 
-// Llena de 0 hasta el valor elegido en unos 4 segundos (por tiempo, igual en cualquier equipo)
-function reproducirSimulador(objetivo = null) {
-  const btn = document.getElementById("sim-play");
-  if (SIM.vista === "maqueta" && SIM.maqueta) {   // en la maqueta: lluvia animada (▶ de nuevo la corta)
-    if (SIM.maqueta.lluvia.activa && objetivo == null) { terminarLluvia(); btn.innerHTML = icono("play"); return; }
-    terminarLluvia();
-    return llover(objetivo ?? (SIM.mm > 0 && SIM.mm < 400 ? SIM.mm : 150));
-  }
-  if (SIM.reproduciendo && objetivo == null) { cancelAnimationFrame(SIM.reproduciendo); SIM.reproduciendo = 0; btn.innerHTML = icono("play"); return; }
-  cancelAnimationFrame(SIM.reproduciendo);
-  const meta = objetivo ?? (SIM.mm > 0 && SIM.mm < 400 ? SIM.mm : 200), t0 = performance.now(), dur = movimientoReducido() ? 0 : 4000;
+// ▶: recorre las horas calculadas (12 por segundo); en la maqueta, además, corren las líneas blancas
+function reproducirSimulador() {
+  const Mo = SIM.modelo, btn = document.getElementById("sim-play");
+  if (!Mo?.frames.length) return;
+  if (SIM.reproduciendo) { detenerAnimaciones(); return; }
+  if (Mo.hora >= Mo.frames.length - 1) Mo.hora = Mo.hoy;
+  Mo.siguiendo = false;
   btn.innerHTML = icono("pausa");
+  if (SIM.maqueta) SIM.maqueta.part.activa = true;
+  let t0 = performance.now(), hora0 = Mo.hora;
   const cuadro = (ahora) => {
-    const f = dur ? Math.min(1, (ahora - t0) / dur) : 1;
-    SIM.mm = Math.round(meta * f);
-    actualizarSimulador();
-    if (f < 1) SIM.reproduciendo = requestAnimationFrame(cuadro);
-    else { SIM.reproduciendo = 0; btn.innerHTML = icono("repetir"); }
+    const k = Math.min(Mo.frames.length - 1, hora0 + Math.floor(((ahora - t0) / 1000) * 12));
+    if (k !== Mo.hora) { Mo.hora = k; actualizarNumeros(); pintarLineaSim(); if (SIM.vista === "mapa") dibujarAgua(); }
+    if (SIM.vista === "maqueta" && SIM.maqueta) { moverLineas(SIM.maqueta.part); actualizarMaqueta(); }
+    if (k >= Mo.frames.length - 1 && !Mo.corriendo) { detenerAnimaciones(); btn.innerHTML = icono("repetir"); return; }
+    SIM.reproduciendo = requestAnimationFrame(cuadro);
   };
   SIM.reproduciendo = requestAnimationFrame(cuadro);
 }
