@@ -16,6 +16,30 @@ const TEXTURAS = {   // Green-Ampt (Rawls, Brakensiek y Miller 1983): conductivi
   arcilloso: { ks: 0.3, psi: 316.3, thetaS: 0.475 },
 };
 
+// ---------- Suelo del lugar (SoilGrids → clase USDA → Green-Ampt; preparar_suelos.py) ----------
+let mapaSuelo = null;
+async function sueloEn(punto) {
+  if (!mapaSuelo) {
+    const [ind, img] = await Promise.all([fetch("datos/suelo/indice.json").then((r) => r.json()), fetch("datos/suelo/textura.png").then((r) => r.blob()).then(createImageBitmap)]);
+    const cv = new OffscreenCanvas(img.width, img.height), c = cv.getContext("2d", { willReadFrequently: true });
+    c.drawImage(img, 0, 0);
+    mapaSuelo = { ind, w: img.width, h: img.height, px: c.getImageData(0, 0, img.width, img.height).data };
+  }
+  const { ind, w, h, px } = mapaSuelo;
+  const col = Math.floor((punto[0] - ind.oeste) / ind.paso), fila = Math.floor((ind.norte - punto[1]) / ind.paso);
+  // La clase más frecuente en ~6 km alrededor (evita caer justo en un píxel sin dato, como un río)
+  const cuenta = new Map();
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    const x = col + dx, y = fila + dy;
+    if (x < 0 || y < 0 || x >= w || y >= h) continue;
+    const k = px[4 * (y * w + x)];
+    if (k) cuenta.set(k, (cuenta.get(k) ?? 0) + 1);
+  }
+  const k = [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  const cl = k ? ind.clases[k] : null;
+  return cl?.ks ? { ks: cl.ks, psi: cl.psi, thetaS: cl.thetaS, nombre: cl.nombre, supuesto: false } : null;
+}
+
 // ---------- Lluvia hora por hora ----------
 async function lluviaDelPunto(punto, hastaISO) {
   const [lon, lat] = punto.map((v) => v.toFixed(3));

@@ -299,7 +299,8 @@ async function simularPeriodo(hastaISO, tormentaMm = 0) {
   for (let i = 0; i < g.celdaFina.length; i++) g.celdaFina[i] = g.celdaDe(i);
   g.nDentro = g.dentroC.reduce((a, b) => a + b, 0);
   M.met = met; M.g = g;
-  M.suelo = SIM.suelo ?? { ...TEXTURAS.franco, nombre: "franco", supuesto: true };
+  M.suelo = (await sueloEn(d.s.punto).catch(() => null)) ?? { ...TEXTURAS.franco, nombre: "franco", supuesto: true };
+  if (SIM.modelo !== M) return;
   const w = (M.worker = new Worker("hidraulica.js"));
   w.onmessage = (e) => recibirHora(M, e.data);
   w.onerror = (e) => { avisoProgreso(t("sim_error")); console.error(e); };
@@ -413,6 +414,7 @@ function crearMapaSimulador(s) {
       const [x0, y0, x1, y1] = cajaCirculo(s.punto, s.km * 1.05);
       m.fitBounds([[x0, y0], [x1, y1]], { pitch: 62, bearing: -20, padding: 20, duration: 0 });
       m.setZoom(m.getZoom() + 0.4);   // con la inclinación, el ajuste deja el círculo chico
+      SIM.zoomAjuste = m.getZoom();   // referencia para pasar la distancia de la cámara a la maqueta
       m.on("mousemove", tooltipSimulador);
       m.on("mouseout", () => Tip.ocultar());
       m.on("click", (e) => { moverCorte(e.lngLat); if (e.originalEvent.pointerType !== "mouse") tooltipSimulador(e); });
@@ -499,6 +501,7 @@ function agregarBotonesVista() {
 async function elegirVistaSimulador(v) {
   if (SIM.vista === v && (v === "mapa" || SIM.maqueta)) return;
   detenerAnimaciones();
+  pasarCamara(SIM.vista, v);
   SIM.vista = v;
   document.querySelectorAll(".sim-vistas button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === v)));
   document.querySelector(".sim-leyenda-mapa")?.classList.toggle("oculta-maqueta", v === "maqueta");
@@ -517,9 +520,24 @@ async function elegirVistaSimulador(v) {
   } catch (e) { est.textContent = t("sim_error"); console.error(e); return; }
   est.textContent = "";
   if (SIM.vista !== "maqueta" || !SIM.maqueta) return;
+  if (SIM.camaraPendiente) { Object.assign(SIM.maqueta, SIM.camaraPendiente); SIM.camaraPendiente = null; }
   SIM.maqueta.capa.hidden = false;
   SIM.maqueta.redimensionar();
   actualizarMaqueta(true);
+}
+
+// Al cambiar de vista se conserva la cámara: rumbo del mapa ↔ giro de la maqueta, inclinación ↔ elevación, zoom ↔ distancia
+function pasarCamara(de, a) {
+  const m = SIM.mapa, M = SIM.maqueta;
+  if (!m || de === a) return;
+  if (a === "maqueta") {
+    const cam = { azimut: (-m.getBearing() * Math.PI) / 180, elevacion: limitar(((90 - m.getPitch()) * Math.PI) / 180, 0.08, 1.45),
+      distancia: limitar(2 ** ((SIM.zoomAjuste ?? m.getZoom()) - m.getZoom()) * 0.85, 0.3, 2.5) };
+    if (M) Object.assign(M, cam); else SIM.camaraPendiente = cam;
+  } else if (M) {
+    m.jumpTo({ bearing: (-M.azimut * 180) / Math.PI, pitch: limitar(90 - (M.elevacion * 180) / Math.PI, 0, 80),
+      zoom: (SIM.zoomAjuste ?? m.getZoom()) - Math.log2(M.distancia / 0.85), center: SIM.datos?.s.punto });
+  }
 }
 
 // Imagen satelital (Sentinel-2 sin nubes, EOX) del recuadro del círculo, a `S` píxeles por píxel de relieve

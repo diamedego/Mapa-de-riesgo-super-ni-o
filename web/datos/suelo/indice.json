@@ -1,0 +1,85 @@
+{
+ "fuente": "SoilGrids 2.0 (ISRIC, CC BY 4.0), arcilla y arena 0-30 cm; clases USDA; Green-Ampt de Rawls et al. (1983)",
+ "oeste": -74.0,
+ "sur": -56.0,
+ "este": -53.0,
+ "norte": -21.5,
+ "paso": 0.02,
+ "clases": [
+  {
+   "nombre": "sin dato"
+  },
+  {
+   "nombre": "arenoso",
+   "ks": 117.8,
+   "psi": 49.5,
+   "thetaS": 0.437
+  },
+  {
+   "nombre": "arenoso franco",
+   "ks": 29.9,
+   "psi": 61.3,
+   "thetaS": 0.437
+  },
+  {
+   "nombre": "franco arenoso",
+   "ks": 10.9,
+   "psi": 110.1,
+   "thetaS": 0.453
+  },
+  {
+   "nombre": "franco",
+   "ks": 3.4,
+   "psi": 88.9,
+   "thetaS": 0.463
+  },
+  {
+   "nombre": "franco limoso",
+   "ks": 6.5,
+   "psi": 166.8,
+   "thetaS": 0.501
+  },
+  {
+   "nombre": "limoso",
+   "ks": 6.5,
+   "psi": 166.8,
+   "thetaS": 0.501
+  },
+  {
+   "nombre": "franco arcillo arenoso",
+   "ks": 1.5,
+   "psi": 218.5,
+   "thetaS": 0.398
+  },
+  {
+   "nombre": "franco arcilloso",
+   "ks": 1.0,
+   "psi": 208.8,
+   "thetaS": 0.464
+  },
+  {
+   "nombre": "franco arcillo limoso",
+   "ks": 1.0,
+   "psi": 273.0,
+   "thetaS": 0.471
+  },
+  {
+   "nombre": "arcillo arenoso",
+   "ks": 0.6,
+   "psi": 239.0,
+   "thetaS": 0.43
+  },
+  {
+   "nombre": "arcillo limoso",
+   "ks": 0.5,
+   "psi": 292.2,
+   "thetaS": 0.479
+  },
+  {
+   "nombre": "arcilloso",
+   "ks": 0.3,
+   "psi": 316.3,
+   "thetaS": 0.475
+  }
+ ]
+}

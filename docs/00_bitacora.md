@@ -466,3 +466,7 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   maqueta con líneas que siguen la pendiente del agua del modelo, nivel del río, tormentas de prueba, supuestos visibles.
 - Pendiente de esta etapa: terreno FABDEM en las 20 ciudades (descargando), mapa nacional de suelos (SoilGrids),
   validación contra inundaciones reales (satélite 2015-16 / 2023-24, La Plata 2013), cámara que no se reinicia al cambiar de vista.
+- 10-nov (cont.): suelo real por lugar — mapa nacional de textura (SoilGrids 2.0, arcilla y arena 0-30 cm, ~2 km, clases USDA,
+  Green-Ampt de Rawls 1983; `web/preparar_suelos.py`, 134 KB). Terreno FABDEM en las ciudades prioritarias
+  (`web/preparar_terreno_fabdem.py`, bloques de 0,25°; primer archivo procesado: Gran Buenos Aires, La Plata, Mar del Plata).
+  La cámara se conserva al pasar de Mapa a Maqueta y viceversa (punto 16).
