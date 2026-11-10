@@ -246,3 +246,6 @@ fecha_descarga,fuente,dataset,url,archivo,formato,registros,licencia,estado,nota
 2026-11-09T22:22:07,SMN,alertas CAP vigentes,https://ssl.smn.gob.ar/CAP/AR.php,data/archivo/smn_cap/alertas_2026-11-09.parquet,GeoParquet,92,CC BY 4.0 (SMN),ok,36 avisos en el feed
 2026-11-10T07:18:24,SMN,alertas CAP vigentes,https://ssl.smn.gob.ar/CAP/AR.php,data/archivo/smn_cap/alertas_2026-11-10.parquet,GeoParquet,36,CC BY 4.0 (SMN),ok,36 avisos en el feed
 2026-11-10T17:03:35,SMN,alertas CAP vigentes,https://ssl.smn.gob.ar/CAP/AR.php,data/archivo/smn_cap/alertas_2026-11-10.parquet,GeoParquet,53,CC BY 4.0 (SMN),ok,27 avisos en el feed
+2026-11-10T18:14:48,Open-Meteo (ECMWF IFS 0.25°),pronóstico diario de lluvia 16 días por gobierno local,https://api.open-meteo.com/v1/forecast,data/archivo/pronostico_corto/2026-11-10.parquet,Parquet,43358,"CC BY 4.0, uso no comercial gratuito",ok,
+2026-11-10T18:14:52,INA,catálogo de series de altura,https://alerta.ina.gob.ar/a5/obs/puntual/series?var_id=2,data/archivo/ina/series.parquet,GeoParquet,1143,"Datos públicos INA, citar fuente",ok,
+2026-11-10T18:16:21,INA,alturas diarias desde 2026-10-31 (series con nivel de alerta),https://alerta.ina.gob.ar/a5/obs/puntual/observaciones,data/archivo/ina/alturas_2026-11-10.parquet,Parquet,3990,"Datos públicos INA, citar fuente",ok,176 series
