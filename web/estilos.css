@@ -154,6 +154,19 @@ a.btn-banda { text-decoration: none; }
 .ico-sug { width: 15px; height: 15px; color: var(--cian); }
 .aviso { margin: -4px 0 0; padding: 8px 12px; border-radius: var(--radio-1); background: var(--atencion-fondo); color: var(--tinta-1); font-size: 0.88rem; }
 .modo-fila { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+/* Descripciones al pasar el mouse (o al tocar): chiquitas, con fondo semitransparente */
+[data-ayuda]:hover::after, [data-ayuda]:focus-visible::after, [data-ayuda].muestra-ayuda::after {
+  content: attr(data-ayuda); position: absolute; left: 50%; top: calc(100% + 6px); transform: translateX(-50%); z-index: 60;
+  width: max-content; max-width: 240px; padding: 5px 9px; border-radius: 6px; background: rgba(15, 23, 32, 0.84); color: #fff;
+  font: 400 0.72rem/1.35 var(--f-ui); text-align: left; white-space: normal; pointer-events: none; }
+.btn-sim-top { position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: var(--radio-2);
+  border: 1.5px solid var(--cian); background: var(--superficie); color: var(--cian); font-weight: 600; font-size: 0.95rem; cursor: pointer; }
+.btn-sim-top:hover { background: var(--cian); color: var(--cian-tinta); }
+.btn-sim-top .ico { width: 20px; height: 20px; }
+.tb-radio { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 2px; }
+.tb-radio input { width: 100%; accent-color: var(--cian); }
+.tb-radio-ext { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--tinta-3); font-family: var(--f-mono); }
+.tb-ver-todo { margin-left: 8px; font-size: 0.72rem; text-transform: none; letter-spacing: 0; }
 .segmentado { display: inline-flex; padding: 4px; gap: 4px; border-radius: 14px; background: var(--superficie-3); border: 1px solid var(--borde); }
 .segmentado button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; border: 0; border-radius: 10px;
   background: transparent; color: var(--tinta-2); font-weight: 600; font-size: 0.92rem; }
@@ -519,6 +532,7 @@ body.sim-abierto { overflow: hidden; }
 .btn-corte3d { margin-left: 6px; min-height: 28px; padding: 0 10px; border-radius: 14px; border: 1px solid var(--cian); background: var(--superficie); color: var(--cian); font: inherit; font-size: 0.76rem; font-weight: 600; cursor: pointer; }
 .btn-corte3d[aria-pressed="true"] { background: var(--cian); color: var(--cian-tinta); }
 .sim-corte-svg { display: block; max-width: 100%; }
+.sim-topo { display: block; max-width: 100%; border: 1px solid var(--borde); border-radius: var(--radio-1); margin-top: 2px; }
 .sim-corte-svg .grilla { stroke: var(--borde); stroke-dasharray: 2 3; }
 .sim-corte-svg .eje { font-size: 10px; fill: var(--tinta-2); font-family: var(--f-mono); }
 .sim-suelo { fill: var(--suelo-corte); stroke: var(--suelo-borde); stroke-width: 1.2; }
@@ -538,6 +552,7 @@ body.sim-abierto { overflow: hidden; }
 .sim-x5 { position: absolute; z-index: 4; left: 10px; top: 52px; min-height: 32px; padding: 0 12px; border-radius: var(--radio-2); border: 1px dashed var(--cian);
   background: var(--superficie); color: var(--tinta-2); font-weight: 600; font-size: 0.84rem; box-shadow: var(--sombra-1); }
 .sim-x5[aria-pressed="true"] { background: var(--cian); color: var(--cian-tinta); border-style: solid; }
+.sim-refs3d { top: 94px; }
 .sim-maqueta { position: absolute; inset: 0; z-index: 2; background: radial-gradient(ellipse at 50% 40%, var(--maq-1) 0%, var(--maq-2) 70%, var(--maq-3) 100%); cursor: grab; }
 .sim-maqueta:active { cursor: grabbing; }
 .sim-maqueta canvas { display: block; width: 100%; height: 100%; }

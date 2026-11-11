@@ -295,7 +295,9 @@ function seleccionarPunto(punto, { nombre = null, origen = "mapa", volar = false
 }
 function cambiarRadio(km) {
   estado.km = km;
-  document.getElementById("b-radio").value = String(km);
+  const sel = document.getElementById("b-radio");
+  if (![...sel.options].some((o) => o.value === String(km))) sel.add(new Option(`${String(km).replace(".", ",")} km`, String(km)));
+  sel.value = String(km);
   if (estado.sel?.tipo === "punto") {
     estado.sel = { ...estado.sel, km };
     aplicarSeleccionEnMapa();
@@ -357,6 +359,7 @@ function aplicarIdioma() {
   document.querySelectorAll("[data-i18n]").forEach((el) => { const v = t(el.dataset.i18n); if (typeof v === "string") el.innerHTML = v; });
   document.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
   document.querySelectorAll("[data-i18n-aria]").forEach((el) => { el.setAttribute("aria-label", t(el.dataset.i18nAria)); });
+  document.querySelectorAll("[data-i18n-ayuda]").forEach((el) => { el.dataset.ayuda = t(el.dataset.i18nAyuda); el.setAttribute("aria-description", t(el.dataset.i18nAyuda)); });
   document.getElementById("btn-idioma").querySelector("span").textContent = estado.idioma === "es" ? "EN" : "ES";
   document.title = t("titulo");
   pintarEstadoDatos();
@@ -430,6 +433,7 @@ async function iniciar() {
   document.getElementById("btn-recorrido").onclick = () => recorrido(0);
   document.getElementById("btn-3d").onclick = alternar3d;
   document.getElementById("btn-relieve").onclick = alternarRelieve;
+  document.getElementById("btn-sim-top").onclick = usarSimulador;
   if (SIN_TESELAS) { document.getElementById("btn-3d").hidden = true; document.getElementById("btn-relieve").hidden = true; document.getElementById("enlace-completo").hidden = false; }
   addEventListener("resize", demorar(() => { pintarTablero(); pintarAnalisis(); pintarMinis(); }, 250));
 

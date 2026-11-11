@@ -222,11 +222,18 @@ function puntoSel() {
 }
 
 // ---------- Piezas comunes ----------
-// El simulador necesita un punto: con una zona de gobierno local se usa su centro; con el país o una provincia se pide elegir un punto
-function botonSimular(s) {
-  const lista = !s || (s.tipo === "zona" && s.lugar.nivel === "prov");
-  const sub = lista ? t("sim_boton_elegir") : s.tipo === "zona" ? t("sim_boton_centro") : t("sim_boton_sub");
-  return `<button type="button" class="btn-sim${lista ? " btn-sim-pide" : ""}" data-accion="simular"${lista ? ' aria-disabled="true"' : ""}>${icono("lluvia")}<span><b>${t("sim_boton")}</b><small>${sub}</small></span></button>`;
+// Botón "Simulador en 3D" (arriba del mapa): con un punto lo abre; con una localidad o municipio usa su centro;
+// con el país o una provincia pide elegir un punto
+function usarSimulador() {
+  const sel = estado.sel, btn = document.getElementById("btn-sim-top");
+  if (sel?.tipo === "punto") return abrirSimulador();
+  if (sel?.tipo === "zona" && sel.lugar.nivel !== "prov") {
+    const [x0, y0, x1, y1] = sel.lugar.caja;
+    seleccionarPunto([(x0 + x1) / 2, (y0 + y1) / 2], { nombre: sel.lugar.nombre, origen: "zona", volar: true });
+    return abrirSimulador();
+  }
+  btn.dataset.ayuda = t("sim_elegir_punto"); btn.classList.add("muestra-ayuda");
+  setTimeout(() => { btn.classList.remove("muestra-ayuda"); btn.dataset.ayuda = t("sim_desc"); }, 4000);
 }
 function cabeceraTablero() {
   const s = estado.sel;
@@ -234,14 +241,15 @@ function cabeceraTablero() {
   let sub = t("sub_pais");
   if (s?.tipo === "zona") sub = s.lugar.nivel === "prov" ? t("provincia") : `${s.lugar.tipo} · ${s.lugar.provincia}`;
   if (s?.tipo === "punto") { const m = estado.porCmu.get(s.cmu); sub = m ? `${m.nam} · ${m.jur}` : `${fmt(s.punto[1], 3)}, ${fmt(s.punto[0], 3)}`; }
-  const tipo = !s ? t("sel_pais") : s.tipo === "zona" ? t("sel_zona") : t("sel_circulo")(s.km);
-  const radios = s?.tipo === "punto" ? `<div class="tb-radios" role="radiogroup" aria-label="${t("radio_km")}">${[1, 2, 5, 10, 20].map((k) =>
-    `<button role="radio" aria-checked="${k === s.km}" data-km="${k}">${k} km</button>`).join("")}</div>` : "";
+  const tipo = !s ? t("sel_pais") : s.tipo === "zona" ? t("sel_zona") : t("sel_radio")(fmt(s.km, s.km % 1 ? 1 : 0));
+  // Radio con barra (0,5 a 20 km): el número cambia al deslizar y la zona se recalcula al soltar
+  const radios = s?.tipo === "punto" ? `<div class="tb-radio"><input type="range" id="tb-radio" min="0.5" max="20" step="0.5" value="${s.km}" aria-label="${t("radio_km")}">
+    <span class="tb-radio-ext"><span>0,5 km</span><span>20 km</span></span></div>` : "";
   const acciones = s ? `<button class="btn-icono" data-accion="quitar" aria-label="${t("quitar_seleccion")}" title="${t("quitar_seleccion")}">${icono("cerrar")}</button>` : "";
-  const verMuni = s?.tipo === "punto" && s.cmu ? `<button class="btn-texto" data-accion="municipio">${t("ver_municipio")(estado.porCmu.get(s.cmu)?.nam ?? "")}</button>` : "";
-  return `<header class="tb-cabeza"><div class="tb-titulos"><span class="tb-tipo">${icono(s?.tipo === "punto" ? "objetivo" : "pin")}${tipo}</span>
+  const verMuni = s?.tipo === "punto" && s.cmu ? `<button class="btn-texto tb-ver-todo" data-accion="municipio">${t("ver_municipio")(estado.porCmu.get(s.cmu)?.nam ?? "")}</button>` : "";
+  return `<header class="tb-cabeza"><div class="tb-titulos"><span class="tb-tipo">${icono(s?.tipo === "punto" ? "objetivo" : "pin")}<span id="tb-tipo-txt">${tipo}</span>${verMuni}</span>
       <h2>${escapar(titulo)}</h2><p>${escapar(sub)}</p></div>${acciones}</header>
-    ${radios}${botonSimular(s)}<p class="tb-periodo">${icono(estado.modo === "actual" ? "reloj" : "calendario")}<span>${escapar(textoPeriodo())}</span>${verMuni}</p>`;
+    ${radios}`;
 }
 
 function bloqueSituacion(nivel, parrafos, acciones) {
@@ -579,18 +587,12 @@ async function pintarTablero() {
   } finally {
     cont.classList.remove("cargando");
   }
-  cont.querySelectorAll("[data-km]").forEach((b) => { b.onclick = () => cambiarRadio(Number(b.dataset.km)); });
+  const barra = cont.querySelector("#tb-radio");
+  if (barra) {
+    barra.oninput = () => { cont.querySelector("#tb-tipo-txt").textContent = t("sel_radio")(fmt(+barra.value, +barra.value % 1 ? 1 : 0)); };
+    barra.onchange = () => cambiarRadio(Number(barra.value));
+  }
   cont.querySelector('[data-accion="quitar"]')?.addEventListener("click", borrarFiltros);
-  cont.querySelector('[data-accion="simular"]')?.addEventListener("click", () => {
-    const sel = estado.sel;
-    if (sel?.tipo === "punto") return abrirSimulador();
-    if (sel?.tipo === "zona" && sel.lugar.nivel !== "prov") {   // centro de la zona, con el radio elegido
-      const [x0, y0, x1, y1] = sel.lugar.caja;
-      seleccionarPunto([(x0 + x1) / 2, (y0 + y1) / 2], { nombre: sel.lugar.nombre, origen: "zona", volar: true });
-      return abrirSimulador();
-    }
-    cont.querySelector(".btn-sim small").textContent = t("sim_boton_elegir_ya");
-  });
   cont.querySelector('[data-accion="municipio"]')?.addEventListener("click", () => {
     const l = estado.lugares.find((x) => x.nivel === "gl" && x.cmus[0] === estado.sel.cmu);
     if (l) elegirLugar("localidad", l);

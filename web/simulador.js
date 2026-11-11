@@ -11,7 +11,7 @@
 // Solo en la versión completa (las teselas de relieve vienen de un servidor externo).
 
 const SIM = { mapa: null, mm: 0, reproduciendo: 0, datos: null,
-  capas: { colores: true, curvas: true, drenaje: true, corte: true, x5: false }, vista: "mapa", maqueta: null,
+  capas: { colores: true, curvas: true, drenaje: true, corte: true, x5: false, refs3d: true }, vista: "mapa", maqueta: null,
   modelo: null, desague: 10, crecida: 0 };   // desagües pluviales supuestos: 10 mm/h en superficies impermeables (no hay datos)
 const AGUA_MIN = 0.1;   // desde 10 cm se cuenta como zona con agua
 const TERRARIUM = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
@@ -48,7 +48,7 @@ function cerrarSimulador() {
   document.getElementById("sim").hidden = true;
   document.body.classList.remove("sim-abierto");
   SIM.mapa?.remove(); SIM.mapa = null; SIM.datos = null;
-  SIM.modelo?.worker?.terminate(); SIM.modelo = null;
+  SIM.modelo?.worker?.terminate(); SIM.modelo = null; SIM.industrias = null;
   cerrarMaqueta(); SIM.vista = "mapa"; SIM.corte3d = false;
   document.querySelectorAll(".sim-leyenda-mapa, .sim-vistas").forEach((el) => el.remove());
   Tip.ocultar();
@@ -189,11 +189,12 @@ async function prepararSimulacion(s) {
   // Colores por altura: escala entre los percentiles 2 y 98 del círculo (un pico aislado no aplana el resto)
   const alturas = Float32Array.from(celdas, (i) => hs[i]).sort();
   const hMin = alturas[Math.floor((alturas.length - 1) * 0.02)], hMax = alturas[Math.floor((alturas.length - 1) * 0.98)];
-  // Curvas de nivel cada 2 m: borde entre píxeles vecinos de distinta franja
+  // Curvas de nivel con intervalo según el desnivel: borde entre píxeles vecinos de distinta franja
+  const intervalo = intervaloCurvas(hMax - hMin);
   const curva = new Uint8Array(N);
   for (const i of celdas) {
-    const b = Math.floor(hs[i] / 2), x = i % W;
-    if ((x + 1 < W && dentro[i + 1] && Math.floor(hs[i + 1] / 2) !== b) || (i + W < N && dentro[i + W] && Math.floor(hs[i + W] / 2) !== b)) curva[i] = 1;
+    const b = Math.floor(hs[i] / intervalo), x = i % W;
+    if ((x + 1 < W && dentro[i + 1] && Math.floor(hs[i + 1] / intervalo) !== b) || (i + W < N && dentro[i + W] && Math.floor(hs[i + W] / intervalo) !== b)) curva[i] = 1;
   }
   // Drenaje: D8 sobre el relieve muy suavizado (~200 m) y área que desagua en cada lugar (de lo más alto a lo más bajo)
   const hd = promedioLocal(hs, W, H, Math.max(3, Math.round(105 / metrosPx)));
@@ -238,7 +239,7 @@ async function prepararSimulacion(s) {
   // Corte: por defecto, de oeste a este por el centro del círculo (tocando el mapa se elige otra latitud)
   const filaCorte = limitar(Math.round((yDeLat(s.punto[1], D.z) - D.ty0) * 256), 0, H - 1);
   SIM.datos = { D, s, celdas, radios, radioDe, celdasRadio, areaCelda: metrosPx ** 2, metrosPx,
-    hs, dentro, hMin, hMax, curva, cauce, orilla, lonP, latP, filaCorte, circulo, hLago };
+    hs, dentro, hMin, hMax, intervalo, curva, cauce, orilla, lonP, latP, filaCorte, circulo, hLago };
   est.textContent = "";
   agregarAguaAlMapa(D);
   pintarPanelSimulador(SIM.datos);
@@ -496,6 +497,12 @@ function agregarBotonesVista() {
   x5.setAttribute("aria-pressed", String(SIM.capas.x5));
   x5.onclick = () => document.querySelector('#sim-filtros [data-k="x5"]')?.click();
   marco.appendChild(x5);
+  marco.querySelector(".sim-refs3d")?.remove();
+  const rf = document.createElement("button");
+  rf.type = "button"; rf.className = "sim-x5 sim-refs3d"; rf.textContent = t("sim_refs3d"); rf.dataset.ayuda = t("sim_refs3d_ayuda");
+  rf.setAttribute("aria-pressed", String(SIM.capas.refs3d)); rf.hidden = SIM.vista !== "maqueta";
+  rf.onclick = () => { SIM.capas.refs3d = !SIM.capas.refs3d; rf.setAttribute("aria-pressed", String(SIM.capas.refs3d)); actualizarMaqueta(); };
+  marco.appendChild(rf);
 }
 
 async function elegirVistaSimulador(v) {
@@ -506,6 +513,8 @@ async function elegirVistaSimulador(v) {
   document.querySelectorAll(".sim-vistas button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === v)));
   document.querySelector(".sim-leyenda-mapa")?.classList.toggle("oculta-maqueta", v === "maqueta");
   pintarFiltrosSimulador();
+  const rf = document.querySelector(".sim-refs3d");
+  if (rf) rf.hidden = v !== "maqueta";
   if (v === "mapa") {
     if (SIM.maqueta) SIM.maqueta.capa.hidden = true;
     if (SIM.mapaSucio) dibujarAgua();
@@ -578,7 +587,7 @@ async function crearMaqueta() {
   const capa = document.createElement("div");
   capa.className = "sim-maqueta";
   capa.innerHTML = `<p class="sim-maqueta-ayuda">${t("sim_maqueta_ayuda")}</p><p class="sim-lluvia-estado" hidden></p>
-    <p class="sim-credito-sat"><a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless 2025 · EOX</a> (${t("sim_credito_sat")})</p>`;
+    <p class="sim-credito-sat">${t("sim_fecha_sat")} · <a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless · EOX</a> (${t("sim_credito_sat")})</p>`;
   marco.appendChild(capa);
   const ren = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
   ren.setPixelRatio(Math.min(2, devicePixelRatio));
@@ -642,6 +651,7 @@ async function crearMaqueta() {
     azimut: 0.9, elevacion: 0.42, distancia: 0.7, dibujar: 0, mmCharcos: null };
   escena.add(M.tapa);
   M.part = crearParticulas();
+  if (!SIM.industrias) SIM.industrias = await fetch("datos/industrias.geojson").then((r) => r.json()).then((g) => g.features.filter((f) => distanciaKm(d.s.punto, f.geometry.coordinates) <= d.s.km)).catch(() => []);
   M.charcos = document.createElement("canvas"); M.charcos.width = bw; M.charcos.height = bh;
   M.pelicula = document.createElement("canvas");
   // Cámara orbital: arrastrar gira (azimut y elevación), rueda o pellizco acercan
@@ -675,6 +685,41 @@ async function crearMaqueta() {
   M.observador = new ResizeObserver(() => M.redimensionar());
   M.observador.observe(capa);
   SIM.maqueta = M;
+}
+
+// Rutas y calles principales en blanco (con borde oscuro, para que se vean sobre la imagen satelital) y nombres de
+// hospitales, escuelas, clubes, estaciones, municipalidades e industrias del mapa base y de las referencias del sitio
+function capaReferencias3D() {
+  const M = SIM.maqueta, d = SIM.datos, D = d.D, S = M.S, cv = document.createElement("canvas");
+  cv.width = M.textura.width; cv.height = M.textura.height;
+  const c = cv.getContext("2d");
+  const aT = (lon, lat) => [((xDeLon(lon, D.z) - D.tx0) * 256 - M.x0) * S, ((yDeLat(lat, D.z) - D.ty0) * 256 - M.y0) * S];
+  const ancho = { motorway: 4, trunk: 4, primary: 3.2, secondary: 2.6, tertiary: 2, minor: 1.2 };
+  const rutas = rasgosBase("transportation", (f) => ancho[f.properties.class]).sort((a, b) => ancho[a.properties.class] - ancho[b.properties.class]);
+  c.lineCap = c.lineJoin = "round";
+  for (const pasada of [0, 1]) for (const f of rutas) {
+    const w = ancho[f.properties.class] * Math.max(1, S * 0.8), g = f.geometry, lineas = g.type === "LineString" ? [g.coordinates] : g.type === "MultiLineString" ? g.coordinates : [];
+    c.beginPath();
+    for (const l of lineas) l.forEach(([lo, la], j) => { const [x, y] = aT(lo, la); j ? c.lineTo(x, y) : c.moveTo(x, y); });
+    c.strokeStyle = pasada ? "rgba(255,255,255,0.92)" : "rgba(20,30,40,0.55)"; c.lineWidth = pasada ? w : w + 2; c.stroke();
+  }
+  // Nombres (los más importantes primero, sin pisarse)
+  const clases = { hospital: 1, college: 1, stadium: 1, town_hall: 1, railway: 2, bus: 3, school: 3, sports_centre: 3, police: 3, fire_station: 3 };
+  const pois = rasgosBase("poi", (f) => clases[f.properties.class] && f.properties.name && f.geometry.type === "Point")
+    .sort((a, b) => clases[a.properties.class] - clases[b.properties.class] || (a.properties.rank ?? 99) - (b.properties.rank ?? 99));
+  const puestos = [], tam = Math.max(10, 6 * S);
+  c.font = `600 ${tam}px 'IBM Plex Sans', sans-serif`; c.textAlign = "center";
+  const poner = (nombre, lon, lat, color) => {
+    const [x, y] = aT(lon, lat);
+    if (x < 0 || y < 0 || x > cv.width || y > cv.height || puestos.some(([px, py]) => Math.abs(px - x) < tam * 7 && Math.abs(py - y) < tam * 1.8)) return;
+    puestos.push([x, y]);
+    c.fillStyle = color; c.beginPath(); c.arc(x, y, tam * 0.3, 0, 7); c.fill();
+    c.lineWidth = tam * 0.3; c.strokeStyle = "rgba(255,255,255,0.95)"; c.strokeText(nombre, x, y - tam * 0.6);
+    c.fillStyle = "#1b2a35"; c.fillText(nombre, x, y - tam * 0.6);
+  };
+  for (const f of pois.slice(0, 60)) poner(f.properties["name:es"] ?? f.properties.name, ...f.geometry.coordinates, "#2f6ea8");
+  for (const f of (SIM.industrias ?? []).filter(Boolean)) poner(f.properties.n, ...f.geometry.coordinates, "#6d5a46");
+  return cv;
 }
 
 // ---------- Líneas blancas que bajan con el agua (siguen la pendiente de la superficie del agua del modelo) ----------
@@ -769,6 +814,7 @@ function texturaMaqueta() {
   }
   pintarCharcos();
   ct.drawImage(M.charcos, 0, 0, M.bw * S, M.bh * S);
+  if (SIM.capas.refs3d) { M.refs ??= capaReferencias3D(); ct.drawImage(M.refs, 0, 0); }
   if (P.activa) {   // líneas: una pasada por tramo de cola (el más nuevo, más blanco y grueso)
     const T = LARGO_COLA, aX = (v) => (v - M.x0) * S, aY = (v) => (v - M.y0) * S;
     ct.lineCap = "round";
@@ -952,6 +998,80 @@ function pintarCorte() {
       <text class="eje" x="${izq}" y="${alto - 4}">${t("sim_oeste")}</text>
       <text class="eje" x="${ancho - der}" y="${alto - 4}" text-anchor="end">${t("sim_este")} · ${fmt(km, 1)} km</text></svg>`;
   document.getElementById("sim-ver-corte").onclick = verCorteEn3D;
+  pintarTopografico(cont);
+}
+
+// ---------- Mapa topográfico chico (curvas con su altura, el agua de la hora y la línea del corte) ----------
+const intervaloCurvas = (desnivel) => (desnivel <= 8 ? 0.5 : desnivel <= 20 ? 1 : desnivel <= 50 ? 2 : desnivel <= 120 ? 5 : desnivel <= 300 ? 10 : 20);
+function curvasTopo(d) {   // marching squares sobre una grilla de ~150 celdas; se calcula una vez por lugar
+  if (d.topo) return d.topo;
+  const W = d.D.W;
+  let x0 = W, x1 = 0, y0 = d.D.H, y1 = 0;
+  for (const i of d.celdas) { const x = i % W, y = (i / W) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  const p = Math.max(1, Math.ceil((x1 - x0) / 150)), nx = Math.floor((x1 - x0) / p) + 1, ny = Math.floor((y1 - y0) / p) + 1;
+  const v = new Float32Array(nx * ny);
+  for (let gy = 0; gy < ny; gy++) for (let gx = 0; gx < nx; gx++) { const h = d.hs[(y0 + gy * p) * W + x0 + gx * p]; v[gy * nx + gx] = Number.isFinite(h) ? h : NaN; }
+  const iv = d.intervalo, segs = [];
+  for (let L = Math.ceil(d.hMin / iv) * iv; L <= d.hMax; L += iv) {
+    const mayor = Math.round(L / iv) % 5 === 0, lista = [];
+    for (let gy = 0; gy < ny - 1; gy++) for (let gx = 0; gx < nx - 1; gx++) {
+      const a = v[gy * nx + gx], b = v[gy * nx + gx + 1], c = v[(gy + 1) * nx + gx + 1], e = v[(gy + 1) * nx + gx];
+      if (!(a === a && b === b && c === c && e === e)) continue;
+      const pts = [];
+      const cruce = (va, vb, xa, ya, xb, yb) => { if ((va < L) !== (vb < L)) { const f = (L - va) / (vb - va); pts.push([xa + (xb - xa) * f, ya + (yb - ya) * f]); } };
+      cruce(a, b, gx, gy, gx + 1, gy); cruce(b, c, gx + 1, gy, gx + 1, gy + 1); cruce(e, c, gx, gy + 1, gx + 1, gy + 1); cruce(a, e, gx, gy, gx, gy + 1);
+      if (pts.length >= 2) lista.push(pts[0], pts[1]);
+      if (pts.length === 4) lista.push(pts[2], pts[3]);
+    }
+    if (lista.length) segs.push({ L, mayor, lista });
+  }
+  return (d.topo = { x0, y0, p, nx, ny, segs });
+}
+function pintarTopografico(cont) {
+  const d = SIM.datos;
+  if (!d) return;
+  const T = curvasTopo(d), lado = Math.min(cont.clientWidth || 300, 360), esc = lado / Math.max(T.nx, T.ny);
+  const cv = document.createElement("canvas");
+  cv.width = lado * devicePixelRatio; cv.height = lado * devicePixelRatio; cv.style.width = cv.style.height = `${lado}px`;
+  cv.className = "sim-topo"; cv.setAttribute("role", "img"); cv.setAttribute("aria-label", t("sim_topo")(d.intervalo));
+  const c = cv.getContext("2d"), oscuro = temaOscuro();
+  c.scale(devicePixelRatio, devicePixelRatio);
+  c.fillStyle = oscuro ? "#141c22" : "#fbfaf6"; c.fillRect(0, 0, lado, lado);
+  // Agua de la hora (en cada celda de la grilla, la profundidad en su centro)
+  for (let gy = 0; gy < T.ny; gy++) for (let gx = 0; gx < T.nx; gx++) {
+    const i = (T.y0 + gy * T.p) * d.D.W + T.x0 + gx * T.p;
+    if (!d.circulo[i]) continue;
+    const prof = d.dentro[i] ? aguaFina(i) : 1;   // ríos y lagunas, siempre agua
+    if (prof < AGUA_MIN) continue;
+    c.fillStyle = rgba(colorEscala(COLOR_AGUA, prof), d.dentro[i] ? 0.9 : 0.55);
+    c.fillRect(gx * esc, gy * esc, esc + 0.5, esc + 0.5);
+  }
+  // Curvas: finas cada intervalo, gruesas cada cinco (con su altura)
+  const etiquetas = [];
+  for (const { L, mayor, lista } of T.segs) {
+    c.beginPath();
+    for (let k = 0; k < lista.length; k += 2) { c.moveTo(lista[k][0] * esc, lista[k][1] * esc); c.lineTo(lista[k + 1][0] * esc, lista[k + 1][1] * esc); }
+    c.strokeStyle = oscuro ? (mayor ? "#d9b98a" : "#8a7356") : (mayor ? "#7a4f1d" : "#b38b5d"); c.lineWidth = mayor ? 1.6 : 0.7; c.stroke();
+    if (mayor) for (let k = 0; k < lista.length; k += 2 * 40) {   // una etiqueta cada ~40 tramos, sin pisarse
+      const [a, b] = [lista[k], lista[k + 1]], x = ((a[0] + b[0]) / 2) * esc, y = ((a[1] + b[1]) / 2) * esc;
+      if (etiquetas.some(([ex, ey]) => Math.hypot(ex - x, ey - y) < 48) || x < 14 || y < 10 || x > lado - 14 || y > lado - 10) continue;
+      etiquetas.push([x, y]);
+      let an = Math.atan2(b[1] - a[1], b[0] - a[0]); if (an > Math.PI / 2) an -= Math.PI; if (an < -Math.PI / 2) an += Math.PI;
+      c.save(); c.translate(x, y); c.rotate(an);
+      c.font = "600 9.5px 'IBM Plex Mono', monospace"; c.textAlign = "center"; c.textBaseline = "middle";
+      const txt = `${fmt(L, L % 1 ? 1 : 0)}`;
+      c.lineWidth = 3; c.strokeStyle = oscuro ? "#141c22" : "#fbfaf6"; c.strokeText(txt, 0, 0);
+      c.fillStyle = oscuro ? "#f1dfc0" : "#5b3a12"; c.fillText(txt, 0, 0); c.restore();
+    }
+  }
+  // Línea del corte y borde del círculo
+  const yCorte = (d.filaCorte - T.y0) / T.p * esc;
+  c.setLineDash([5, 4]); c.strokeStyle = oscuro ? "#e6eef3" : "#0e1726"; c.lineWidth = 1.4;
+  c.beginPath(); c.moveTo(0, yCorte); c.lineTo(lado, yCorte); c.stroke(); c.setLineDash([]);
+  c.font = "600 10px 'IBM Plex Sans', sans-serif"; c.fillStyle = oscuro ? "#e6eef3" : "#0e1726"; c.fillText("N ↑", lado - 30, 14);
+  const tit = document.createElement("p");
+  tit.className = "sim-corte-titulo"; tit.innerHTML = `<b>${t("sim_topo")(fmt(d.intervalo, d.intervalo % 1 ? 1 : 0))}</b>`;
+  cont.append(tit, cv);
 }
 
 // ---------- Leyenda sobre el mapa y altura al pasar ----------
@@ -964,7 +1084,7 @@ function agregarLeyendaSimulador() {
   el.innerHTML = `${C.colores ? `<b>${t("sim_ley_altura")}</b><span class="sim-degradado"></span>
     <span class="sim-deg-rot"><span>${fmt(d.hMin)} m</span><span>${fmt(d.hMax)} m</span></span>` : ""}
     ${C.drenaje ? `<span class="sim-ley-fila"><i class="ley-drenaje"></i>${t("sim_ley_drenaje")}</span>` : ""}
-    ${C.curvas ? `<span class="sim-ley-fila"><i class="ley-curva"></i>${t("sim_ley_curva")}</span>` : ""}`;
+    ${C.curvas ? `<span class="sim-ley-fila"><i class="ley-curva"></i>${t("sim_ley_curva")(fmt(d.intervalo, d.intervalo % 1 ? 1 : 0))}</span>` : ""}`;
   marco.appendChild(el);
 }
 function tooltipSimulador(e) {
