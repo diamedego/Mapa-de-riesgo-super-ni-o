@@ -31,6 +31,7 @@ SALIDA = RAIZ / "data" / "validacion"
 TEMPORADAS = [("nino_2015_16", "2015-11-01", "2016-04-30"), ("nino_2023_24", "2023-11-01", "2024-04-30"),
               ("referencia_2022_23", "2022-11-01", "2023-04-30")]
 RADIO_KM, ESTACION_KM = 5, 15
+MIN_CELDAS_OBS = 20   # para medir aciertos por celda hace falta agua observada suficiente
 
 
 def ciudades() -> list[dict]:
@@ -175,20 +176,22 @@ def resumir() -> None:
     df.to_csv(SALIDA / "resultados.csv", index=False)
     nino = df[df["temporada"] != "referencia_2022_23"]
     rho = nino[["sup_sim_pct", "sup_obs_pct"]].corr(method="spearman").iloc[0, 1]
+    # Las métricas por celda solo tienen sentido donde el satélite vio agua suficiente (20 celdas o más, ~0,5 km²)
+    casos = nino[nino["celdas_obs"] >= MIN_CELDAS_OBS]
+    med = lambda c: round(float(casos[c].median()), 3)
     resumen = {
         "generado": pd.Timestamp.now(tz="America/Argentina/Buenos_Aires").strftime("%Y-%m-%d"),
-        "ciudades": int(df["cmu"].nunique()), "radio_km": RADIO_KM,
+        "ciudades": int(df["cmu"].nunique()), "radio_km": RADIO_KM, "min_celdas_obs": MIN_CELDAS_OBS,
         "temporadas": [n for n, _, _ in TEMPORADAS],
-        "nino": {"pod_mediana": round(float(nino["pod"].median()), 3), "far_mediana": round(float(nino["far"].median()), 3),
-                 "csi_mediana": round(float(nino["csi"].median()), 3), "csi_jrc_mediana": round(float(nino["csi_jrc"].median()), 3),
-                 "spearman_superficie": round(float(rho), 2) if pd.notna(rho) else None,
-                 "sup_sim_mediana": round(float(nino["sup_sim_pct"].median()), 2), "sup_obs_mediana": round(float(nino["sup_obs_pct"].median()), 2)},
+        "nino": {"casos": int(len(casos)), "sin_agua_observada": int((nino["celdas_obs"] < MIN_CELDAS_OBS).sum()),
+                 "pod_mediana": med("pod"), "far_mediana": med("far"), "csi_mediana": med("csi"), "csi_jrc_mediana": med("csi_jrc"),
+                 "mejor_que_jrc": int((casos["csi"] > casos["csi_jrc"]).sum()),
+                 "spearman_superficie": round(float(rho), 2) if pd.notna(rho) else None},
         "por_ciudad": {cmu: g.drop(columns=["cmu"]).astype(object).where(pd.notna(g.drop(columns=["cmu"])), None).to_dict(orient="records")
                        for cmu, g in df.groupby("cmu")},
     }
     (WEB / "datos" / "validacion.json").write_text(json.dumps(resumen, ensure_ascii=False, separators=(",", ":"), allow_nan=False, default=str))
-    print(df.groupby("temporada")[["sup_sim_pct", "sup_obs_pct", "pod", "far", "csi", "csi_jrc"]].median().round(3).to_string())
-    print("Spearman superficie (Niño):", round(float(rho), 2) if pd.notna(rho) else None)
+    print(json.dumps(resumen["nino"], ensure_ascii=False))
 
 
 if __name__ == "__main__":

@@ -428,7 +428,7 @@ function confianzaHora(M, k, d) {
   const tp = M.met.tipo[k], adelante = k - M.hoy;
   const lluvia = tp === 0 ? 3 : tp === 2 ? 1 : adelante <= 72 ? 3 : adelante <= 168 ? 2 : 1;
   const terreno = d.D.fuente === "fabdem" ? 3 : 2, v = validacionCiudad(d);
-  const modelo = v ? (v.csi >= 0.5 ? 3 : v.csi >= 0.3 ? 2 : 1) : 2;
+  const modelo = v?.csi != null ? (v.csi >= 0.5 ? 3 : v.csi >= 0.3 ? 2 : 1) : 2;
   return { nivel: Math.min(lluvia, terreno, modelo), lluvia, terreno, modelo, v };
 }
 
@@ -1317,32 +1317,39 @@ function pintarPanelSimulador(d) {
 
 // Validación: cómo le fue al modelo en esta ciudad (si está entre las validadas) y en todas
 function validacionCiudad(d) {
-  const filas = SIM.validacion?.por_ciudad?.[d?.s?.cmu];
+  const V = SIM.validacion, filas = V?.por_ciudad?.[d?.s?.cmu];
   if (!filas) return null;
-  const nino = filas.filter((f) => f.temporada !== "referencia_2022_23" && f.csi != null);
-  if (!nino.length) return null;
-  return { ciudad: filas[0].ciudad, csi: nino.reduce((a, f) => a + f.csi, 0) / nino.length, filas: nino };
+  const casos = filas.filter((f) => f.temporada !== "referencia_2022_23" && f.csi != null && f.celdas_obs >= V.min_celdas_obs);
+  if (!casos.length) return { ciudad: filas[0].ciudad, csi: null, sinAgua: true, filas: [] };
+  return { ciudad: filas[0].ciudad, csi: casos.reduce((a, f) => a + f.csi, 0) / casos.length, filas: casos };
 }
-const textoModelo = (v) => (v ? t("sim_modelo_ciudad")(escapar(v.ciudad), fmt(v.csi, 2)) : SIM.validacion ? t("sim_modelo_otras")(SIM.validacion.ciudades) : t("sim_modelo_teorico"));
+const textoModelo = (v) => (v?.csi != null ? t("sim_modelo_ciudad")(escapar(v.ciudad), fmt(v.csi, 2)) : v?.sinAgua ? t("sim_modelo_sin_agua")(escapar(v.ciudad))
+  : SIM.validacion ? t("sim_modelo_otras")(SIM.validacion.ciudades) : t("sim_modelo_teorico"));
 function pintarValidez() {
   const cont = document.getElementById("sim-validez"), V = SIM.validacion;
   if (!cont) return;
   if (!V?.nino) { cont.innerHTML = t("sim_validez"); return; }
   const N = V.nino, v = validacionCiudad(SIM.datos), mejor = N.csi_mediana > N.csi_jrc_mediana;
-  const filas = Object.values(V.por_ciudad).map((fs) => {
-    const ni = fs.filter((f) => f.temporada !== "referencia_2022_23" && f.csi != null);
-    const prom = (k) => (ni.length ? ni.reduce((a, f) => a + (f[k] ?? 0), 0) / ni.length : null);
-    return { ciudad: fs[0].ciudad, cmu: Object.keys(V.por_ciudad).find((k) => V.por_ciudad[k] === fs), csi: prom("csi"), jrc: prom("csi_jrc") };
-  }).filter((f) => f.csi != null).sort((a, b) => b.csi - a.csi);
+  const filas = [], sinAgua = [];
+  for (const [cmu, fs] of Object.entries(V.por_ciudad)) {
+    const casos = fs.filter((f) => f.temporada !== "referencia_2022_23" && f.csi != null && f.celdas_obs >= V.min_celdas_obs);
+    if (!casos.length) { sinAgua.push(fs[0].ciudad); continue; }
+    const prom = (k) => casos.reduce((a, f) => a + (f[k] ?? 0), 0) / casos.length;
+    filas.push({ ciudad: fs[0].ciudad, cmu, csi: prom("csi"), jrc: prom("csi_jrc") });
+  }
+  filas.sort((a, b) => b.csi - a.csi);
   const x = (c) => `${(100 * limitar(c, 0, 1)).toFixed(1)}%`;
-  cont.innerHTML = `<p>${t("sim_validez_res")(V.ciudades, fmt(100 * N.pod_mediana), fmt(100 * N.far_mediana), fmt(N.csi_mediana, 2), fmt(N.csi_jrc_mediana, 2), mejor)}</p>
-    ${v ? `<p>${t("sim_validez_ciudad")(escapar(v.ciudad), v.filas.map((f) => `${f.temporada.slice(5).replace("_", "-")}: ${fmt(f.csi, 2)}`).join(" · "))}</p>` : ""}
+  cont.innerHTML = `<p>${t("sim_validez_res")(V.ciudades, N.casos, fmt(100 * N.pod_mediana), fmt(100 * N.far_mediana), fmt(N.csi_mediana, 2), fmt(N.csi_jrc_mediana, 2),
+      N.mejor_que_jrc, N.spearman_superficie == null ? "–" : fmt(N.spearman_superficie, 2), mejor)}</p>
+    ${v ? `<p>${v.csi != null ? t("sim_validez_ciudad")(escapar(v.ciudad), v.filas.map((f) => `${f.temporada.slice(5).replace("_", "-")}: ${fmt(f.csi, 2)}`).join(" · "))
+      : capitalizar(t("sim_modelo_sin_agua")(escapar(v.ciudad)))}.</p>` : ""}
     <details class="sim-val-det"><summary>${t("sim_val_ver")}</summary>
       <div class="leyenda-lineas"><span><i style="background:var(--s-1)"></i>${t("sim_val_modelo")}</span><span><i style="background:var(--tinta-3)"></i>${t("sim_val_jrc")}</span></div>
       <ul class="val-puntos">${filas.map((f) => `<li${f.cmu === SIM.datos?.s?.cmu ? ' class="actual"' : ""}><span>${escapar(f.ciudad)}</span>
         <span class="val-pista"><i class="val-jrc" style="left:${x(f.jrc)}" data-tip="${escapar(`<b>${escapar(f.ciudad)}</b><span>${t("sim_val_jrc")}: CSI ${fmt(f.jrc, 2)}</span>`)}"></i>
           <i class="val-mod" style="left:${x(f.csi)}" data-tip="${escapar(`<b>${escapar(f.ciudad)}</b><span>${t("sim_val_modelo")}: CSI ${fmt(f.csi, 2)}</span>`)}"></i></span>
         <b>${fmt(f.csi, 2)}</b></li>`).join("")}</ul>
+      ${sinAgua.length ? `<p class="sim-periodo-nota">${t("sim_val_sin_agua")(sinAgua.map(escapar).join(", "))}</p>` : ""}
       <p class="sim-periodo-nota">${t("sim_val_nota")}</p></details>`;
   tipsEn(cont);
 }

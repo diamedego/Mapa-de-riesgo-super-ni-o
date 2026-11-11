@@ -537,3 +537,14 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   validación) y uso del suelo del círculo (impermeable, con tierra o vegetación, agua).
 - Con un municipio o una localidad elegida, el simulador cubre toda la zona (círculo desde su centro, hasta 20 km).
 - Probado sin imágenes (`herramientas/pruebas/tanda7.js`, La Plata con tormenta de prueba): en seco 0 aislados y 0 calles cortadas.
+
+## 2026-11-11 — Tanda 8: validación del simulador contra inundaciones reales (punto 19) y método en cada indicador (18)
+- `herramientas/validacion/`: el mismo modelo del sitio repite El Niño 2015-16 y 2023-24 y la sequía 2022-23 (noviembre a abril) en
+  las 20 ciudades con FABDEM, con la lluvia real hora por hora (Open-Meteo, ERA5) y la altura real del río (INA, estación a menos de
+  15 km, nuevo: el modelo acepta el nivel del río hora por hora). Se compara celda por celda con el agua que vio Dynamic World.
+- Resultado: en los 9 casos con agua observada suficiente, CSI 0,20 contra 0,35 de la referencia «donde ya hubo agua» (le gana en
+  4 de 9); correlación de la superficie con agua entre ciudades 0,52. Bien en Corrientes (0,69 y 0,50) y Santa Fe 2015-16; falla en
+  Santa Fe 2023-24, Formosa 2015-16 (se pasa) y el delta de Tigre. En el conurbano el satélite casi no ve agua: no se puede validar.
+- El simulador muestra la validación con un gráfico por ciudad y la conclusión «orientativo»; la confianza del modelo depende del
+  resultado de cada ciudad. Detalle en `docs/04_validacion_simulador.md`.
+- Indicadores de arriba con método, fuente y tipo de dato al pasar el mouse (punto 18).

@@ -15,7 +15,8 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
   `construir_artifact.py` arma la versión privada en claude.ai (inlina los módulos; mapa base propio).
 - `consumo_ia/` — medición del consumo de tokens de Claude Code en este proyecto.
 - `.github/workflows/actualizar_datos.yml` — SMN cada 3 h (+ alertas vigentes para la web), INA + pronóstico 16 días diario, grilla del tiempo 05:20 y 17:20 ART, GloFAS los lunes, SEAS5 el 6 de cada mes, y recálculo del índice y la web.
-- `docs/00_bitacora.md` (registro paso a paso, se agrega al final), `docs/01_fuentes.md` (fuentes y cobertura).
+- `docs/00_bitacora.md` (registro paso a paso, se agrega al final), `docs/01_fuentes.md` (fuentes y cobertura),
+  `docs/04_validacion_simulador.md` (validación del simulador contra Dynamic World).
 
 ## Comandos
 - Entorno: `.venv/bin/python`. Web local: `cd web && python3 -m http.server 8765`.
@@ -42,8 +43,9 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
   calles y agua propias, no se commitea; en dos publicaciones porque supera 64 MB) si se regeneraron.
 - Rediseño 5-nov: probar en el celular y elegir entre las opciones de diseño enviadas (A implementada).
 - Pedido 10-nov (`docs/02_plan_cambios_nov.md`): tandas 1 a 6 publicadas (colores, capas, filtros, período, Situación con tortas y
-  recomendaciones, análisis tipo Power BI, encabezado con fuentes por tipo y recorrido guiado en `web/guia.js`). Falta: validación
-  del simulador con inundaciones reales, confianza alta/media/baja, rutas y hospitales bajo agua, trazabilidad (puntos 18-28).
+  recomendaciones, análisis tipo Power BI, encabezado con fuentes por tipo y recorrido guiado en `web/guia.js`) y tandas 7-8
+  (calles cortadas, aislados, confianza, validación contra satélite en `herramientas/validacion/`, ver `docs/04_validacion_simulador.md`).
+  Próximo: mejorar el modelo donde falla (nivel de referencia del río, lagunas) y volver a correr `validar.py`.
 - Sitio público (Cloudflare Workers, gratis): https://mapa-de-riesgo-super-nino.diamedego.workers.dev — se publica solo con cada push
   (configuración en `wrangler.jsonc` y `web/.assetsignore`; ~11 publicaciones por día, plan gratis 500 por mes).
 - Simulador (versión pública): vista Mapa + Maqueta 3D con lluvia animada (estilo reel CutSheetRX). Posible mejora: relieve
