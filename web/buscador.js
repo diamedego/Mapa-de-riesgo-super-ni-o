@@ -15,7 +15,7 @@ function prepararBuscador() {
   autocompletarDireccion(document.getElementById("b-direccion"));
   document.querySelectorAll(".buscador input").forEach((x) => x.addEventListener("input", actualizarBorrar));
   document.getElementById("form-buscar").addEventListener("submit", (e) => { e.preventDefault(); buscar(); });
-  document.getElementById("btn-borrar").onclick = borrarFiltros;
+  document.getElementById("btn-borrar").onclick = borrarTodo;
   document.getElementById("b-radio").onchange = (e) => cambiarRadio(Number(e.target.value));
 }
 
@@ -485,7 +485,17 @@ function borrarFiltros() {
   document.getElementById("aviso-busqueda").hidden = true;
   seleccionar(null, { volar: true });
 }
+// Todos los filtros: lugar, búsqueda y período (vuelve a condiciones actuales)
+function borrarTodo() {
+  borrarFiltros();
+  if (estado.modo !== "actual") elegirModo("actual");
+}
+// "Borrar filtros" visible si hay algún filtro; los casilleros con un filtro activo se marcan con el color de acento
 function actualizarBorrar() {
-  const hay = estado.sel || [...document.querySelectorAll(".buscador input")].some((x) => x.value.trim());
+  const campos = [...document.querySelectorAll(".buscador .campo")];
+  campos.forEach((c) => { const x = c.querySelector("input"); c.classList.toggle("activo", !!x?.value.trim()); });
+  document.querySelector(".campo-radio")?.classList.toggle("activo", estado.sel?.tipo === "punto");
+  document.getElementById("periodo-futuro")?.classList.toggle("activo", estado.modo === "futuro");
+  const hay = estado.sel || estado.modo !== "actual" || campos.some((c) => c.classList.contains("activo"));
   document.getElementById("btn-borrar").hidden = !hay;
 }

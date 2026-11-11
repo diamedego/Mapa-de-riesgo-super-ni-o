@@ -125,6 +125,7 @@ function pintarControles() {
     }
   }
   document.getElementById("periodo-texto").textContent = textoPeriodoFila();
+  actualizarBorrar();
 }
 const fechaCorta = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 function diasDesdeHoy(iso) { const hoy = hoyLocal(); return Math.round((Date.parse(`${iso}T12:00:00Z`) - Date.parse(`${hoy}T12:00:00Z`)) / 86400e3); }

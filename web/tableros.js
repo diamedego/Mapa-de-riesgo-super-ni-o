@@ -49,12 +49,14 @@ function analisisRiesgoZona(cmus) {
   const pondFijo = (campo) => { const v = items.map(([, , p], k) => [Number(p[campo]), pob[k]]).filter(([n]) => !Number.isNaN(n));
     const w = sumar(v.map(([, p]) => p)); return w ? sumar(v.map(([n, p]) => n * p)) / w : null; };
   const poblacion = sumar(items.map(([, , p]) => Number(p.poblacion) || 0));
+  const pondR = (k) => sumar(items.map(([, d], j) => (d[k] ?? 0) * pob[j])) / total;
   const idx = indicesVista();
   const rVista = items.map(([, d]) => Math.max(...idx.map((i) => d.r[i] ?? -1)));
   const porNivel = [1, 2, 3, 4, 5].map((n) => sumar(items.map(([, , p], k) => (nivelRiesgo(rVista[k]) === n ? Number(p.poblacion) || 0 : 0))));
   return {
     tipo: "zona", n: items.length, poblacion, porNivel,
     riesgo: pond((d, i) => d.r[i]), agua: pond((d, i) => d.ha[i]), rio: pond((d, i) => d.hr[i]), quebrada: pond((d, i) => d.hq[i]),
+    amenaza: pond((d, i) => d.h[i]), E: pondR("E"), V: pondR("V"),
     personas: M.map((_, i) => sumar(items.map(([, d]) => d.p[i] ?? 0))),
     altos: M.map((_, i) => items.filter(([, d]) => (d.r[i] ?? 0) >= CORTES[2]).length),
     bajo: poblacion ? (100 * sumar(items.map(([, , p]) => Number(p.pob_terreno_bajo) || 0))) / poblacion : null,
@@ -82,7 +84,7 @@ async function analisisRiesgoCirculo(s) {
   return {
     tipo: "circulo", n: props.length, poblacion: sumar(props.map((p) => Number(p.poblacion) || 0)), porNivel,
     riesgo: M.map((m) => (props.length ? pond((p) => Number(p[`r_${m}`])) : null)),
-    agua: zona?.agua ?? M.map(() => null), rio: zona?.rio ?? M.map(() => null), quebrada: zona?.quebrada ?? M.map(() => null),
+    agua: zona?.agua ?? M.map(() => null), rio: zona?.rio ?? M.map(() => null), quebrada: zona?.quebrada ?? M.map(() => null), amenaza: zona?.amenaza ?? M.map(() => null),
     bajo: props.length ? pond((p) => Number(p.pct_area_hand_2m)) : null,
     sinCloaca: props.length ? pond((p) => 100 - Number(p.pct_cloaca)) : null,
     E: pond((p) => Number(p.E)), V: pond((p) => Number(p.V)), municipio: zona, radios: dentro,
@@ -412,7 +414,8 @@ async function situacionRiesgo({ s, A, M, idx, peor, r, nivel, motor, ests, aler
     const vals = [...valoresRiesgoVista().values()], p = Math.floor((100 * vals.filter((v) => v < r).length) / Math.max(1, vals.length));
     comp = p >= 50 ? t("sit_mas_que")(fmt(p)) : t("sit_menos_que")(fmt(100 - p));
   } else if (circulo && muni && A.municipio?.riesgo[peor] != null) comp = t("sit_vs_muni")(r >= A.municipio.riesgo[peor], escapar(muni.nam), fmtRiesgo(A.municipio.riesgo[peor]));
-  vin.push([t("v_situacion"), `${t("sit_nivel")(nombreNivel(r).toLowerCase(), fmtRiesgo(r))}${comp ? `, ${comp}` : ""}. ${(motor[1] ?? 0) >= 3 ? t("sit_motor")(t(`motor_${motor[0]}`), fmtRiesgo(motor[1])) : t("sit_motor_bajo")}`]);
+  vin.push([t("v_situacion"), `${t("sit_nivel")(nombreNivel(r).toLowerCase(), fmtRiesgo(r))}${comp ? `, ${comp}` : ""}.${A.amenaza[peor] != null && A.E != null
+    ? ` ${t("sit_inform")(fmtRiesgo(A.amenaza[peor]), fmtRiesgo(A.E), fmtRiesgo(A.V))}` : ""}`]);
   if (actual) {   // ahora: ríos y alertas
     const ahora = [e0 ? t("sit_rio")(rioE0, escapar(e0.estacion), t(`rio_${e0.estado}`), fmt(e0.h, 2), fmt(e0.nivel_evacuacion, 2), e0.dh) : "",
       alertas.length ? t("sit_alertas")(alertas.length, tiposAlerta, alertas.some((a) => a.nivel === "naranja" || a.nivel === "roja")) : ""].filter(Boolean);
@@ -437,7 +440,8 @@ async function situacionRiesgo({ s, A, M, idx, peor, r, nivel, motor, ests, aler
   else if (Z.dens >= 3000) fac.push(t("mot_denso")(fmt(Z.dens)));
   if (sinP >= 20) fac.push(t("mot_cloaca")(fmt(sinP)));
   if (Z.humedal >= 10) fac.push(t("mot_humedal")(fmt(Z.humedal)));
-  vin.push([t("v_motivo"), fac.length ? `${capitalizar(fac.slice(0, 4).join("; "))}.` : t("mot_ninguno")]);
+  vin.push([t("v_motivo"), `${(motor[1] ?? 0) >= 3 ? t("mot_tipo")[motor[0]] : t("mot_amenaza_baja")(t("mot_tipo")[motor[0]].toLowerCase())}. ${fac.length
+    ? `${capitalizar(fac.slice(0, 4).join("; "))}.` : t("mot_ninguno")}`]);
   // Antecedentes: agua extra vista por satélite en los Niño 2015-16 y 2023-24, y agua alguna vez desde 1984
   const donde = circulo ? t("donde_muni")(escapar(muni?.nam ?? "")) : s ? t("donde_zona") : t("donde_pais"), ant = [];
   const ninos = [["2015-16", ZM?.n16], ["2023-24", ZM?.n24]].filter(([, v]) => v != null && v >= 0.1)
@@ -743,123 +747,185 @@ async function pintarTablero() {
   cont.querySelectorAll(".salto").forEach((b) => { b.onclick = () => elegirCapa(b.dataset.capa); });
 }
 
-// ---------- Análisis por zonas (debajo del mapa) ----------
-function zonaAnalisis() {
-  const s = estado.sel;
-  if (s?.tipo === "zona") return s.lugar;
-  if (s?.tipo === "punto" && s.cmu) return estado.lugares.find((l) => l.nivel === "prov" && l.nombre === estado.porCmu.get(s.cmu)?.jur) ?? null;
-  return null;
-}
-function unidadesHijas() {
-  const z = zonaAnalisis();
-  if (!z) return { nivel: "prov", unidades: estado.lugares.filter((l) => l.nivel === "prov") };
-  if (z.nivel === "prov") {
-    const dentro = new Set(z.cmus);
-    const deptos = estado.lugares.filter((l) => l.nivel === "depto" && l.provincia === z.provincia && l.cmus.every((c) => dentro.has(c)));
-    if (deptos.length > 1) return { nivel: "depto", unidades: deptos };
-  }
+// ---------- Análisis debajo del mapa: 3 gráficos en una fila que siguen los filtros (como en Power BI) ----------
+// Sin selección: las provincias. Con una provincia: sus partidos o municipios. Con un municipio, una localidad o un punto:
+// los municipios de su provincia con el elegido resaltado, y los gráficos por día y por persona filtrados a la selección.
+// Tocar una zona la elige (y completa los filtros de arriba); tocar un día lo elige como período.
+function alcanceAnalisis() {
+  const s = estado.sel, R = estado.riesgo;
   const gl = new Map(estado.lugares.filter((l) => l.nivel === "gl").map((l) => [l.cmus[0], l]));
-  return { nivel: "gl", unidades: z.cmus.map((c) => gl.get(c)).filter(Boolean) };
+  const municipios = (cmus) => cmus.map((c) => gl.get(c)).filter(Boolean), conDatos = (cmus) => cmus.filter((c) => R.cmu[c]);
+  if (!s) return { nivel: "prov", unidades: estado.lugares.filter((l) => l.nivel === "prov"), resaltar: null, cmus: todosLosCmus(), nombre: "Argentina", contexto: null };
+  if (s.tipo === "zona" && s.lugar.nivel === "prov") {
+    const z = s.lugar, dentro = new Set(z.cmus);
+    const deptos = estado.lugares.filter((l) => l.nivel === "depto" && l.provincia === z.provincia && l.cmus.every((c) => dentro.has(c)));
+    return { nivel: deptos.length > 1 ? "depto" : "gl", unidades: deptos.length > 1 ? deptos : municipios(z.cmus), resaltar: null, cmus: conDatos(z.cmus),
+      nombre: z.nombre, contexto: { nombre: "Argentina", cmus: todosLosCmus() } };
+  }
+  const elegidos = s.tipo === "zona" ? s.lugar.cmus : s.cmu ? [s.cmu] : [];
+  const prov = estado.lugares.find((l) => l.nivel === "prov" && l.nombre === estado.porCmu.get(elegidos[0])?.jur);
+  return { nivel: "gl", unidades: municipios(prov?.cmus ?? elegidos), resaltar: new Set(elegidos), cmus: conDatos(elegidos),
+    nombre: s.tipo === "zona" ? s.lugar.nombre : estado.porCmu.get(s.cmu)?.nam ?? t("punto_en_mapa"), contexto: prov ? { nombre: prov.nombre, cmus: prov.cmus } : null };
 }
+const esResaltada = (A, u) => !!A.resaltar && u.cmus.length > 0 && u.cmus.every((c) => A.resaltar.has(c));
+// Los primeros n y, si la zona elegida quedó afuera, también ella (con su puesto real)
+function primerosYElegida(lista, n) {
+  const out = lista.slice(0, n).map((f, i) => ({ ...f, pos: i + 1 }));
+  lista.forEach((f, i) => { if (f.resaltada && i >= n && out.length < n + 3) out.push({ ...f, pos: i + 1 }); });
+  return out;
+}
+// Tocar una zona en un gráfico: la elige como filtro y completa los casilleros de arriba
+function elegirZonaDesdeGrafico(u) {
+  elegirLugar(u.nivel === "prov" ? "provincia" : u.nivel === "depto" ? "partido" : "localidad", u);
+}
+const elegirDia = (k) => { detenerReproduccion(false); estado.modo = "futuro"; estado.rangoDias = [k, k]; actualizarTodo(); };
+
+// Filtros activos (lugar y período) como etiquetas con ✕, y "Borrar filtros"
+function chipsFiltros() {
+  const chips = [];
+  if (estado.sel) chips.push([t("filtro_lugar"), lugarTitulo(), "lugar"]);
+  if (estado.modo === "futuro") chips.push([t("filtro_periodo"), capitalizar(textoPeriodo()), "periodo"]);
+  if (!chips.length) return `<span class="an-sin-filtros">${t("sin_filtros")}</span>`;
+  return `${chips.map(([etq, v, k]) => `<span class="filtro-activo"><span>${etq}: <b>${escapar(v)}</b></span>
+    <button type="button" data-quitar="${k}" aria-label="${t("quitar_filtro")}: ${escapar(v)}" title="${t("quitar_filtro")}">${icono("cerrar")}</button></span>`).join("")}
+    <button type="button" class="btn-texto an-borrar" data-quitar="todo">${t("borrar_filtros")}</button>`;
+}
+const cabezaAnalisis = (titulo, sub) => `<div class="an-cabeza"><div class="an-titulos"><h2>${titulo}</h2><p>${sub}</p></div>
+  <div class="an-filtros" role="group" aria-label="${t("filtros_activos")}">${chipsFiltros()}</div></div>`;
 
 function pintarAnalisis() {
   const cont = document.getElementById("analisis");
-  if (estado.capa === "riesgo") return analisisRiesgo(cont);
-  if (!estado.tiempo) { cont.innerHTML = ""; return; }
-  analisisTiempo(cont);
+  if (estado.capa === "riesgo") analisisRiesgo(cont);
+  else if (!estado.tiempo) { cont.innerHTML = ""; return; }
+  else analisisTiempo(cont);
+  cont.querySelectorAll("[data-quitar]").forEach((b) => {
+    b.onclick = () => {
+      const k = b.dataset.quitar;
+      if (k === "todo") return borrarTodo();
+      if (k === "lugar") borrarFiltros();
+      if (k === "periodo") elegirModo("actual");
+    };
+  });
+  tipsEn(cont);
 }
 
 function analisisRiesgo(cont) {
-  const { nivel, unidades } = unidadesHijas(), M = estado.riesgo.meses, idx = indicesVista();
-  const R = estado.riesgo;
-  const filas = unidades.map((u) => {
+  const A = alcanceAnalisis(), M = estado.riesgo.meses, idx = indicesVista(), R = estado.riesgo;
+  const filas = A.unidades.map((u) => {
     const cmus = u.cmus.filter((c) => R.cmu[c]);
+    if (!cmus.length) return null;
     const pob = cmus.map((c) => Math.max(1, Number(estado.porCmu.get(c)?.poblacion) || 1)), tot = sumar(pob);
-    return { u, personas: M.map((_, i) => sumar(cmus.map((c) => R.cmu[c].p[i] ?? 0))),
+    return { u, resaltada: esResaltada(A, u), personas: M.map((_, i) => sumar(cmus.map((c) => R.cmu[c].p[i] ?? 0))),
       riesgo: M.map((_, i) => sumar(cmus.map((c, k) => (R.cmu[c].r[i] ?? 0) * pob[k])) / tot) };
-  }).filter((f) => f.u.cmus.length);
-  const pVista = (f) => Math.max(...idx.map((i) => f.personas[i])), rVista = (f) => Math.max(...idx.map((i) => f.riesgo[i]));
-  const orden = filas.slice().sort((a, b) => pVista(b) - pVista(a));
-  const total = sumar(orden.map(pVista)) || 1;
+  }).filter(Boolean);
+  const pV = (f) => Math.max(...idx.map((i) => f.personas[i])), rV = (f) => Math.max(...idx.map((i) => f.riesgo[i]));
+  // 1) Dónde se concentra la gente en riesgo (Pareto)
+  const orden = filas.slice().sort((a, b) => pV(b) - pV(a)), total = sumar(orden.map(pV)) || 1;
   let acum = 0, n80 = 0;
-  orden.forEach((f) => { const antes = acum; acum += pVista(f); if (antes / total < 0.8) n80++; });
-  const zonaTxt = zonaAnalisis()?.nombre ?? "Argentina";
-  cont.innerHTML = `
-    <div class="an-cabeza"><h2>${t("an_riesgo_t")(escapar(zonaTxt))}</h2><p>${escapar(textoPeriodo("riesgo"))}</p></div>
-    <div class="an-grilla">
-      <section class="an-bloque"><h3>${t("pareto_t")}</h3><p class="hallazgo">${t("pareto_hallazgo")(n80, orden.length, t("niveles_zona")[nivel])}</p>
-        <div id="an-pareto"></div><p class="nota">${t("pareto_nota")}</p></section>
-      <section class="an-bloque"><h3>${t("calor_t")}</h3><p class="nota">${t("calor_nota")}</p><div id="an-calor"></div></section>
-      <section class="an-bloque an-ancho"><h3>${t("ranking_t")}</h3>
-        <div class="pestanas" role="tablist"><button role="tab" data-rk="r" aria-selected="${estado.ranking !== "p"}">${t("tab_relativo")}</button>
-          <button role="tab" data-rk="p" aria-selected="${estado.ranking === "p"}">${t("tab_personas")}</button></div>
-        <div id="an-ranking"></div><p class="nota">${t("robustez_nota")}</p>
-        <details class="ver-tabla"><summary>${t("ver_tabla")}</summary><div class="tabla-cont"><table class="tabla" id="an-tabla"></table></div></details></section>
-    </div>`;
-  // Pareto como ranking horizontal con barra de acumulado
-  const top = orden.slice(0, 15);
-  let ac = 0;
-  grafRanking(document.getElementById("an-pareto"), {
-    filas: top.map((f) => { ac += pVista(f); return { nombre: f.u.nombre, sub: `${fmt((100 * ac) / total)} % ${t("acumulado")}`, valor: pVista(f),
-      color: colorNivel(rVista(f)), tip: `<span class="tip-titulo">${escapar(f.u.nombre)}</span><span class="tip-fila"><b>${fmtPersonas(pVista(f))}</b> ${t("personas_riesgo")}</span><span class="tip-fila">${t("riesgo")} ${fmtRiesgo(rVista(f))} · ${nombreNivel(rVista(f))}</span>`, u: f.u }; }),
-    formato: fmtPersonas, onClick: (f) => seleccionarZona(f.u, { volar: true }),
-  });
-  const calor = filas.slice().sort((a, b) => rVista(b) - rVista(a)).slice(0, 18);
-  grafCalor(document.getElementById("an-calor"), {
-    filas: calor.map((f) => ({ nombre: f.u.nombre, valores: f.riesgo, u: f.u })), columnas: M.map((m) => nombreMes(m)),
-    colorDe: (v) => colorNivel(v), textoDe: (v) => fmtRiesgo(v), tintaDe: (v) => (nivelRiesgo(v) >= 4 ? "#fff" : "var(--tinta-calor)"),
-    activas: [idx[0], idx[idx.length - 1]],
-    tipDe: (f, k) => `<span class="tip-titulo">${escapar(f.nombre)} · ${nombreMes(M[k])}</span><span class="tip-fila"><b>${fmtRiesgo(f.valores[k])}</b> ${nombreNivel(f.valores[k])}</span>`,
-    onFila: (f) => seleccionarZona(f.u, { volar: true }),
-    onCelda: (f, k) => { if (k >= estado.iMesActual) { estado.modo = "futuro"; estado.rangoMeses = [k, k]; actualizarTodo(); } },
-  });
-  // Ranking de municipios
-  const cmus = (zonaAnalisis()?.cmus ?? todosLosCmus()).filter((c) => R.cmu[c]);
+  const cum = orden.map((f) => { const antes = acum; acum += pV(f); if (antes / total < 0.8) n80++; return (100 * acum) / total; });
+  const iElegida = orden.findIndex((f) => f.resaltada);
+  // 2) Ranking de municipios (por nivel o por personas)
   const porR = estado.ranking !== "p";
-  const rk = cmus.map((c) => { const d = R.cmu[c], m = estado.porCmu.get(c) || {};
-    return { cmu: c, nombre: m.nam, sub: m.jur, r: Math.max(...idx.map((i) => d.r[i] ?? 0)), p: Math.max(...idx.map((i) => d.p[i] ?? 0)), rob: d.rob }; })
-    .sort((a, b) => (porR ? b.r - a.r : b.p - a.p)).slice(0, 20);
+  const cmusRk = A.resaltar ? A.unidades.flatMap((u) => u.cmus) : A.cmus;
+  const rk = cmusRk.filter((c) => R.cmu[c]).map((c) => { const d = R.cmu[c], m = estado.porCmu.get(c) || {};
+    return { cmu: c, nombre: m.nam, sub: m.jur, r: Math.max(...idx.map((i) => d.r[i] ?? 0)), p: Math.max(...idx.map((i) => d.p[i] ?? 0)), rob: d.rob, resaltada: !!A.resaltar?.has(c) }; })
+    .sort((a, b) => (porR ? b.r - a.r : b.p - a.p));
+  // 3) Qué explica el riesgo: amenaza, exposición y vulnerabilidad de la selección frente a su provincia y al país
+  const hev = (cmus) => {
+    const xs = cmus.filter((c) => R.cmu[c]);
+    if (!xs.length) return null;
+    const pob = xs.map((c) => Math.max(1, Number(estado.porCmu.get(c)?.poblacion) || 1)), tot = sumar(pob);
+    const pond = (fn) => sumar(xs.map((c, k) => (fn(R.cmu[c]) ?? 0) * pob[k])) / tot;
+    const iP = idx.reduce((m, i) => (pond((d) => d.r[i]) > pond((d) => d.r[m]) ? i : m), idx[0]);   // su peor mes
+    return { r: pond((d) => d.r[iP]), h: pond((d) => d.h[iP]), e: pond((d) => d.E), v: pond((d) => d.V) };
+  };
+  const grupos = [[A.nombre, hev(A.cmus), "var(--s-1)"], ...(A.contexto && A.contexto.nombre !== "Argentina" ? [[A.contexto.nombre, hev(A.contexto.cmus), "var(--tinta-3)"]] : []),
+    ...(estado.sel ? [["Argentina", hev(todosLosCmus()), "var(--torta-resto)"]] : [])].filter((g) => g[1]);
+  const medidas = [["r", t("comp_riesgo"), ""], ["h", t("comp_amenaza"), t("comp_amenaza_sub")], ["e", t("comp_exposicion"), t("comp_exposicion_sub")], ["v", t("comp_vulnerabilidad"), t("comp_vulnerabilidad_sub")]];
+  const explica = `<ul class="apilada-leyenda">${grupos.map(([n, , c]) => `<li><i style="background:${c}"></i>${escapar(n)}</li>`).join("")}</ul>
+    <div class="explica">${medidas.map(([k, etq, sub]) => `<div class="explica-fila"><span class="explica-etq">${etq}${sub ? `<small>${sub}</small>` : ""}</span>
+      <div class="explica-barras">${grupos.map(([n, g, c]) => `<div class="explica-barra" data-tip="${escapar(`<b>${escapar(n)}</b><span>${etq}: ${fmtRiesgo(g[k])}/10</span>`)}">
+        <span class="explica-pista"><span style="width:${limitar(g[k] * 10, 0, 100)}%;background:${c}"></span></span><b>${fmtRiesgo(g[k])}</b></div>`).join("")}</div></div>`).join("")}</div>`;
+  cont.innerHTML = `${cabezaAnalisis(t("an_riesgo_t")(escapar(A.nombre)), escapar(capitalizar(textoPeriodo("riesgo"))))}
+    <div class="an-grilla tres">
+      <section class="an-bloque"><h3>${t("pareto_t")}</h3><p class="tb-sub">${t("pareto_nota")}</p>
+        <p class="hallazgo">${t("pareto_hallazgo")(n80, orden.length, t("niveles_zona")[A.nivel])}${iElegida >= 0 ? ` ${t("pareto_puesto")(escapar(orden[iElegida].u.nombre), iElegida + 1)}` : ""}</p>
+        <div id="an-pareto"></div></section>
+      <section class="an-bloque"><h3>${t("ranking_t")}</h3><p class="tb-sub">${t("robustez_nota")}</p>
+        <div class="pestanas" role="tablist"><button role="tab" data-rk="r" aria-selected="${porR}">${t("tab_relativo")}</button>
+          <button role="tab" data-rk="p" aria-selected="${!porR}">${t("tab_personas")}</button></div>
+        <div id="an-ranking"></div></section>
+      <section class="an-bloque"><h3>${t("explica_t")}</h3><p class="tb-sub">${t("explica_an_nota")}</p>${explica}</section>
+    </div>`;
+  grafRanking(document.getElementById("an-pareto"), {
+    filas: primerosYElegida(orden.map((f, i) => ({ f, i, resaltada: f.resaltada })), 10).map(({ f, i, pos }) => ({
+      nombre: f.u.nombre, sub: `${fmt(cum[i])} % ${t("acumulado")}`, valor: pV(f), color: colorNivel(rV(f)), pos, resaltada: f.resaltada, u: f.u,
+      tip: `<span class="tip-titulo">${escapar(f.u.nombre)}</span><span class="tip-fila"><b>${fmtPersonas(pV(f))}</b> ${t("personas_riesgo")}</span><span class="tip-fila">${t("riesgo")} ${fmtRiesgo(rV(f))} · ${nombreNivel(rV(f))}</span>` })),
+    formato: fmtPersonas, onClick: (f) => elegirZonaDesdeGrafico(f.u),
+  });
   grafRanking(document.getElementById("an-ranking"), {
-    filas: rk.map((f) => ({ ...f, valor: porR ? f.r : f.p, color: colorNivel(f.r),
+    filas: primerosYElegida(rk, 10).map((f) => ({ ...f, valor: porR ? f.r : f.p, color: colorNivel(f.r),
       tip: `<span class="tip-titulo">${escapar(f.nombre)}</span><span class="tip-fila"><b>${fmtRiesgo(f.r)}</b> ${nombreNivel(f.r)}</span><span class="tip-fila">${fmtPersonas(f.p)} ${t("personas_riesgo")} · ${t("robustez")} ${fmt(f.rob)} %</span>` })),
     max: porR ? 10 : undefined, formato: porR ? fmtRiesgo : fmtPersonas,
-    onClick: (f) => { const l = estado.lugares.find((x) => x.nivel === "gl" && x.cmus[0] === f.cmu); if (l) seleccionarZona(l, { volar: true }); },
+    onClick: (f) => { const l = estado.lugares.find((x) => x.nivel === "gl" && x.cmus[0] === f.cmu); if (l) elegirZonaDesdeGrafico(l); },
   });
-  document.getElementById("an-tabla").innerHTML = `<thead><tr><th>${t("col_mun")}</th><th>${t("col_prov")}</th><th class="num">${t("col_riesgo")}</th><th class="num">${t("col_personas")}</th><th class="num">${t("robustez")}</th></tr></thead>
-    <tbody>${rk.map((f) => `<tr><td>${escapar(f.nombre)}</td><td>${escapar(f.sub)}</td><td class="num">${fmtRiesgo(f.r)}</td><td class="num">${fmt(f.p)}</td><td class="num">${fmt(f.rob)} %</td></tr>`).join("")}</tbody>`;
-  cont.querySelectorAll("[data-rk]").forEach((b) => { b.onclick = () => { estado.ranking = b.dataset.rk; analisisRiesgo(cont); }; });
+  cont.querySelectorAll("[data-rk]").forEach((b) => { b.onclick = () => { estado.ranking = b.dataset.rk; pintarAnalisis(); }; });
 }
 
 function analisisTiempo(cont) {
-  const T = estado.tiempo, capa = estado.capa, TM = tiempoMunicipios();
-  const { unidades } = unidadesHijas();
-  const variable = { lluvia: "lluvia", viento: "rafaga", temp: "tmax" }[capa];
-  const filas = unidades.map((u) => {
-    const cmus = u.cmus.filter((c) => TM.has(c));
-    if (!cmus.length) return null;
-    const pob = cmus.map((c) => Math.max(1, Number(estado.porCmu.get(c)?.poblacion) || 1)), tot = sumar(pob);
-    const valores = T.dias.map((_, k) => sumar(cmus.map((c, i) => (TM.get(c)[variable][k] ?? 0) * pob[i])) / tot);
-    return { u, valores };
-  }).filter(Boolean);
-  const P = periodoTiempo(), [a, b] = P.tipo === "hora" ? [diaHoy(T), diaHoy(T)] : [P.a, P.b];
-  const resumen = (f) => (capa === "lluvia" ? sumar(f.valores.slice(a, b + 1)) : Math.max(...f.valores.slice(a, b + 1)));
-  filas.sort((x, y) => resumen(y) - resumen(x));
-  const escalaDia = capa === "lluvia" ? ESCALAS.lluviaDia : ESCALAS[capa];
-  const unidad = { lluvia: "mm", viento: "km/h", temp: "°C" }[capa];
-  const zonaTxt = zonaAnalisis()?.nombre ?? "Argentina";
-  cont.innerHTML = `
-    <div class="an-cabeza"><h2>${t(`an_${capa}_t`)(escapar(zonaTxt))}</h2><p>${t("an_tiempo_sub")(T.generado ? fmtDia(T.dias[0]) : "")}</p></div>
-    <div class="an-grilla">
-      <section class="an-bloque an-ancho"><h3>${t(`an_${capa}_calor`)}</h3><p class="nota">${t("an_tiempo_nota")}</p><div id="an-calor"></div></section>
+  const T = estado.tiempo, capa = estado.capa, TM = tiempoMunicipios(), A = alcanceAnalisis();
+  const variable = { lluvia: "lluvia", viento: "rafaga", temp: "tmax" }[capa], unidad = { lluvia: "mm", viento: "km/h", temp: "°C" }[capa];
+  const umbral = { lluvia: [20, 50], viento: [60, 90], temp: [34, 38] }[capa];
+  const P = periodoTiempo(), [a, b] = P.tipo === "hora" ? [diaHoy(T), Math.min(T.dias.length - 1, diaHoy(T) + 2)] : [P.a, P.b];
+  const pobDe = (c) => Number(estado.porCmu.get(c)?.poblacion) || 0;
+  // Serie diaria de un grupo de municipios: promedio ponderado por población (pronóstico en el centro de cada uno)
+  const serie = (cmus) => {
+    const xs = cmus.filter((c) => TM.has(c));
+    if (!xs.length) return null;
+    const pob = xs.map((c) => Math.max(1, pobDe(c))), tot = sumar(pob);
+    return T.dias.map((_, k) => sumar(xs.map((c, i) => (TM.get(c)[variable][k] ?? 0) * pob[i])) / tot);
+  };
+  const resumen = (v) => (capa === "lluvia" ? sumar(v.slice(a, b + 1)) : Math.max(...v.slice(a, b + 1)));
+  const filas = A.unidades.map((u) => { const v = serie(u.cmus); return v ? { u, valores: v, res: resumen(v), resaltada: esResaltada(A, u) } : null; })
+    .filter(Boolean).sort((x, y) => y.res - x.res);
+  const escala = capa === "lluvia" ? ESCALAS.lluviaAcum : ESCALAS[capa], escalaDia = capa === "lluvia" ? ESCALAS.lluviaDia : ESCALAS[capa];
+  const colorRes = (v) => rgba(colorEscala(escala, v, capa === "lluvia") ?? [150, 160, 170, 1], 0.9);
+  const colorDia = (v) => { const c = colorEscala(escalaDia, v, capa === "lluvia"); return c && c[3] > 0.05 ? rgba(c, 1) : "var(--eje)"; };
+  const dec = capa === "lluvia" ? 1 : 0, dias = T.dias.map((d) => fmtDia(d, { day: "numeric", month: "short" }));
+  // 2) Paneles por día: con una zona elegida, ella, su provincia y el país; si no, las 6 zonas con más valor
+  const paneles = A.resaltar
+    ? [[A.nombre, serie(A.cmus), true, null], ...(A.contexto ? [[t("promedio_de")(A.contexto.nombre), serie(A.contexto.cmus), false, null]] : []), [t("promedio_pais"), serie(todosLosCmus()), false, null]]
+        .filter((p) => p[1]).map(([titulo, valores, resaltado, dato]) => ({ titulo, valores, resaltado, dato, sub: `${fmt(resumen(valores))} ${unidad}` }))
+    : filas.slice(0, 6).map((f) => ({ titulo: f.u.nombre, valores: f.valores, dato: f.u, sub: `${fmt(f.res)} ${unidad}` }));
+  // 3) Personas con lluvia fuerte, ráfagas fuertes o calor extremo cada día, en la selección
+  const cmusP = A.cmus.filter((c) => TM.has(c));
+  const nivelDia = (k, desde, hasta) => sumar(cmusP.map((c) => { const v = TM.get(c)[variable][k]; return v >= desde && v < hasta ? pobDe(c) : 0; }));
+  const s1 = T.dias.map((_, k) => nivelDia(k, umbral[0], umbral[1])), s2 = T.dias.map((_, k) => nivelDia(k, umbral[1], Infinity));
+  const pobTot = sumar(cmusP.map(pobDe));
+  cont.innerHTML = `${cabezaAnalisis(t(`an_${capa}_t`)(escapar(A.nombre)), t("an_tiempo_sub")(fmtDia(T.dias[0])))}
+    <div class="an-grilla tres">
+      <section class="an-bloque"><h3>${t({ lluvia: "donde_mas_llueve", viento: "rafagas_fuertes", temp: "mas_calor" }[capa])}</h3>
+        <p class="tb-sub">${t(`an_${capa}_rk_nota`)(capitalizar(textoPeriodo()))}</p><div id="an-rk"></div></section>
+      <section class="an-bloque"><h3>${t("an_dia_dia")}</h3><p class="tb-sub">${t("an_paneles_nota")}</p><div id="an-paneles"></div></section>
+      <section class="an-bloque"><h3>${t(`an_${capa}_personas`)}</h3><p class="tb-sub">${t(`an_${capa}_personas_nota`)(escapar(A.nombre), fmtPersonas(pobTot))}</p>
+        <div class="leyenda-lineas"><span><i style="background:var(--lluvia-4)"></i>${t(`an_${capa}_n1`)}</span><span><i style="background:var(--lluvia-5)"></i>${t(`an_${capa}_n2`)}</span></div>
+        <div id="an-personas" class="graf-cont"></div></section>
     </div>`;
-  grafCalor(document.getElementById("an-calor"), {
-    filas: filas.slice(0, 24).map((f) => ({ nombre: f.u.nombre, valores: f.valores, u: f.u })),
-    columnas: T.dias.map((d) => fmtDia(d, { weekday: "narrow", day: "numeric" })),
-    colorDe: (v) => { const c = colorEscala(escalaDia, v, capa === "lluvia"); return c && c[3] > 0.05 ? rgba(c, 0.35) : "var(--superficie-2)"; },
-    textoDe: (v) => (capa === "lluvia" ? (v < 0.5 ? "" : fmt(v)) : fmt(v)), tintaDe: () => "var(--tinta-calor)",
-    activas: [a, b],
-    tipDe: (f, k) => `<span class="tip-titulo">${escapar(f.nombre)} · ${fmtDia(T.dias[k])}</span><span class="tip-fila"><b>${fmt(f.valores[k], capa === "lluvia" ? 1 : 0)} ${unidad}</b> ${t("promedio_pob")}</span>`,
-    onFila: (f) => seleccionarZona(f.u, { volar: true }),
-    onCelda: (f, k) => { estado.modo = "futuro"; estado.rangoDias = [k, k]; actualizarTodo(); },
+  grafRanking(document.getElementById("an-rk"), {
+    filas: primerosYElegida(filas, 10).map((f) => ({ nombre: f.u.nombre, sub: f.u.nivel === "prov" ? "" : f.u.provincia, valor: f.res, color: colorRes(f.res), pos: f.pos, resaltada: f.resaltada, u: f.u,
+      tip: `<span class="tip-titulo">${escapar(f.u.nombre)}</span><span class="tip-fila"><b>${fmt(f.res, dec)} ${unidad}</b> ${t("promedio_pob")}</span>` })),
+    formato: (v) => `${fmt(v)} ${unidad}`, onClick: (f) => elegirZonaDesdeGrafico(f.u),
+  });
+  grafPaneles(document.getElementById("an-paneles"), {
+    paneles, etiquetas: dias, activos: [a, b], colorDe: colorDia, linea: capa === "temp", ref: umbral[0], minMax: umbral[0],
+    tipDe: (p, k) => `<span class="tip-titulo">${escapar(p.titulo)} · ${fmtDia(T.dias[k])}</span><span class="tip-fila"><b>${fmt(p.valores[k], dec)} ${unidad}</b></span>`,
+    onDia: elegirDia, onTitulo: (p) => elegirZonaDesdeGrafico(p.dato),
+  });
+  grafApiladas(document.getElementById("an-personas"), {
+    etiquetas: T.dias.map((d) => fmtDia(d, { weekday: "narrow", day: "numeric" })), alto: 190, activos: [a, b], formatoEje: fmtPersonas,
+    series: [{ nombre: t(`an_${capa}_n1`), valores: s1, color: "var(--lluvia-4)" }, { nombre: t(`an_${capa}_n2`), valores: s2, color: "var(--lluvia-5)" }],
+    tip: (k) => `<span class="tip-titulo">${fmtDia(T.dias[k], { weekday: "long", day: "numeric", month: "short" })}</span>
+      <span class="tip-fila">${t(`an_${capa}_n1`)}: <b>${fmtPersonas(s1[k])}</b></span><span class="tip-fila">${t(`an_${capa}_n2`)}: <b>${fmtPersonas(s2[k])}</b></span>`,
+    onClick: elegirDia,
   });
 }

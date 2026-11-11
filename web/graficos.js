@@ -263,15 +263,17 @@ function tipsEn(cont) {
 }
 
 // ---------- Ranking horizontal ----------
-// filas [{nombre, sub, valor, color, tip}], formato, max, onClick(fila)
+// filas [{nombre, sub, valor, color, tip, pos, resaltada}], formato, max, onClick(fila). Con una fila resaltada (la zona
+// elegida) las demás se atenúan; si quedó fuera de los primeros, va al final con su puesto real
 function grafRanking(cont, o) {
-  const max = o.max ?? Math.max(...o.filas.map((f) => f.valor), 1e-9);
-  cont.innerHTML = `<ol class="ranking">${o.filas.map((f, i) => `
-    <li class="fila-rk" data-i="${i}" tabindex="${o.onClick ? 0 : -1}">
-      <span class="rk-pos">${i + 1}</span>
+  const max = o.max ?? Math.max(...o.filas.map((f) => f.valor), 1e-9), hay = o.filas.some((f) => f.resaltada);
+  cont.innerHTML = `<ol class="ranking${hay ? " con-resaltada" : ""}">${o.filas.map((f, i) => {
+    const pos = f.pos ?? i + 1, salto = i > 0 && pos > (o.filas[i - 1].pos ?? i) + 1;
+    return `${salto ? `<li class="rk-salto" aria-hidden="true">⋯</li>` : ""}<li class="fila-rk${f.resaltada ? " rk-resaltada" : ""}" data-i="${i}" tabindex="${o.onClick ? 0 : -1}">
+      <span class="rk-pos">${pos}</span>
       <span class="rk-nombre">${escapar(f.nombre)}<small>${escapar(f.sub ?? "")}</small></span>
       <span class="rk-pista"><span class="rk-barra" style="width:${Math.max(1.5, (100 * f.valor) / max)}%;background:${f.color ?? "var(--s-1)"}"></span></span>
-      <span class="rk-valor">${o.formato(f.valor)}</span></li>`).join("")}</ol>`;
+      <span class="rk-valor">${o.formato(f.valor)}</span></li>`; }).join("")}</ol>`;
   cont.querySelectorAll(".fila-rk").forEach((li) => {
     const f = o.filas[+li.dataset.i];
     if (f.tip) {
@@ -285,24 +287,70 @@ function grafRanking(cont, o) {
   });
 }
 
-// ---------- Mapa de calor (filas × columnas) ----------
-// filas [{nombre, valores, dato}], columnas [texto], colorDe(v) → css, textoDe(v), tipDe(fila, k), onFila, onCelda, activas [a, b]
-function grafCalor(cont, o) {
-  const activa = (k) => o.activas && k >= o.activas[0] && k <= o.activas[1];
-  cont.innerHTML = `<div class="calor" style="--cols:${o.columnas.length}">
-    <div class="calor-fila cabeza"><span></span>${o.columnas.map((c, k) => `<span class="${activa(k) ? "activa" : ""}">${escapar(c)}</span>`).join("")}</div>
-    ${o.filas.map((f, r) => `<div class="calor-fila" data-r="${r}">
-      <button class="calor-nombre" type="button" title="${escapar(f.nombre)}">${escapar(f.nombre)}</button>
-      ${f.valores.map((v, k) => `<span class="celda${activa(k) ? " activa" : ""}" data-k="${k}" style="background:${o.colorDe(v)};color:${o.tintaDe ? o.tintaDe(v) : "inherit"}">${o.textoDe(v)}</span>`).join("")}
-    </div>`).join("")}</div>`;
-  cont.querySelectorAll(".calor-fila[data-r]").forEach((fila) => {
-    const f = o.filas[+fila.dataset.r];
-    fila.querySelector(".calor-nombre").addEventListener("click", () => o.onFila?.(f));
-    fila.querySelectorAll(".celda").forEach((c) => {
-      const k = +c.dataset.k;
-      c.addEventListener("pointermove", (ev) => Tip.mostrar(o.tipDe(f, k), ev));
-      c.addEventListener("pointerleave", () => Tip.ocultar());
-      if (o.onCelda) c.addEventListener("click", () => o.onCelda(f, k));
+// ---------- Paneles chicos: una serie diaria por zona, todas con la misma escala ----------
+// paneles [{titulo, sub, valores, resaltado, dato}], etiquetas, activos [a, b], colorDe(v), linea (para temperatura),
+// ref (valor de referencia), tipDe(panel, k), onDia(k), onTitulo(panel)
+function grafPaneles(cont, o) {
+  const W = ancho(cont), h = o.altoPanel ?? 40, n = o.etiquetas.length, banda = W / n, grueso = Math.max(2, Math.min(14, banda - 2));
+  const vals = o.paneles.flatMap((p) => p.valores.filter((v) => v != null));
+  const min = o.linea ? Math.floor(Math.min(...vals) / 5) * 5 : 0, max = Math.max(o.minMax ?? 0, ...vals, min + 1);
+  const y = (v) => h - 2 - ((v - min) / (max - min)) * (h - 6), xc = (k) => banda * (k + 0.5);
+  const activo = (k) => !o.activos || (k >= o.activos[0] && k <= o.activos[1]);
+  const paneles = o.paneles.map((p, j) => {
+    let s = `<svg class="graf panel-svg" width="${W}" height="${h}" viewBox="0 0 ${W} ${h}" role="img" aria-label="${escapar(p.titulo)}">`;
+    if (o.activos) s += `<rect class="panel-banda" x="${banda * o.activos[0]}" y="0" width="${banda * (o.activos[1] - o.activos[0] + 1)}" height="${h}"/>`;
+    if (o.ref != null && o.ref > min && o.ref < max) s += `<line class="ref" x1="0" x2="${W}" y1="${y(o.ref)}" y2="${y(o.ref)}"/>`;
+    if (o.linea) {
+      const d = p.valores.map((v, k) => (v == null ? "" : `${k && p.valores[k - 1] != null ? "L" : "M"}${xc(k).toFixed(1)},${y(v).toFixed(1)}`)).join("");
+      s += `<path d="${d}" fill="none" stroke="${o.colorLinea ?? "var(--s-2)"}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+      p.valores.forEach((v, k) => { if (v != null && v >= (o.ref ?? Infinity)) s += `<circle cx="${xc(k)}" cy="${y(v)}" r="2.6" fill="${o.colorDe(v)}"/>`; });
+    } else p.valores.forEach((v, k) => {
+      if (v == null) return;
+      const bh = Math.max(v > 0 ? 1.5 : 0, h - 2 - y(v)), x = xc(k) - grueso / 2, r = Math.min(3, grueso / 2, bh);
+      s += `<path class="barra${activo(k) ? "" : " apagada"}" fill="${o.colorDe(v)}" d="M${x},${h - 2} v${-(bh - r)} q0,${-r} ${r},${-r} h${grueso - 2 * r} q${r},0 ${r},${r} v${bh - r} Z"/>`;
+    });
+    p.valores.forEach((_, k) => { s += `<rect class="golpe" data-j="${j}" data-k="${k}" x="${banda * k}" y="0" width="${banda}" height="${h}"/>`; });
+    s += `<line class="base" x1="0" x2="${W}" y1="${h - 2}" y2="${h - 2}"/></svg>`;
+    return `<div class="panel${p.resaltado ? " resaltado" : ""}"><button type="button" class="panel-tit" data-j="${j}"${o.onTitulo && p.dato ? "" : " disabled"}>
+      <b>${escapar(p.titulo)}</b><span>${escapar(p.sub ?? "")}</span></button>${s}</div>`;
+  }).join("");
+  const marcas = [0, Math.floor(n / 2), n - 1].map((k, i) => `<span style="left:${(100 * xc(k)) / W}%;${i === 0 ? "transform:none;left:0" : i === 2 ? "transform:none;left:auto;right:0" : ""}">${escapar(o.etiquetas[k])}</span>`).join("");
+  cont.innerHTML = `<div class="paneles">${paneles}<div class="paneles-eje">${marcas}</div></div>`;
+  cont.querySelectorAll(".golpe").forEach((g) => {
+    const p = o.paneles[+g.dataset.j], k = +g.dataset.k;
+    g.addEventListener("pointermove", (ev) => Tip.mostrar(o.tipDe(p, k), ev));
+    g.addEventListener("pointerleave", () => Tip.ocultar());
+    if (o.onDia) { g.style.cursor = "pointer"; g.addEventListener("click", () => o.onDia(k)); }
+  });
+  cont.querySelectorAll(".panel-tit:not([disabled])").forEach((b) => b.addEventListener("click", () => o.onTitulo(o.paneles[+b.dataset.j])));
+}
+
+// ---------- Columnas apiladas (series que se suman; 2 px entre segmentos) ----------
+// opts: etiquetas, series [{nombre, valores, color}], alto, formato, formatoEje, activos [a, b], onClick(i), tip(i) → html
+function grafApiladas(cont, o) {
+  const W = ancho(cont), H = o.alto ?? 170, izq = 40, der = 8, arr = 12, aba = 26, n = o.etiquetas.length;
+  const tot = o.etiquetas.map((_, i) => sumar(o.series.map((se) => se.valores[i] ?? 0)));
+  const marcas = marcasEje(Math.max(...tot) || 1), tope = marcas[marcas.length - 1];
+  const banda = (W - izq - der) / n, grueso = Math.min(24, Math.max(3, banda - 4));
+  const y = (v) => arr + (1 - v / tope) * (H - arr - aba), xc = (i) => izq + banda * (i + 0.5);
+  const activo = (i) => !o.activos || (i >= o.activos[0] && i <= o.activos[1]);
+  const cada = Math.ceil(n / Math.max(1, Math.floor((W - izq - der) / 46)));
+  let s = svgAbre(W, H);
+  for (const m of marcas) s += `<line class="grilla" x1="${izq}" x2="${W - der}" y1="${y(m)}" y2="${y(m)}"/>
+    <text class="eje" x="${izq - 6}" y="${y(m) + 4}" text-anchor="end">${o.formatoEje ? o.formatoEje(m) : fmt(m)}</text>`;
+  o.etiquetas.forEach((_, i) => {
+    const vivos = o.series.map((se, j) => [se.valores[i] ?? 0, j]).filter(([v]) => v > 0);
+    let base = 0;
+    vivos.forEach(([v, j], q) => {
+      const y0 = y(base) - (q ? 2 : 0), y1 = y(base + v), x = xc(i) - grueso / 2;
+      const alto = Math.max(1.5, y0 - y1), r = q === vivos.length - 1 ? Math.min(4, grueso / 2, alto) : 0;
+      s += `<path class="barra${activo(i) ? "" : " apagada"}" fill="${o.series[j].color}" d="M${x},${y0} v${-(alto - r)} ${r ? `q0,${-r} ${r},${-r} h${grueso - 2 * r} q${r},0 ${r},${r}` : `h${grueso}`} v${alto - r} Z"/>`;
+      base += v;
     });
   });
+  s += `<line class="base" x1="${izq}" x2="${W - der}" y1="${y(0)}" y2="${y(0)}"/>`;
+  o.etiquetas.forEach((e, i) => { if (i % cada === 0) s += `<text class="eje" x="${xc(i)}" y="${H - 8}" text-anchor="middle">${escapar(e)}</text>`; });
+  o.etiquetas.forEach((_, i) => { s += `<rect class="golpe" data-i="${i}" x="${izq + banda * i}" y="${arr}" width="${banda}" height="${H - arr - aba + 4}"/>`; });
+  cont.innerHTML = `${s}</svg>`;
+  enlazar(cont, o, (i) => o.tip(i));
 }

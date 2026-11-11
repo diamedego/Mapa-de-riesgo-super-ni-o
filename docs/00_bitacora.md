@@ -490,3 +490,21 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   humedales, agua alguna vez y agua extra en los Niño; radios censales con NBI, agua alguna vez y pendiente (+2 MB en total).
   Barrios populares e infraestructura crítica se bajan solo cuando se elige un punto, sin demorar el tablero.
 - Probado sin imágenes (`herramientas/pruebas/tanda4.js`): país, Santa Fe, un punto en La Plata, inglés y lluvia; celular sin desbordes.
+
+## 2026-11-11 — Tanda 5: análisis debajo del mapa con filtros tipo Power BI (puntos 17 y 20)
+- Se sacaron las tablas (mapa de calor con números y la tabla oculta): todo en gráficos, 3 por fila en escritorio (2 en pantallas
+  medianas, 1 en el celular).
+- Riesgo: ¿dónde se concentra la gente en riesgo? (Pareto), municipios prioritarios (por nivel o por personas) y ¿qué explica el
+  riesgo? (amenaza, exposición y vulnerabilidad de la selección frente a su provincia y al país).
+- Lluvia, viento y temperatura: dónde llueve/sopla/hace más calor, "día por día" en paneles chicos con la misma escala (con una zona
+  elegida: ella, su provincia y el país) y ¿cuánta gente tendrá lluvia fuerte / ráfagas fuertes / calor extremo? por día.
+- Los gráficos siguen el filtro: sin selección, provincias; con una provincia, sus partidos o municipios; con un municipio o un punto,
+  los municipios de su provincia con el elegido resaltado (si no está entre los primeros, aparece al final con su puesto). Tocar una
+  zona la elige y completa los casilleros de arriba; tocar un día lo elige como período. Un punto fuera de la zona elegida pasa a ser
+  el filtro de todo.
+- Filtros activos como etiquetas con ✕ arriba del análisis y "Borrar filtros" global (lugar, búsqueda y período); los casilleros con
+  filtro se marcan con el color de acento.
+- Situación (tanda 4, ajuste): explica de qué se compone el riesgo (amenaza × exposición × vulnerabilidad, con los números del índice)
+  y el motivo empieza por la amenaza que domina.
+- Probado sin imágenes (`herramientas/pruebas/tanda5.js`): país, Campana, clic en el Pareto, lluvia, clic en un día, borrar filtros,
+  Córdoba, punto fuera de la zona; celular sin desbordes.
