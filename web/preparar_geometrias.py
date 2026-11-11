@@ -120,11 +120,17 @@ def main() -> None:
     ras = pd.read_parquet(RAIZ / "data" / "referencia" / "rasgos_gobiernos_locales.parquet")
     gl = gpd.read_parquet(RAIZ / "data" / "raw" / "limites" / "gobiernos_locales.parquet")[["cmu", "geometry"]]
     gl["geometry"] = gl.to_crs(5345).simplify(250).to_crs(4326).make_valid()
-    fijo = ras[["cmu", "nam", "jur", "poblacion", "pob_terreno_bajo", "pct_cloaca", "pct_nbi",
-                "pct_materiales_deficientes"]].copy()
-    fijo[["poblacion", "pob_terreno_bajo"]] = fijo[["poblacion", "pob_terreno_bajo"]].fillna(0).round(0)
-    fijo[["pct_cloaca", "pct_nbi", "pct_materiales_deficientes"]] = fijo[["pct_cloaca", "pct_nbi",
-                                                                        "pct_materiales_deficientes"]].round(1)
+    # Para la "Situación" del tablero (motivo y recomendaciones según el lugar): barrios populares (RENABAP), superficie
+    # urbana (MapBiomas), arcilla (OpenLandMap), pendiente, humedales, agua alguna vez 1984-2021 (JRC) y agua extra en los
+    # Niño 2015-16 y 2023-24 respecto del año seco 2022-23 (Dynamic World)
+    hist = ["pct_area_agua_alguna_vez", "agua_extra_nino_2015_16_pct", "agua_extra_nino_2023_24_pct"]
+    fijo = ras[["cmu", "nam", "jur", "poblacion", "pob_terreno_bajo", "pct_cloaca", "pct_nbi", "pct_materiales_deficientes",
+                "area_km2", "barrios_populares", "pct_urbano", "arcilla_pct", "pendiente_grados", "pct_humedal", *hist]].copy()
+    fijo[["poblacion", "pob_terreno_bajo", "area_km2", "barrios_populares"]] = fijo[["poblacion", "pob_terreno_bajo", "area_km2",
+                                                                                    "barrios_populares"]].fillna(0).round(0)
+    fijo[["pct_cloaca", "pct_nbi", "pct_materiales_deficientes", "pct_urbano", "arcilla_pct", "pendiente_grados", "pct_humedal"]] = \
+        fijo[["pct_cloaca", "pct_nbi", "pct_materiales_deficientes", "pct_urbano", "arcilla_pct", "pendiente_grados", "pct_humedal"]].round(1)
+    fijo[hist] = fijo[hist].round(2)
     redondear_geojson(gl.merge(fijo, on="cmu"), SALIDA / "municipios_geo.geojson")
 
     # Bordes entre municipios vecinos (y contra zonas sin datos). El navegador dibuja solo los que
@@ -160,9 +166,13 @@ def main() -> None:
     rr["E"] = (10 * rng(rr["pct_area_hand_2m"])).round(2)
     rr["V"] = (10 * (rng(100 - rr["pct_cloaca"]) + rng(rr["pct_nbi"]) + rng(rr["pct_materiales_deficientes"])) / 3).round(2)
     geo_r = gpd.read_parquet(RAIZ / "data" / "raw" / "limites" / "radios_censales.parquet")[["cod_indec", "geometry"]]
-    geo_r = geo_r.merge(rr[["cod_indec", "cmu", "poblacion", "pct_cloaca", "pct_area_hand_2m", "E", "V"]], on="cod_indec")
+    # Nombres cortos (son ~66 000 radios): nbi = % hogares con NBI, agua = % del área con agua alguna vez 1984-2021 (JRC),
+    # pend = pendiente media en grados
+    rr = rr.rename(columns={"pct_nbi": "nbi", "pct_area_agua_alguna_vez": "agua", "pendiente_grados": "pend"})
+    geo_r = geo_r.merge(rr[["cod_indec", "cmu", "poblacion", "pct_cloaca", "pct_area_hand_2m", "E", "V", "nbi", "agua", "pend"]], on="cod_indec")
     geo_r["geometry"] = geo_r.to_crs(5345).simplify(15).to_crs(4326).make_valid()
-    geo_r[["pct_cloaca", "pct_area_hand_2m"]] = geo_r[["pct_cloaca", "pct_area_hand_2m"]].round(0)
+    geo_r[["pct_cloaca", "pct_area_hand_2m", "agua"]] = geo_r[["pct_cloaca", "pct_area_hand_2m", "agua"]].round(0)
+    geo_r[["nbi", "pend"]] = geo_r[["nbi", "pend"]].round(1)
     carpeta_r = SALIDA / "radios"
     carpeta_r.mkdir(exist_ok=True)
     cajas = {}

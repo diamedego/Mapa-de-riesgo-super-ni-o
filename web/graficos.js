@@ -237,6 +237,31 @@ function apilada(partes, formato) {
       `<li><i style="background:${p.color}"></i>${escapar(p.etq)} <b>${fmt((100 * p.v) / total)} %</b></li>`).join("")}</ul>`;
 }
 
+// ---------- Torta (anillo) ----------
+// partes [{v, color, etq, tip}]: porciones con 2 px de separación; centro: texto grande; el detalle de cada porción
+// aparece al pasar o tocar (tipsEn conecta los data-tip después de pintar)
+function torta(partes, { centro = "", tam = 84, grosor = 12, etiqueta = "" } = {}) {
+  const vivas = partes.filter((p) => p.v > 0), total = sumar(vivas.map((p) => p.v));
+  const c = tam / 2, r = (tam - grosor) / 2, L = 2 * Math.PI * r, hueco = vivas.length > 1 ? 2 : 0;
+  let acum = 0;
+  const arcos = vivas.map((p) => {
+    const largo = (p.v / total) * L, d = `${Math.max(0.5, largo - hueco).toFixed(2)} ${L.toFixed(2)}`;
+    const arco = `<circle class="torta-arco" r="${r}" cx="${c}" cy="${c}" fill="none" stroke="${p.color}" stroke-width="${grosor}"
+      stroke-dasharray="${d}" stroke-dashoffset="${(-acum).toFixed(2)}" transform="rotate(-90 ${c} ${c})" data-tip="${escapar(p.tip ?? p.etq)}"/>`;
+    acum += largo;
+    return arco;
+  }).join("");
+  return `<svg class="torta" width="${tam}" height="${tam}" viewBox="0 0 ${tam} ${tam}" role="img" aria-label="${escapar(etiqueta)}">
+    ${total ? "" : `<circle r="${r}" cx="${c}" cy="${c}" fill="none" class="torta-vacia" stroke-width="${grosor}"/>`}${arcos}
+    <text x="${c}" y="${c + 5}" text-anchor="middle" class="torta-centro">${escapar(centro)}</text></svg>`;
+}
+function tipsEn(cont) {
+  cont.querySelectorAll("[data-tip]").forEach((el) => {
+    el.addEventListener("pointermove", (ev) => Tip.mostrar(el.dataset.tip, ev));
+    el.addEventListener("pointerleave", () => Tip.ocultar());
+  });
+}
+
 // ---------- Ranking horizontal ----------
 // filas [{nombre, sub, valor, color, tip}], formato, max, onClick(fila)
 function grafRanking(cont, o) {

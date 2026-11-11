@@ -15,6 +15,7 @@
   --sin-datos: rgba(0, 0, 0, 0); --borde-riesgo: #4a4945; --borde-prov: rgba(14, 23, 38, 0.5);
   /* Series de gráficos (paleta validada) y estados */
   --s-1: #2a78d6; --s-2: #eb6834; --s-3: #1baf7a;
+  --torta-resto: #d3dbe4;
   --ok: #0a7d32; --atencion: #a35f00; --critico: #c62f2f; --serio: #ec835a; --rio-normal: #3f8fd2;
   --ok-fondo: rgba(12, 163, 12, 0.1); --atencion-fondo: rgba(250, 178, 25, 0.16); --critico-fondo: rgba(208, 59, 59, 0.12);
   --alerta-amarilla: #e0ae00; --alerta-naranja: #ef8a00; --alerta-roja: #d03b3b;
@@ -43,7 +44,7 @@
     --banda: #050b10; --banda-2: #0a1720; --banda-kpi: rgba(255, 255, 255, 0.04);
     --r1: #2fb366; --r2: #a6d96a; --r3: #fee08b; --r4: #fc8d59; --r5: #f04a3a;
     --sin-datos: rgba(0, 0, 0, 0); --borde-riesgo: #8d99a8; --borde-prov: rgba(255, 255, 255, 0.45);
-    --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70;
+    --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --torta-resto: #2c3a4a;
     --ok: #3ccf6e; --atencion: #fab219; --critico: #ff6b6b; --rio-normal: #58a6e6;
     --ok-fondo: rgba(60, 207, 110, 0.12); --atencion-fondo: rgba(250, 178, 25, 0.14); --critico-fondo: rgba(255, 107, 107, 0.14);
     --suelo-corte: #5b4a33; --suelo-borde: #b39368; --maq-1: #2a3540; --maq-2: #172029; --maq-3: #0e151c;
@@ -62,7 +63,7 @@
   --banda: #050b10; --banda-2: #0a1720; --banda-kpi: rgba(255, 255, 255, 0.04);
   --r1: #2fb366; --r2: #a6d96a; --r3: #fee08b; --r4: #fc8d59; --r5: #f04a3a;
   --sin-datos: rgba(0, 0, 0, 0); --borde-riesgo: #8d99a8; --borde-prov: rgba(255, 255, 255, 0.45);
-  --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70;
+  --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --torta-resto: #2c3a4a;
   --ok: #3ccf6e; --atencion: #fab219; --critico: #ff6b6b; --rio-normal: #58a6e6;
   --ok-fondo: rgba(60, 207, 110, 0.12); --atencion-fondo: rgba(250, 178, 25, 0.14); --critico-fondo: rgba(255, 107, 107, 0.14);
   --suelo-corte: #5b4a33; --suelo-borde: #b39368; --maq-1: #2a3540; --maq-2: #172029; --maq-3: #0e151c;
@@ -338,12 +339,30 @@ a.btn-banda { text-decoration: none; }
 .tb-situacion[data-nivel="1"]::before, .tb-situacion[data-nivel="2"]::before { background: var(--ok); }
 .tb-situacion[data-nivel="4"]::before { background: var(--r4); }
 .tb-situacion[data-nivel="5"]::before { background: var(--r5); }
-.tb-situacion h3 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--tinta-3); margin: 6px 0 4px; }
+.tb-situacion h3 { font-size: 0.95rem; font-weight: 700; color: var(--tinta-1); margin: 14px 0 2px; text-wrap: balance; }
 .tb-situacion h3:first-child { margin-top: 0; }
-.tb-situacion p { margin: 0 0 6px; font-size: 0.9rem; line-height: 1.5; }
-.tb-situacion ul { margin: 0; padding-left: 18px; font-size: 0.88rem; display: grid; gap: 4px; }
-.tb-situacion li::marker { color: var(--cian); }
-.tb-nota { margin: 8px 0 0 !important; font-size: 0.74rem !important; color: var(--tinta-3); }
+.tb-situacion h4 { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--tinta-3); margin: 10px 0 4px; }
+.tb-sub { margin: 0 0 8px; font-size: 0.7rem; line-height: 1.35; color: var(--tinta-3); }
+.tb-vinetas { margin: 6px 0 0; padding-left: 16px; display: grid; gap: 6px; font-size: 0.88rem; line-height: 1.45; }
+.tb-vinetas li::marker, .tb-acciones li::marker { color: var(--cian); }
+.tb-vinetas li > b:first-child { font-weight: 600; color: var(--tinta-1); }
+.tb-acciones { margin: 0; padding-left: 18px; font-size: 0.86rem; line-height: 1.45; display: grid; gap: 5px; }
+.tb-acc-pie { margin: 8px 0 0; font-size: 0.74rem; color: var(--tinta-2); font-variant-numeric: tabular-nums; }
+.tb-nota { margin: 12px 0 0 auto; max-width: 30em; font-size: 0.66rem; line-height: 1.35; color: var(--tinta-3); text-align: right; }
+.tortas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 12px 0 6px; }
+.torta-fig { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; }
+.torta-fig figcaption { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tinta-3); text-align: center; }
+.torta { display: block; overflow: visible; }
+.torta-vacia { stroke: var(--torta-resto); }
+.torta-centro { font-family: var(--f-num); font-weight: 700; font-size: 17px; fill: var(--tinta-1); font-variant-numeric: tabular-nums; }
+.torta-nota { margin: -2px 0 0; font-size: 0.64rem; line-height: 1.2; color: var(--tinta-3); text-align: center; }
+.torta-ley { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; width: 100%; font-size: 0.7rem; color: var(--tinta-2); }
+.torta-ley li { display: flex; gap: 5px; align-items: flex-start; min-width: 0; }
+.torta-ley i { flex: none; width: 8px; height: 8px; margin-top: 4px; border-radius: 2px; }
+.torta-ley span { display: flex; flex-wrap: wrap; column-gap: 4px; min-width: 0; }
+.torta-ley b { color: var(--tinta-1); font-variant-numeric: tabular-nums; }
+.torta-ley small { flex-basis: 100%; font-size: 0.64rem; color: var(--tinta-3); font-variant-numeric: tabular-nums; }
+.torta-sin { margin: 26px 0; font-size: 0.74rem; color: var(--tinta-3); text-align: center; }
 .tb-bloque { margin-top: 18px; }
 .tb-bloque > h3 { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tinta-2); margin-bottom: 8px; }
 .tb-bloque > h3 .ico { width: 16px; height: 16px; color: var(--cian); }

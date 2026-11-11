@@ -85,8 +85,70 @@ async function analisisRiesgoCirculo(s) {
     agua: zona?.agua ?? M.map(() => null), rio: zona?.rio ?? M.map(() => null), quebrada: zona?.quebrada ?? M.map(() => null),
     bajo: props.length ? pond((p) => Number(p.pct_area_hand_2m)) : null,
     sinCloaca: props.length ? pond((p) => 100 - Number(p.pct_cloaca)) : null,
-    E: pond((p) => Number(p.E)), V: pond((p) => Number(p.V)), municipio: zona,
+    E: pond((p) => Number(p.E)), V: pond((p) => Number(p.V)), municipio: zona, radios: dentro,
   };
+}
+
+// ---------- Rasgos del lugar (para el motivo y las recomendaciones) ----------
+const numero = (v) => (v == null || v === "" || Number.isNaN(Number(v)) ? null : Number(v));
+// Zona: suma o promedio por superficie de sus municipios. Terreno bajo = radios con más de la mitad del área a menos
+// de 2 m sobre el curso de agua más cercano (HAND); el mismo criterio que en el círculo.
+function rasgosZona(cmus) {
+  const fs = cmus.map((c) => estado.porCmu.get(c)).filter(Boolean), area = (p) => numero(p.area_km2) ?? 0, pob = (p) => numero(p.poblacion) ?? 0;
+  const porArea = (k) => { let s = 0, w = 0; for (const p of fs) { const v = numero(p[k]); if (v != null) { s += v * area(p); w += area(p); } } return w ? s / w : null; };
+  const conCloaca = fs.filter((p) => numero(p.pct_cloaca) != null);
+  return {
+    area: sumar(fs.map(area)), pob: sumar(fs.map(pob)), pobBajo: sumar(fs.map((p) => numero(p.pob_terreno_bajo) ?? 0)),
+    pobDatoCloaca: sumar(conCloaca.map(pob)), pobSinCloaca: sumar(conCloaca.map((p) => (pob(p) * (100 - p.pct_cloaca)) / 100)),
+    bp: sumar(fs.map((p) => numero(p.barrios_populares) ?? 0)), urbano: porArea("pct_urbano"), arcilla: porArea("arcilla_pct"),
+    pend: porArea("pendiente_grados"), humedal: porArea("pct_humedal"), aguaHist: porArea("pct_area_agua_alguna_vez"),
+    n16: porArea("agua_extra_nino_2015_16_pct"), n24: porArea("agua_extra_nino_2023_24_pct"),
+  };
+}
+// Círculo: los radios censales que caen adentro
+function rasgosRadios(radios) {
+  const ps = radios.map((f) => f.properties), pob = (p) => numero(p.poblacion) ?? 0, area = (p) => pob(p) / Math.max(0.01, numero(p.dens) ?? 0.01);
+  const pond = (k, w) => { let s = 0, sw = 0; for (const p of ps) { const v = numero(p[k]); if (v != null) { s += v * w(p); sw += w(p); } } return sw ? s / sw : null; };
+  const conCloaca = ps.filter((p) => numero(p.pct_cloaca) != null), sup = sumar(ps.map(area));
+  return {
+    pob: sumar(ps.map(pob)), pobBajo: sumar(ps.filter((p) => numero(p.pct_area_hand_2m) > 50).map(pob)),
+    pobDatoCloaca: sumar(conCloaca.map(pob)), pobSinCloaca: sumar(conCloaca.map((p) => (pob(p) * (100 - p.pct_cloaca)) / 100)),
+    nbi: pond("nbi", pob), aguaHist: pond("agua", area), pend: pond("pend", area), dens: sup ? sumar(ps.map(pob)) / sup : null,
+  };
+}
+// Capas que se bajan una sola vez, cuando hacen falta: mientras llegan devuelve null y al llegar vuelve a pintar el tablero
+const cargasUnaVez = new Map();
+function capaUnaVez(archivo, fn) {
+  let c = cargasUnaVez.get(archivo);
+  if (!c) {
+    cargasUnaVez.set(archivo, (c = { valor: null }));
+    fetch(`datos/${archivo}`).then((r) => r.json()).then((g) => { c.valor = fn(g); pintarTablero(); }).catch(() => cargasUnaVez.delete(archivo));
+  }
+  return c.valor;
+}
+const barriosPopulares = () => capaUnaVez("barrios_populares.geojson", (g) => g.features
+  .filter((f) => ["Polygon", "MultiPolygon"].includes(f.geometry?.type)).map((f) => ({ fam: numero(f.properties.fam) ?? 0, c: centroDe(f.geometry) })));
+const infraCritica = () => capaUnaVez("infraestructura_critica.geojson", (g) => g.features
+  .filter((f) => f.geometry?.type === "Point").map((f) => ({ g: f.properties.g, n: f.properties.n, p: f.geometry.coordinates })));
+function barriosCirculo(s) {
+  const todos = barriosPopulares();
+  if (!todos) return null;
+  const bs = todos.filter((b) => distanciaKm(s.punto, b.c) <= s.km);
+  return { n: bs.length, fam: sumar(bs.map((b) => b.fam)) };
+}
+// Centros de salud y servicios (agua, energía) del círculo; en terreno bajo si su radio censal lo es
+function infraCirculo(s, radios) {
+  const todo = infraCritica();
+  if (!todo) return null;
+  const pts = todo.filter((x) => distanciaKm(s.punto, x.p) <= s.km);
+  const cajas = radios.map((f) => [f, cajaDe(f.geometry)]);
+  const bajo = (p) => cajas.some(([f, c]) => p[0] >= c[0] && p[0] <= c[2] && p[1] >= c[1] && p[1] <= c[3] && numero(f.properties.pct_area_hand_2m) > 50 && contiene(f.geometry, p));
+  const salud = pts.filter((x) => x.g === "salud"), serv = pts.filter((x) => x.g === "agua" || x.g === "energia");
+  const masCerca = (re, kmMax) => { let m = null;
+    for (const x of todo) if (x.g === "salud" && x.n && re.test(x.n)) { const km = distanciaKm(s.punto, x.p); if (km <= kmMax && (!m || km < m.km)) m = { n: x.n, km }; }
+    return m; };
+  const cercano = masCerca(/hospital/i, 8) ?? masCerca(/sanatorio|cl[ií]nica/i, 8) ?? masCerca(/./, 15);
+  return { salud: salud.length, saludBajo: salud.filter((x) => bajo(x.p)).length, servBajo: serv.filter((x) => bajo(x.p)).length, cercano };
 }
 
 // Estaciones de río de la selección (zona: dentro de su caja; punto: a menos de 60 km)
@@ -252,10 +314,23 @@ function cabeceraTablero() {
     ${radios}${bloqueEvolucion()}`;
 }
 
-function bloqueSituacion(nivel, parrafos, acciones) {
+// Nombre del lugar para los títulos (con el radio si es un círculo)
+function lugarTitulo() {
+  const s = estado.sel;
+  if (!s) return "Argentina";
+  if (s.tipo === "zona") return s.lugar.nombre;
+  return t("lugar_radio")(s.nombre || estado.porCmu.get(s.cmu)?.nam || t("punto_en_mapa"), fmt(s.km, s.km % 1 ? 1 : 0));
+}
+// Situación en viñetas: título con el lugar y la fuente en chico debajo; "Qué hacer" en una lista o separado en
+// prevención y emergencia (la que urge primero); la aclaración "Orientativo…" chica, a la derecha
+function bloqueSituacion(nivel, vinetas, acciones, { nota = "", extra = "" } = {}) {
+  const lista = (xs) => `<ul class="tb-acciones">${xs.slice(0, 4).map((a) => `<li>${a}</li>`).join("")}</ul>`;
+  const qh = Array.isArray(acciones) ? lista(acciones)
+    : acciones.orden.map((k) => `<h4>${t(`acc_tit_${k}`)}</h4>${lista(acciones[k])}${k === "emer" && acciones.pie ? `<p class="tb-acc-pie">${acciones.pie}</p>` : ""}`).join("");
   return `<section class="tb-situacion" data-nivel="${nivel}">
-    <h3>${t("situacion")}</h3>${parrafos.filter(Boolean).map((p) => `<p>${p}</p>`).join("")}
-    <h3>${t("que_hacer")}</h3><ul>${acciones.slice(0, 4).map((a) => `<li>${a}</li>`).join("")}</ul>
+    <h3>${t("situacion_en")(escapar(lugarTitulo()))}</h3>${nota ? `<p class="tb-sub">${nota}</p>` : ""}
+    <ul class="tb-vinetas">${vinetas.filter(Boolean).map((v) => (Array.isArray(v) ? `<li><b>${v[0]}:</b> ${v[1]}</li>` : `<li>${v}</li>`)).join("")}</ul>
+    ${extra}<h3>${t("que_hacer")}</h3>${qh}
     <p class="tb-nota">${t("nota_oficial")}</p></section>`;
 }
 const dato = (etq, valor, extra = "", estadoSem = "") =>
@@ -282,41 +357,15 @@ async function tableroRiesgo(cont) {
   const s = estado.sel, M = estado.riesgo.meses, idx = indicesVista();
   const A = s?.tipo === "punto" ? await analisisRiesgoCirculo(s) : analisisRiesgoZona(cmusSel());
   if (estado.sel !== s) return;   // la selección cambió mientras se cargaban los radios
-  const pais = analisisRiesgoZona(todosLosCmus());
   const peor = idx.reduce((m, i) => (A.riesgo[i] > A.riesgo[m] ? i : m), idx[0]);
   const r = A.riesgo[peor];
   const comps = [["agua", A.agua[peor]], ["rio", A.rio[peor]], ["quebrada", A.quebrada[peor]]];
   const motor = comps.slice().sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))[0];
   const ests = estacionesSel().filter((e) => e.estado && e.estado !== "null").sort((a, b) => (pesoEstado[b.estado] ?? 0) - (pesoEstado[a.estado] ?? 0) || (a.km ?? 0) - (b.km ?? 0));
   const alertas = estado.modo === "actual" ? alertasSel() : [];
-  const lugar = s ? (s.tipo === "zona" ? s.lugar.nombre : t("el_area_cap")) : "Argentina";
   const nivel = nivelRiesgo(r);
-  // Situación
-  const p1 = t("sit_riesgo")(escapar(lugar), nombreNivel(r).toLowerCase(), fmtRiesgo(r),
-    estado.modo === "actual" ? t("este_mes") : idx.length > 1 ? t("peor_mes")(nombreMes(M[peor])) : t("en_mes")(nombreMes(M[peor], true)));
-  const p2 = (motor[1] ?? 0) >= 3 ? t("sit_motor")(t(`motor_${motor[0]}`), fmtRiesgo(motor[1])) : t("sit_motor_bajo");
-  const p3 = A.poblacion ? t("sit_poblacion")(fmtPersonas(A.poblacion), A.bajo == null ? null : fmt(A.bajo), A.sinCloaca == null ? null : fmt(A.sinCloaca)) : "";
-  const e0 = ests[0];
-  const p4 = e0 && estado.modo === "actual" ? t("sit_rio")(escapar(nombreRio(e0.rio) || e0.estacion), escapar(e0.estacion), t(`rio_${e0.estado}`),
-    fmt(e0.h, 2), fmt(e0.nivel_evacuacion, 2), e0.dh) : "";
-  const p5 = alertas.length ? t("sit_alertas")(alertas.length, [...new Set(alertas.map((a) => t(`alerta_${a.tipo}`).toLowerCase()))].join(", "),
-    alertas.some((a) => a.nivel === "naranja" || a.nivel === "roja")) : "";
-  const pico = A.riesgo.indexOf(Math.max(...A.riesgo.slice(estado.iMesActual).filter((v) => v != null)));
-  const p6 = estado.modo === "actual" && pico > estado.iMesActual && A.riesgo[pico] - A.riesgo[estado.iMesActual] >= 0.15
-    ? t("sit_sube")(nombreMes(M[pico], true), fmtRiesgo(A.riesgo[pico])) : "";
-  const acc = [];
-  if (estado.modo === "actual" && ests.some((e) => e.estado === "evacuacion")) acc.push(t("acc_rio_evac"));
-  if (estado.modo === "futuro") {   // escenario: la estación con mayor probabilidad de evacuación en el período
-    const M2 = mesesVista(), conProb = estacionesSel().filter((e) => e.conf === true || e.conf === "true")
-      .map((e) => ({ e, p: Math.max(...M2.map((m) => Number(e[`pe_${m}`]) || 0)) })).sort((x, y) => y.p - x.p)[0];
-    if (conProb && conProb.p >= 0.5) acc.push(t("acc_rio_escenario")(escapar(conProb.e.estacion), fmt(conProb.p * 100)));
-  }
-  if (alertas.length) acc.push(t("acc_alertas"));
-  if (nivel >= 4) {
-    acc.push(t(`acc_${motor[0]}`));
-    acc.push(t("acc_kit"));
-  } else if (nivel === 3) acc.push(t("acc_medio"));
-  else acc.push(t("acc_bajo"));
+  const situacion = await situacionRiesgo({ s, A, M, idx, peor, r, nivel, motor, ests, alertas });
+  if (estado.sel !== s) return;
   // Ríos
   const rios = ests.slice(0, 4).map((e) => {
     const tope = Math.max(e.nivel_evacuacion ?? e.nivel_alerta, e.h) * 1.12, pos = (v) => `${limitar((100 * v) / tope, 0, 100)}%`;
@@ -325,42 +374,137 @@ async function tableroRiesgo(cont) {
       <div class="rio-barra"><span class="rio-nivel" style="width:${pos(e.h)}"></span><i class="umbral al" style="left:${pos(e.nivel_alerta)}"></i>${e.nivel_evacuacion ? `<i class="umbral ev" style="left:${pos(e.nivel_evacuacion)}"></i>` : ""}</div>
       <div class="rio-pie"><span>${fmt(e.h, 2)} m ${e.dh != null ? `(${e.dh > 0 ? "+" : ""}${fmt(e.dh, 2)} m 24 h)` : ""}</span><span>${t("alerta_m")} ${fmt(e.nivel_alerta, 1)} · ${t("evac_m")} ${fmt(e.nivel_evacuacion, 1)}</span></div></li>`;
   }).join("");
-  const sem = (v, m) => semaforo(v, m);
   cont.innerHTML = `${cabeceraTablero()}
     <section class="tb-hero">
       <div class="hero-fila"><div class="hero-num"><span class="hero-valor">${fmtRiesgo(r)}</span><span class="hero-unidad">/10</span></div>
         <div class="hero-lado">${pastillaNivel(r)}<span class="hero-sub">${t("riesgo_inundacion")}${idx.length > 1 ? ` · ${t("peor_mes_corto")} ${nombreMes(M[peor])}` : ""}</span></div></div>
       ${medidorRiesgo(r)}
     </section>
-    ${bloqueSituacion(nivel, [p1, p2, p3, p4, p5, p6], acc)}
-    <section class="tb-bloque"><h3>${t("que_lo_explica")}</h3>
+    ${situacion}
+    <section class="tb-bloque"><h3>${t("que_lo_explica")}</h3><p class="tb-sub">${t("explica_nota")}</p>
       <div class="tb-comps">${comps.map(([k, v]) => `<div class="comp"><span class="comp-etq">${t(`comp_${k}`)}</span>
         <span class="comp-pista"><span style="width:${limitar((v ?? 0) * 10, 0, 100)}%;background:${colorNivel(v)}"></span></span><b>${fmtRiesgo(v)}</b></div>`).join("")}</div>
     </section>
-    <section class="tb-bloque"><h3>${s?.tipo === "punto" ? t("personas_area") : t("personas_zona")}</h3>
-      <div class="tb-datos">
-        ${dato(t("poblacion"), fmtPersonas(A.poblacion), s?.tipo === "punto" ? t("radios_n")(A.n) : t("municipios_n")(A.n))}
-        ${dato(t("terreno_bajo"), A.bajo == null ? "–" : `${fmt(A.bajo)} %`, pastilla(sem(A.bajo, [20, 50]), t("meta_menor")("20 %")), sem(A.bajo, [20, 50]))}
-        ${dato(t("sin_cloaca"), A.sinCloaca == null ? "–" : `${fmt(A.sinCloaca)} %`, pastilla(sem(A.sinCloaca, [20, 50]), t("meta_menor")("20 %")), sem(A.sinCloaca, [20, 50]))}
-        ${A.nbi != null ? dato(t("nbi"), `${fmt(A.nbi, 1)} %`, pastilla(sem(A.nbi, [5, 10]), t("meta_menor")("5 %")), sem(A.nbi, [5, 10])) :
-          dato(t("vulnerabilidad"), `${fmtRiesgo(A.V)}<small>/10</small>`, pastilla(sem(A.V, [4.5, 6]), t("meta_menor")("4,5")), sem(A.V, [4.5, 6]))}
-      </div>
-      <h4>${t("poblacion_por_nivel")}</h4>${apilada([1, 2, 3, 4, 5].map((n) => ({ v: A.porNivel[n - 1], color: `var(--r${n})`, etq: t("niveles")[n - 1] })), fmtPersonas)}
-    </section>
-    <section class="tb-bloque"><h3>${t("evolucion")}</h3><div class="leyenda-lineas">
-      <span><i style="background:var(--s-1)"></i>${escapar(s ? (s.tipo === "punto" ? t("el_area_cap") : s.lugar.nombre) : "Argentina")}</span>
-      ${s ? `<span><i class="punteada" style="border-color:var(--tinta-3)"></i>${t("total_pais")}</span>` : ""}</div>
-      <div id="tb-evol" class="graf-cont"></div></section>
-    ${rios ? `<section class="tb-bloque"><h3>${icono("rio")} ${t("rios_cercanos")}</h3><ul class="rios">${rios}</ul><p class="tb-fuente">${t("fuente_ina")}</p></section>` : ""}
+    ${rios ? `<section class="tb-bloque"><h3>${icono("rio")} ${t("rios_cercanos")}</h3><p class="tb-sub">${t("fuente_ina")}</p><ul class="rios">${rios}</ul></section>` : ""}
     ${enlacesCapas("riesgo")}`;
-  grafLineas(document.getElementById("tb-evol"), {
-    etiquetas: M.map((m) => nombreMes(m)), min: 0, max: 10, marcas: [0, 2, 4, 6, 8, 10], alto: 170, formato: (v) => fmtRiesgo(v),
-    series: [...(s ? [{ nombre: t("total_pais"), valores: pais.riesgo, color: "var(--tinta-3)", punteada: true, ancho: 1.5, sinPunto: true }] : []),
-      { nombre: s ? (s.tipo === "punto" ? t("el_area_cap") : s.lugar.nombre) : "Argentina", valores: A.riesgo, color: "var(--s-1)", ancho: 2.5, area: true }],
-    banda: estado.modo === "futuro" ? estado.rangoMeses : null, marca: estado.iMesActual,
-    extraTip: (i) => `<span class="tip-fila">${nombreNivel(A.riesgo[i])}</span>`,
-    onClick: (i) => { if (i >= estado.iMesActual) { estado.modo = "futuro"; estado.rangoMeses = [i, i]; actualizarTodo(); } },
-  });
+  tipsEn(cont);
+}
+
+// Situación del riesgo en viñetas, con tortas de población y "Qué hacer" armado con los datos del lugar: amenaza que
+// domina, nivel y duración, terreno, suelo, cloacas, barrios populares, centros de salud, antecedentes de El Niño,
+// ríos, alertas, lluvia de los próximos días y cuánto falta para el peor mes
+async function situacionRiesgo({ s, A, M, idx, peor, r, nivel, motor, ests, alertas }) {
+  const actual = estado.modo === "actual", iHoy = estado.iMesActual, circulo = s?.tipo === "punto";
+  const cmus = circulo ? null : cmusSel(), muni = circulo && s.cmu ? estado.porCmu.get(s.cmu) : null;
+  const Z = circulo ? rasgosRadios(A.radios) : rasgosZona(cmus);
+  const ZM = circulo ? (s.cmu ? rasgosZona([s.cmu]) : null) : Z;   // los antecedentes de El Niño están por municipio
+  const suelo = circulo ? await sueloEn(s.punto).catch(() => null) : null;
+  const barrios = circulo ? barriosCirculo(s) : null, infra = circulo ? infraCirculo(s, A.radios) : null;
+  const pct = (a, b) => (b > 0 ? (100 * a) / b : null), fmtPct = (v) => (v > 0 && v < 1 ? "<1" : fmt(v));
+  const bajoP = pct(Z.pobBajo, Z.pob), sinP = pct(Z.pobSinCloaca, Z.pobDatoCloaca);
+  const e0 = ests[0], rioE0 = e0 ? escapar(nombreRio(e0.rio) || e0.estacion) : null;
+  const quebrada = motor[0] === "quebrada" && (motor[1] ?? 0) >= 3, crecida = motor[0] === "rio" && (motor[1] ?? 0) >= 3;
+  const tiposAlerta = [...new Set(alertas.map((a) => t(`alerta_${a.tipo}`).toLowerCase()))].join(", ");
+  const vin = [];
+  // Situación: nivel, comparación y qué lo explica
+  let comp = "";
+  if (!circulo && cmus.length === 1) {
+    const vals = [...valoresRiesgoVista().values()], p = Math.floor((100 * vals.filter((v) => v < r).length) / Math.max(1, vals.length));
+    comp = p >= 50 ? t("sit_mas_que")(fmt(p)) : t("sit_menos_que")(fmt(100 - p));
+  } else if (circulo && muni && A.municipio?.riesgo[peor] != null) comp = t("sit_vs_muni")(r >= A.municipio.riesgo[peor], escapar(muni.nam), fmtRiesgo(A.municipio.riesgo[peor]));
+  vin.push([t("v_situacion"), `${t("sit_nivel")(nombreNivel(r).toLowerCase(), fmtRiesgo(r))}${comp ? `, ${comp}` : ""}. ${(motor[1] ?? 0) >= 3 ? t("sit_motor")(t(`motor_${motor[0]}`), fmtRiesgo(motor[1])) : t("sit_motor_bajo")}`]);
+  if (actual) {   // ahora: ríos y alertas
+    const ahora = [e0 ? t("sit_rio")(rioE0, escapar(e0.estacion), t(`rio_${e0.estado}`), fmt(e0.h, 2), fmt(e0.nivel_evacuacion, 2), e0.dh) : "",
+      alertas.length ? t("sit_alertas")(alertas.length, tiposAlerta, alertas.some((a) => a.nivel === "naranja" || a.nivel === "roja")) : ""].filter(Boolean);
+    if (ahora.length) vin.push([t("v_ahora"), ahora.join(" ")]);
+  }
+  // Período, duración y peor mes (en "condiciones actuales": del mes en curso al último del pronóstico)
+  const horiz = actual ? M.map((_, i) => i).filter((i) => i >= iHoy) : idx;
+  const altos = horiz.filter((i) => nivelRiesgo(A.riesgo[i]) >= 4);
+  const iPeor = horiz.reduce((m, i) => ((A.riesgo[i] ?? -1) > (A.riesgo[m] ?? -1) ? i : m), horiz[0]);
+  vin.push([t("v_periodo"), `${capitalizar(textoPeriodo("riesgo"))}. ${altos.length
+    ? t("meses_altos")(altos.length, horiz.length, actual, nombreMes(M[altos[0]]), nombreMes(M[altos[altos.length - 1]])) : t("sin_meses_altos")(actual)}`]);
+  vin.push([t("v_peor_mes"), `${capitalizar(nombreMes(M[iPeor], true))}: ${nombreNivel(A.riesgo[iPeor]).toLowerCase()} (${fmtRiesgo(A.riesgo[iPeor])}/10)`]);
+  // Motivo: por qué el agua no se absorbe ni se va
+  const fac = [];
+  if (crecida) fac.push(rioE0 ? t("mot_rio")(rioE0) : t("mot_rio_sin"));
+  if (bajoP >= 10) fac.push(t("mot_bajo")(fmt(bajoP)));
+  if (quebrada || (Z.pend ?? 0) >= 8) fac.push(t("mot_pendiente")(fmt(Z.pend ?? 0)));
+  else if (Z.pend != null && Z.pend < 1) fac.push(t("mot_plano")(fmt(Z.pend, 1)));
+  if (suelo?.ks != null) { if (suelo.ks <= 6.5) fac.push(t("mot_suelo")(t("textura")(suelo.nombre), fmt(suelo.ks, suelo.ks < 1 ? 1 : 0))); }
+  else if (Z.arcilla >= 25) fac.push(t("mot_arcilla")(fmt(Z.arcilla)));
+  if (Z.urbano >= 30) fac.push(t("mot_urbano")(fmt(Z.urbano)));
+  else if (Z.dens >= 3000) fac.push(t("mot_denso")(fmt(Z.dens)));
+  if (sinP >= 20) fac.push(t("mot_cloaca")(fmt(sinP)));
+  if (Z.humedal >= 10) fac.push(t("mot_humedal")(fmt(Z.humedal)));
+  vin.push([t("v_motivo"), fac.length ? `${capitalizar(fac.slice(0, 4).join("; "))}.` : t("mot_ninguno")]);
+  // Antecedentes: agua extra vista por satélite en los Niño 2015-16 y 2023-24, y agua alguna vez desde 1984
+  const donde = circulo ? t("donde_muni")(escapar(muni?.nam ?? "")) : s ? t("donde_zona") : t("donde_pais"), ant = [];
+  const ninos = [["2015-16", ZM?.n16], ["2023-24", ZM?.n24]].filter(([, v]) => v != null && v >= 0.1)
+    .map(([anio, v]) => { const km2 = (ZM.area * v) / 100; return t("ant_nino_item")(fmt(v, v < 10 ? 1 : 0), anio, fmt(km2, km2 < 10 ? 1 : 0)); });
+  if (ninos.length) ant.push(t("ant_nino")(ninos.join(t("y")), donde));
+  if (Z.aguaHist >= 1) ant.push(t("ant_jrc")(fmt(Z.aguaHist), circulo ? t("donde_area") : s ? t("donde_zona") : t("donde_pais")));
+  vin.push([t("v_antecedentes"), ant.length ? `${capitalizar(ant.join("; "))}.` : t("ant_ninguno")]);
+  // Población, con tortas: por nivel de riesgo, cloaca y terreno
+  const nbi = circulo ? Z.nbi : A.nbi, nBarrios = circulo ? barrios?.n ?? 0 : Z.bp;
+  vin.push([t("v_poblacion"), [t("pob_personas")(fmtPersonas(A.poblacion)),
+    nBarrios ? (circulo ? t("pob_barrios_fam")(nBarrios, fmtPersonas(barrios.fam)) : t("pob_barrios")(fmt(nBarrios))) : "",
+    nbi != null ? t("pob_nbi")(fmt(nbi, 1)) : ""].filter(Boolean).join(" · ")]);
+  const tot = sumar(A.porNivel), tip = (etq, v, de) => `<b>${escapar(etq)}</b><span>${fmtPersonas(v)} · ${fmtPct(pct(v, de))} %</span>`;
+  const leyenda = (filas) => `<ul class="torta-ley">${filas.map(([color, etq, v, de]) =>
+    `<li><i style="background:${color}"></i><span>${escapar(etq)} <b>${fmtPct(pct(v, de))} %</b><small>${fmtPersonas(v)}</small></span></li>`).join("")}</ul>`;
+  const figura = (tit, cuerpo) => `<figure class="torta-fig"><figcaption>${tit}</figcaption>${cuerpo}</figure>`;
+  const anillo = (tit, filas, centro, nota = "") => figura(tit, `${torta(filas.map(([color, etq, v, de]) => ({ v, color, tip: tip(etq, v, de) })), { centro, etiqueta: tit })}${nota}${leyenda(filas)}`);
+  const sinInfo = (tit) => figura(tit, `<p class="torta-sin">${t("sin_informacion")}</p>`);
+  const niveles = [1, 2, 3, 4, 5].map((n) => [`var(--r${n})`, t("niveles")[n - 1], A.porNivel[n - 1], tot]).filter((f) => f[2] > 0);
+  const tortas = `<div class="tortas">
+    ${tot ? anillo(t("torta_niveles"), niveles, `${fmtPct(pct(A.porNivel[3] + A.porNivel[4], tot))} %`, `<p class="torta-nota">${t("torta_centro_alto")}</p>`) : sinInfo(t("torta_niveles"))}
+    ${Z.pobDatoCloaca > 0 ? anillo(t("torta_cloaca"), [["var(--s-2)", t("sin_cloaca"), Z.pobSinCloaca, Z.pobDatoCloaca],
+      ["var(--torta-resto)", t("con_cloaca"), Z.pobDatoCloaca - Z.pobSinCloaca, Z.pobDatoCloaca]], `${fmtPct(sinP)} %`) : sinInfo(t("torta_cloaca"))}
+    ${Z.pob > 0 ? anillo(t("torta_terreno"), [["var(--s-1)", t("terreno_bajo_l"), Z.pobBajo, Z.pob], ["var(--torta-resto)", t("terreno_alto_l"), Z.pob - Z.pobBajo, Z.pob]],
+      `${fmtPct(bajoP)} %`) : sinInfo(t("torta_terreno"))}</div><p class="tb-sub">${t("tortas_nota")}</p>`;
+  // Qué hacer: cada recomendación sale de un dato del lugar; se ordenan por prioridad y se muestran las 4 primeras
+  const prev = [], emer = [], evac = actual && ests.some((e) => e.estado === "evacuacion");
+  if (actual && estado.tiempo) {   // la lluvia más fuerte de los próximos 7 días
+    const T = estado.tiempo, S = tiempoSel(), h0 = diaHoy(T);
+    let iMx = -1;
+    for (let i = h0; i < Math.min(T.dias.length, h0 + 7); i++) if (S.lluvia[i] != null && (iMx < 0 || S.lluvia[i] > S.lluvia[iMx])) iMx = i;
+    if (iMx >= 0 && S.lluvia[iMx] >= 20) prev.push([95, t("prev_lluvia_pronto")(fmtDiaFrase(T.dias[iMx]), fmt(S.lluvia[iMx]))]);
+  }
+  if (!actual) {   // escenario de caudales: la estación con mayor probabilidad de evacuación en el período
+    const conProb = estacionesSel().filter((e) => e.conf === true || e.conf === "true")
+      .map((e) => ({ e, p: Math.max(...mesesVista().map((m) => Number(e[`pe_${m}`]) || 0)) })).sort((x, y) => y.p - x.p)[0];
+    if (conProb && conProb.p >= 0.5) prev.push([92, t("acc_rio_escenario")(escapar(conProb.e.estacion), fmt(conProb.p * 100))]);
+  }
+  if (e0 && (crecida || e0.estado === "alerta" || e0.estado === "evacuacion"))
+    prev.push([88, t("prev_rio_seguir")(rioE0, escapar(e0.estacion), fmt(e0.h, 2), e0.nivel_alerta == null ? null : fmt(e0.nivel_alerta, 2), e0.nivel_evacuacion == null ? null : fmt(e0.nivel_evacuacion, 2))]);
+  if (quebrada) prev.push([86, t("prev_quebrada")]);
+  if (iPeor > iHoy && nivelRiesgo(A.riesgo[iPeor]) >= 3) prev.push([70, t("prev_tiempo")(nombreMes(M[iPeor], true))]);
+  if (bajoP >= 15) prev.push([50 + bajoP / 2, t("prev_bajo")(fmt(bajoP))]);
+  if (sinP >= 20 && !quebrada) prev.push([45 + sinP / 2, t("prev_cloaca")(fmt(sinP))]);
+  const nino = [["2015-16", ZM?.n16], ["2023-24", ZM?.n24]].filter(([, v]) => v != null).sort((a, b) => b[1] - a[1])[0];
+  if (nino && nino[1] >= 1) prev.push([Math.min(90, 55 + 3 * nino[1]), t("prev_historia")(nino[0], fmt(nino[1], nino[1] < 10 ? 1 : 0), donde)]);
+  if (infra?.saludBajo) prev.push([60, t("prev_salud")(infra.saludBajo, infra.salud)]);
+  if (infra?.servBajo) prev.push([52, t("prev_servicios")(infra.servBajo)]);
+  if (nBarrios && nivel >= 3) prev.push([40 + Math.min(20, nBarrios), t("prev_barrios")(fmt(nBarrios), circulo ? t("donde_area") : t("donde_zona"))]);
+  if (Z.urbano >= 30) prev.push([42, t("prev_urbano")(fmt(Z.urbano))]);
+  else if (Z.dens >= 3000) prev.push([42, t("prev_denso")]);
+  if (nivel >= 3) prev.push([35, t("acc_kit")]);
+  if (!prev.length) prev.push([1, t("acc_bajo")]);
+  if (evac) { const ev = ests.find((e) => e.estado === "evacuacion"); emer.push([100, t("emer_rio_evac")(escapar(nombreRio(ev.rio) || ev.estacion), escapar(ev.estacion))]); }
+  if (actual && alertas.length) emer.push([96, t("emer_alerta")(tiposAlerta)]);
+  if (quebrada) emer.push([90, t("emer_quebrada")]);
+  if (motor[0] === "agua" || bajoP >= 10) emer.push([80, t("emer_calles")]);
+  if (crecida || e0?.estado === "alerta" || e0?.estado === "evacuacion") emer.push([78, t("emer_evacuar")]);
+  if (bajoP >= 10 || nivel >= 3) emer.push([70, t("emer_luz")]);
+  if (infra?.cercano) emer.push([66, t("emer_salud_cerca")(escapar(infra.cercano.n), fmt(infra.cercano.km, 1))]);
+  if (sinP >= 20) emer.push([60 + sinP / 4, t("emer_agua_potable")]);
+  if (nivel >= 3) emer.push([40, t("emer_despues")]);
+  if (!emer.length) emer.push([1, t("emer_calles")]);
+  const ordenar = (xs) => xs.sort((a, b) => b[0] - a[0]).map((x) => x[1]);
+  const urge = evac || alertas.some((a) => a.nivel === "naranja" || a.nivel === "roja");
+  return bloqueSituacion(nivel, vin, { prev: ordenar(prev), emer: ordenar(emer), orden: urge ? ["emer", "prev"] : ["prev", "emer"], pie: t("emer_tel") },
+    { nota: t("sit_fuente"), extra: tortas });
 }
 
 // ---------- Tablero: lluvia ----------
@@ -381,7 +525,7 @@ function tableroLluvia(cont) {
   const cat = categoriaLluvia(maxDia);
   const nivel = maxDia >= 50 ? 5 : maxDia >= 20 ? 4 : maxDia >= 10 ? 3 : 1;
   const parrafos = [
-    t("sit_lluvia")(escapar(lugar), fmt(total), textoPeriodo(), t(cat)),
+    maxDia < 1 ? t("sit_lluvia_nada")(textoPeriodo()) : t("sit_lluvia")(escapar(lugar), fmt(total), textoPeriodo(), t(cat)),
     maxDia >= 1 ? t("sit_lluvia_dia")(fmtDiaFrase(T.dias[iMax]), fmt(maxDia), prob == null ? null : fmt(prob)) : "",
     d20 ? t("sit_lluvia_20")(d20) : "",
     estado.modo === "actual" ? (ahora >= 0.5 ? t("sit_lluvia_ahora")(fmt(ahora, 1)) : t("sit_lluvia_no_ahora")) : "",
@@ -405,9 +549,8 @@ function tableroLluvia(cont) {
         ${dato(estado.modo === "actual" ? t("prox_3h") : t("dias_20mm"), estado.modo === "actual" ? `${fmt(ahora ?? 0, 1)} mm` : fmt(d20), estado.modo === "actual" ? t("ahora") : t("en_periodo"))}
       </div>
     </section>
-    ${bloqueSituacion(nivel, parrafos, acc)}
-    <section class="tb-bloque"><h3>${t("lluvia_por_dia")}</h3><div id="tb-lluvia-dias" class="graf-cont"></div>
-      <p class="tb-fuente">${t("ayuda_click_dia")}</p></section>
+    ${bloqueSituacion(nivel, parrafos, acc, { nota: t("fuente_pronostico") })}
+    <section class="tb-bloque"><h3>${t("lluvia_por_dia")}</h3><p class="tb-sub">${t("ayuda_click_dia")}</p><div id="tb-lluvia-dias" class="graf-cont"></div></section>
     <section class="tb-bloque"><h3>${t("prox_48h")}</h3><div id="tb-lluvia-48" class="graf-cont"></div></section>
     ${!s || s.tipo === "zona" ? `<section class="tb-bloque"><h3>${t("donde_mas_llueve")}</h3><div id="tb-lluvia-rk"></div></section>` : ""}
     ${enlacesCapas("lluvia")}`;
@@ -476,12 +619,11 @@ function tableroViento(cont) {
         <span class="hero-rafaga">${t("rafagas")} <b>${fmt(rH)} km/h</b></span>
       </div>
     </section>
-    ${bloqueSituacion(nivel, parrafos, acc)}
+    ${bloqueSituacion(nivel, parrafos, acc, { nota: t("fuente_pronostico") })}
     <section class="tb-bloque"><h3>${t("viento_por_dia")}</h3><div class="leyenda-lineas"><span><i style="background:var(--s-1)"></i>${t("viento_max")}</span><span><i style="background:var(--s-2)"></i>${t("rafagas")}</span></div>
       <div id="tb-viento-dias" class="graf-cont"></div></section>
     <section class="tb-bloque tb-dos"><div><h3>${t("rosa_vientos")}</h3><div id="tb-rosa"></div></div>
-      <div><h3>${t("tipos_viento")}</h3>${diasTipo ? `<ul class="tipos-viento">${diasTipo}</ul>` : `<p class="tb-vacio">${t("sin_tipos")}</p>`}
-      <p class="tb-fuente">${t("tipos_ayuda")}</p></div></section>
+      <div><h3>${t("tipos_viento")}</h3><p class="tb-sub">${t("tipos_ayuda")}</p>${diasTipo ? `<ul class="tipos-viento">${diasTipo}</ul>` : `<p class="tb-vacio">${t("sin_tipos")}</p>`}</div></section>
     <section class="tb-bloque"><h3>${t("prox_48h")}</h3><div id="tb-viento-48" class="graf-cont"></div></section>
     ${!s || s.tipo === "zona" ? `<section class="tb-bloque"><h3>${t("rafagas_fuertes")}</h3><div id="tb-viento-rk"></div></section>` : ""}
     ${enlacesCapas("viento")}`;
@@ -543,7 +685,7 @@ function tableroTemp(cont) {
         ${dato(t("dias_34"), fmt(calor34), heladas ? t("heladas_n")(heladas) : t("sin_heladas"))}
       </div>
     </section>
-    ${bloqueSituacion(nivel, parrafos, acc)}
+    ${bloqueSituacion(nivel, parrafos, acc, { nota: t("fuente_pronostico") })}
     <section class="tb-bloque"><h3>${t("min_max_dia")}</h3><div id="tb-temp-rangos" class="graf-cont"></div></section>
     <section class="tb-bloque"><h3>${t("prox_48h")}</h3><div id="tb-temp-48" class="graf-cont"></div></section>
     ${!s || s.tipo === "zona" ? `<section class="tb-bloque"><h3>${t("mas_calor")}</h3><div id="tb-temp-rk"></div></section>` : ""}

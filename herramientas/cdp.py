@@ -46,7 +46,7 @@ try:
     r = cmd("Runtime.evaluate", expression=js, awaitPromise=True, returnByValue=True)
     if "exceptionDetails" in r:
         print("JS ERROR:", str(r["exceptionDetails"])[:800])
-    print("JS:", str(r.get("result", {}).get("value"))[:4000])
+    print("JS:", str(r.get("result", {}).get("value"))[:int(os.environ.get("LARGO", 4000))])
     fin = time.time() + float(os.environ.get("POST", 0))
     while time.time() < fin:
         cmd("Runtime.evaluate", expression="1"); time.sleep(0.5)

@@ -473,3 +473,20 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - 10-nov (noche): terreno FABDEM completo en las 20 ciudades prioritarias: 121 bloques de 0,25° (89 MB). Dos archivos de
   Bristol se cortaban; para Santiago del Estero se bajó solo la hoja necesaria (S28W065, 17 MB) leyendo el zip remoto por
   rangos HTTP. Los 6,3 GB originales se borraron después de recortar (pedido de la usuaria); queda `data/raw/fabdem/license.txt`.
+
+## 2026-11-11 — Tanda 4: "Situación" en viñetas, tortas y "Qué hacer" según el lugar (punto 11f)
+- Panel izquierdo, capa de riesgo: título "Situación en {lugar}" con la fuente en chico debajo y viñetas **Situación** (nivel,
+  comparación con el resto de los municipios o con el promedio del municipio, amenaza que domina), **Ahora** (ríos del INA y alertas
+  del SMN), **Período** (cuántos meses llegan a riesgo alto), **Peor mes**, **Motivo** (por qué no se absorbe el agua: terreno bajo,
+  pendiente, textura del suelo, superficie construida, cloacas, humedales), **Antecedentes** (agua extra vista por satélite en los
+  Niño 2015-16 y 2023-24 frente a la sequía 2022-23; agua alguna vez 1984-2021) y **Población** con tres tortas: por nivel de riesgo,
+  con y sin cloaca, terreno bajo y alto (con la cantidad de personas en chico).
+- "Qué hacer" separado en **Prevención (antes)** y **Emergencia (durante y después)**: cada recomendación sale de un dato del lugar
+  (lluvia fuerte de los próximos 7 días, río en alerta, escenario GloFAS, quebradas, % en terreno bajo, % sin cloaca, antecedentes de
+  El Niño, centros de salud y servicios en terreno bajo, barrios populares, superficie construida) y se muestran las 4 más
+  prioritarias de cada lista. Con un río en evacuación o alerta naranja/roja, la emergencia va primero. Teléfonos al pie.
+- Se sacó el gráfico de evolución mensual; las notas de fuente pasaron debajo de los títulos; "Orientativo…" más chico, a la derecha.
+- Datos nuevos en la web (`web/preparar_geometrias.py`): municipios con superficie, barrios populares, % urbano, arcilla, pendiente,
+  humedales, agua alguna vez y agua extra en los Niño; radios censales con NBI, agua alguna vez y pendiente (+2 MB en total).
+  Barrios populares e infraestructura crítica se bajan solo cuando se elige un punto, sin demorar el tablero.
+- Probado sin imágenes (`herramientas/pruebas/tanda4.js`): país, Santa Fe, un punto en La Plata, inglés y lluvia; celular sin desbordes.
