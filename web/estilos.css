@@ -154,6 +154,20 @@ a.btn-banda { text-decoration: none; }
 .ico-sug { width: 15px; height: 15px; color: var(--cian); }
 .aviso { margin: -4px 0 0; padding: 8px 12px; border-radius: var(--radio-1); background: var(--atencion-fondo); color: var(--tinta-1); font-size: 0.88rem; }
 .modo-fila { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.periodo-futuro { position: relative; display: flex; gap: 8px; align-items: center; }
+.periodo-futuro label { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--tinta-2); }
+.periodo-futuro input { min-height: 38px; padding: 0 8px; border: 1px solid var(--borde-fuerte); border-radius: var(--radio-1); background: var(--superficie); color: var(--tinta-1); font: inherit; font-size: 0.88rem; }
+.tb-evol { display: flex; align-items: center; gap: 10px; margin: 8px 0 4px; padding: 10px; border-radius: var(--radio-2); background: var(--superficie-2); }
+.tb-evol .lt-play { flex: none; }
+.tb-evol-cuerpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.tb-evol-cab { display: flex; justify-content: space-between; font-size: 0.74rem; color: var(--tinta-2); font-weight: 600; }
+.tb-evol-ahora { color: var(--cian); font-family: var(--f-mono); }
+.tb-evol-pista { position: relative; height: 6px; margin: 0 8px 18px; border-radius: 3px; background: var(--borde); }
+.tb-evol-relleno { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--cian); transition: width 0.4s; }
+.tb-evol-hito { position: absolute; top: -3px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; }
+.tb-evol-hito i { width: 12px; height: 12px; border-radius: 50%; background: var(--superficie); border: 2px solid var(--borde-fuerte); }
+.tb-evol-hito.ok i { border-color: var(--cian); background: var(--cian); }
+.tb-evol-hito small { margin-top: 2px; font-size: 0.66rem; font-family: var(--f-mono); color: var(--tinta-2); white-space: nowrap; }
 /* Descripciones al pasar el mouse (o al tocar): chiquitas, con fondo semitransparente */
 [data-ayuda]:hover::after, [data-ayuda]:focus-visible::after, [data-ayuda].muestra-ayuda::after {
   content: attr(data-ayuda); position: absolute; left: 50%; top: calc(100% + 6px); transform: translateX(-50%); z-index: 60;
@@ -596,7 +610,6 @@ body.sim-abierto { overflow: hidden; }
   .miniaturas { flex-direction: row; overflow: visible; }
   .minis-titulo { display: none; }
   .mini { min-height: 210px; }
-  .buscador { grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.3fr); }
   .campo-radio { grid-column: auto; }
 }
 @media (max-width: 1024px) {

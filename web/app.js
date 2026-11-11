@@ -94,13 +94,51 @@ function presets() {
     .map(([etq, r]) => ({ etq, r, activo: r[0] === estado.rangoDias[0] && r[1] === estado.rangoDias[1], ir: () => { estado.rangoDias = r; actualizarTodo(); } }));
 }
 
+// Fila de condiciones: en "futuras", dos casilleros (meses para el riesgo, días para lluvia, viento y temperatura) limitados
+// al horizonte del pronóstico, y el texto "16/11/2026 – Dentro de 7 días" (el período se muestra solo acá)
 function pintarControles() {
   document.querySelectorAll("#modo [data-modo]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.modo === estado.modo)));
-  const ps = presets(), cont = document.getElementById("presets");
-  cont.innerHTML = ps.map((p, i) => `<button type="button" class="chip" data-i="${i}" aria-pressed="${p.activo}">${p.etq}</button>`).join("");
-  cont.querySelectorAll(".chip").forEach((b) => { b.onclick = () => { detenerReproduccion(); ps[+b.dataset.i].ir(); }; });
-  document.getElementById("periodo-texto").textContent = textoPeriodo();
   document.querySelectorAll(".capas-tabs [data-capa]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.capa === estado.capa)));
+  const caja = document.getElementById("periodo-futuro"), de = document.getElementById("f-desde"), ha = document.getElementById("f-hasta");
+  const futuro = estado.modo === "futuro", T = estado.tiempo, M = estado.riesgo.meses;
+  caja.hidden = !futuro;
+  if (futuro) {
+    if (estado.capa === "riesgo") {
+      for (const x of [de, ha]) { x.type = "month"; x.min = M[Math.min(estado.iMesActual + 1, M.length - 1)]; x.max = M[M.length - 1]; }
+      de.value = M[estado.rangoMeses[0]]; ha.value = M[estado.rangoMeses[1]];
+      caja.dataset.ayuda = t("limite_meses")(capitalizar(nombreMes(M[M.length - 1], true)));
+      de.onchange = ha.onchange = () => {
+        let a = M.indexOf(de.value), b = M.indexOf(ha.value);
+        if (a < 0) a = estado.rangoMeses[0]; if (b < 0) b = estado.rangoMeses[1]; if (b < a) b = a;
+        detenerReproduccion(false); estado.rangoMeses = [a, b]; actualizarTodo();
+      };
+    } else if (T) {
+      const h = diaHoy(T);
+      for (const x of [de, ha]) { x.type = "date"; x.min = T.dias[h]; x.max = T.dias[T.dias.length - 1]; }
+      de.value = T.dias[estado.rangoDias[0]]; ha.value = T.dias[estado.rangoDias[1]];
+      caja.dataset.ayuda = t("limite_dias")(fechaCorta(T.dias[T.dias.length - 1]));
+      de.onchange = ha.onchange = () => {
+        let a = T.dias.indexOf(de.value), b = T.dias.indexOf(ha.value);
+        if (a < 0) a = estado.rangoDias[0]; if (b < 0) b = estado.rangoDias[1]; if (b < a) b = a;
+        detenerReproduccion(false); estado.rangoDias = [a, b]; actualizarTodo();
+      };
+    }
+  }
+  document.getElementById("periodo-texto").textContent = textoPeriodoFila();
+}
+const fechaCorta = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+function diasDesdeHoy(iso) { const hoy = hoyLocal(); return Math.round((Date.parse(`${iso}T12:00:00Z`) - Date.parse(`${hoy}T12:00:00Z`)) / 86400e3); }
+function textoPeriodoFila() {
+  const T = estado.tiempo, M = estado.riesgo.meses;
+  if (estado.modo === "actual") return t("hoy_fecha")(fechaCorta(hoyLocal()));
+  if (estado.capa === "riesgo") {
+    const [a, b] = estado.rangoMeses, n = (k) => k - estado.iMesActual;
+    return a === b ? t("mes_dentro")(capitalizar(nombreMes(M[a], true)), n(a)) : t("meses_dentro")(capitalizar(nombreMes(M[a], true)), nombreMes(M[b], true), n(a), n(b));
+  }
+  if (!T) return "";
+  const [a, b] = estado.rangoDias, da = diasDesdeHoy(T.dias[a]), db = diasDesdeHoy(T.dias[b]);
+  if (a !== b && da <= 0) return t("dias_desde_hoy")(fechaCorta(T.dias[a]).slice(0, 5), fechaCorta(T.dias[b]), db);
+  return a === b ? t("dia_dentro")(fechaCorta(T.dias[a]), da) : t("dias_dentro")(fechaCorta(T.dias[a]).slice(0, 5), fechaCorta(T.dias[b]), da, db);
 }
 
 // La línea de tiempo vive abajo del mapa: meses (riesgo), pasos de 3 h (tiempo, actual) o días (tiempo, futuro)
@@ -122,31 +160,47 @@ function seleccionLinea(tipo) {
   return estado.diaReproduciendo != null ? [estado.diaReproduciendo, estado.diaReproduciendo] : estado.rangoDias;
 }
 
-function pintarLineaTiempo() {
-  const cont = document.getElementById("linea-tiempo"), { tipo, items } = itemsLinea();
-  if (tipo === "nada") { cont.hidden = true; return; }
-  cont.hidden = false;
-  const [a, b] = seleccionLinea(tipo), rango = tipo === "dia" || (tipo === "mes" && estado.modo === "futuro");
-  const jugando = estado.reproduciendo != null;
-  const anchoPista = Math.max(120, cont.clientWidth - (esMovil() ? 70 : 290));   // rótulo cada ~44 px como mínimo
-  const cada = Math.max(1, Math.ceil(items.length / Math.floor(anchoPista / (tipo === "hora" ? 46 : 38))));
-  // Rótulo cada "cada" marcas; el elegido siempre, y sin vecinos que se le peguen
-  const visible = (i) => i === a || (i % cada === 0 && (cada === 1 || Math.abs(i - a) > cada / 2));
-  cont.innerHTML = `<button type="button" class="lt-play" aria-label="${jugando ? t("pausar") : t("reproducir")}" title="${jugando ? t("pausar") : t("reproducir")}">${icono(jugando ? "pausa" : "play")}</button>
-    <div class="lt-pista${rango ? " rango" : ""}" style="--n:${items.length}">
-      <span class="lt-banda" style="left:calc(${a} * 100% / var(--n));width:calc(${b - a + 1} * 100% / var(--n))"></span>
-      ${items.map((it, i) => `<button type="button" class="lt-tick${it.pasado ? " pasado" : ""}${i >= a && i <= b ? " sel" : ""}${visible(i) ? "" : " sin-etq"}" data-i="${i}" ${it.pasado && tipo !== "hora" ? "disabled" : ""} aria-label="${escapar(`${it.etq} ${it.sub}`.trim())}">
-        <span class="lt-etq">${escapar(it.etq)}</span><span class="lt-sub${it.sub === t("ahora") ? " lt-ahora" : ""}">${escapar(it.sub)}</span></button>`).join("")}
-    </div>
-    <span class="lt-texto">${escapar(textoPeriodo())}</span>`;
-  cont.querySelector(".lt-play").onclick = () => (estado.reproduciendo != null ? detenerReproduccion() : reproducir());
-  let ancla = null;
-  cont.querySelectorAll(".lt-tick").forEach((btn) => {
-    const i = +btn.dataset.i;
-    btn.addEventListener("pointerdown", (e) => { ancla = i; detenerReproduccion(false); elegirEnLinea(tipo, i, i, e.shiftKey); });
-    btn.addEventListener("pointerenter", (e) => { if (ancla != null && e.buttons && rango) elegirEnLinea(tipo, Math.min(ancla, i), Math.max(ancla, i)); });
-  });
-  document.addEventListener("pointerup", () => { ancla = null; }, { once: true });
+function pintarLineaTiempo() { const c = document.getElementById("linea-tiempo"); if (c) c.hidden = true; }   // ahora vive en el panel izquierdo
+
+// Índices que recorre ▶: meses (riesgo), pasos de 3 h (tiempo, condiciones actuales) o días (tiempo, futuras)
+function listaReproduccion() {
+  const { tipo } = itemsLinea(), T = estado.tiempo;
+  if (tipo === "mes") {
+    const [a, b] = estado.modo === "actual" ? [estado.iMesActual, estado.riesgo.meses.length - 1] : estado.rangoMeses;
+    return { tipo, lista: Array.from({ length: b - a + 1 }, (_, k) => a + k) };
+  }
+  if (tipo === "hora") return { tipo, lista: Array.from({ length: T.horas.length - pasoAhora(T) }, (_, k) => pasoAhora(T) + k) };
+  if (tipo === "dia") {
+    const [a, b] = estado.rangoDias[0] === estado.rangoDias[1] ? [diaHoy(T), T.dias.length - 1] : estado.rangoDias;
+    return { tipo, lista: Array.from({ length: b - a + 1 }, (_, k) => a + k) };
+  }
+  return { tipo, lista: [] };
+}
+// Refresca solo el bloque de la línea de tiempo (mientras corre ▶, sin redibujar todo el panel)
+function actualizarEvolucion() {
+  const viejo = document.querySelector("#tablero .tb-evol");
+  if (!viejo) return;
+  const tmp = document.createElement("div"); tmp.innerHTML = bloqueEvolucion();
+  const nuevo = tmp.firstElementChild;
+  if (!nuevo) return;
+  viejo.replaceWith(nuevo);
+  nuevo.querySelector('[data-accion="evol"]').onclick = () => (estado.reproduciendo != null ? detenerReproduccion() : reproducir());
+}
+// Bloque del panel izquierdo: ▶ y una línea con hitos que se va llenando mientras avanza
+function bloqueEvolucion() {
+  const { tipo, lista } = listaReproduccion();
+  if (!lista.length || lista.length < 2) return "";
+  const T = estado.tiempo, M = estado.riesgo.meses, jugando = estado.reproduciendo != null;
+  const actual = tipo === "mes" ? estado.mesReproduciendo : tipo === "dia" ? estado.diaReproduciendo : jugando ? estado.paso3h : null;
+  const pos = actual == null ? -1 : lista.indexOf(actual), pct = pos < 0 ? 0 : (100 * pos) / (lista.length - 1);
+  const etq = (k) => (tipo === "mes" ? capitalizar(nombreMes(M[k])) : tipo === "dia" ? fechaCorta(T.dias[k]).slice(0, 5) : fmtHora(T.horas[k]));
+  const cada = Math.max(1, Math.ceil(lista.length / 5));
+  const hitos = lista.map((k, j) => ({ j, k })).filter(({ j }) => j === 0 || j === lista.length - 1 || j % cada === 0 && lista.length - 1 - j > cada / 2);
+  const ahora = pos >= 0 ? `<span class="tb-evol-ahora">${escapar(etq(lista[pos]))}</span>` : "";
+  return `<div class="tb-evol"><button type="button" class="lt-play" data-accion="evol" aria-label="${jugando ? t("pausar") : t("reproducir")}">${icono(jugando ? "pausa" : "play")}</button>
+    <div class="tb-evol-cuerpo"><div class="tb-evol-cab"><span>${t("evolucion")}</span>${ahora}</div>
+      <div class="tb-evol-pista"><span class="tb-evol-relleno" style="width:${pct}%"></span>
+        ${hitos.map(({ j, k }) => `<span class="tb-evol-hito${j <= pos ? " ok" : ""}" style="left:${(100 * j) / (lista.length - 1)}%"><i></i><small>${escapar(etq(k))}</small></span>`).join("")}</div></div></div>`;
 }
 
 function elegirEnLinea(tipo, a, b, extender = false) {
@@ -163,19 +217,14 @@ function elegirEnLinea(tipo, a, b, extender = false) {
 // Reproducción: avanza mes a mes, de a 3 h o día a día y se detiene al final
 function reproducir() {
   detenerReproduccion(false);
-  const { tipo } = itemsLinea(), T = estado.tiempo;
-  let lista;
-  if (tipo === "mes") {
-    const [a, b] = estado.modo === "actual" ? [estado.iMesActual, estado.riesgo.meses.length - 1] : estado.rangoMeses;
-    lista = Array.from({ length: b - a + 1 }, (_, k) => a + k);
-  } else if (tipo === "hora") lista = Array.from({ length: T.horas.length - pasoAhora(T) }, (_, k) => pasoAhora(T) + k);
-  else { const [a, b] = estado.rangoDias[0] === estado.rangoDias[1] ? [diaHoy(T), T.dias.length - 1] : estado.rangoDias; lista = Array.from({ length: b - a + 1 }, (_, k) => a + k); }
+  const { tipo, lista } = listaReproduccion();
   let k = 0;
   const paso = () => {
     if (tipo === "mes") estado.mesReproduciendo = lista[k];
     else if (tipo === "hora") estado.paso3h = lista[k];
     else estado.diaReproduciendo = lista[k];
     actualizarTodo({ ligero: true, cuadro: true });
+    actualizarEvolucion();
     if (++k >= lista.length) { detenerReproduccion(true); }
   };
   estado.reproduciendo = setInterval(paso, tipo === "mes" ? 1700 : 1100);

@@ -249,7 +249,7 @@ function cabeceraTablero() {
   const verMuni = s?.tipo === "punto" && s.cmu ? `<button class="btn-texto tb-ver-todo" data-accion="municipio">${t("ver_municipio")(estado.porCmu.get(s.cmu)?.nam ?? "")}</button>` : "";
   return `<header class="tb-cabeza"><div class="tb-titulos"><span class="tb-tipo">${icono(s?.tipo === "punto" ? "objetivo" : "pin")}<span id="tb-tipo-txt">${tipo}</span>${verMuni}</span>
       <h2>${escapar(titulo)}</h2><p>${escapar(sub)}</p></div>${acciones}</header>
-    ${radios}`;
+    ${radios}${bloqueEvolucion()}`;
 }
 
 function bloqueSituacion(nivel, parrafos, acciones) {
@@ -593,6 +593,7 @@ async function pintarTablero() {
     barra.onchange = () => cambiarRadio(Number(barra.value));
   }
   cont.querySelector('[data-accion="quitar"]')?.addEventListener("click", borrarFiltros);
+  cont.querySelector('[data-accion="evol"]')?.addEventListener("click", () => (estado.reproduciendo != null ? detenerReproduccion() : reproducir()));
   cont.querySelector('[data-accion="municipio"]')?.addEventListener("click", () => {
     const l = estado.lugares.find((x) => x.nivel === "gl" && x.cmus[0] === estado.sel.cmu);
     if (l) elegirLugar("localidad", l);
