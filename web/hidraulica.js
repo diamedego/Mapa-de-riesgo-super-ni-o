@@ -133,6 +133,8 @@ function correr() {
   for (let k = 0; k < horas; k++) {
     if (cortar) { postMessage({ tipo: "cortado" }); return; }
     const r = lluvia[k], e = et0[k];
+    // Nivel del río hora por hora (para repetir crecidas reales con las alturas del INA); si cambia, el agua se mueve
+    if (S.crecidaHora && Math.abs(S.crecidaHora[k] - S.crecida) > 0.005) { S.crecida = S.crecidaHora[k]; quietas = 0; }
     let hAntes = null;
     const mover = r > 0.05 || quietas < 12;   // con lluvia o hasta 12 h después de que el agua se aquietó
     if (mover) {

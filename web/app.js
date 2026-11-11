@@ -61,7 +61,7 @@ function pintarKpis() {
   }
   document.getElementById("kpis-alcance").textContent = t("kpis_de")(A.nombre);
   const cont = document.getElementById("kpis");
-  cont.innerHTML = kpis.map((k, i) => `<button class="kpi" data-i="${i}" data-sev="${k.sev}"${k.nivelAl ? ` data-alerta="${k.nivelAl}"` : ""} type="button">
+  cont.innerHTML = kpis.map((k, i) => `<button class="kpi" data-i="${i}" data-sev="${k.sev}"${k.nivelAl ? ` data-alerta="${k.nivelAl}"` : ""} type="button" data-ayuda="${escapar(t(`kpi_ayuda_${k.k}`))}">
       <span class="kpi-cab">${icono(k.ico)}<span>${k.etq}</span></span>
       <span class="kpi-valor">${k.valor}${k.unidad ? `<small>${k.unidad}</small>` : ""}</span>
       <span class="kpi-pie">${escapar(k.sub)}</span>${k.spark ?? ""}</button>`).join("");

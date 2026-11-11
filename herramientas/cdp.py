@@ -1,7 +1,7 @@
 """Prueba la web en Chrome sin ventana: abre una URL, espera, ejecuta JavaScript e imprime el resultado (y los errores de consola).
 
 Uso: .venv/bin/python herramientas/cdp.py URL ancho alto espera_seg "codigo_js" [captura.png]
-Variables: ABIERTO=1 deja usar servicios externos (si no, se bloquean los mapas base y el relieve); TEMA=dark; POST=seg extra.
+Variables: PUERTO (9333), ABIERTO=1 deja usar servicios externos (si no, se bloquean los mapas base y el relieve); TEMA=dark; POST=seg extra.
 La captura es opcional (por defecto no se guarda: las pruebas devuelven datos, no imágenes).
 """
 import base64, json, os, subprocess, sys, time, urllib.request
@@ -10,13 +10,14 @@ import websocket
 url, w, h, espera, js = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), float(sys.argv[4]), sys.argv[5]
 captura = sys.argv[6] if len(sys.argv) > 6 else None
 CH = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+PUERTO = int(os.environ.get("PUERTO", 9333))   # otro puerto permite correr dos pruebas a la vez
 bloqueo = [] if os.environ.get("ABIERTO") else ["--host-resolver-rules=MAP apis.datos.gob.ar 127.0.0.1:1, MAP tiles.openfreemap.org 127.0.0.1:1, MAP s3.amazonaws.com 127.0.0.1:1"]
-p = subprocess.Popen([CH, "--headless=new", "--remote-debugging-port=9333", "--use-angle=swiftshader", "--enable-unsafe-swiftshader",
-                      *bloqueo, f"--window-size={w},{h}", "--user-data-dir=/tmp/cdp_perfil_2", "about:blank"], stderr=subprocess.DEVNULL)
+p = subprocess.Popen([CH, "--headless=new", f"--remote-debugging-port={PUERTO}", "--use-angle=swiftshader", "--enable-unsafe-swiftshader",
+                      *bloqueo, f"--window-size={w},{h}", f"--user-data-dir=/tmp/cdp_perfil_{PUERTO}", "about:blank"], stderr=subprocess.DEVNULL)
 try:
     for _ in range(60):
         try:
-            tabs = json.load(urllib.request.urlopen("http://127.0.0.1:9333/json")); break
+            tabs = json.load(urllib.request.urlopen(f"http://127.0.0.1:{PUERTO}/json")); break
         except Exception:
             time.sleep(0.2)
     ws = websocket.create_connection([t for t in tabs if t["type"] == "page"][0]["webSocketDebuggerUrl"], suppress_origin=True)

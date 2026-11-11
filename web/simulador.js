@@ -21,9 +21,14 @@ const COLOR_AGUA = [[0.1, [125, 211, 252, 0.5]], [0.3, [56, 170, 235, 0.65]], [0
 const COLOR_ALTURA = [[0, [38, 120, 120, 0.6]], [0.25, [92, 160, 110, 0.6]], [0.5, [180, 196, 120, 0.6]], [0.75, [205, 170, 110, 0.6]], [1, [170, 120, 80, 0.6]]];
 const CAPAS_SIM = ["colores", "curvas", "drenaje", "cortes", "corte"];
 
+// Resultado de la validación contra el satélite (herramientas/validacion/validar.py); null si todavía no existe
+let cargaValidacion = null;
+const validacion = () => (cargaValidacion ??= fetch("datos/validacion.json").then((r) => (r.ok ? r.json() : null)).catch(() => null));
+
 function abrirSimulador() {
   const s = estado.sel;
   if (s?.tipo !== "punto") return;
+  validacion().then((V) => { SIM.validacion = V; pintarValidez(); });
   const caja = document.getElementById("sim");
   caja.hidden = false;
   document.body.classList.add("sim-abierto");
@@ -422,8 +427,9 @@ const NIVELES_CONF = ["", "baja", "media", "alta"];
 function confianzaHora(M, k, d) {
   const tp = M.met.tipo[k], adelante = k - M.hoy;
   const lluvia = tp === 0 ? 3 : tp === 2 ? 1 : adelante <= 72 ? 3 : adelante <= 168 ? 2 : 1;
-  const terreno = d.D.fuente === "fabdem" ? 3 : 2, modelo = 2;
-  return { nivel: Math.min(lluvia, terreno, modelo), lluvia, terreno, modelo };
+  const terreno = d.D.fuente === "fabdem" ? 3 : 2, v = validacionCiudad(d);
+  const modelo = v ? (v.csi >= 0.5 ? 3 : v.csi >= 0.3 ? 2 : 1) : 2;
+  return { nivel: Math.min(lluvia, terreno, modelo), lluvia, terreno, modelo, v };
 }
 
 function mostrarHora() {
@@ -1275,7 +1281,7 @@ function pintarPanelSimulador(d) {
     </div>
     <div class="sim-leyenda">${COLOR_AGUA.map(([v, c]) => `<span><i style="background:${rgba(c, 0.6)}"></i>${v < 1 ? `${fmt(v * 100)} cm` : `${fmt(v)} m`}</span>`).join("")}
       <span><i style="background:rgb(214, 40, 40)"></i>${t("sim_f_cortes")}</span></div>
-    <p class="sim-validez">${t("sim_validez")}</p>
+    <div class="sim-validez" id="sim-validez">${t("sim_validez")}</div>
     <div class="sim-ant" id="sim-ant"></div>
     <div class="sim-periodo" id="sim-periodo">
       <h3 class="sim-h3">${t("sim_periodo")}</h3>
@@ -1305,7 +1311,40 @@ function pintarPanelSimulador(d) {
   pintarCre();
   pintarFiltrosSimulador();
   prepararPeriodo();
+  pintarValidez();
   if (d) pintarCorte();
+}
+
+// Validación: cómo le fue al modelo en esta ciudad (si está entre las validadas) y en todas
+function validacionCiudad(d) {
+  const filas = SIM.validacion?.por_ciudad?.[d?.s?.cmu];
+  if (!filas) return null;
+  const nino = filas.filter((f) => f.temporada !== "referencia_2022_23" && f.csi != null);
+  if (!nino.length) return null;
+  return { ciudad: filas[0].ciudad, csi: nino.reduce((a, f) => a + f.csi, 0) / nino.length, filas: nino };
+}
+const textoModelo = (v) => (v ? t("sim_modelo_ciudad")(escapar(v.ciudad), fmt(v.csi, 2)) : SIM.validacion ? t("sim_modelo_otras")(SIM.validacion.ciudades) : t("sim_modelo_teorico"));
+function pintarValidez() {
+  const cont = document.getElementById("sim-validez"), V = SIM.validacion;
+  if (!cont) return;
+  if (!V?.nino) { cont.innerHTML = t("sim_validez"); return; }
+  const N = V.nino, v = validacionCiudad(SIM.datos), mejor = N.csi_mediana > N.csi_jrc_mediana;
+  const filas = Object.values(V.por_ciudad).map((fs) => {
+    const ni = fs.filter((f) => f.temporada !== "referencia_2022_23" && f.csi != null);
+    const prom = (k) => (ni.length ? ni.reduce((a, f) => a + (f[k] ?? 0), 0) / ni.length : null);
+    return { ciudad: fs[0].ciudad, cmu: Object.keys(V.por_ciudad).find((k) => V.por_ciudad[k] === fs), csi: prom("csi"), jrc: prom("csi_jrc") };
+  }).filter((f) => f.csi != null).sort((a, b) => b.csi - a.csi);
+  const x = (c) => `${(100 * limitar(c, 0, 1)).toFixed(1)}%`;
+  cont.innerHTML = `<p>${t("sim_validez_res")(V.ciudades, fmt(100 * N.pod_mediana), fmt(100 * N.far_mediana), fmt(N.csi_mediana, 2), fmt(N.csi_jrc_mediana, 2), mejor)}</p>
+    ${v ? `<p>${t("sim_validez_ciudad")(escapar(v.ciudad), v.filas.map((f) => `${f.temporada.slice(5).replace("_", "-")}: ${fmt(f.csi, 2)}`).join(" · "))}</p>` : ""}
+    <details class="sim-val-det"><summary>${t("sim_val_ver")}</summary>
+      <div class="leyenda-lineas"><span><i style="background:var(--s-1)"></i>${t("sim_val_modelo")}</span><span><i style="background:var(--tinta-3)"></i>${t("sim_val_jrc")}</span></div>
+      <ul class="val-puntos">${filas.map((f) => `<li${f.cmu === SIM.datos?.s?.cmu ? ' class="actual"' : ""}><span>${escapar(f.ciudad)}</span>
+        <span class="val-pista"><i class="val-jrc" style="left:${x(f.jrc)}" data-tip="${escapar(`<b>${escapar(f.ciudad)}</b><span>${t("sim_val_jrc")}: CSI ${fmt(f.jrc, 2)}</span>`)}"></i>
+          <i class="val-mod" style="left:${x(f.csi)}" data-tip="${escapar(`<b>${escapar(f.ciudad)}</b><span>${t("sim_val_modelo")}: CSI ${fmt(f.csi, 2)}</span>`)}"></i></span>
+        <b>${fmt(f.csi, 2)}</b></li>`).join("")}</ul>
+      <p class="sim-periodo-nota">${t("sim_val_nota")}</p></details>`;
+  tipsEn(cont);
 }
 
 // Antecedentes de la zona frente a esta corrida: agua extra vista por satélite en los Niño 2015-16 y 2023-24 (municipio),
@@ -1360,7 +1399,7 @@ function actualizarNumeros() {
   const cf = confianzaHora(Mo, k, d), pc = document.getElementById("sim-conf");
   pc.className = `pill sem-${cf.nivel === 3 ? "ok" : cf.nivel === 2 ? "atencion" : "critico"}`;
   pc.textContent = t("sim_conf")(NIVELES_CONF[cf.nivel]);
-  pc.dataset.ayuda = t("sim_conf_ayuda")(t(`conf_${NIVELES_CONF[cf.lluvia]}`), t(`conf_${NIVELES_CONF[cf.terreno]}`), t(`conf_${NIVELES_CONF[cf.modelo]}`),
+  pc.dataset.ayuda = t("sim_conf_ayuda")(t(`conf_${NIVELES_CONF[cf.lluvia]}`), t(`conf_${NIVELES_CONF[cf.terreno]}`), t(`conf_${NIVELES_CONF[cf.modelo]}`) + ` · ${textoModelo(cf.v)}`,
     t(`sim_conf_lluvia_${tp}`)(Math.max(0, Math.round((k - Mo.hoy) / 24))), d.D.fuente === "fabdem");
   pintarAntecedentesSim(Mo, d);
   const rio = document.getElementById("sim-rio");
