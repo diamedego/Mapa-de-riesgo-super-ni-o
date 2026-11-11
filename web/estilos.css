@@ -747,3 +747,10 @@ body.sim-abierto { overflow: hidden; }
 .guia-cartel h3 { margin: 2px 0 6px; font-family: var(--f-num); font-size: 1.1rem; }
 .guia-cartel p { margin: 0; font-size: 0.9rem; line-height: 1.45; color: var(--banda-tinta-2); }
 @media (prefers-reduced-motion: reduce) { .guia-foco { transition: none; } }
+
+/* Simulador: confianza, validez y antecedentes */
+#sim-conf { font-size: 0.72rem; cursor: help; }
+.sim-validez { margin: 8px 0 0; padding: 8px 10px; border-left: 3px solid var(--atencion); border-radius: 0 var(--radio-1) var(--radio-1) 0; background: var(--atencion-fondo); font-size: 0.76rem; line-height: 1.4; color: var(--tinta-1); }
+.sim-ant ul { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 3px; font-size: 0.8rem; }
+.sim-ant li::marker { color: var(--cian); }
+

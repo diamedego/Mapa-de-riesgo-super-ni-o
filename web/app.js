@@ -265,11 +265,11 @@ function pintarMinis() {
   const titular = (c) => {
     if (c === "riesgo") {
       const v = valoresRiesgoVista(), altos = [...v.values()].filter((x) => x >= CORTES[2]).length;
-      return { v: fmt(altos), u: t("mini_riesgo_u"), p: textoPeriodo("riesgo") };
+      return { v: fmt(altos), u: t("mini_riesgo_u"), p: "" };
     }
     const ex = extremoMunicipal(c), m = ex && estado.porCmu.get(ex.cmu);
     return { v: ex ? textoValor(c, ex.v) : "–", u: c === "temp" ? "" : c === "lluvia" ? "mm" : "km/h",
-      p: m ? `${t("max_en")} ${m.nam} · ${m.jur}` : "", periodo: textoPeriodo(c) };
+      p: m ? `${t("max_en")} ${m.nam} · ${m.jur}` : "" };
   };
   cont.innerHTML = `<p class="minis-titulo">${icono("capas")}${t("otras_capas")}</p>` + otras.map((c) => {
     const h = titular(c);

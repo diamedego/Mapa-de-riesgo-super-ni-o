@@ -11,14 +11,15 @@
 // Solo en la versión completa (las teselas de relieve vienen de un servidor externo).
 
 const SIM = { mapa: null, mm: 0, reproduciendo: 0, datos: null,
-  capas: { colores: true, curvas: true, drenaje: true, corte: true, x5: false, refs3d: true }, vista: "mapa", maqueta: null,
+  capas: { colores: true, curvas: true, drenaje: true, cortes: true, corte: true, x5: false, refs3d: true }, vista: "mapa", maqueta: null,
   modelo: null, desague: 10, crecida: 0 };   // desagües pluviales supuestos: 10 mm/h en superficies impermeables (no hay datos)
 const AGUA_MIN = 0.1;   // desde 10 cm se cuenta como zona con agua
+const CORTE = 0.3;      // desde 30 cm una calle queda cortada para un auto (el agua en movimiento lo puede arrastrar)
 const TERRARIUM = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
 // Agua: de celeste translúcido a azul profundo. Altura: del verde azulado de los bajos al marrón de las lomas.
 const COLOR_AGUA = [[0.1, [125, 211, 252, 0.5]], [0.3, [56, 170, 235, 0.65]], [0.6, [30, 120, 210, 0.76]], [1, [22, 82, 180, 0.84]], [1.5, [14, 50, 130, 0.9]]];
 const COLOR_ALTURA = [[0, [38, 120, 120, 0.6]], [0.25, [92, 160, 110, 0.6]], [0.5, [180, 196, 120, 0.6]], [0.75, [205, 170, 110, 0.6]], [1, [170, 120, 80, 0.6]]];
-const CAPAS_SIM = ["colores", "curvas", "drenaje", "corte"];
+const CAPAS_SIM = ["colores", "curvas", "drenaje", "cortes", "corte"];
 
 function abrirSimulador() {
   const s = estado.sel;
@@ -299,7 +300,15 @@ async function simularPeriodo(hastaISO, tormentaMm = 0) {
   g.celdaFina = new Int32Array(d.D.W * d.D.H);
   for (let i = 0; i < g.celdaFina.length; i++) g.celdaFina[i] = g.celdaDe(i);
   g.nDentro = g.dentroC.reduce((a, b) => a + b, 0);
+  g.nRuta = 0;
+  for (let c = 0; c < g.N; c++) if (g.ruta[c] === 1 && g.dentroC[c]) g.nRuta++;
   M.met = met; M.g = g;
+  // Centros de salud del círculo (OpenStreetMap), con su celda del modelo
+  const D = d.D, celdaPunto = ([lo, la]) => { const x = Math.floor((xDeLon(lo, D.z) - D.tx0) * 256), y = Math.floor((yDeLat(la, D.z) - D.ty0) * 256);
+    return x >= 0 && y >= 0 && x < D.W && y < D.H ? g.celdaDe(y * D.W + x) : -1; };
+  M.salud = ((await infraCriticaLista()) ?? []).filter((x) => x.g === "salud" && distanciaKm(d.s.punto, x.p) <= d.s.km)
+    .map((x) => ({ n: x.n, c: celdaPunto(x.p) })).filter((x) => x.c >= 0);
+  if (SIM.modelo !== M) return;
   M.suelo = (await sueloEn(d.s.punto).catch(() => null)) ?? { ...TEXTURAS.franco, nombre: "franco", supuesto: true };
   if (SIM.modelo !== M) return;
   const w = (M.worker = new Worker("hidraulica.js"));
@@ -333,14 +342,15 @@ function recibirHora(M, m) {
 
 function estadisticaHora(M, h) {
   const g = M.g;
-  let n = 0, maxP = 0, pers = 0;
+  let n = 0, maxP = 0, pers = 0, cortes = 0;
   for (let c = 0; c < g.N; c++) {
     if (!g.dentroC[c] || g.tipo2[c] !== 1) continue;
     const p = h[c] - g.cauce[c];   // el agua dentro de un arroyo o canal no es inundación
     if (p >= AGUA_MIN) { n++; pers += g.pob[c]; }
     if (p > maxP) maxP = p;
+    if (g.ruta[c] === 1 && p >= CORTE) cortes++;
   }
-  return { pct: (100 * n) / Math.max(1, g.nDentro), km2: (n * g.dx * g.dx) / 1e6, maxProf: maxP, personas: pers };
+  return { pct: (100 * n) / Math.max(1, g.nDentro), km2: (n * g.dx * g.dx) / 1e6, maxProf: maxP, personas: pers, cortesKm: (cortes * g.dx) / 1000 };
 }
 
 // Profundidad del agua en un píxel del relieve: el nivel del agua de su celda del modelo contra la altura fina del píxel
@@ -356,6 +366,64 @@ function aguaFina(i) {
   if (h < 0.01) return 0;
   const zf = Number.isFinite(d.hs[i]) ? d.hs[i] : g.z[c];
   return Math.max(0, Math.min(g.z[c] + h - zf, h * 3));
+}
+
+// Calle cortada en el píxel: su celda tiene calle (no puente) y 30 cm de agua o más en la hora que se ve
+function calleCortada(i) {
+  const M = SIM.modelo;
+  if (!M?.frames.length) return false;
+  const c = M.g.celdaFina[i];
+  return c >= 0 && M.g.ruta[c] === 1 && M.g.tipo2[c] === 1 && M.frames[M.hora][c] / 1000 - M.g.cauce[c] >= CORTE;
+}
+
+// Acceso: desde las calles del borde (la salida del área) se recorren las calles transitables (menos de 30 cm de agua, o
+// puentes). Quedan aisladas las personas que en seco llegaban a una calle conectada y ahora no; un centro de salud queda
+// sin acceso si tiene agua en su celda o sus calles quedaron cortadas.
+function alcanzables(g, F) {
+  const { nx, ny, ruta } = g, vis = new Uint8Array(g.N), pila = [];
+  const pasa = (c) => ruta[c] === 2 || (ruta[c] === 1 && g.tipo2[c] === 1 && (!F || F[c] / 1000 - g.cauce[c] < CORTE));
+  const sumar = (c) => { if (!vis[c] && ruta[c] && pasa(c)) { vis[c] = 1; pila.push(c); } };
+  for (let x = 0; x < nx; x++) { sumar(x); sumar((ny - 1) * nx + x); }
+  for (let y = 0; y < ny; y++) { sumar(y * nx); sumar(y * nx + nx - 1); }
+  while (pila.length) {
+    const c = pila.pop(), x = c % nx, y = (c / nx) | 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const vx = x + dx, vy = y + dy;
+      if (vx >= 0 && vy >= 0 && vx < nx && vy < ny) sumar(vy * nx + vx);
+    }
+  }
+  return vis;
+}
+function llegaACalle(g, vis, c) {   // ¿hay una calle alcanzable a 2 celdas o menos?
+  const x = c % g.nx, y = (c / g.nx) | 0;
+  for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+    const vx = x + dx, vy = y + dy;
+    if (vx >= 0 && vy >= 0 && vx < g.nx && vy < g.ny && vis[vy * g.nx + vx]) return true;
+  }
+  return false;
+}
+function accesoHora(M) {
+  const g = M.g, F = M.frames[M.hora];
+  if (!g.nRuta) return null;
+  M.visSeco ??= alcanzables(g, null);
+  const vis = alcanzables(g, F), conAgua = (c) => F[c] / 1000 - g.cauce[c] >= CORTE;
+  let aisladas = 0;
+  for (let c = 0; c < g.N; c++) {
+    if (g.dentroC[c] && g.pob[c] > 0 && !conAgua(c) && llegaACalle(g, M.visSeco, c) && !llegaACalle(g, vis, c)) aisladas += g.pob[c];
+  }
+  const sinAcceso = (M.salud ?? []).filter((x) => conAgua(x.c) || (llegaACalle(g, M.visSeco, x.c) && !llegaACalle(g, vis, x.c))).length;
+  return { aisladas, sinAcceso, salud: (M.salud ?? []).length };
+}
+
+// Confianza de la hora que se ve: la menor entre la lluvia (dato real o pronóstico a menos de 3 días: alta; a 3-7 días: media;
+// más lejos o escenario estacional: baja), el relieve (FABDEM: alta; satelital con edificios y árboles: media) y el modelo
+// (probado con casos teóricos, todavía sin comparar con inundaciones reales: media)
+const NIVELES_CONF = ["", "baja", "media", "alta"];
+function confianzaHora(M, k, d) {
+  const tp = M.met.tipo[k], adelante = k - M.hoy;
+  const lluvia = tp === 0 ? 3 : tp === 2 ? 1 : adelante <= 72 ? 3 : adelante <= 168 ? 2 : 1;
+  const terreno = d.D.fuente === "fabdem" ? 3 : 2, modelo = 2;
+  return { nivel: Math.min(lluvia, terreno, modelo), lluvia, terreno, modelo };
 }
 
 function mostrarHora() {
@@ -454,6 +522,7 @@ function dibujarAgua() {
     if (C.curvas && d.curva[i]) c = c ? [c[0] * 0.55, c[1] * 0.55, c[2] * 0.5, 0.8] : [70, 60, 50, 0.55];
     const p = aguaFina(i);
     if (p >= AGUA_MIN) c = colorEscala(COLOR_AGUA, p);
+    if (C.cortes && calleCortada(i)) c = [214, 40, 40, 0.92];
     if (C.drenaje) { if (d.cauce[i]) c = [224, 250, 255, 0.98]; else if (d.orilla[i]) c = [14, 70, 90, 0.8]; }
     if (!c) continue;
     const o = i * 4;
@@ -1190,19 +1259,24 @@ function pintarPanelSimulador(d) {
     <div class="sim-corte" id="sim-corte" hidden></div>
     <p class="sim-progreso" id="sim-progreso" role="status" hidden></p>
     <div class="sim-ahora"><span class="sim-ahora-fecha" id="sim-fecha">–</span><span class="sim-ahora-tipo" id="sim-tipo"></span>
-      <span class="sim-ahora-lluvia" id="sim-acum"></span></div>
+      <span class="pill" id="sim-conf" tabindex="0"></span><span class="sim-ahora-lluvia" id="sim-acum"></span></div>
     <div class="sim-control">
       <button type="button" class="lt-play" id="sim-play" aria-label="${t("sim_reproducir")}">${icono("play")}</button>
       <input type="range" id="sim-barra" min="0" max="0" step="1" value="0" aria-label="${t("sim_linea")}">
     </div>
     <div class="sim-linea" id="sim-linea"></div>
     <div class="tb-datos sim-datos">
-      ${dato(t("sim_area"), "–", "")}
+      ${dato(t("sim_area"), "–", "&nbsp;")}
       ${dato(t("sim_prof"), "–", t("sim_prof_sub"))}
       ${dato(t("sim_personas"), "–", t("sim_personas_sub"))}
-      ${dato(t("sim_radios"), d ? fmt(d.radios.length) : "–", t("sim_radios_sub"))}
+      ${dato(t("sim_cortes"), "–", "&nbsp;")}
+      ${dato(t("sim_aisladas"), "–", t("sim_aisladas_sub"))}
+      ${dato(t("sim_salud"), "–", t("sim_salud_sub"))}
     </div>
-    <div class="sim-leyenda">${COLOR_AGUA.map(([v, c]) => `<span><i style="background:${rgba(c, 0.6)}"></i>${v < 1 ? `${fmt(v * 100)} cm` : `${fmt(v)} m`}</span>`).join("")}</div>
+    <div class="sim-leyenda">${COLOR_AGUA.map(([v, c]) => `<span><i style="background:${rgba(c, 0.6)}"></i>${v < 1 ? `${fmt(v * 100)} cm` : `${fmt(v)} m`}</span>`).join("")}
+      <span><i style="background:rgb(214, 40, 40)"></i>${t("sim_f_cortes")}</span></div>
+    <p class="sim-validez">${t("sim_validez")}</p>
+    <div class="sim-ant" id="sim-ant"></div>
     <div class="sim-periodo" id="sim-periodo">
       <h3 class="sim-h3">${t("sim_periodo")}</h3>
       <div class="sim-fechas"><label>${t("sim_desde")}<input type="date" id="sim-desde"></label><label>${t("sim_hasta")}<input type="date" id="sim-hasta"></label></div>
@@ -1234,6 +1308,32 @@ function pintarPanelSimulador(d) {
   if (d) pintarCorte();
 }
 
+// Antecedentes de la zona frente a esta corrida: agua extra vista por satélite en los Niño 2015-16 y 2023-24 (municipio),
+// agua alguna vez 1984-2021 (radios del círculo) y el peor momento de la corrida. Es contexto, no una validación.
+function pintarAntecedentesSim(Mo, d) {
+  const cont = document.getElementById("sim-ant");
+  if (!cont) return;
+  const m = estado.porCmu.get(d.s.cmu), filas = [];
+  for (const [anio, k] of [["2015-16", "agua_extra_nino_2015_16_pct"], ["2023-24", "agua_extra_nino_2023_24_pct"]]) {
+    const v = numero(m?.[k]);
+    if (v != null) filas.push(t("sim_ant_nino")(anio, fmt(v, v < 10 ? 1 : 0), escapar(m.nam)));
+  }
+  let s = 0, w = 0;
+  for (const f of d.radios) { const p = f.properties, a = (numero(p.poblacion) ?? 0) / Math.max(0.01, numero(p.dens) ?? 0.01), v = numero(p.agua); if (v != null) { s += v * a; w += a; } }
+  if (w) filas.push(t("sim_ant_jrc")(fmt(s / w)));
+  const pico = Mo.pico != null ? Mo.stats[Mo.pico] : null;
+  if (pico) filas.push(t("sim_ant_corrida")(fmt(pico.pct, pico.pct < 10 ? 1 : 0)));
+  cont.innerHTML = filas.length ? `<h3 class="sim-h3">${t("sim_ant_t")}</h3><ul>${filas.map((x) => `<li>${x}</li>`).join("")}</ul><p class="sim-periodo-nota">${t("sim_ant_nota")}</p>` : "";
+}
+// Superficie impermeable (techos y pavimento), con vegetación o tierra, y agua, dentro del círculo
+function usoDelSuelo(g) {
+  let n = 0, imp = 0, agua = 0;
+  for (let c = 0; c < g.N; c++) { if (!g.dentroC[c]) continue; n++; if (g.tipo2[c] !== 1) agua++; else imp += g.imp[c]; }
+  if (!n) return "";
+  const pi = (100 * imp) / n, pa = (100 * agua) / n;
+  return t("sim_uso_suelo")(fmt(pi), fmt(Math.max(0, 100 - pi - pa)), fmt(pa));
+}
+
 // Cifras de la hora que se ve, fecha y tipo de dato, lluvia acumulada y supuestos
 function actualizarNumeros() {
   const Mo = SIM.modelo, d = SIM.datos;
@@ -1252,10 +1352,22 @@ function actualizarNumeros() {
   vals[0].textContent = `${fmt(R.pct, R.pct < 10 ? 1 : 0)} %`; ext[0].textContent = `${fmt(R.km2, 2)} km²`;
   vals[1].textContent = R.maxProf >= 0.01 ? `${fmt(R.maxProf, 2)} m` : "–";
   vals[2].textContent = fmtPersonas(R.personas);
+  const g = Mo.g, ac = accesoHora(Mo);
+  vals[3].textContent = g.nRuta ? `${fmt(R.cortesKm, R.cortesKm < 10 ? 1 : 0)} km` : t("sin_informacion");
+  ext[3].textContent = g.nRuta ? t("sim_cortes_de")(fmt((g.nRuta * g.dx) / 1000)) : "";
+  vals[4].textContent = ac ? fmtPersonas(ac.aisladas) : t("sin_informacion");
+  vals[5].textContent = ac && ac.salud ? `${ac.sinAcceso} / ${ac.salud}` : t("sin_informacion");
+  const cf = confianzaHora(Mo, k, d), pc = document.getElementById("sim-conf");
+  pc.className = `pill sem-${cf.nivel === 3 ? "ok" : cf.nivel === 2 ? "atencion" : "critico"}`;
+  pc.textContent = t("sim_conf")(NIVELES_CONF[cf.nivel]);
+  pc.dataset.ayuda = t("sim_conf_ayuda")(t(`conf_${NIVELES_CONF[cf.lluvia]}`), t(`conf_${NIVELES_CONF[cf.terreno]}`), t(`conf_${NIVELES_CONF[cf.modelo]}`),
+    t(`sim_conf_lluvia_${tp}`)(Math.max(0, Math.round((k - Mo.hoy) / 24))), d.D.fuente === "fabdem");
+  pintarAntecedentesSim(Mo, d);
   const rio = document.getElementById("sim-rio");
   if (rio) rio.hidden = !Mo.g.tipo2.some((v) => v === 3);
   const sup = document.getElementById("sim-supuestos");
-  if (sup) sup.textContent = `${t(d.D.fuente === "fabdem" ? "sim_terreno_fabdem" : "sim_terreno_aws")} ` + t("sim_supuestos")(Mo.suelo.nombre, Mo.suelo.supuesto, SIM.desague, fmt(Mo.g.dx), Mo.cuenta ? fmt(100 * Mo.cuenta.infiltrada / Math.max(1, Mo.cuenta.lluvia)) : "…");
+  if (sup) sup.textContent = `${t(d.D.fuente === "fabdem" ? "sim_terreno_fabdem" : "sim_terreno_aws")} ` + t("sim_supuestos")(Mo.suelo.nombre, Mo.suelo.supuesto, SIM.desague, fmt(Mo.g.dx), Mo.cuenta ? fmt(100 * Mo.cuenta.infiltrada / Math.max(1, Mo.cuenta.lluvia)) : "…")
+    + ` ${usoDelSuelo(Mo.g)}`;
   pintarCorte();
 }
 function actualizarSimulador() { mostrarHora(); }

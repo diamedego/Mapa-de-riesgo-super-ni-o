@@ -523,3 +523,17 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   Reemplaza al recorrido anterior, que resumía la situación del país.
 - Probado sin imágenes (`herramientas/pruebas/tanda6.js`): encabezado, fuentes, clic en una zona, los 13 pasos en escritorio y
   celular, inglés y Esc.
+
+## 2026-11-11 — Tanda 7: revisión punto por punto del pedido del 10-nov y simulador para decidir (puntos 8, 11c, 19, 21-24)
+- Revisión de los 28 puntos: faltaban 19, 21, 22, 23 (en el simulador), 24 y 11c, y el período seguía repetido fuera de la fila de
+  condiciones (miniaturas, análisis, situación de lluvia): corregido (ahora solo hay fechas de actualización de datos).
+- Simulador: calles y rutas de OpenStreetMap en la grilla del modelo (los puentes siguen pasables). Por hora: km de calles con 30 cm
+  de agua o más (en rojo en el mapa, con su capa), personas aisladas (en seco llegaban por calle a la salida del área y con agua no;
+  búsqueda por la red de calles transitables, 0,6 ms) y centros de salud sin acceso (con agua o con sus calles cortadas).
+- Confianza alta/media/baja de cada hora: la menor entre la lluvia (dato real o pronóstico < 3 días: alta; 3-7 días: media; más
+  lejos o escenario: baja), el relieve (FABDEM: alta; satelital: media) y el modelo (media hasta compararlo con inundaciones reales).
+- Aviso visible de validez (probado con casos teóricos, todavía sin comparar con inundaciones reales), antecedentes de la zona
+  (agua extra en los Niño 2015-16 y 2023-24, agua alguna vez 1984-2021, y el peor momento de la corrida, como referencia y no como
+  validación) y uso del suelo del círculo (impermeable, con tierra o vegetación, agua).
+- Con un municipio o una localidad elegida, el simulador cubre toda la zona (círculo desde su centro, hasta 20 km).
+- Probado sin imágenes (`herramientas/pruebas/tanda7.js`, La Plata con tormenta de prueba): en seco 0 aislados y 0 calles cortadas.

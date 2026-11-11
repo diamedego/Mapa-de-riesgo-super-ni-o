@@ -124,14 +124,18 @@ function capaUnaVez(archivo, fn) {
   let c = cargasUnaVez.get(archivo);
   if (!c) {
     cargasUnaVez.set(archivo, (c = { valor: null }));
-    fetch(`datos/${archivo}`).then((r) => r.json()).then((g) => { c.valor = fn(g); pintarTablero(); }).catch(() => cargasUnaVez.delete(archivo));
+    c.promesa = fetch(`datos/${archivo}`).then((r) => r.json()).then((g) => { c.valor = fn(g); pintarTablero(); return c.valor; })
+      .catch(() => { cargasUnaVez.delete(archivo); return null; });
   }
   return c.valor;
 }
 const barriosPopulares = () => capaUnaVez("barrios_populares.geojson", (g) => g.features
   .filter((f) => ["Polygon", "MultiPolygon"].includes(f.geometry?.type)).map((f) => ({ fam: numero(f.properties.fam) ?? 0, c: centroDe(f.geometry) })));
-const infraCritica = () => capaUnaVez("infraestructura_critica.geojson", (g) => g.features
-  .filter((f) => f.geometry?.type === "Point").map((f) => ({ g: f.properties.g, n: f.properties.n, p: f.geometry.coordinates })));
+const leerInfra = (g) => g.features.filter((f) => f.geometry?.type === "Point").map((f) => ({ g: f.properties.g, n: f.properties.n, p: f.geometry.coordinates }));
+const infraCritica = () => capaUnaVez("infraestructura_critica.geojson", leerInfra);
+async function infraCriticaLista() {   // espera la carga (la usa el simulador)
+  return infraCritica() ?? (await cargasUnaVez.get("infraestructura_critica.geojson")?.promesa) ?? null;
+}
 function barriosCirculo(s) {
   const todos = barriosPopulares();
   if (!todos) return null;
@@ -292,8 +296,9 @@ function usarSimulador() {
   const sel = estado.sel, btn = document.getElementById("btn-sim-top");
   if (sel?.tipo === "punto") return abrirSimulador();
   if (sel?.tipo === "zona" && sel.lugar.nivel !== "prov") {
-    const [x0, y0, x1, y1] = sel.lugar.caja;
-    seleccionarPunto([(x0 + x1) / 2, (y0 + y1) / 2], { nombre: sel.lugar.nombre, origen: "zona", volar: true });
+    const [x0, y0, x1, y1] = sel.lugar.caja, centro = [(x0 + x1) / 2, (y0 + y1) / 2];
+    cambiarRadio(limitar(Math.ceil(distanciaKm(centro, [x1, y1]) * 2) / 2, 1, 20));   // el círculo cubre toda la zona
+    seleccionarPunto(centro, { nombre: sel.lugar.nombre, origen: "zona", volar: true });
     return abrirSimulador();
   }
   btn.dataset.ayuda = t("sim_elegir_punto"); btn.classList.add("muestra-ayuda");
@@ -529,7 +534,7 @@ function tableroLluvia(cont) {
   const cat = categoriaLluvia(maxDia);
   const nivel = maxDia >= 50 ? 5 : maxDia >= 20 ? 4 : maxDia >= 10 ? 3 : 1;
   const parrafos = [
-    maxDia < 1 ? t("sit_lluvia_nada")(textoPeriodo()) : t("sit_lluvia")(escapar(lugar), fmt(total), textoPeriodo(), t(cat)),
+    maxDia < 1 ? t("sit_lluvia_nada") : t("sit_lluvia")(escapar(lugar), fmt(total), null, t(cat)),
     maxDia >= 1 ? t("sit_lluvia_dia")(fmtDiaFrase(T.dias[iMax]), fmt(maxDia), prob == null ? null : fmt(prob)) : "",
     d20 ? t("sit_lluvia_20")(d20) : "",
     estado.modo === "actual" ? (ahora >= 0.5 ? t("sit_lluvia_ahora")(fmt(ahora, 1)) : t("sit_lluvia_no_ahora")) : "",
@@ -784,7 +789,7 @@ const elegirDia = (k) => { detenerReproduccion(false); estado.modo = "futuro"; e
 function chipsFiltros() {
   const chips = [];
   if (estado.sel) chips.push([t("filtro_lugar"), lugarTitulo(), "lugar"]);
-  if (estado.modo === "futuro") chips.push([t("filtro_periodo"), capitalizar(textoPeriodo()), "periodo"]);
+  if (estado.modo === "futuro") chips.push([t("filtro_periodo"), t("modo_futuro"), "periodo"]);
   if (!chips.length) return `<span class="an-sin-filtros">${t("sin_filtros")}</span>`;
   return `${chips.map(([etq, v, k]) => `<span class="filtro-activo"><span>${etq}: <b>${escapar(v)}</b></span>
     <button type="button" data-quitar="${k}" aria-label="${t("quitar_filtro")}: ${escapar(v)}" title="${t("quitar_filtro")}">${icono("cerrar")}</button></span>`).join("")}
@@ -846,7 +851,7 @@ function analisisRiesgo(cont) {
     <div class="explica">${medidas.map(([k, etq, sub]) => `<div class="explica-fila"><span class="explica-etq">${etq}${sub ? `<small>${sub}</small>` : ""}</span>
       <div class="explica-barras">${grupos.map(([n, g, c]) => `<div class="explica-barra" data-tip="${escapar(`<b>${escapar(n)}</b><span>${etq}: ${fmtRiesgo(g[k])}/10</span>`)}">
         <span class="explica-pista"><span style="width:${limitar(g[k] * 10, 0, 100)}%;background:${c}"></span></span><b>${fmtRiesgo(g[k])}</b></div>`).join("")}</div></div>`).join("")}</div>`;
-  cont.innerHTML = `${cabezaAnalisis(t("an_riesgo_t")(escapar(A.nombre)), escapar(capitalizar(textoPeriodo("riesgo"))))}
+  cont.innerHTML = `${cabezaAnalisis(t("an_riesgo_t")(escapar(A.nombre)), t("an_riesgo_sub")(estado.datos.resumen?.calculado ? fechaSola(estado.datos.resumen.calculado) : "–"))}
     <div class="an-grilla tres">
       <section class="an-bloque"><h3>${t("pareto_t")}</h3><p class="tb-sub">${t("pareto_nota")}</p>
         <p class="hallazgo">${t("pareto_hallazgo")(n80, orden.length, t("niveles_zona")[A.nivel])}${iElegida >= 0 ? ` ${t("pareto_puesto")(escapar(orden[iElegida].u.nombre), iElegida + 1)}` : ""}</p>
@@ -905,7 +910,7 @@ function analisisTiempo(cont) {
   cont.innerHTML = `${cabezaAnalisis(t(`an_${capa}_t`)(escapar(A.nombre)), t("an_tiempo_sub")(fmtDia(T.dias[0])))}
     <div class="an-grilla tres">
       <section class="an-bloque"><h3>${t({ lluvia: "donde_mas_llueve", viento: "rafagas_fuertes", temp: "mas_calor" }[capa])}</h3>
-        <p class="tb-sub">${t(`an_${capa}_rk_nota`)(capitalizar(textoPeriodo()))}</p><div id="an-rk"></div></section>
+        <p class="tb-sub">${t(`an_${capa}_rk_nota`)}</p><div id="an-rk"></div></section>
       <section class="an-bloque"><h3>${t("an_dia_dia")}</h3><p class="tb-sub">${t("an_paneles_nota")}</p><div id="an-paneles"></div></section>
       <section class="an-bloque"><h3>${t(`an_${capa}_personas`)}</h3><p class="tb-sub">${t(`an_${capa}_personas_nota`)(escapar(A.nombre), fmtPersonas(pobTot))}</p>
         <div class="leyenda-lineas"><span><i style="background:var(--lluvia-4)"></i>${t(`an_${capa}_n1`)}</span><span><i style="background:var(--lluvia-5)"></i>${t(`an_${capa}_n2`)}</span></div>

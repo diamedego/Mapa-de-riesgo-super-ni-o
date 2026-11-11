@@ -159,7 +159,20 @@ function grillaModelo(d, horas) {
     const r = d.radioDe[k];
     if (r && totalRadio[r]) pob[c] += (Number(d.radios[r - 1].properties.poblacion) || 0) / totalRadio[r];
   });
-  return { nx, ny, dx, f, bx0, by0, N, z, tipo2, lago, cauce, nLagos: nl, nMan: cob.n, imp: cob.imp, pob, dentroC, celdaDe };
+  const ruta = rasterizarRutas(aPx, bx0, by0, f, nx, ny);
+  return { nx, ny, dx, f, bx0, by0, N, z, tipo2, lago, cauce, nLagos: nl, nMan: cob.n, imp: cob.imp, pob, dentroC, celdaDe, ruta };
+}
+
+// Calles y rutas del mapa base (OpenStreetMap): 1 = calle, 2 = puente (sigue pasable aunque abajo haya agua)
+const CLASES_RUTA = new Set(["motorway", "trunk", "primary", "secondary", "tertiary", "minor", "service"]);
+function rasterizarRutas(aPx, bx0, by0, f, nx, ny) {
+  const aCel = (lo, la) => { const [x, y] = aPx(lo, la); return [(x - bx0) / f, (y - by0) / f]; };
+  const calle = lienzoGrilla(nx, ny), puente = lienzoGrilla(nx, ny);
+  for (const l of [calle, puente]) { l.c.strokeStyle = "#000"; l.c.lineCap = "round"; }
+  for (const ft of rasgosBase("transportation", (x) => CLASES_RUTA.has(x.properties.class))) trazar((ft.properties.brunnel === "bridge" ? puente : calle).c, ft.geometry, aCel, 1);
+  const c = calle.leer(), pu = puente.leer(), out = new Uint8Array(nx * ny);
+  for (let i = 0; i < out.length; i++) out[i] = pu[i] > 0.3 ? 2 : c[i] > 0.3 ? 1 : 0;
+  return out;
 }
 
 // Polígonos y líneas del mapa base dibujados a la grilla del modelo (fracción de cada celda)
