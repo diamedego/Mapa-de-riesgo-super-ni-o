@@ -470,3 +470,6 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   Green-Ampt de Rawls 1983; `web/preparar_suelos.py`, 134 KB). Terreno FABDEM en las ciudades prioritarias
   (`web/preparar_terreno_fabdem.py`, bloques de 0,25°; primer archivo procesado: Gran Buenos Aires, La Plata, Mar del Plata).
   La cámara se conserva al pasar de Mapa a Maqueta y viceversa (punto 16).
+- 10-nov (noche): terreno FABDEM completo en las 20 ciudades prioritarias: 121 bloques de 0,25° (89 MB). Dos archivos de
+  Bristol se cortaban; para Santiago del Estero se bajó solo la hoja necesaria (S28W065, 17 MB) leyendo el zip remoto por
+  rangos HTTP. Los 6,3 GB originales se borraron después de recortar (pedido de la usuaria); queda `data/raw/fabdem/license.txt`.
