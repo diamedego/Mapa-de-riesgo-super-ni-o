@@ -7,7 +7,8 @@ const estado = {
   idioma: "es", capa: "riesgo", modo: "actual", sel: null, km: 2,
   iMesActual: 0, rangoMeses: [0, 0], rangoDias: [0, 6], paso3h: null,
   mesReproduciendo: null, diaReproduciendo: null, reproduciendo: null,
-  verRios: true, verAlertas: true, verReferencias: true, riesgo3d: false, relieve3d: false, relieve: false, ranking: "r",
+  verRios: true, verAlertas: true, verReferencias: true, verHidro: true, verInundadas: false, verDensidad: false,
+  verBarrios: false, verSuelo: false, verInfra: false, verRutas: false, riesgo3d: false, relieve3d: false, relieve: false, ranking: "r",
   datos: {}, riesgo: null, porCmu: new Map(), radios: [], cargasRadios: new Map(), tiempo: null,
 };
 const t = (clave) => TEXTOS[estado.idioma][clave] ?? TEXTOS.es[clave] ?? clave;
@@ -191,6 +192,7 @@ function detenerReproduccion(repintar = true) {
 }
 
 function elegirModo(modo) {
+  setTimeout(pintarCapasExtra);   // Alertas del SMN solo en condiciones actuales
   detenerReproduccion(false);
   estado.modo = modo;
   if (modo === "actual") estado.paso3h = null;
@@ -236,18 +238,21 @@ const pintarMinisDemorado = demorar(pintarMinis, 180);
 // ---------- Leyenda y título del mapa ----------
 function pintarLeyenda() {
   const cont = document.getElementById("leyenda"), capa = estado.capa;
-  const interruptores = [
-    ...(capa === "riesgo" ? [["verRios", t("ley_rios")]] : []),
-    ...(estado.modo === "actual" ? [["verAlertas", t("ley_alertas")]] : []),
-    ["verReferencias", t("ley_referencias")],
-    ...(capa === "riesgo" ? [["riesgo3d", t("ley_3d")]] : []),
-  ].map(([k, etq]) => `<label class="interruptor"><input type="checkbox" data-k="${k}"${estado[k] ? " checked" : ""}><span>${etq}</span></label>`).join("");
+  // Claves de las capas opcionales prendidas (las que tienen colores propios)
+  const claves = [
+    estado.verInundadas && `<span><i style="background:linear-gradient(90deg,#f3a6b5,#5a7bd8)"></i>${t("ley_inundadas")}</span>`,
+    estado.verDensidad && `<span><i style="background:linear-gradient(90deg,rgba(59,51,102,.15),rgba(59,51,102,.75))"></i>${t("ley_densidad")}</span>`,
+    estado.verBarrios && `<span><i style="background:rgba(122,61,143,.45);border:1px solid #5b2a6f"></i>${t("capa_barrios")}</span>`,
+    estado.verSuelo && `<span><i style="background:rgba(92,99,112,.5)"></i>${t("ley_urbano")} <i style="background:rgba(58,154,91,.5)"></i>${t("ley_verde")}</span>`,
+    estado.verInfra && `<span>${Object.entries(GRUPOS_INFRA).map(([g, c]) => `<i class="pt" style="background:${c}"></i>${t(`infra_${g}`)}`).join(" ")}</span>`,
+  ].filter(Boolean).join("");
+  const interruptores = claves ? `<p class="ley-claves">${claves}</p>` : "";
   let cuerpo;
   if (capa === "riesgo") {
     cuerpo = `<p class="ley-titulo">${t("ley_riesgo")}</p>
       <div class="ley-niveles">${[1, 2, 3, 4, 5].map((n) => `<span class="ley-nivel"><i style="background:var(--r${n})"></i><b>${t("niveles")[n - 1]}</b><small>${["< 3", "3–4,5", "4,5–6", "6–7", "≥ 7"][n - 1]}</small></span>`).join("")}
-        <span class="ley-nivel"><i style="background:var(--sin-datos)"></i><b>${t("sin_dato")}</b><small>&nbsp;</small></span></div>
-      ${estado.verRios ? `<p class="ley-rios">${estado.modo === "actual"
+        <span class="ley-nivel"><i class="ley-sin-dato"></i><b>${t("sin_dato")}</b><small>&nbsp;</small></span></div>
+      ${estado.verHidro ? `<p class="ley-rios">${estado.modo === "actual"
         ? `<i class="pt" style="background:var(--critico)"></i>${t("rio_evacuacion")} <i class="pt" style="background:var(--serio)"></i>${t("rio_alerta")} <i class="pt" style="background:var(--rio-normal)"></i>${t("rio_normal")}`
         : `<i class="pt" style="background:var(--serio)"></i>${t("ley_rios_prob")}`}</p>` : ""}`;
   } else if (estado.campo) {
@@ -260,11 +265,40 @@ function pintarLeyenda() {
   } else cuerpo = "";
   cont.classList.toggle("plegada", !!estado.leyendaPlegada);
   cont.innerHTML = `<button type="button" class="ley-plegar" aria-expanded="${!estado.leyendaPlegada}" aria-label="${t("ley_plegar")}" title="${t("ley_plegar")}">${icono(estado.leyendaPlegada ? "capas" : "cerrar")}</button>
-    ${cuerpo}${interruptores ? `<div class="ley-opciones">${interruptores}</div>` : ""}`;
+    ${cuerpo}${interruptores}`;
   cont.querySelector(".ley-plegar").onclick = () => { estado.leyendaPlegada = !estado.leyendaPlegada; pintarLeyenda(); };
-  cont.querySelectorAll("input[data-k]").forEach((x) => { x.onchange = () => { estado[x.dataset.k] = x.checked; aplicarCapaEnMapa(); pintarLeyenda(); }; });
-  const T = estado.tiempo;
-  document.getElementById("mapa-titulo").innerHTML = `${icono(capa)}<span><b>${t(`capa_${capa}_larga`)}</b><small>${escapar(textoPeriodo())}${capa !== "riesgo" && T ? ` · ${t("fuente_om")}` : ""}</small></span>`;
+  // Título de cada mapa con la última actualización de sus datos
+  const T = estado.tiempo, r = estado.datos.resumen;
+  const gen = T?.generado ? new Date(T.generado.replace("Z", ":00Z")) : null;
+  const act = capa === "riesgo" ? t("act_riesgo")(fmtDia(r?.calculado))
+    : gen ? t("act_tiempo")(fmtDia(hoyDeFecha(gen)), gen.toLocaleTimeString(loc(), { hour: "2-digit", minute: "2-digit", timeZone: ZONA_HORARIA, hour12: false })) : "";
+  document.getElementById("mapa-titulo").innerHTML = `${icono(capa)}<span><b>${t(`capa_${capa}_larga`)}</b><small>${escapar(act)}</small></span>`;
+}
+
+// ---------- Panel de capas (fuera del mapa, sirve para las cuatro vistas) ----------
+const OPCIONES_CAPAS = [
+  ["verReferencias", "capa_ref"], ["verHidro", "capa_hidro"], ["verAlertas", "capa_alertas"], ["relieve", "capa_relieve"], ["relieve3d", "capa_3d"],
+  ["verInundadas", "capa_inundadas"], ["verDensidad", "capa_densidad"], ["verBarrios", "capa_barrios"], ["verSuelo", "capa_suelo"],
+  ["verInfra", "capa_infra"], ["verRutas", "capa_rutas"],
+];
+function pintarCapasExtra() {
+  const cont = document.getElementById("capas-extra");
+  if (!cont) return;
+  const sinTeselas = new Set(SIN_TESELAS ? ["relieve", "relieve3d", "verSuelo", "verRutas", "verInundadas"] : []);
+  cont.innerHTML = `<span class="capas-extra-tit">${t("capas_tit")}</span>` + OPCIONES_CAPAS.filter(([k]) => !sinTeselas.has(k)).map(([k, txt]) => {
+    const apagada = k === "verAlertas" && estado.modo !== "actual";
+    return `<button type="button" class="capa-chip" data-k="${k}" aria-pressed="${!!estado[k] && !apagada}"${apagada ? " disabled" : ""}
+      data-ayuda="${escapar(t(`${txt}_ayuda`))}">${t(txt)}</button>`;
+  }).join("");
+  cont.querySelectorAll("[data-k]").forEach((b) => {
+    b.onclick = () => {
+      const k = b.dataset.k;
+      if (k === "relieve") return alternarRelieve();
+      if (k === "relieve3d") return alternar3d();
+      estado[k] = !estado[k];
+      aplicarCapaEnMapa(); pintarLeyenda(); pintarCapasExtra();
+    };
+  });
 }
 
 // ---------- Selección ----------
@@ -355,6 +389,7 @@ function recorrido(i = 0) {
 
 // ---------- Idioma y tema ----------
 function aplicarIdioma() {
+  setTimeout(pintarCapasExtra);
   document.documentElement.lang = estado.idioma;
   document.querySelectorAll("[data-i18n]").forEach((el) => { const v = t(el.dataset.i18n); if (typeof v === "string") el.innerHTML = v; });
   document.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
@@ -376,7 +411,7 @@ function cambiarTema() {
 }
 function alternar3d() {
   estado.relieve3d = !estado.relieve3d;
-  document.getElementById("btn-3d").setAttribute("aria-pressed", String(estado.relieve3d));
+  pintarCapasExtra();
   if (!SIN_TESELAS && mapa.getSource("relieve")) {
     terrenoMapa();
     mapa.setLayoutProperty("sombreado", "visibility", estado.relieve || estado.relieve3d ? "visible" : "none");
@@ -431,10 +466,9 @@ async function iniciar() {
   document.getElementById("btn-idioma").onclick = () => { estado.idioma = estado.idioma === "es" ? "en" : "es"; aplicarIdioma(); };
   document.getElementById("btn-tema").onclick = cambiarTema;
   document.getElementById("btn-recorrido").onclick = () => recorrido(0);
-  document.getElementById("btn-3d").onclick = alternar3d;
-  document.getElementById("btn-relieve").onclick = alternarRelieve;
+  pintarCapasExtra();
   document.getElementById("btn-sim-top").onclick = usarSimulador;
-  if (SIN_TESELAS) { document.getElementById("btn-3d").hidden = true; document.getElementById("btn-relieve").hidden = true; document.getElementById("enlace-completo").hidden = false; }
+  if (SIN_TESELAS) { document.getElementById("enlace-completo").hidden = false; }
   addEventListener("resize", demorar(() => { pintarTablero(); pintarAnalisis(); pintarMinis(); }, 250));
 
   aplicarIdioma();

@@ -11,8 +11,8 @@
   /* Franja de indicadores (oscura en los dos temas) */
   --banda: #0a1c28; --banda-2: #0e2939; --banda-tinta: #eaf4f8; --banda-tinta-2: #9cb4c2; --banda-borde: rgba(255, 255, 255, 0.1); --banda-kpi: rgba(255, 255, 255, 0.045);
   /* Riesgo: 5 niveles, escala de calor (amarillo → rojo) */
-  --r1: #fbefc4; --r2: #f8d77a; --r3: #f4a53c; --r4: #ec6f2c; --r5: #d7191c;
-  --sin-datos: #d5d9df; --borde-riesgo: #4a4945; --borde-prov: rgba(14, 23, 38, 0.5);
+  --r1: #1a9850; --r2: #91cf60; --r3: #fee08b; --r4: #fc8d59; --r5: #d73027;   /* semáforo: muy bajo verde → muy alto rojo */
+  --sin-datos: rgba(0, 0, 0, 0); --borde-riesgo: #4a4945; --borde-prov: rgba(14, 23, 38, 0.5);
   /* Series de gráficos (paleta validada) y estados */
   --s-1: #2a78d6; --s-2: #eb6834; --s-3: #1baf7a;
   --ok: #0a7d32; --atencion: #a35f00; --critico: #c62f2f; --serio: #ec835a; --rio-normal: #3f8fd2;
@@ -41,8 +41,8 @@
     --grilla: #1c2733; --eje: #2b3947; --borde: rgba(255, 255, 255, 0.09); --borde-fuerte: rgba(255, 255, 255, 0.16);
     --cian: #22d3ee; --cian-hover: #67e8f9; --cian-tinta: #03232c; --cian-suave: rgba(34, 211, 238, 0.12); --halo: #00121a;
     --banda: #050b10; --banda-2: #0a1720; --banda-kpi: rgba(255, 255, 255, 0.04);
-    --r1: #55482f; --r2: #8f6c25; --r3: #c9922e; --r4: #f07c2e; --r5: #ff3a2f;
-    --sin-datos: #1d242c; --borde-riesgo: #8d99a8; --borde-prov: rgba(255, 255, 255, 0.45);
+    --r1: #2fb366; --r2: #a6d96a; --r3: #fee08b; --r4: #fc8d59; --r5: #f04a3a;
+    --sin-datos: rgba(0, 0, 0, 0); --borde-riesgo: #8d99a8; --borde-prov: rgba(255, 255, 255, 0.45);
     --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70;
     --ok: #3ccf6e; --atencion: #fab219; --critico: #ff6b6b; --rio-normal: #58a6e6;
     --ok-fondo: rgba(60, 207, 110, 0.12); --atencion-fondo: rgba(250, 178, 25, 0.14); --critico-fondo: rgba(255, 107, 107, 0.14);
@@ -60,8 +60,8 @@
   --grilla: #1c2733; --eje: #2b3947; --borde: rgba(255, 255, 255, 0.09); --borde-fuerte: rgba(255, 255, 255, 0.16);
   --cian: #22d3ee; --cian-hover: #67e8f9; --cian-tinta: #03232c; --cian-suave: rgba(34, 211, 238, 0.12); --halo: #00121a;
   --banda: #050b10; --banda-2: #0a1720; --banda-kpi: rgba(255, 255, 255, 0.04);
-  --r1: #55482f; --r2: #8f6c25; --r3: #c9922e; --r4: #f07c2e; --r5: #ff3a2f;
-  --sin-datos: #1d242c; --borde-riesgo: #8d99a8; --borde-prov: rgba(255, 255, 255, 0.45);
+  --r1: #2fb366; --r2: #a6d96a; --r3: #fee08b; --r4: #fc8d59; --r5: #f04a3a;
+  --sin-datos: rgba(0, 0, 0, 0); --borde-riesgo: #8d99a8; --borde-prov: rgba(255, 255, 255, 0.45);
   --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70;
   --ok: #3ccf6e; --atencion: #fab219; --critico: #ff6b6b; --rio-normal: #58a6e6;
   --ok-fondo: rgba(60, 207, 110, 0.12); --atencion-fondo: rgba(250, 178, 25, 0.14); --critico-fondo: rgba(255, 107, 107, 0.14);
@@ -159,6 +159,17 @@ a.btn-banda { text-decoration: none; }
   content: attr(data-ayuda); position: absolute; left: 50%; top: calc(100% + 6px); transform: translateX(-50%); z-index: 60;
   width: max-content; max-width: 240px; padding: 5px 9px; border-radius: 6px; background: rgba(15, 23, 32, 0.84); color: #fff;
   font: 400 0.72rem/1.35 var(--f-ui); text-align: left; white-space: normal; pointer-events: none; }
+.capas-extra { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 6px 8px; border-bottom: 1px solid var(--borde); background: var(--superficie); }
+.capas-extra-tit { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-3); margin-right: 2px; }
+.capa-chip { position: relative; min-height: 26px; padding: 0 9px; border-radius: 13px; border: 1px solid var(--borde-fuerte); background: var(--superficie);
+  color: var(--tinta-2); font-size: 0.74rem; font-weight: 500; cursor: pointer; }
+.capa-chip[aria-pressed="true"] { background: var(--cian-suave); border-color: var(--cian); color: var(--tinta-1); font-weight: 600; }
+.capa-chip[aria-pressed="true"]::before { content: "✓ "; }
+.capa-chip:disabled { opacity: 0.45; cursor: not-allowed; }
+.ley-sin-dato { display: inline-block; background: transparent !important; border: 1.5px dashed var(--tinta-2); }
+.ley-claves { display: flex; flex-direction: column; gap: 3px; margin: 6px 0 0; font-size: 0.72rem; color: var(--tinta-2); }
+.ley-claves i { display: inline-block; width: 14px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.ley-claves i.pt { width: 8px; height: 8px; border-radius: 50%; margin-left: 4px; }
 .btn-sim-top { position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: var(--radio-2);
   border: 1.5px solid var(--cian); background: var(--superficie); color: var(--cian); font-weight: 600; font-size: 0.95rem; cursor: pointer; }
 .btn-sim-top:hover { background: var(--cian); color: var(--cian-tinta); }

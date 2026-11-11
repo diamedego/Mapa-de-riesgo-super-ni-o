@@ -98,6 +98,7 @@ function agregarCapas() {
     paint: { "line-color": colorAlerta, "line-width": 1.6, "line-dasharray": [2, 1.5] } });
 
   agregarReferencias();
+  agregarCapasOpcionales();
 
   // Selección: zona (bordes exteriores en cian) o círculo alrededor de un punto
   mapa.addLayer({ id: "sel-zona-halo", type: "line", source: "bordes", filter: ["==", "a", "-"],
@@ -207,7 +208,7 @@ function ajustarColoresRelieve() {
 function alternarRelieve() {
   estado.relieve = !estado.relieve;
   claveRelieve = "";
-  document.getElementById("btn-relieve").setAttribute("aria-pressed", String(estado.relieve));
+  pintarCapasExtra();
   document.getElementById("ley-relieve").hidden = !estado.relieve;
   if (!estado.relieve) document.getElementById("ley-relieve").innerHTML = "";
   if (!mapa.getSource("relieve")) return;
@@ -271,6 +272,82 @@ function agregarReferencias() {
 const CAPAS_REFERENCIAS = ["ref-municipios", "ref-ind-grandes", "ref-ind-grandes-punto", "ref-ind-resto", "ref-ind-resto-punto",
   "ref-poi-principales", "ref-poi-principales-punto", "ref-poi-secundarios", "ref-poi-secundarios-punto"];
 
+// ---------- Capas opcionales (panel "Capas" fuera del mapa) ----------
+// Hidrografía, zonas que ya se inundaron (satélite), densidad de población, barrios populares, suelo urbano y verde,
+// infraestructura crítica y rutas. Tonos neutros o propios para no confundirse con el semáforo del riesgo.
+const CAPAS_OPCIONALES = {
+  verHidro: ["hidro-agua", "hidro-cursos"], verInundadas: ["jrc-agua"], verDensidad: ["densidad-mun", "densidad-radio"],
+  verBarrios: ["barrios-relleno", "barrios-borde"], verSuelo: ["suelo-urbano", "suelo-verde"],
+  verInfra: ["infra-punto", "infra-texto"], verRutas: ["rutas-borde", "rutas-linea", "rutas-tren"],
+};
+let CAPAS_POI_BASE = [];
+const GRUPOS_INFRA = { salud: "#c0392b", seguridad: "#2f4f8f", energia: "#d99a00", agua: "#1f74c9", comunidad: "#2e8b57", basural: "#6b4f2a" };
+function areaKm2(geom) {   // área aproximada sobre la esfera (suficiente para densidad de población)
+  const R = 6371.0088, rad = Math.PI / 180;
+  const pols = geom?.type === "Polygon" ? [geom.coordinates] : geom?.type === "MultiPolygon" ? geom.coordinates : [];
+  let a = 0;
+  for (const pol of pols) pol.forEach((anillo, k) => {
+    let s = 0;
+    for (let i = 0; i < anillo.length - 1; i++) { const [x1, y1] = anillo[i], [x2, y2] = anillo[i + 1]; s += (x2 - x1) * rad * (2 + Math.sin(y1 * rad) + Math.sin(y2 * rad)); }
+    a += (k ? -1 : 1) * Math.abs((s * R * R) / 2);
+  });
+  return a;
+}
+function densidades(features) { for (const f of features) if (f.properties.dens == null) f.properties.dens = (Number(f.properties.poblacion) || 0) / Math.max(0.01, areaKm2(f.geometry)); }
+function agregarCapasOpcionales() {
+  const vis = (k) => (estado[k] ? "visible" : "none"), antes = primeraCapa(["line", "symbol"]);
+  const base = SIN_TESELAS ? null : Object.entries(mapa.getStyle().sources).find(([k, f]) => k === "openmaptiles" && f.type === "vector")?.[0];
+  // Sin dato: transparente con borde punteado
+  mapa.addSource("sin-datos-zonas", { type: "geojson", data: "datos/sin_datos.geojson" });
+  mapa.addLayer({ id: "sin-datos-borde", type: "line", source: "sin-datos-zonas", paint: { "line-color": css("--tinta-2"), "line-width": 1.1, "line-dasharray": [2, 2] } }, antes);
+  // Zonas que ya se inundaron: frecuencia de agua observada por satélite 1984-2021 (JRC Global Surface Water)
+  mapa.addSource("jrc", { type: "raster", tileSize: 256, maxzoom: 13, tiles: ["https://storage.googleapis.com/global-surface-water/tiles2021/occurrence/{z}/{x}/{y}.png"],
+    attribution: "Agua en superficie 1984-2021: EC JRC / Google (Pekel et al. 2016)" });
+  mapa.addLayer({ id: "jrc-agua", type: "raster", source: "jrc", layout: { visibility: vis("verInundadas") }, paint: { "raster-opacity": 0.8 } }, antes);
+  // Densidad de población (habitantes por km²): municipio de lejos, radio censal de cerca
+  densidades(estado.datos.municipios.features); densidades(estado.radios);
+  const opDens = ["interpolate", ["linear"], ["get", "dens"], 1, 0, 50, 0.18, 500, 0.35, 3000, 0.55, 15000, 0.75];
+  mapa.addLayer({ id: "densidad-mun", type: "fill", source: "municipios", maxzoom: 9, layout: { visibility: vis("verDensidad") }, paint: { "fill-color": "#3b3366", "fill-opacity": opDens } }, antes);
+  mapa.addLayer({ id: "densidad-radio", type: "fill", source: "radios", minzoom: 9, layout: { visibility: vis("verDensidad") }, paint: { "fill-color": "#3b3366", "fill-opacity": opDens } }, antes);
+  // Barrios populares (RENABAP)
+  mapa.addSource("barrios", { type: "geojson", data: "datos/barrios_populares.geojson" });
+  mapa.addLayer({ id: "barrios-relleno", type: "fill", source: "barrios", minzoom: 7, layout: { visibility: vis("verBarrios") }, paint: { "fill-color": "#7a3d8f", "fill-opacity": 0.3 } }, antes);
+  mapa.addLayer({ id: "barrios-borde", type: "line", source: "barrios", minzoom: 9, layout: { visibility: vis("verBarrios") }, paint: { "line-color": "#5b2a6f", "line-width": 1 } }, antes);
+  // Infraestructura crítica (OpenStreetMap)
+  mapa.addSource("infra", { type: "geojson", data: "datos/infraestructura_critica.geojson" });
+  const colorInfra = ["match", ["get", "g"], ...Object.entries(GRUPOS_INFRA).flat(), "#555"];
+  mapa.addLayer({ id: "infra-punto", type: "circle", source: "infra", minzoom: 8, layout: { visibility: vis("verInfra") },
+    paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 2.2, 13, 5], "circle-color": colorInfra, "circle-stroke-color": "#fff", "circle-stroke-width": 1 } });
+  mapa.addLayer({ id: "infra-texto", type: "symbol", source: "infra", minzoom: 12.5, filter: ["has", "n"], layout: { visibility: vis("verInfra"),
+    "text-field": ["get", "n"], "text-font": fuenteMapa(), "text-size": 10.5, "text-anchor": "top", "text-offset": [0, 0.5], "text-optional": true, "text-max-width": 9 },
+    paint: { "text-color": colorInfra, "text-halo-color": css("--mapa-halo-texto"), "text-halo-width": 1.3 } });
+  if (!base) return;
+  // Íconos del mapa base: sin paradas de colectivo (no suman) y se apagan con Referencias
+  CAPAS_POI_BASE = mapa.getStyle().layers.filter((l) => l.source === base && l["source-layer"] === "poi").map((l) => l.id);
+  for (const id of CAPAS_POI_BASE) {
+    const f = mapa.getFilter(id);
+    mapa.setFilter(id, f ? ["all", f, ["!=", ["get", "class"], "bus"]] : ["!=", ["get", "class"], "bus"]);
+  }
+  // Hidrografía: ríos, arroyos y canales en azul, lagunas resaltadas (más las estaciones del INA)
+  mapa.addLayer({ id: "hidro-agua", type: "fill", source: base, "source-layer": "water", layout: { visibility: vis("verHidro") }, paint: { "fill-color": "#3d8bd6", "fill-opacity": 0.35 } }, antes);
+  mapa.addLayer({ id: "hidro-cursos", type: "line", source: base, "source-layer": "waterway", minzoom: 7, layout: { visibility: vis("verHidro"), "line-cap": "round" },
+    paint: { "line-color": "#1f6fb5", "line-width": ["interpolate", ["linear"], ["zoom"], 7, 0.5, 12, 1.6, 15, 3] } }, antes);
+  // Suelo urbano (impermeable) y verde
+  mapa.addLayer({ id: "suelo-urbano", type: "fill", source: base, "source-layer": "landuse", minzoom: 8, filter: ["in", ["get", "class"], ["literal", ["residential", "commercial", "industrial", "retail", "railway"]]],
+    layout: { visibility: vis("verSuelo") }, paint: { "fill-color": "#5c6370", "fill-opacity": 0.35 } }, antes);
+  mapa.addLayer({ id: "suelo-verde", type: "fill", source: base, "source-layer": "landcover", minzoom: 8, filter: ["in", ["get", "class"], ["literal", ["wood", "grass", "wetland"]]],
+    layout: { visibility: vis("verSuelo") }, paint: { "fill-color": "#3a9a5b", "fill-opacity": 0.32 } }, antes);
+  // Rutas y vías del tren
+  const rutas = ["in", ["get", "class"], ["literal", ["motorway", "trunk", "primary", "secondary"]]];
+  const anchoR = ["interpolate", ["linear"], ["zoom"], 5, 0.6, 9, 1.6, 14, 4];
+  mapa.addLayer({ id: "rutas-borde", type: "line", source: base, "source-layer": "transportation", filter: rutas, layout: { visibility: vis("verRutas"), "line-cap": "round", "line-join": "round" },
+    paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 5, 2.2, 9, 3.4, 14, 6.5] } });
+  mapa.addLayer({ id: "rutas-linea", type: "line", source: base, "source-layer": "transportation", filter: rutas, layout: { visibility: vis("verRutas"), "line-cap": "round", "line-join": "round" },
+    paint: { "line-color": "#2b2f36", "line-width": anchoR } });
+  mapa.addLayer({ id: "rutas-tren", type: "line", source: base, "source-layer": "transportation", filter: ["==", ["get", "class"], "rail"],
+    layout: { visibility: vis("verRutas") }, paint: { "line-color": "#4a4f57", "line-width": 1.4, "line-dasharray": [3, 2] } });
+}
+
 function alturaRiesgo(meses) {
   const exceso = ["^", ["max", ["-", exprRiesgo(meses), 3], 0], 2];
   return ["interpolate", ["linear"], ["zoom"], 4, ["*", exceso, 2400], 7, ["*", exceso, 500], 10, ["*", exceso, 60], 13, ["*", exceso, 8]];
@@ -312,6 +389,9 @@ function aplicarCapaEnMapa() {
   CAPAS_RIESGO.forEach((id) => vis(id, riesgo));
   vis("estaciones", riesgo && estado.verRios);
   for (const id of CAPAS_REFERENCIAS) vis(id, estado.verReferencias !== false);
+  for (const id of CAPAS_POI_BASE) vis(id, estado.verReferencias !== false);   // íconos del mapa base: también se apagan con Referencias
+  for (const [clave, ids] of Object.entries(CAPAS_OPCIONALES)) for (const id of ids) vis(id, !!estado[clave]);
+  vis("estaciones", riesgo && estado.verRios && estado.verHidro);
   const est = estiloEstaciones();
   mapa.setFilter("estaciones", est.filter ?? null);
   Object.entries(est.paint).forEach(([k, v]) => mapa.setPaintProperty("estaciones", k, v));
@@ -435,6 +515,7 @@ function cargarRadiosProv(prov) {
   if (!estado.cargasRadios.has(prov)) {
     estado.cargasRadios.set(prov, fetch(`datos/radios/${prov}.geojson`).then((r) => r.json()).then((geo) => {
       riesgoRadios(geo.features);
+      densidades(geo.features);
       estado.radios.push(...geo.features);
       mapa.getSource("radios")?.setData({ type: "FeatureCollection", features: estado.radios });
     }));
