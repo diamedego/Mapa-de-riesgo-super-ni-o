@@ -86,6 +86,126 @@
  ],
  "bloques": [
   {
+   "lon0": -64.5,
+   "lat0": -31.75,
+   "archivo": "fabdem_-258_-127.png"
+  },
+  {
+   "lon0": -64.5,
+   "lat0": -31.5,
+   "archivo": "fabdem_-258_-126.png"
+  },
+  {
+   "lon0": -64.5,
+   "lat0": -31.25,
+   "archivo": "fabdem_-258_-125.png"
+  },
+  {
+   "lon0": -64.25,
+   "lat0": -31.75,
+   "archivo": "fabdem_-257_-127.png"
+  },
+  {
+   "lon0": -64.25,
+   "lat0": -31.5,
+   "archivo": "fabdem_-257_-126.png"
+  },
+  {
+   "lon0": -64.25,
+   "lat0": -31.25,
+   "archivo": "fabdem_-257_-125.png"
+  },
+  {
+   "lon0": -64.0,
+   "lat0": -31.75,
+   "archivo": "fabdem_-256_-127.png"
+  },
+  {
+   "lon0": -64.0,
+   "lat0": -31.5,
+   "archivo": "fabdem_-256_-126.png"
+  },
+  {
+   "lon0": -64.0,
+   "lat0": -31.25,
+   "archivo": "fabdem_-256_-125.png"
+  },
+  {
+   "lon0": -61.0,
+   "lat0": -33.25,
+   "archivo": "fabdem_-244_-133.png"
+  },
+  {
+   "lon0": -61.0,
+   "lat0": -33.0,
+   "archivo": "fabdem_-244_-132.png"
+  },
+  {
+   "lon0": -61.0,
+   "lat0": -32.0,
+   "archivo": "fabdem_-244_-128.png"
+  },
+  {
+   "lon0": -61.0,
+   "lat0": -31.75,
+   "archivo": "fabdem_-244_-127.png"
+  },
+  {
+   "lon0": -61.0,
+   "lat0": -31.5,
+   "archivo": "fabdem_-244_-126.png"
+  },
+  {
+   "lon0": -60.75,
+   "lat0": -33.25,
+   "archivo": "fabdem_-243_-133.png"
+  },
+  {
+   "lon0": -60.75,
+   "lat0": -33.0,
+   "archivo": "fabdem_-243_-132.png"
+  },
+  {
+   "lon0": -60.75,
+   "lat0": -32.0,
+   "archivo": "fabdem_-243_-128.png"
+  },
+  {
+   "lon0": -60.75,
+   "lat0": -31.75,
+   "archivo": "fabdem_-243_-127.png"
+  },
+  {
+   "lon0": -60.75,
+   "lat0": -31.5,
+   "archivo": "fabdem_-243_-126.png"
+  },
+  {
+   "lon0": -60.5,
+   "lat0": -33.25,
+   "archivo": "fabdem_-242_-133.png"
+  },
+  {
+   "lon0": -60.5,
+   "lat0": -33.0,
+   "archivo": "fabdem_-242_-132.png"
+  },
+  {
+   "lon0": -60.5,
+   "lat0": -32.0,
+   "archivo": "fabdem_-242_-128.png"
+  },
+  {
+   "lon0": -60.5,
+   "lat0": -31.75,
+   "archivo": "fabdem_-242_-127.png"
+  },
+  {
+   "lon0": -60.5,
+   "lat0": -31.5,
+   "archivo": "fabdem_-242_-126.png"
+  },
+  {
    "lon0": -59.25,
    "lat0": -35.0,
    "archivo": "fabdem_-237_-140.png"
