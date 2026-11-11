@@ -27,7 +27,7 @@ from shapely import wkb
 
 RAIZ = Path(__file__).resolve().parents[2]
 WEB = RAIZ / "web"
-SALIDA = RAIZ / "data" / "validacion"
+SALIDA = RAIZ / "data" / "validacion" / os.environ.get("VARIANTE", "")
 TEMPORADAS = [("nino_2015_16", "2015-11-01", "2016-04-30"), ("nino_2023_24", "2023-11-01", "2024-04-30"),
               ("referencia_2022_23", "2022-11-01", "2023-04-30")]
 RADIO_KM, ESTACION_KM = 5, 15
@@ -70,7 +70,10 @@ def crecidas(lon: float, lat: float) -> tuple[dict, dict | None]:
             if len(tramo) < 120:   # casi todos los días de la temporada
                 break
             por[nombre] = {d: round(float(np.clip(v - serie.median(), -2, 8)), 2) for d, v in tramo.items()}
-        if len(por) == len(TEMPORADAS):
+            ref = e["nivel_evacuacion"] if pd.notna(e["nivel_evacuacion"]) else (e["nivel_alerta"] + 0.5 if pd.notna(e["nivel_alerta"]) else None)
+            if ref is not None:
+                por[nombre + "_rel"] = {d: round(float(v - ref), 2) for d, v in tramo.items()}
+        if all(n in por for n, _, _ in TEMPORADAS):
             return por, {"estacion": e["estacion"], "rio": e["rio"], "km": round(e["dist"], 1), "series_id": int(e["series_id"])}
     return {}, None
 
@@ -80,7 +83,7 @@ def simular(c: dict) -> None:
     if destino.exists():
         return
     por, est = crecidas(c["lon"], c["lat"])
-    val = {"temporadas": [{"nombre": n, "desde": d, "hasta": h, "crecida": por.get(n)} for n, d, h in TEMPORADAS]}
+    val = {"cuantil": float(os.environ.get("CUANTIL", 0.4)), "temporadas": [{"nombre": n, "desde": d, "hasta": h, "crecida": por.get(n), "relEvac": por.get(n + "_rel")} for n, d, h in TEMPORADAS]}
     js = f"window.__VAL = {json.dumps(val)};\n" + (Path(__file__).parent / "correr_simulacion.js").read_text()
     url = f"http://localhost:8765/?punto={c['lon']:.4f},{c['lat']:.4f}&radio={RADIO_KM}"
     env = {**os.environ, "ABIERTO": "1", "LARGO": "20000000"}

@@ -315,12 +315,18 @@ async function simularPeriodo(hastaISO, tormentaMm = 0) {
     .map((x) => ({ n: x.n, c: celdaPunto(x.p) })).filter((x) => x.c >= 0);
   if (SIM.modelo !== M) return;
   M.suelo = (await sueloEn(d.s.punto).catch(() => null)) ?? { ...TEXTURAS.franco, nombre: "franco", supuesto: true };
+  M.estacion = estado.datos.estaciones.features.map((f) => ({ ...f.properties, km: distanciaKm(d.s.punto, f.geometry.coordinates) }))
+    .filter((e) => e.km <= 15 && e.h != null && (e.nivel_evacuacion != null || e.nivel_alerta != null))
+    .map((e) => ({ ...e, ref: e.nivel_evacuacion ?? e.nivel_alerta + 0.5 })).sort((a, b) => a.km - b.km)[0] ?? null;
   if (SIM.modelo !== M) return;
   const w = (M.worker = new Worker("hidraulica.js"));
   w.onmessage = (e) => recibirHora(M, e.data);
   w.onerror = (e) => { avisoProgreso(t("sim_error")); console.error(e); };
   w.postMessage({ tipo: "iniciar", nx: g.nx, ny: g.ny, dx: g.dx, z: g.z, tipo2: g.tipo2, lago: g.lago, nMan: g.nMan, imp: g.imp,
-    suelo: M.suelo, theta0: met.theta0, desague: SIM.desague, crecida: SIM.crecida, lluvia: Float32Array.from(met.lluvia), et0: Float32Array.from(met.et0) });
+    suelo: M.suelo, theta0: met.theta0, desague: SIM.desague, crecida: SIM.crecida, lluvia: Float32Array.from(met.lluvia), et0: Float32Array.from(met.et0),
+    // Río: con una estación del INA a menos de 15 km, arranca con su altura de hoy respecto del nivel de evacuación (el mismo método
+    // validado); la barra suma o resta metros sobre esa altura
+    ...(M.estacion ? { relEvac: new Float32Array(n).fill(M.estacion.h - M.estacion.ref + SIM.crecida) } : {}) });
   pintarLineaSim();
 }
 
@@ -1305,7 +1311,11 @@ function pintarPanelSimulador(d) {
   document.getElementById("sim-play").onclick = () => reproducirSimulador();
   panel.querySelectorAll(".sim-presets .chip[data-i]").forEach((b) => { b.onclick = () => simularPeriodo(sumarDias(limitesPeriodo().hoy, 2), ps[+b.dataset.i][1]); });
   const cre = document.getElementById("sim-crecida"), creV = document.getElementById("sim-crecida-v");
-  const pintarCre = () => { creV.textContent = `${SIM.crecida > 0 ? "+" : ""}${fmt(SIM.crecida, 2)} m`; };
+  const pintarCre = () => {
+    creV.textContent = `${SIM.crecida > 0 ? "+" : ""}${fmt(SIM.crecida, 2)} m`;
+    const e = SIM.modelo?.estacion, nota = document.querySelector("#sim-rio .sim-periodo-nota");
+    if (nota) nota.textContent = e ? t("sim_rio_ina")(e.estacion, fmt(e.h, 2), fmt(e.ref, 2)) : t("sim_rio_nota");
+  };
   cre.oninput = () => { SIM.crecida = Number(cre.value); pintarCre(); };
   cre.onchange = () => { if (SIM.modelo?.hasta) simularPeriodo(SIM.modelo.hasta, SIM.modelo.tormenta); };
   pintarCre();
@@ -1410,7 +1420,7 @@ function actualizarNumeros() {
     t(`sim_conf_lluvia_${tp}`)(Math.max(0, Math.round((k - Mo.hoy) / 24))), d.D.fuente === "fabdem");
   pintarAntecedentesSim(Mo, d);
   const rio = document.getElementById("sim-rio");
-  if (rio) rio.hidden = !Mo.g.tipo2.some((v) => v === 3);
+  if (rio) { rio.hidden = !Mo.g.tipo2.some((v) => v === 3); document.getElementById("sim-crecida")?.dispatchEvent(new Event("input")); }
   const sup = document.getElementById("sim-supuestos");
   if (sup) sup.textContent = `${t(d.D.fuente === "fabdem" ? "sim_terreno_fabdem" : "sim_terreno_aws")} ` + t("sim_supuestos")(Mo.suelo.nombre, Mo.suelo.supuesto, SIM.desague, fmt(Mo.g.dx), Mo.cuenta ? fmt(100 * Mo.cuenta.infiltrada / Math.max(1, Mo.cuenta.lluvia)) : "…")
     + ` ${usoDelSuelo(Mo.g)}`;

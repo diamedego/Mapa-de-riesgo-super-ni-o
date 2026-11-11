@@ -30,7 +30,9 @@
     const n = horas.length, g = grillaModelo(d, n);
     // Río: crecida del día (si falta un día, la del último medido)
     let ultima = 0;
+    const serieHora = (obj) => { let u = null; const a = Float32Array.from(horas, (ms) => { const v = obj[fechaArt(ms)]; if (v != null) u = v; return u ?? 0; }); return a; };
     const crecidaHora = T.crecida ? Float32Array.from(horas, (ms) => { const v = T.crecida[fechaArt(ms)]; if (v != null) ultima = v; return ultima; }) : null;
+    const relEvac = T.relEvac ? serieHora(T.relEvac) : null;
     const mesDe = horas.map((ms) => { const f = new Date(ms - 3 * 3600e3); return f.getUTCFullYear() * 12 + f.getUTCMonth(); });
     const m0 = Math.min(...mesDe), nm = Math.max(...mesDe) - m0 + 1, horasMes = new Uint16Array(nm);
     mesDe.forEach((m) => horasMes[m - m0]++);
@@ -46,7 +48,7 @@
         } else if (m.tipo === "fin") { w.terminate(); ok(m); }
       };
       w.postMessage({ tipo: "iniciar", nx: g.nx, ny: g.ny, dx: g.dx, z: g.z, tipo2: g.tipo2, lago: g.lago, nMan: g.nMan, imp: g.imp, suelo,
-        theta0, desague: SIM.desague, crecida: crecidaHora ? crecidaHora[0] : 0, crecidaHora, lluvia, et0 });
+        theta0, desague: SIM.desague, crecida: crecidaHora ? crecidaHora[0] : 0, crecidaHora: relEvac ? null : crecidaHora, relEvac, cuantilOrilla: P.cuantil ?? 0.4, lluvia, et0 });
     });
     const mes = new Uint8Array(g.N), alguna = new Uint8Array(g.N);
     for (let c = 0; c < g.N; c++) {

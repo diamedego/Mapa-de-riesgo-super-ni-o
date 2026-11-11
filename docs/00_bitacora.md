@@ -548,3 +548,10 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - El simulador muestra la validación con un gráfico por ciudad y la conclusión «orientativo»; la confianza del modelo depende del
   resultado de cada ciudad. Detalle en `docs/04_validacion_simulador.md`.
 - Indicadores de arriba con método, fuente y tipo de dato al pasar el mouse (punto 18).
+
+## 2026-11-11 — Tanda 9: mejora del modelo con la validación
+- El río se ata al nivel de evacuación del INA (en evacuación cubre el 40 % más bajo de las orillas) y las lagunas conectadas al
+  río suben con él. Se probaron los cuantiles 10, 25 y 40 % (riesgo de sobreajuste: documentado).
+- Validación: CSI mediano 0,20 → 0,36 (referencia «donde ya hubo agua» 0,35), le gana en 5 de 9; Santa Fe 2015-16 simula 12,7 % del
+  círculo con agua contra 13,2 % observado; Corrientes 1,95 % contra 1,91 %. Sigue corto en Santa Fe 2023-24 y Tigre.
+- El simulador del sitio arranca con la altura de hoy de la estación del INA más cercana (antes, nivel fijo de la imagen satelital).

@@ -39,6 +39,16 @@ function iniciar(m) {
   // Ríos y mar: mismo criterio con un nivel base único (el más bajo entre su superficie y su orilla) + la crecida elegida
   S.baseRio = Infinity;
   for (let i = 0; i < N; i++) if (m.tipo2[i] === 3) { S.baseRio = Math.min(S.baseRio, m.z[i]); orilla(i, (v) => { if (m.tipo2[v] === 1) S.baseRio = Math.min(S.baseRio, m.z[v] - 0.05); }); }
+  // Altura del río relativa al nivel de evacuación de la estación (validación con alturas del INA): en el nivel de evacuación el
+  // agua llega a la orilla del cuartil más bajo; cada metro de más o de menos se suma o se resta
+  if (m.relEvac && Number.isFinite(S.baseRio)) {
+    const bordes = [];
+    for (let i = 0; i < N; i++) if (m.tipo2[i] === 3) orilla(i, (v) => { if (m.tipo2[v] === 1) bordes.push(m.z[v]); });
+    bordes.sort((a, b) => a - b);
+    const bordo = bordes.length ? bordes[Math.floor(bordes.length * (m.cuantilOrilla ?? 0.4))] - S.baseRio : 0;
+    S.crecidaHora = Float32Array.from(m.relEvac, (r) => Math.max(-1, bordo + r));
+    S.crecida = S.crecidaHora[0]; S.bordo = bordo;
+  }
   S.nivel0 = Float64Array.from(S.nivelLago);
   S.cuenta = { lluvia: 0, infiltrada: 0, desague: 0, evaporada: 0, salida: 0, lagos: 0, rio: 0 };   // m³, para verificar que no se crea ni se pierde agua
   // Humedad inicial del suelo (fracción del espacio poroso ocupada) → agua guardada en la capa de 30 cm

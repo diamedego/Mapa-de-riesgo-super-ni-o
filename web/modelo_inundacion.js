@@ -134,6 +134,16 @@ function grillaModelo(d, horas) {
     if (capa.rio[c] > 0.5) tipo2[c] = 3; else if (capa.lago[c] > 0.5) tipo2[c] = 2;
     if (tipo2[c] === 1 && capa.cauce[c] > 0) { z[c] -= capa.cauce[c]; cauce[c] = capa.cauce[c]; }   // arroyos y canales grabados en el terreno
   }
+  // Lagunas pegadas al río (madrejones, lagunas del valle de inundación): son parte del río y suben con su crecida
+  const pila0 = [];
+  for (let c = 0; c < N; c++) if (tipo2[c] === 3) pila0.push(c);
+  while (pila0.length) {
+    const k = pila0.pop(), x = k % nx, y = (k / nx) | 0;
+    for (const [vx, vy] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+      const v = vy * nx + vx;
+      if (vx >= 0 && vy >= 0 && vx < nx && vy < ny && tipo2[v] === 2) { tipo2[v] = 3; pila0.push(v); }
+    }
+  }
   // Lagunas: cada grupo de celdas conectadas es una laguna con un único nivel
   let nl = 0;
   for (let c = 0; c < N; c++) {
