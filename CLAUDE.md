@@ -9,8 +9,8 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
 - `modelos/` — `rios.py` (curva caudal→altura + sesgo reciente), `anegamientos_caba.py`, `indice_riesgo.py` (INFORM + Monte Carlo), `verificacion.py`, `amenaza_agua.py` y `dengue.py` (documentados, no usados en el índice).
 - `sql/` — medallón bronze→silver→gold; `correr_duckdb.py` (local, validado igual a Python) y `correr_databricks.py` (perfil `mapa-nino`, login pendiente).
 - `web/` — tablero "sala de situación" (MapLibre, sin otras librerías). Módulos: `textos.js` (ES/EN), `utiles.js`, `graficos.js`,
-  `tiempo.js` (campos del tiempo, partículas de viento, miniaturas), `mapa.js`, `buscador.js`, `tableros.js` (un tablero por capa),
-  `app.js` (estado, indicadores, modo actual/futuro, línea de tiempo). Datos: `preparar_geometrias.py` y `preparar_centros.py` (fijos, Mac),
+  `tiempo.js` (campos del tiempo, partículas de viento, miniaturas), `mapa.js`, `buscador.js`, `tableros.js` (un tablero por capa y
+  el análisis de abajo), `guia.js` (encabezado, fuentes por tipo, recorrido guiado), `app.js` (estado, indicadores, modo actual/futuro). Datos: `preparar_geometrias.py` y `preparar_centros.py` (fijos, Mac),
   `actualizar_datos_web.py` (diario), `exportar_alertas.py` (cada 3 h), `ingesta/tiempo_grilla.py` (2 veces por día).
   `construir_artifact.py` arma la versión privada en claude.ai (inlina los módulos; mapa base propio).
 - `consumo_ia/` — medición del consumo de tokens de Claude Code en este proyecto.
@@ -41,9 +41,9 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
   Al republicar subir también `datos/callejero/*` (`web/preparar_callejero.py`) y `datos/base/*` (`web/preparar_mapa_base.py`:
   calles y agua propias, no se commitea; en dos publicaciones porque supera 64 MB) si se regeneraron.
 - Rediseño 5-nov: probar en el celular y elegir entre las opciones de diseño enviadas (A implementada).
-- Pedido 10-nov (`docs/02_plan_cambios_nov.md`): tandas 1 a 5 publicadas (colores, capas, filtros, período, Situación con tortas y
-  recomendaciones, análisis tipo Power BI). Falta: tanda 6 (encabezado con resumen y fuentes, recorrido guiado), validación del
-  simulador con inundaciones reales, confianza alta/media/baja, rutas y hospitales bajo agua, trazabilidad (puntos 18-28).
+- Pedido 10-nov (`docs/02_plan_cambios_nov.md`): tandas 1 a 6 publicadas (colores, capas, filtros, período, Situación con tortas y
+  recomendaciones, análisis tipo Power BI, encabezado con fuentes por tipo y recorrido guiado en `web/guia.js`). Falta: validación
+  del simulador con inundaciones reales, confianza alta/media/baja, rutas y hospitales bajo agua, trazabilidad (puntos 18-28).
 - Sitio público (Cloudflare Workers, gratis): https://mapa-de-riesgo-super-nino.diamedego.workers.dev — se publica solo con cada push
   (configuración en `wrangler.jsonc` y `web/.assetsignore`; ~11 publicaciones por día, plan gratis 500 por mes).
 - Simulador (versión pública): vista Mapa + Maqueta 3D con lluvia animada (estilo reel CutSheetRX). Posible mejora: relieve

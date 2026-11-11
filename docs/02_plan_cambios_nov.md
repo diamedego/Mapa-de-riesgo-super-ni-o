@@ -40,3 +40,9 @@ funcional/técnico. El resto de la lista (interfaz, filtros, análisis, recorrid
 - Trazabilidad: fuente, fecha y método de cada indicador; observado / histórico / estimado / pronóstico diferenciados;
   "Sin información" cuando no hay dato; confianza alta/media/baja; comparación histórica; rutas y hospitales aislados.
 - En celular, filtros y análisis se apilan; las descripciones aparecen al tocar.
+
+## Estado al 11-nov-2026
+- Publicado: tandas 1 a 6 (puntos 1 a 17 y 20, salvo la consulta por municipio del punto 11c).
+- Falta: validación del simulador con inundaciones reales e incertidumbre (19), comparación histórica en el simulador (21), rutas y
+  hospitales bajo agua (22), uso y permeabilidad del suelo en el simulador (23), confianza alta/media/baja (24), revisión integral de
+  trazabilidad y calidad (18, 25-28) y la consulta por municipio (11c).

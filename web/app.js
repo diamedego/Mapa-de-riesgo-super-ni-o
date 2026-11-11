@@ -409,33 +409,8 @@ function mostrarAviso(txt) {
   a.textContent = txt; a.hidden = false;
 }
 
-// ---------- Recorrido guiado (para presentar o grabar el video) ----------
+// Vista inicial del país (el recorrido guiado está en guia.js)
 const VISTA_PAIS = { center: [-63.6, -38.6], zoom: 3.55, pitch: 0, bearing: 0 };
-const RECORRIDO = [
-  { t: "c1_t", p: "c1_p", capa: "riesgo", modo: "actual", vista: VISTA_PAIS },
-  { t: "c6_t", p: "c6_p", capa: "riesgo", modo: "actual", vista: { center: [-59.2, -28.6], zoom: 6.2, pitch: 0, bearing: 0 }, rios: true },
-  { t: "c2_t", p: "c2_p", capa: "riesgo", modo: "futuro", vista: { center: [-59.4, -28.8], zoom: 5.6, pitch: 0, bearing: 0 } },
-  { t: "c7_t", p: "c7_p", capa: "lluvia", modo: "futuro", vista: { center: [-61.5, -31], zoom: 4.6, pitch: 0, bearing: 0 } },
-  { t: "c8_t", p: "c8_p", capa: "viento", modo: "actual", vista: { center: [-63.6, -38.6], zoom: 3.9, pitch: 0, bearing: 0 } },
-  { t: "c4_t", p: "c4_p", capa: "riesgo", modo: "futuro", vista: { center: [-58.56, -34.68], zoom: 9.6, pitch: 0, bearing: 0 } },
-];
-function recorrido(i = 0) {
-  const cartel = document.getElementById("cartel-recorrido");
-  clearTimeout(estado.recorridoId);
-  if (i < 0 || i >= RECORRIDO.length) { cartel.hidden = true; return; }
-  const c = RECORRIDO[i];
-  estado.modo = c.modo;
-  if (c.rios) estado.verRios = true;
-  elegirCapa(c.capa);
-  mapa.flyTo({ ...c.vista, duration: movimientoReducido() ? 0 : 2600, essential: true });
-  cartel.hidden = false;
-  cartel.innerHTML = `<span class="rec-paso">${i + 1} / ${RECORRIDO.length}</span><h3>${t(c.t)}</h3><p>${t(c.p)}</p>
-    <div class="rec-botones"><button type="button" class="btn-texto" data-r="${i - 1}"${i ? "" : " disabled"}>${t("anterior")}</button>
-    <button type="button" class="btn-primario" data-r="${i + 1}">${i === RECORRIDO.length - 1 ? t("terminar") : t("siguiente")}</button>
-    <button type="button" class="btn-icono" data-r="-1" aria-label="${t("cerrar")}">${icono("cerrar")}</button></div>`;
-  cartel.querySelectorAll("[data-r]").forEach((b) => { b.onclick = () => recorrido(+b.dataset.r); });
-  estado.recorridoId = setTimeout(() => recorrido(i + 1), 11000);
-}
 
 // ---------- Idioma y tema ----------
 function aplicarIdioma() {
@@ -447,7 +422,9 @@ function aplicarIdioma() {
   document.querySelectorAll("[data-i18n-ayuda]").forEach((el) => { el.dataset.ayuda = t(el.dataset.i18nAyuda); el.setAttribute("aria-description", t(el.dataset.i18nAyuda)); });
   document.getElementById("btn-idioma").querySelector("span").textContent = estado.idioma === "es" ? "EN" : "ES";
   document.title = t("titulo");
-  pintarEstadoDatos();
+  pintarIntro();
+  if (guia) recorrido(guia.i);   // el recorrido y las fuentes abiertos cambian de idioma
+  if (document.getElementById("fuentes")?.open) abrirFuentes();
   if (estado.riesgo) actualizarTodo();
 }
 function cambiarTema() {
@@ -469,14 +446,6 @@ function alternar3d() {
   mapa.easeTo({ pitch: estado.relieve3d ? 55 : 0, bearing: estado.relieve3d ? -12 : 0, duration: 900 });
 }
 
-function pintarEstadoDatos() {
-  const r = estado.datos.resumen, T = estado.tiempo;
-  if (!r) return;
-  const gen = T?.generado ? new Date(T.generado.replace("Z", ":00Z")) : null;
-  const txt = gen ? t("datos_al")(fmtDia(hoyDeFecha(gen)), gen.toLocaleTimeString(loc(), { hour: "2-digit", minute: "2-digit", timeZone: ZONA_HORARIA, hour12: false }))
-    : t("datos_al_dia")(fmtDia(r.calculado));
-  document.getElementById("estado-datos").innerHTML = `<span class="pulso" aria-hidden="true"></span>${escapar(txt)}`;
-}
 const hoyDeFecha = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: ZONA_HORARIA, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 
 // ---------- Inicio ----------
@@ -515,7 +484,7 @@ async function iniciar() {
   document.querySelectorAll(".capas-tabs [data-capa]").forEach((b) => { b.onclick = () => elegirCapa(b.dataset.capa); });
   document.getElementById("btn-idioma").onclick = () => { estado.idioma = estado.idioma === "es" ? "en" : "es"; aplicarIdioma(); };
   document.getElementById("btn-tema").onclick = cambiarTema;
-  document.getElementById("btn-recorrido").onclick = () => recorrido(0);
+  iniciarGuia();
   pintarCapasExtra();
   document.getElementById("btn-sim-top").onclick = usarSimulador;
   if (SIN_TESELAS) { document.getElementById("enlace-completo").hidden = false; }

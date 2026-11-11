@@ -508,3 +508,18 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   y el motivo empieza por la amenaza que domina.
 - Probado sin imágenes (`herramientas/pruebas/tanda5.js`): país, Campana, clic en el Pareto, lluvia, clic en un día, borrar filtros,
   Córdoba, punto fuera de la zona; celular sin desbordes.
+
+## 2026-11-11 — Tanda 6: encabezado, fuentes por tipo de dato y recorrido guiado (puntos 1 y 2)
+- Encabezado: la bajada explica qué es el tablero y qué se puede hacer; debajo, la situación del país en el mes en curso (riesgo,
+  personas en riesgo alto o muy alto, estaciones de río en evacuación y alerta, alertas del SMN con su nivel máximo, mes pico), las
+  5 zonas de mayor riesgo (botones que filtran) y la última actualización de cada fuente (riesgo, tiempo, alertas, INA, GloFAS, SEAS5).
+- "Ver fuentes de datos por tipo": ventana con 20 fuentes en 7 grupos (tiempo y alertas, ríos, terreno y suelo, agua del pasado,
+  población, infraestructura y mapa, cálculos propios). Cada una dice qué aporta, de dónde sale (enlace), cada cuánto se actualiza,
+  la última fecha y el tipo de dato: observado, pronóstico, histórico, estimación propia, simulación o referencia. Se abre también
+  con el enlace `#fuentes` y desde el pie.
+- Recorrido guiado nuevo (`web/guia.js`): 13 pasos que explican cómo usar la app (encabezado, indicadores, buscador, condiciones,
+  simulador, mapas, capas, mapa, leyenda, miniaturas, panel, análisis y fuentes). Cada paso lleva la pantalla a esa parte, la
+  resalta y pone el cartel al costado sin taparla (en el celular, abajo). Se maneja con los botones o con las flechas y Esc.
+  Reemplaza al recorrido anterior, que resumía la situación del país.
+- Probado sin imágenes (`herramientas/pruebas/tanda6.js`): encabezado, fuentes, clic en una zona, los 13 pasos en escritorio y
+  celular, inglés y Esc.
