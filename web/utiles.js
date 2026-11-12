@@ -193,3 +193,34 @@ function demorar(fn, ms) {
   let id = 0;
   return (...args) => { clearTimeout(id); id = setTimeout(() => fn(...args), ms); };
 }
+
+// ---------- Icono «!» de cada indicador o gráfico ----------
+// Al pasar el mouse (o tocar) muestra la explicación y la fórmula; el clic queda reservado para el detalle (un PDF), todavía sin conectar.
+const infoIcono = (clave, texto) => `<button type="button" class="info" data-detalle="${escapar(clave)}" data-tip="${escapar(texto)}" aria-label="${escapar(t("info_aria"))}">!</button>`;
+const infoTexto = (clave) => { const v = TEXTOS[estado.idioma]?.[`info_${clave}`]; return typeof v === "string" ? v : t("info_generico"); };
+const tit = (clave) => `${t(clave)}${infoIcono(clave, infoTexto(clave))}`;
+// Las notas chicas de cada bloque pasan a la explicación del icono de su título (no ocupan lugar)
+function notasATooltip(raiz) {
+  raiz.querySelectorAll(".tb-sub, .tb-fuente, .tb-nota, .torta-nota, .tb-evol-nota").forEach((n) => {
+    const sec = n.closest("section, figure, .tb-evol-cuerpo, .kpi-g, div");
+    let enc = n.previousElementSibling;
+    while (enc && !enc.matches("h3, h4, figcaption, .tb-evol-cab, .kpi-g-cab")) enc = enc.previousElementSibling;
+    enc ??= sec?.querySelector("h3, figcaption, .tb-evol-cab, .kpi-g-cab");
+    if (!enc) return n.remove();
+    let ic = enc.querySelector(".info");
+    const txt = n.textContent.trim();
+    if (!ic) { enc.insertAdjacentHTML("beforeend", infoIcono("nota", escapar(txt))); }
+    else if (!ic.dataset.tip.includes(txt)) ic.dataset.tip += `<br><br>${escapar(txt)}`;
+    n.remove();
+  });
+}
+function enlazarInfo(raiz) {
+  raiz.querySelectorAll(".info").forEach((b) => {
+    b.onpointermove = (ev) => Tip.mostrar(b.dataset.tip, ev);
+    b.onpointerleave = () => Tip.ocultar();
+    b.onclick = (ev) => { ev.preventDefault(); ev.stopPropagation(); Tip.mostrar(b.dataset.tip, ev); };   // en el celular, el toque la muestra
+  });
+}
+document.addEventListener("pointerdown", (ev) => { if (!ev.target.closest?.(".info")) Tip.ocultar(); });
+function prepararInfo(raiz) { notasATooltip(raiz); enlazarInfo(raiz); }
+

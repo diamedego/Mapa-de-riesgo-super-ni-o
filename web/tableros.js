@@ -335,9 +335,9 @@ function bloqueSituacion(nivel, vinetas, acciones, { nota = "", extra = "" } = {
   const qh = Array.isArray(acciones) ? lista(acciones)
     : acciones.orden.map((k) => `<h4>${t(`acc_tit_${k}`)}</h4>${lista(acciones[k])}${k === "emer" && acciones.pie ? `<p class="tb-acc-pie">${acciones.pie}</p>` : ""}`).join("");
   return `<section class="tb-situacion" data-nivel="${nivel}">
-    <h3>${t("situacion_en")(escapar(lugarTitulo()))}</h3>${nota ? `<p class="tb-sub">${nota}</p>` : ""}
+    <h3>${t("situacion_en")(escapar(lugarTitulo()))}${infoIcono("situacion_en", infoTexto("situacion_en"))}</h3>${nota ? `<p class="tb-sub">${nota}</p>` : ""}
     <ul class="tb-vinetas">${vinetas.filter(Boolean).map((v) => (Array.isArray(v) ? `<li><b>${v[0]}:</b> ${v[1]}</li>` : `<li>${v}</li>`)).join("")}</ul>
-    ${extra}<h3>${t("que_hacer")}</h3>${qh}
+    ${extra}<h3>${tit("que_hacer")}</h3>${qh}
     <p class="tb-nota">${t("nota_oficial")}</p></section>`;
 }
 const dato = (etq, valor, extra = "", estadoSem = "") =>
@@ -355,7 +355,7 @@ function enlacesCapas(actual) {
   const tmx = Math.max(...S.tmax.slice(h0, h6 + 1).filter((v) => v != null));
   const items = [["lluvia", `${fmt(r7)} mm`, t("prox_7_dias")], ["viento", `${fmt(raf)} km/h`, t("rafaga_max_7")], ["temp", `${fmt(tmx)} °C`, t("max_7_dias")]]
     .filter(([c]) => c !== actual);
-  return `<section class="tb-bloque"><h3>${t("tiempo_en_lugar")}</h3><div class="tb-saltos">${items.map(([c, v, e]) =>
+  return `<section class="tb-bloque"><h3>${tit("tiempo_en_lugar")}</h3><div class="tb-saltos">${items.map(([c, v, e]) =>
     `<button class="salto" data-capa="${c}">${icono(c)}<span><b>${v}</b>${e}</span></button>`).join("")}</div></section>`;
 }
 
@@ -382,17 +382,18 @@ async function tableroRiesgo(cont) {
       <div class="rio-pie"><span>${fmt(e.h, 2)} m ${e.dh != null ? `(${e.dh > 0 ? "+" : ""}${fmt(e.dh, 2)} m 24 h)` : ""}</span><span>${t("alerta_m")} ${fmt(e.nivel_alerta, 1)} · ${t("evac_m")} ${fmt(e.nivel_evacuacion, 1)}</span></div></li>`;
   }).join("");
   cont.innerHTML = `${cabeceraTablero()}
-    <section class="tb-hero">
-      <div class="hero-fila"><div class="hero-num"><span class="hero-valor">${fmtRiesgo(r)}</span><span class="hero-unidad">/10</span></div>
-        <div class="hero-lado">${pastillaNivel(r)}<span class="hero-sub">${t("riesgo_inundacion")}${idx.length > 1 ? ` · ${t("peor_mes_corto")} ${nombreMes(M[peor])}` : ""}</span></div></div>
-      ${medidorRiesgo(r)}
+    <section class="tb-hero hero-riesgo" style="--c:var(--r${nivel || 1})" data-nivel="${nivel}">
+      <h3 class="hero-tit">${t("riesgo_inundacion")}${infoIcono("riesgo", infoTexto("riesgo"))}</h3>
+      <div class="hero-fila"><div class="hero-num"><span class="hero-valor">${fmtRiesgo(r)}</span></div>
+        <div class="hero-lado">${pastillaNivel(r)}</div></div>
+      <div class="medidor-caja">${medidorRiesgo(r)}</div>
     </section>
     ${situacion}
-    <section class="tb-bloque"><h3>${t("que_lo_explica")}</h3><p class="tb-sub">${t("explica_nota")}</p>
+    <section class="tb-bloque"><h3>${tit("que_lo_explica")}</h3><p class="tb-sub">${t("explica_nota")}</p>
       <div class="tb-comps">${comps.map(([k, v]) => `<div class="comp"><span class="comp-etq">${t(`comp_${k}`)}</span>
         <span class="comp-pista"><span style="width:${limitar((v ?? 0) * 10, 0, 100)}%;background:${colorNivel(v)}"></span></span><b>${fmtRiesgo(v)}</b></div>`).join("")}</div>
     </section>
-    ${rios ? `<section class="tb-bloque"><h3>${icono("rio")} ${t("rios_cercanos")}</h3><p class="tb-sub">${t("fuente_ina")}</p><ul class="rios">${rios}</ul></section>` : ""}
+    ${rios ? `<section class="tb-bloque"><h3>${icono("rio")} ${tit("rios_cercanos")}</h3><p class="tb-sub">${t("fuente_ina")}</p><ul class="rios">${rios}</ul></section>` : ""}
     ${enlacesCapas("riesgo")}`;
   tipsEn(cont);
 }
@@ -462,16 +463,16 @@ async function situacionRiesgo({ s, A, M, idx, peor, r, nivel, motor, ests, aler
   const tot = sumar(A.porNivel), tip = (etq, v, de) => `<b>${escapar(etq)}</b><span>${fmtPersonas(v)} · ${fmtPct(pct(v, de))} %</span>`;
   const leyenda = (filas) => `<ul class="torta-ley">${filas.map(([color, etq, v, de]) =>
     `<li><i style="background:${color}"></i><span>${escapar(etq)} <b>${fmtPct(pct(v, de))} %</b><small>${fmtPersonas(v)}</small></span></li>`).join("")}</ul>`;
-  const figura = (tit, cuerpo) => `<figure class="torta-fig"><figcaption>${tit}</figcaption>${cuerpo}</figure>`;
-  const anillo = (tit, filas, centro, nota = "") => figura(tit, `${torta(filas.map(([color, etq, v, de]) => ({ v, color, tip: tip(etq, v, de) })), { centro, etiqueta: tit })}${nota}${leyenda(filas)}`);
-  const sinInfo = (tit) => figura(tit, `<p class="torta-sin">${t("sin_informacion")}</p>`);
+  const figura = (tit, cuerpo, clave) => `<figure class="torta-fig"><figcaption>${tit}${infoIcono(clave, infoTexto(clave))}</figcaption>${cuerpo}</figure>`;
+  const anillo = (tit, filas, centro, clave) => figura(tit, `${torta(filas.map(([color, etq, v, de]) => ({ v, color, tip: tip(etq, v, de) })), { centro, etiqueta: tit })}${leyenda(filas)}`, clave);
+  const sinInfo = (tit, clave) => figura(tit, `<p class="torta-sin">${t("sin_informacion")}</p>`, clave);
   const niveles = [1, 2, 3, 4, 5].map((n) => [`var(--r${n})`, t("niveles")[n - 1], A.porNivel[n - 1], tot]).filter((f) => f[2] > 0);
   const tortas = `<div class="tortas">
-    ${tot ? anillo(t("torta_niveles"), niveles, `${fmtPct(pct(A.porNivel[3] + A.porNivel[4], tot))} %`, `<p class="torta-nota">${t("torta_centro_alto")}</p>`) : sinInfo(t("torta_niveles"))}
+    ${tot ? anillo(t("torta_niveles"), niveles, `${fmtPct(pct(A.porNivel[3] + A.porNivel[4], tot))} %`, "torta_niveles") : sinInfo(t("torta_niveles"), "torta_niveles")}
     ${Z.pobDatoCloaca > 0 ? anillo(t("torta_cloaca"), [["var(--s-2)", t("sin_cloaca"), Z.pobSinCloaca, Z.pobDatoCloaca],
-      ["var(--torta-resto)", t("con_cloaca"), Z.pobDatoCloaca - Z.pobSinCloaca, Z.pobDatoCloaca]], `${fmtPct(sinP)} %`) : sinInfo(t("torta_cloaca"))}
+      ["var(--torta-resto)", t("con_cloaca"), Z.pobDatoCloaca - Z.pobSinCloaca, Z.pobDatoCloaca]], `${fmtPct(sinP)} %`, "torta_cloaca") : sinInfo(t("torta_cloaca"), "torta_cloaca")}
     ${Z.pob > 0 ? anillo(t("torta_terreno"), [["var(--s-1)", t("terreno_bajo_l"), Z.pobBajo, Z.pob], ["var(--torta-resto)", t("terreno_alto_l"), Z.pob - Z.pobBajo, Z.pob]],
-      `${fmtPct(bajoP)} %`) : sinInfo(t("torta_terreno"))}</div><p class="tb-sub">${t("tortas_nota")}</p>`;
+      `${fmtPct(bajoP)} %`, "torta_terreno") : sinInfo(t("torta_terreno"), "torta_terreno")}</div><p class="tb-sub">${t("tortas_nota")}</p>`;
   // Qué hacer: cada recomendación sale de un dato del lugar; se ordenan por prioridad y se muestran las 4 primeras
   const prev = [], emer = [], evac = actual && ests.some((e) => e.estado === "evacuacion");
   if (actual && estado.tiempo) {   // la lluvia más fuerte de los próximos 7 días
@@ -559,9 +560,9 @@ function tableroLluvia(cont) {
       </div>
     </section>
     ${bloqueSituacion(nivel, parrafos, acc, { nota: t("fuente_pronostico") })}
-    <section class="tb-bloque"><h3>${t("lluvia_por_dia")}</h3><p class="tb-sub">${t("ayuda_click_dia")}</p><div id="tb-lluvia-dias" class="graf-cont"></div></section>
-    <section class="tb-bloque"><h3>${t("prox_48h")}</h3><div id="tb-lluvia-48" class="graf-cont"></div></section>
-    ${!s || s.tipo === "zona" ? `<section class="tb-bloque"><h3>${t("donde_mas_llueve")}</h3><div id="tb-lluvia-rk"></div></section>` : ""}
+    <section class="tb-bloque"><h3>${tit("lluvia_por_dia")}</h3><p class="tb-sub">${t("ayuda_click_dia")}</p><div id="tb-lluvia-dias" class="graf-cont"></div></section>
+    <section class="tb-bloque"><h3>${tit("prox_48h")}</h3><div id="tb-lluvia-48" class="graf-cont"></div></section>
+    ${!s || s.tipo === "zona" ? `<section class="tb-bloque"><h3>${tit("donde_mas_llueve")}</h3><div id="tb-lluvia-rk"></div></section>` : ""}
     ${enlacesCapas("lluvia")}`;
   grafBarras(document.getElementById("tb-lluvia-dias"), {
     etiquetas: dias, valores: S.lluvia.map((v) => (v == null ? null : Math.round(v * 10) / 10)), alto: 190, iconos,
@@ -629,12 +630,12 @@ function tableroViento(cont) {
       </div>
     </section>
     ${bloqueSituacion(nivel, parrafos, acc, { nota: t("fuente_pronostico") })}
-    <section class="tb-bloque"><h3>${t("viento_por_dia")}</h3><div class="leyenda-lineas"><span><i style="background:var(--s-1)"></i>${t("viento_max")}</span><span><i style="background:var(--s-2)"></i>${t("rafagas")}</span></div>
+    <section class="tb-bloque"><h3>${tit("viento_por_dia")}</h3><div class="leyenda-lineas"><span><i style="background:var(--s-1)"></i>${t("viento_max")}</span><span><i style="background:var(--s-2)"></i>${t("rafagas")}</span></div>
       <div id="tb-viento-dias" class="graf-cont"></div></section>
-    <section class="tb-bloque tb-dos"><div><h3>${t("rosa_vientos")}</h3><div id="tb-rosa"></div></div>
-      <div><h3>${t("tipos_viento")}</h3><p class="tb-sub">${t("tipos_ayuda")}</p>${diasTipo ? `<ul class="tipos-viento">${diasTipo}</ul>` : `<p class="tb-vacio">${t("sin_tipos")}</p>`}</div></section>
-    <section class="tb-bloque"><h3>${t("prox_48h")}</h3><div id="tb-viento-48" class="graf-cont"></div></section>
-    ${!s || s.tipo === "zona" ? `<section class="tb-bloque"><h3>${t("rafagas_fuertes")}</h3><div id="tb-viento-rk"></div></section>` : ""}
+    <section class="tb-bloque tb-dos"><div><h3>${tit("rosa_vientos")}</h3><div id="tb-rosa"></div></div>
+      <div><h3>${tit("tipos_viento")}</h3><p class="tb-sub">${t("tipos_ayuda")}</p>${diasTipo ? `<ul class="tipos-viento">${diasTipo}</ul>` : `<p class="tb-vacio">${t("sin_tipos")}</p>`}</div></section>
+    <section class="tb-bloque"><h3>${tit("prox_48h")}</h3><div id="tb-viento-48" class="graf-cont"></div></section>
+    ${!s || s.tipo === "zona" ? `<section class="tb-bloque"><h3>${tit("rafagas_fuertes")}</h3><div id="tb-viento-rk"></div></section>` : ""}
     ${enlacesCapas("viento")}`;
   grafLineas(document.getElementById("tb-viento-dias"), {
     etiquetas: dias, alto: 180, banda: [a, b], formato: (v) => `${fmt(v)} km/h`,
@@ -695,9 +696,9 @@ function tableroTemp(cont) {
       </div>
     </section>
     ${bloqueSituacion(nivel, parrafos, acc, { nota: t("fuente_pronostico") })}
-    <section class="tb-bloque"><h3>${t("min_max_dia")}</h3><div id="tb-temp-rangos" class="graf-cont"></div></section>
-    <section class="tb-bloque"><h3>${t("prox_48h")}</h3><div id="tb-temp-48" class="graf-cont"></div></section>
-    ${!s || s.tipo === "zona" ? `<section class="tb-bloque"><h3>${t("mas_calor")}</h3><div id="tb-temp-rk"></div></section>` : ""}
+    <section class="tb-bloque"><h3>${tit("min_max_dia")}</h3><div id="tb-temp-rangos" class="graf-cont"></div></section>
+    <section class="tb-bloque"><h3>${tit("prox_48h")}</h3><div id="tb-temp-48" class="graf-cont"></div></section>
+    ${!s || s.tipo === "zona" ? `<section class="tb-bloque"><h3>${tit("mas_calor")}</h3><div id="tb-temp-rk"></div></section>` : ""}
     ${enlacesCapas("temp")}`;
   grafRangos(document.getElementById("tb-temp-rangos"), {
     etiquetas: dias, min: S.tmin, max: S.tmax, alto: 210, activos: [a, b], colorDe: colorTemp, iconos: S.codigo.map((c) => iconoTrazos(tiempoWmo(c).ico)),
@@ -743,6 +744,7 @@ async function pintarTablero() {
     barra.oninput = () => { cont.querySelector("#tb-tipo-txt").textContent = t("sel_radio")(fmt(+barra.value, +barra.value % 1 ? 1 : 0)); };
     barra.onchange = () => cambiarRadio(Number(barra.value));
   }
+  prepararInfo(cont);
   cont.querySelector('[data-accion="quitar"]')?.addEventListener("click", borrarFiltros);
   cont.querySelector('[data-accion="evol"]')?.addEventListener("click", () => (estado.reproduciendo != null ? detenerReproduccion() : reproducir()));
   cont.querySelector('[data-accion="municipio"]')?.addEventListener("click", () => {
@@ -803,6 +805,8 @@ function pintarAnalisis() {
   if (estado.capa === "riesgo") analisisRiesgo(cont);
   else if (!estado.tiempo) { cont.innerHTML = ""; return; }
   else analisisTiempo(cont);
+  prepararInfo(cont);
+  tipsEn(cont);
   cont.querySelectorAll("[data-quitar]").forEach((b) => {
     b.onclick = () => {
       const k = b.dataset.quitar;
@@ -811,7 +815,6 @@ function pintarAnalisis() {
       if (k === "periodo") elegirModo("actual");
     };
   });
-  tipsEn(cont);
 }
 
 function analisisRiesgo(cont) {
@@ -853,14 +856,14 @@ function analisisRiesgo(cont) {
         <span class="explica-pista"><span style="width:${limitar(g[k] * 10, 0, 100)}%;background:${c}"></span></span><b>${fmtRiesgo(g[k])}</b></div>`).join("")}</div></div>`).join("")}</div>`;
   cont.innerHTML = `${cabezaAnalisis(t("an_riesgo_t")(escapar(A.nombre)), t("an_riesgo_sub")(estado.datos.resumen?.calculado ? fechaSola(estado.datos.resumen.calculado) : "–"))}
     <div class="an-grilla tres">
-      <section class="an-bloque"><h3>${t("pareto_t")}</h3><p class="tb-sub">${t("pareto_nota")}</p>
+      <section class="an-bloque"><h3>${tit("pareto_t")}</h3><p class="tb-sub">${t("pareto_nota")}</p>
         <p class="hallazgo">${t("pareto_hallazgo")(n80, orden.length, t("niveles_zona")[A.nivel])}${iElegida >= 0 ? ` ${t("pareto_puesto")(escapar(orden[iElegida].u.nombre), iElegida + 1)}` : ""}</p>
         <div id="an-pareto"></div></section>
-      <section class="an-bloque"><h3>${t("ranking_t")}</h3><p class="tb-sub">${t("robustez_nota")}</p>
+      <section class="an-bloque"><h3>${tit("ranking_t")}</h3><p class="tb-sub">${t("robustez_nota")}</p>
         <div class="pestanas" role="tablist"><button role="tab" data-rk="r" aria-selected="${porR}">${t("tab_relativo")}</button>
           <button role="tab" data-rk="p" aria-selected="${!porR}">${t("tab_personas")}</button></div>
         <div id="an-ranking"></div></section>
-      <section class="an-bloque"><h3>${t("explica_t")}</h3><p class="tb-sub">${t("explica_an_nota")}</p>${explica}</section>
+      <section class="an-bloque"><h3>${tit("explica_t")}</h3><p class="tb-sub">${t("explica_an_nota")}</p>${explica}</section>
     </div>`;
   grafRanking(document.getElementById("an-pareto"), {
     filas: primerosYElegida(orden.map((f, i) => ({ f, i, resaltada: f.resaltada })), 10).map(({ f, i, pos }) => ({
@@ -909,10 +912,10 @@ function analisisTiempo(cont) {
   const pobTot = sumar(cmusP.map(pobDe));
   cont.innerHTML = `${cabezaAnalisis(t(`an_${capa}_t`)(escapar(A.nombre)), t("an_tiempo_sub")(fmtDia(T.dias[0])))}
     <div class="an-grilla tres">
-      <section class="an-bloque"><h3>${t({ lluvia: "donde_mas_llueve", viento: "rafagas_fuertes", temp: "mas_calor" }[capa])}</h3>
+      <section class="an-bloque"><h3>${tit({ lluvia: "donde_mas_llueve", viento: "rafagas_fuertes", temp: "mas_calor" }[capa])}</h3>
         <p class="tb-sub">${t(`an_${capa}_rk_nota`)}</p><div id="an-rk"></div></section>
-      <section class="an-bloque"><h3>${t("an_dia_dia")}</h3><p class="tb-sub">${t("an_paneles_nota")}</p><div id="an-paneles"></div></section>
-      <section class="an-bloque"><h3>${t(`an_${capa}_personas`)}</h3><p class="tb-sub">${t(`an_${capa}_personas_nota`)(escapar(A.nombre), fmtPersonas(pobTot))}</p>
+      <section class="an-bloque"><h3>${tit("an_dia_dia")}</h3><p class="tb-sub">${t("an_paneles_nota")}</p><div id="an-paneles"></div></section>
+      <section class="an-bloque"><h3>${tit(`an_${capa}_personas`)}</h3><p class="tb-sub">${t(`an_${capa}_personas_nota`)(escapar(A.nombre), fmtPersonas(pobTot))}</p>
         <div class="leyenda-lineas"><span><i style="background:var(--lluvia-4)"></i>${t(`an_${capa}_n1`)}</span><span><i style="background:var(--lluvia-5)"></i>${t(`an_${capa}_n2`)}</span></div>
         <div id="an-personas" class="graf-cont"></div></section>
     </div>`;

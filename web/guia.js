@@ -71,7 +71,7 @@ async function pintarGraficosHeader() {
       sub = s ? t("zr_sel")(s.lugar.nombre) : t("zr_pais");
     }
   }
-  const barras = ocultar ? "" : `<div class="kpi-g zr"><div class="kpi-g-cab"><b>${t("zr_t")}</b><small>${escapar(sub)}</small></div><ol class="zr-lista">${filas.map((f, i) =>
+  const barras = ocultar ? "" : `<div class="kpi-g zr"><div class="kpi-g-cab"><b>${t("zr_t")}${infoIcono("zr_t", infoTexto("zr_t"))}</b><small>${escapar(sub)}</small></div><ol class="zr-lista">${filas.map((f, i) =>
     `<li class="zr-fila" data-i="${i}" tabindex="0" data-tip="${escapar(`<b>${escapar(f.nombre)}</b><span>${escapar(f.sub ?? "")} · ${nombreNivel(f.r)} (${fmtRiesgo(f.r)}/10)</span>`)}">
       <span class="zr-nombre">${escapar(f.nombre)}<small>${escapar(f.sub ?? "")}</small></span>
       <span class="zr-pista"><span style="width:${limitar(f.r * 10, 2, 100)}%;background:${colorNivel(f.r)}"></span></span><b>${fmtRiesgo(f.r)}</b></li>`).join("")}</ol></div>`;
@@ -82,7 +82,7 @@ async function pintarGraficosHeader() {
     const cmus = (s?.tipo === "zona" ? s.lugar.cmus : s?.cmu ? [s.cmu] : todosLosCmus()).filter((c) => W.cmu[c]);
     const peso = cmus.map((c) => Math.max(1, Number(estado.porCmu.get(c)?.poblacion) || 1));
     const ser = W.semanas.map((_, k) => { let a = 0, w = 0; cmus.forEach((c, i) => { const v = W.cmu[c][k]; if (v != null) { a += v * peso[i]; w += peso[i]; } }); return w ? a / w : null; });
-    sem = `<div class="kpi-g sem"><div class="kpi-g-cab"><b>${t("sem_t")}</b><small>${escapar(t("sem_sub")(nombreZonaSel()))}</small></div>${ser.filter((v) => v != null).length > 1 ? lineaSemanal(W.semanas, ser) : `<p class="kpi-g-vacio">${t("sem_sin")}</p>`}</div>`;
+    sem = `<div class="kpi-g sem"><div class="kpi-g-cab"><b>${t("sem_t")}${infoIcono("sem_t", infoTexto("sem_t"))}</b><small>${escapar(t("sem_sub")(nombreZonaSel()))}</small></div>${ser.filter((v) => v != null).length > 1 ? lineaSemanal(W.semanas, ser) : `<p class="kpi-g-vacio">${t("sem_sin")}</p>`}</div>`;
   }
   cont.hidden = !barras && !sem;
   cont.className = `kpis-graficos${barras && sem ? " dos" : ""}`;
@@ -94,6 +94,7 @@ async function pintarGraficosHeader() {
     };
     li.onclick = ir; li.onkeydown = (ev) => { if (ev.key === "Enter") ir(); };
   });
+  prepararInfo(cont);
   tipsEn(cont);
 }
 // Barras: una por semana, pintada con el color del nivel de riesgo; escala fija de 0 a 10 para poder comparar lugares

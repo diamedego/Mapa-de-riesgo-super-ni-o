@@ -256,7 +256,7 @@ function torta(partes, { centro = "", tam = 84, grosor = 12, etiqueta = "" } = {
     <text x="${c}" y="${c + 5}" text-anchor="middle" class="torta-centro">${escapar(centro)}</text></svg>`;
 }
 function tipsEn(cont) {
-  cont.querySelectorAll("[data-tip]").forEach((el) => {
+  cont.querySelectorAll("[data-tip]:not(.info)").forEach((el) => {
     el.addEventListener("pointermove", (ev) => Tip.mostrar(el.dataset.tip, ev));
     el.addEventListener("pointerleave", () => Tip.ocultar());
   });

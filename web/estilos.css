@@ -161,12 +161,12 @@ a.btn-banda { text-decoration: none; }
 .tb-evol-cuerpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .tb-evol-cab { display: flex; justify-content: space-between; font-size: 0.74rem; color: var(--tinta-2); font-weight: 600; }
 .tb-evol-ahora { color: var(--cian); font-family: var(--f-mono); }
-.tb-evol-pista { position: relative; height: 6px; margin: 0 8px 18px; border-radius: 3px; background: var(--borde); }
-.tb-evol-relleno { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--cian); transition: width 0.4s; }
+.tb-evol-pista { position: relative; height: 6px; margin: 24px 20px 20px 20px; border-radius: 3px; background: var(--borde); }
+.tb-evol-relleno { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--c, var(--cian)); transition: width 0.3s, background 0.3s; }
 .tb-evol-hito { position: absolute; top: -3px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; }
 .tb-evol-hito i { width: 12px; height: 12px; border-radius: 50%; background: var(--superficie); border: 2px solid var(--borde-fuerte); }
-.tb-evol-hito.ok i { border-color: var(--cian); background: var(--cian); }
-.tb-evol-hito small { margin-top: 2px; font-size: 0.66rem; font-family: var(--f-mono); color: var(--tinta-2); white-space: nowrap; }
+.tb-evol-hito.ok i { border-color: var(--c, var(--cian)); background: var(--c, var(--cian)); }
+.tb-evol-hito small { margin-top: 2px; font-size: 0.58rem; font-family: var(--f-mono); color: var(--tinta-2); white-space: nowrap; }
 /* Descripciones al pasar el mouse (o al tocar): chiquitas, con fondo semitransparente */
 [data-ayuda]:hover::after, [data-ayuda]:focus-visible::after, [data-ayuda].muestra-ayuda::after {
   content: attr(data-ayuda); position: absolute; left: 50%; top: calc(100% + 6px); transform: translateX(-50%); z-index: 60;
@@ -820,4 +820,23 @@ body.sim-abierto { overflow: hidden; }
 .tb-evol-nota { margin: 4px 0 0; font-size: 0.64rem; line-height: 1.3; color: var(--tinta-3); }
 .sim-tick { stroke: var(--tinta-3); stroke-width: 1; }
 .sim-tick-txt { font-family: var(--f-mono); font-size: 9.5px; fill: var(--tinta-3); }
+.tb-evol-cartel { position: absolute; bottom: 14px; transform: translateX(-50%); padding: 2px 8px; border-radius: 9px; background: var(--c, var(--cian)); color: var(--tinta, #fff); font-size: 0.64rem; font-weight: 700; white-space: nowrap; transition: left 0.3s, background 0.3s; box-shadow: var(--sombra-1); }
+.tb-evol-cartel::after { content: ""; position: absolute; left: 50%; top: 100%; margin-left: -4px; border: 4px solid transparent; border-top-color: var(--c, var(--cian)); }
+.tb-evol-sem { z-index: 0; } .tb-evol-hito { z-index: 1; }
+
+/* Icono «!» de cada indicador: al pasar o tocar explica; el clic queda para el detalle (PDF) */
+.info { display: inline-grid; place-items: center; flex: none; width: 15px; height: 15px; margin-left: 6px; padding: 0; border-radius: 50%; border: 1.5px solid currentColor; background: transparent;
+  color: var(--tinta-3); font: 700 9px/1 var(--f-ui); cursor: help; vertical-align: 1px; text-transform: none; letter-spacing: 0; }
+.info:hover, .info:focus-visible { color: var(--cian); background: var(--cian-suave); outline: none; }
+.kpi .info-kpi { margin-left: auto; color: var(--banda-tinta-2); pointer-events: none; }
+.kpi-g-cab .info { color: var(--banda-tinta-2); } .kpi-g-cab .info:hover { color: var(--cian-vivo); }
+
+/* Cartel del riesgo: todo con el fondo del nivel; el medidor, sobre una caja blanca */
+.hero-riesgo { background: color-mix(in srgb, var(--c) 26%, var(--superficie)); border-color: color-mix(in srgb, var(--c) 55%, transparent); }
+.hero-tit { margin: 0 0 6px; font-size: 1rem; font-weight: 700; color: var(--tinta-1); display: flex; align-items: center; }
+.hero-riesgo .hero-fila { align-items: center; gap: 18px; }
+.hero-riesgo .pill-nivel { font-size: 1.5rem; padding: 6px 18px 6px 14px; border-radius: 22px; background: var(--superficie); box-shadow: var(--sombra-1); }
+.hero-riesgo .pill-nivel::before { width: 16px; height: 16px; }
+.medidor-caja { margin-top: 12px; padding: 4px 12px 8px; border-radius: var(--radio-1); background: var(--superficie); }
+.medidor-caja .medidor { margin: 14px 2px 2px; }
 

@@ -6,7 +6,7 @@
 const estado = {
   idioma: "es", capa: "riesgo", modo: "actual", sel: null, km: 2,
   iMesActual: 0, rangoMeses: [0, 0], rangoDias: [0, 6], paso3h: null,
-  mesReproduciendo: null, diaReproduciendo: null, reproduciendo: null,
+  mesReproduciendo: null, diaReproduciendo: null, semanaReproduciendo: null, reproduciendo: null,
   verRios: true, verAlertas: true, verReferencias: true, verHidro: true, verInundadas: false, verDensidad: false,
   verBarrios: false, verSuelo: false, verInfra: false, verRutas: false, riesgo3d: false, relieve3d: false, relieve: false, ranking: "r",
   datos: {}, riesgo: null, porCmu: new Map(), radios: [], cargasRadios: new Map(), tiempo: null,
@@ -62,7 +62,7 @@ function pintarKpis() {
   document.getElementById("kpis-alcance").textContent = t("kpis_de")(A.nombre);
   const cont = document.getElementById("kpis");
   cont.innerHTML = kpis.map((k, i) => `<button class="kpi" data-i="${i}" data-sev="${k.sev}"${k.nivelAl ? ` data-alerta="${k.nivelAl}"` : ""} type="button" data-ayuda="${escapar(t(`kpi_ayuda_${k.k}`))}">
-      <span class="kpi-cab">${icono(k.ico)}<span>${k.etq}</span></span>
+      <span class="kpi-cab">${icono(k.ico)}<span>${k.etq}</span><span class="info info-kpi" aria-hidden="true">!</span></span>
       <span class="kpi-valor">${k.valor}${k.unidad ? `<small>${k.unidad}</small>` : ""}</span>
       <span class="kpi-pie">${escapar(k.sub)}</span>${k.spark ?? ""}</button>`).join("");
   cont.querySelectorAll(".kpi").forEach((b) => { b.onclick = () => kpis[+b.dataset.i].ir(); });
@@ -186,45 +186,49 @@ function actualizarEvolucion() {
   if (!nuevo) return;
   viejo.replaceWith(nuevo);
   nuevo.querySelector('[data-accion="evol"]').onclick = () => (estado.reproduciendo != null ? detenerReproduccion() : reproducir());
+  enlazarInfo(nuevo);
 }
-// Bloque del panel izquierdo: ▶ y una línea con hitos que se va llenando mientras avanza
+// Bloque del panel izquierdo: ▶ y una línea de tiempo. Hitos grandes = todos los meses (riesgo) o el comienzo de cada semana (tiempo);
+// marcas chicas = cada semana. Mientras avanza, la línea se pinta con el color del riesgo de ese momento y un cartelito dice dónde estamos.
 function bloqueEvolucion() {
   const { tipo, lista } = listaReproduccion();
   if (!lista.length || lista.length < 2) return "";
   const T = estado.tiempo, M = estado.riesgo.meses, jugando = estado.reproduciendo != null;
-  const actual = tipo === "mes" ? estado.mesReproduciendo : tipo === "dia" ? estado.diaReproduciendo : jugando ? estado.paso3h : null;
-  const pos = actual == null ? -1 : lista.indexOf(actual), pct = pos < 0 ? 0 : (100 * pos) / (lista.length - 1);
-  const etq = (k) => (tipo === "mes" ? capitalizar(nombreMes(M[k])) : tipo === "dia" ? fechaCorta(T.dias[k]).slice(0, 5) : fmtHora(T.horas[k]));
-  const n1 = lista.length - 1, pos100 = (j) => (100 * j) / n1;
-  // Semanas en el eje: en los días, un hito por lunes (la fecha y «sem»); en los meses, hitos por mes y una marca chica en cada lunes
-  let hitos, semanas = [];
-  if (tipo === "dia") {
-    const lunes = lista.map((k, j) => ({ j, k })).filter(({ k }) => new Date(`${T.dias[k]}T12:00:00Z`).getUTCDay() === 1);
-    hitos = [{ j: 0, k: lista[0] }, ...lunes.filter(({ j }) => j > 0), { j: n1, k: lista[n1] }].filter((h, i, a) => a.findIndex((x) => x.j === h.j) === i)
-      .filter((h, i, a) => i === 0 || (h.j - a[i - 1].j) / n1 > 0.16 || h.j === n1 && (h.j - a[i - 1].j) / n1 > 0.16);
-    semanas = lunes.map(({ j }) => pos100(j));
+  const semMes = tipo === "mes" ? semanasDeMeses(lista) : [], n1 = lista.length - 1;
+  let hitos, semanas, pct = 0, cartel = "", color = "var(--cian)", tinta = "var(--cian-tinta)";
+  if (tipo === "mes") {
+    const nS = semMes.length, x = (j) => (nS > 1 ? (100 * j) / (nS - 1) : 0);
+    hitos = lista.map((mi) => ({ x: x(Math.max(0, semMes.findIndex((w) => w.mes === mi))), etq: mesCorto(M[mi]), activo: false, mi }));
+    semanas = semMes.map((_, j) => x(j));
+    const w = estado.semanaReproduciendo != null ? semMes[estado.semanaReproduciendo] : null;
+    if (w && jugando) {
+      pct = x(estado.semanaReproduciendo);
+      const r = riesgoDelMes(w.mes), niv = nivelRiesgo(r) || 1;
+      color = `var(--r${niv})`; tinta = niv === 1 || niv === 5 ? "#fff" : "#1b2430";
+      cartel = t("sem_cartel")(w.n, mesCorto(M[w.mes]));
+      hitos.forEach((h) => { h.activo = h.x <= pct + 0.01; });
+    }
   } else {
-    const cada = Math.max(1, Math.ceil(lista.length / 5));
-    hitos = lista.map((k, j) => ({ j, k })).filter(({ j }) => j === 0 || j === n1 || j % cada === 0 && n1 - j > cada / 2);
-    if (tipo === "mes") {
-      const ini = M[lista[0]], fin = M[lista[n1]], d0 = new Date(`${ini}-01T12:00:00Z`), d1 = new Date(`${fin}-01T12:00:00Z`);
-      d1.setUTCMonth(d1.getUTCMonth() + 1);
-      for (let d = new Date(d0); d < d1; d.setUTCDate(d.getUTCDate() + 1)) {
-        if (d.getUTCDay() !== 1) continue;
-        const mi = (d.getUTCFullYear() - d0.getUTCFullYear()) * 12 + d.getUTCMonth() - d0.getUTCMonth();
-        const dias = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate(), j = mi + (d.getUTCDate() - 1) / dias;
-        if (j > 0 && j < n1) semanas.push(pos100(j));
-      }
+    const x = (j) => (100 * j) / n1, etq = (k) => (tipo === "dia" ? fechaCorta(T.dias[k]).slice(0, 5) : fmtHora(T.horas[k]));
+    const lunes = lista.map((k, j) => ({ j, k })).filter(({ k }) => tipo === "dia" && new Date(`${T.dias[k]}T12:00:00Z`).getUTCDay() === 1);
+    hitos = [{ j: 0 }, ...lunes.filter(({ j }) => j > 0), { j: n1 }].filter((h, i, a) => a.findIndex((q) => q.j === h.j) === i)
+      .filter((h, i, a) => i === 0 || (h.j - a[i - 1].j) / n1 > 0.14)
+      .map(({ j }) => ({ x: x(j), etq: etq(lista[j]), activo: false, j }));
+    semanas = lunes.map(({ j }) => x(j));
+    const actual = tipo === "dia" ? estado.diaReproduciendo : jugando ? estado.paso3h : null, pos = actual == null ? -1 : lista.indexOf(actual);
+    if (pos >= 0) {
+      pct = x(pos);
+      cartel = tipo === "dia" ? t("sem_cartel_dia")(Math.floor(pos / 7) + 1, fmtDia(T.dias[actual], { day: "numeric", month: "short" })) : `${fmtDia(T.horas[actual].slice(0, 10), { weekday: "short", day: "numeric" })} ${fmtHora(T.horas[actual])}`;
+      hitos.forEach((h) => { h.activo = h.x <= pct + 0.01; });
     }
   }
-  const hitoEtq = (k) => (tipo === "dia" ? `${t("sem")} ${etq(k)}` : etq(k));
-  const ahora = pos >= 0 ? `<span class="tb-evol-ahora">${escapar(etq(lista[pos]))}</span>` : "";
   return `<div class="tb-evol"><button type="button" class="lt-play" data-accion="evol" aria-label="${jugando ? t("pausar") : t("reproducir")}">${icono(jugando ? "pausa" : "play")}</button>
-    <div class="tb-evol-cuerpo"><div class="tb-evol-cab"><span>${t("evolucion")}</span>${ahora}</div>
-      <div class="tb-evol-pista"><span class="tb-evol-relleno" style="width:${pct}%"></span>
-        ${semanas.map((x) => `<span class="tb-evol-sem${x <= pct ? " ok" : ""}" style="left:${x}%"></span>`).join("")}
-        ${hitos.map(({ j, k }) => `<span class="tb-evol-hito${j <= pos ? " ok" : ""}" style="left:${pos100(j)}%"><i></i><small>${escapar(hitoEtq(k))}</small></span>`).join("")}</div>
-      <p class="tb-evol-nota">${t(tipo === "dia" ? "evol_nota_dia" : tipo === "mes" ? "evol_nota_mes" : "evol_nota_hora")}</p></div></div>`;
+    <div class="tb-evol-cuerpo"><div class="tb-evol-cab"><span>${t("evolucion")}${infoIcono("evolucion", infoTexto("evolucion"))}</span></div>
+      <div class="tb-evol-pista" style="--c:${color};--tinta:${tinta}">
+        ${cartel ? `<span class="tb-evol-cartel" style="left:${limitar(pct, 22, 78)}%">${escapar(cartel)}</span>` : ""}
+        <span class="tb-evol-relleno" style="width:${pct}%"></span>
+        ${semanas.map((x) => `<span class="tb-evol-sem${x <= pct && cartel ? " ok" : ""}" style="left:${x}%"></span>`).join("")}
+        ${hitos.map((h) => `<span class="tb-evol-hito${h.activo ? " ok" : ""}" style="left:${h.x}%"><i></i><small>${escapar(h.etq)}</small></span>`).join("")}</div></div></div>`;
 }
 
 function elegirEnLinea(tipo, a, b, extender = false) {
@@ -238,20 +242,42 @@ function elegirEnLinea(tipo, a, b, extender = false) {
   actualizarTodo({ ligero: true });
 }
 
-// Reproducción: avanza mes a mes, de a 3 h o día a día y se detiene al final
+// Semanas (lunes) de una lista de meses: la reproducción del riesgo avanza semana a semana; el mapa cambia cuando cambia el mes
+function semanasDeMeses(lista) {
+  const M = estado.riesgo.meses, d0 = new Date(`${M[lista[0]]}-01T12:00:00Z`), d1 = new Date(`${M[lista[lista.length - 1]]}-01T12:00:00Z`), out = [];
+  d1.setUTCMonth(d1.getUTCMonth() + 1);
+  for (let d = new Date(d0); d < d1; d.setUTCDate(d.getUTCDate() + 1)) {
+    if (d.getUTCDay() !== 1) continue;
+    const mi = lista[(d.getUTCFullYear() - d0.getUTCFullYear()) * 12 + d.getUTCMonth() - d0.getUTCMonth()];
+    out.push({ mes: mi, n: Math.ceil(d.getUTCDate() / 7), iso: d.toISOString().slice(0, 10) });
+  }
+  return out;
+}
+const mesCorto = (m) => `${capitalizar(t("meses")[m.slice(5, 7)])}'${m.slice(2, 4)}`;
+// Riesgo del lugar elegido en un mes (para pintar la línea con el color del momento)
+function riesgoDelMes(i) {
+  const s = estado.sel, R = estado.riesgo;
+  if (s?.tipo === "punto" && s.cmu && R.cmu[s.cmu]) return R.cmu[s.cmu].r[i];
+  const cmus = cmusSel(), pob = cmus.map((c) => Math.max(1, Number(estado.porCmu.get(c)?.poblacion) || 1));
+  return sumar(cmus.map((c, k) => (R.cmu[c].r[i] ?? 0) * pob[k])) / sumar(pob);
+}
+
+// Reproducción: avanza semana a semana (riesgo), de a 3 h o día a día y se detiene al final
 function reproducir() {
   detenerReproduccion(false);
   const { tipo, lista } = listaReproduccion();
+  const semanas = tipo === "mes" ? semanasDeMeses(lista) : null, total = semanas ? semanas.length : lista.length;
   let k = 0;
   const paso = () => {
-    if (tipo === "mes") estado.mesReproduciendo = lista[k];
+    let cambia = true;
+    if (tipo === "mes") { const w = semanas[k]; cambia = estado.mesReproduciendo !== w.mes; estado.mesReproduciendo = w.mes; estado.semanaReproduciendo = k; }
     else if (tipo === "hora") estado.paso3h = lista[k];
     else estado.diaReproduciendo = lista[k];
-    actualizarTodo({ ligero: true, cuadro: true });
+    if (cambia) actualizarTodo({ ligero: true, cuadro: true });
     actualizarEvolucion();
-    if (++k >= lista.length) { detenerReproduccion(true); }
+    if (++k >= total) detenerReproduccion(true);
   };
-  estado.reproduciendo = setInterval(paso, tipo === "mes" ? 1700 : 1100);
+  estado.reproduciendo = setInterval(paso, tipo === "mes" ? 420 : 1100);
   paso();
 }
 function detenerReproduccion(repintar = true) {
@@ -259,7 +285,7 @@ function detenerReproduccion(repintar = true) {
   clearInterval(estado.reproduciendo);
   estado.reproduciendo = null;
   const habia = estado.mesReproduciendo != null || estado.diaReproduciendo != null;
-  estado.mesReproduciendo = null; estado.diaReproduciendo = null;
+  estado.mesReproduciendo = null; estado.diaReproduciendo = null; estado.semanaReproduciendo = null;
   if (repintar) actualizarTodo();
   else if (habia) pintarLineaTiempo();
 }
