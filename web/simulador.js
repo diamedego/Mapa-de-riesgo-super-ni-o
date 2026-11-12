@@ -39,7 +39,7 @@ const validacion = () => (cargaValidacion ??= fetch("datos/validacion.json").the
 function abrirSimulador() {
   const s = estado.sel;
   if (s?.tipo !== "punto") return;
-  SIM.tormenta = { mm: 0, horas: 3 };
+  SIM.tormenta = { mm: 80, horas: 3 };   // al abrir se ve una tormenta fuerte de prueba (80 mm en 3 h) para que haya agua acumulada; con 0 mm queda solo la lluvia real y pronosticada
   validacion().then((V) => { SIM.validacion = V; pintarValidez(); });
   const caja = document.getElementById("sim");
   caja.hidden = false;
@@ -261,7 +261,7 @@ async function prepararSimulacion(s) {
   est.textContent = "";
   agregarAguaAlMapa(D);
   pintarPanelSimulador(SIM.datos);
-  simularPeriodo(sumarDias(limitesPeriodo().hoy, 6));   // al abrir: la semana que viene, desde la lluvia real de las últimas dos semanas
+  correrTormenta({});   // al abrir: la tormenta de prueba sobre la lluvia real de las últimas dos semanas
 }
 
 // Ríos, lagunas y embalses del mapa base, rasterizados a la grilla del relieve
