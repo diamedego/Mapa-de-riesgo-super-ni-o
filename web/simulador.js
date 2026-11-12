@@ -12,7 +12,7 @@
 
 const SIM = { mapa: null, mm: 0, reproduciendo: 0, datos: null,
   capas: { colores: true, curvas: true, drenaje: true, cortes: true, corte: true, x5: false, refs3d: true }, vista: "mapa", maqueta: null,
-  modelo: null, desague: 10, crecida: 0, tormenta: { mm: 0, horas: 3 } };   // desagües pluviales supuestos: 10 mm/h en superficies impermeables (no hay datos)
+  modelo: null, desague: 10, crecida: 0, tormenta: { mm: 0, horas: 3 }, velocidad: 1 };   // desagües pluviales supuestos: 10 mm/h en superficies impermeables (no hay datos)
 const AGUA_MIN = 0.1;   // desde 10 cm se cuenta como zona con agua (superficie, personas)
 const AGUA_VER = 0.02;  // se dibuja desde 2 cm, en celeste claro: así se ve dónde se junta el agua antes de ser profunda
 const CORTE = 0.3;      // desde 30 cm una calle queda cortada para un auto (el agua en movimiento lo puede arrastrar)
@@ -481,27 +481,32 @@ function mostrarHora() {
 function pintarLineaSim() {
   const cont = document.getElementById("sim-linea"), M = SIM.modelo;
   if (!cont || !M?.met) return;
-  const met = M.met, n = met.horas.length, ancho = Math.max(240, cont.clientWidth), alto = 138, iz = 4, de = 4;
+  const met = M.met, n = met.horas.length, ancho = Math.max(240, cont.clientWidth), alto = 196, iz = 38, de = 6;
+  const yB = 64, hB = 46, yL = 148, hL = 46;   // base de las barras (mm por día) y base de la línea (% con agua)
   const x = (k) => iz + (k / Math.max(1, n - 1)) * (ancho - iz - de);
   const dias = [];
   for (let k = 0; k < n; k += 24) { let s = 0, tp = met.tipo[k]; for (let j = k; j < Math.min(n, k + 24); j++) s += met.lluvia[j]; dias.push([k, s, tp]); }
   const maxL = Math.max(10, ...dias.map((v) => v[1])), maxP = Math.max(1, ...M.stats.map((s) => s.pct));
-  const barras = dias.map(([k, s, tp]) => `<rect x="${x(k).toFixed(1)}" y="${(52 - (s / maxL) * 46).toFixed(1)}" width="${Math.max(1, x(k + 24) - x(k) - 1).toFixed(1)}" height="${((s / maxL) * 46).toFixed(1)}" fill="${COLOR_TIPO[tp]}"/>`).join("");
-  const linea = M.stats.map((s, k) => `${k ? "L" : "M"}${x(k).toFixed(1)},${(112 - (s.pct / maxP) * 46).toFixed(1)}`).join("");
-  const hito = (k, txt) => (k >= 0 && k < n ? `<line x1="${x(k)}" x2="${x(k)}" y1="2" y2="114" class="sim-hito"/><text x="${x(k) + 3}" y="${k > n * 0.8 ? 64 : 64}" class="sim-hito-txt"${k > n * 0.8 ? ` text-anchor="end" dx="-6"` : ""}>${txt}</text>` : "");
+  const barras = dias.map(([k, s, tp]) => `<rect x="${x(k).toFixed(1)}" y="${(yB - (s / maxL) * hB).toFixed(1)}" width="${Math.max(1, x(k + 24) - x(k) - 1).toFixed(1)}" height="${((s / maxL) * hB).toFixed(1)}" fill="${COLOR_TIPO[tp]}"/>`).join("");
+  const linea = M.stats.map((s, k) => `${k ? "L" : "M"}${x(k).toFixed(1)},${(yL - (s.pct / maxP) * hL).toFixed(1)}`).join("");
+  const hito = (k, txt, dy = 13) => (k >= 0 && k < n ? `<line x1="${x(k)}" x2="${x(k)}" y1="6" y2="${yL + 2}" class="sim-hito"/><text x="${x(k) + 3}" y="${yB + dy}" class="sim-hito-txt"${k > n * 0.8 ? ` text-anchor="end" dx="-6"` : ""}>${txt}</text>` : "");
   const finPron = met.tipo.indexOf(2);
   // Eje de fechas: una marca por lunes (semana); si el período es corto, una por día
   const art = (k) => new Date(met.horas[k] - 3 * 3600e3), lunes = [];
   for (let k = 0; k < n; k++) if (art(k).getUTCDay() === 1 && art(k).getUTCHours() === 0) lunes.push(k);
   const porDia = (n / 24) <= 14, marcas = porDia ? Array.from({ length: Math.floor(n / 24) + 1 }, (_, d) => Math.min(n - 1, d * 24 + (24 - art(0).getUTCHours()) % 24)) : lunes;
   const sep = Math.max(1, Math.ceil(36 / Math.max(1, (x(Math.min(n - 1, 24 * (porDia ? 1 : 7))) - x(0))))), fechaEje = (k) => `${art(k).getUTCDate()}/${art(k).getUTCMonth() + 1}`;
-  const eje = marcas.map((k, i) => `<line x1="${x(k)}" x2="${x(k)}" y1="114" y2="119" class="sim-tick"/>${i % sep === 0 ? `<text x="${x(k)}" y="132" class="sim-tick-txt" text-anchor="middle">${fechaEje(k)}</text>` : ""}`).join("");
-  cont.innerHTML = `<svg width="${ancho}" height="${alto}" class="sim-linea-svg" role="img" aria-label="${t("sim_linea")}">${eje}<text x="${ancho - de}" y="12" class="sim-tick-txt" text-anchor="end">${t(porDia ? "eje_dias" : "eje_semanas")}</text>
+  const eje = marcas.map((k, i) => `<line x1="${x(k)}" x2="${x(k)}" y1="${yL}" y2="${yL + 5}" class="sim-tick"/>${i % sep === 0 ? `<text x="${x(k)}" y="${yL + 17}" class="sim-tick-txt" text-anchor="middle">${fechaEje(k)}</text>` : ""}`).join("");
+  const ejeY = (yBase, alto, tope, unidad) => `<line x1="${iz}" x2="${ancho - de}" y1="${yBase}" y2="${yBase}" class="sim-eje-base"/><line x1="${iz}" x2="${iz}" y1="${yBase - alto}" y2="${yBase}" class="sim-eje-base"/>
+    <text x="${iz - 4}" y="${yBase + 3}" class="sim-tick-txt" text-anchor="end">0</text><text x="${iz - 4}" y="${yBase - alto + 8}" class="sim-tick-txt" text-anchor="end">${fmt(tope, tope < 10 ? 1 : 0)}</text>
+    <text x="${iz}" y="${yBase - alto - 8}" class="sim-eje-tit">${unidad}</text>`;
+  cont.innerHTML = `<svg width="${ancho}" height="${alto}" class="sim-linea-svg" role="img" aria-label="${t("sim_linea")}">
     <rect x="${x(M.frames.length - 1)}" y="0" width="${Math.max(0, x(n - 1) - x(M.frames.length - 1))}" height="${alto}" class="sim-pendiente"/>
+    ${ejeY(yB, hB, maxL, t("sim_eje_mm"))}${ejeY(yL, hL, maxP, t("sim_eje_pct"))}${eje}
     ${barras}<path d="${linea}" class="sim-linea-area"/>
-    ${hito(M.hoy, t("sim_hito_hoy"))}${finPron > 0 ? hito(finPron, t("sim_hito_fin_pron")) : ""}${M.pico != null ? hito(M.pico, t("sim_hito_pico")) : ""}
+    ${hito(M.hoy, t("sim_hito_hoy"))}${finPron > 0 ? hito(finPron, t("sim_hito_fin_pron")) : ""}${M.pico != null ? hito(M.pico, t("sim_hito_pico"), 26) : ""}
     <line x1="${x(M.hora)}" x2="${x(M.hora)}" y1="0" y2="${alto}" class="sim-marca"/></svg>
-    <div class="sim-linea-ley"><span><i style="background:${COLOR_TIPO[0]}"></i>${t("sim_tipo_real")}</span><span><i style="background:${COLOR_TIPO[1]}"></i>${t("sim_tipo_pronostico")}</span>${finPron > 0 ? `<span><i style="background:${COLOR_TIPO[2]}"></i>${t("sim_tipo_escenario")}</span>` : ""}<span><i class="sim-ley-linea"></i>${t("sim_area")}</span></div>`;
+    <div class="sim-linea-ley"><span><i style="background:${COLOR_TIPO[0]}"></i>${t("sim_tipo_real")}</span><span><i style="background:${COLOR_TIPO[1]}"></i>${t("sim_tipo_pronostico")}</span>${finPron > 0 ? `<span><i style="background:${COLOR_TIPO[2]}"></i>${t("sim_tipo_escenario")}</span>` : ""}<span><i class="sim-ley-linea"></i>${t("sim_area")}</span><span class="sim-eje-nota">${t(porDia ? "eje_dias" : "eje_semanas")}</span></div>`;
   const svg = cont.querySelector("svg");
   const ir = (ev) => {
     const r = svg.getBoundingClientRect(), k = Math.round(((ev.clientX - r.left - iz) / (ancho - iz - de)) * (n - 1));
@@ -1366,6 +1371,17 @@ function pintarPanelSimulador(d) {
   const panel = document.getElementById("sim-panel");
   const ps = presetsSimulador();
   panel.innerHTML = `
+    <p class="sim-progreso" id="sim-progreso" role="status" hidden></p>
+    <div class="sim-ahora"><span class="sim-ahora-fecha" id="sim-fecha">–</span><span class="sim-ahora-tipo" id="sim-tipo"></span>
+      <span class="pill" id="sim-conf" tabindex="0"></span><span class="sim-ahora-lluvia" id="sim-acum"></span></div>
+    <div class="sim-control">
+      <button type="button" class="btn-icono sim-reiniciar" id="sim-reiniciar" aria-label="${t("sim_reiniciar")}" title="${t("sim_reiniciar")}">${icono("repetir")}</button>
+      <button type="button" class="lt-play" id="sim-play" aria-label="${t("sim_reproducir")}">${icono("play")}</button>
+      <input type="range" id="sim-barra" min="0" max="0" step="1" value="0" aria-label="${t("sim_linea")}">
+    </div>
+    <div class="sim-vel" id="sim-vel" role="group" aria-label="${t("sim_velocidad")}"><span class="sim-dur-etq">${t("sim_velocidad")}</span>${[0.5, 1, 2, 4].map((v) => `<button type="button" class="chip" data-v="${v}" aria-pressed="${SIM.velocidad === v}">×${String(v).replace(".", ",")}</button>`).join("")}</div>
+    <div class="sim-linea" id="sim-linea"></div>
+    <div class="sim-corte" id="sim-corte" hidden></div>
     <div class="sim-lluvia">
       <div class="sim-mm"><span class="sim-mm-valor" id="sim-mm-valor">${fmt(SIM.tormenta.mm)}</span><span class="sim-mm-u">mm</span><span class="sim-mm-etq">${t("sim_mm_etq")}</span></div>
       <input type="range" id="sim-mm" min="0" max="300" step="10" value="${SIM.tormenta.mm}" aria-label="${t("sim_mm_etq")}"${d ? "" : " disabled"}>
@@ -1373,15 +1389,6 @@ function pintarPanelSimulador(d) {
       <p class="sim-hint" id="sim-hint" hidden>${t("sim_hint")}</p>
     </div>
     <div class="sim-filtros" id="sim-filtros" role="group" aria-label="${t("sim_capas")}"></div>
-    <div class="sim-corte" id="sim-corte" hidden></div>
-    <p class="sim-progreso" id="sim-progreso" role="status" hidden></p>
-    <div class="sim-ahora"><span class="sim-ahora-fecha" id="sim-fecha">–</span><span class="sim-ahora-tipo" id="sim-tipo"></span>
-      <span class="pill" id="sim-conf" tabindex="0"></span><span class="sim-ahora-lluvia" id="sim-acum"></span></div>
-    <div class="sim-control">
-      <button type="button" class="lt-play" id="sim-play" aria-label="${t("sim_reproducir")}">${icono("play")}</button>
-      <input type="range" id="sim-barra" min="0" max="0" step="1" value="0" aria-label="${t("sim_linea")}">
-    </div>
-    <div class="sim-linea" id="sim-linea"></div>
     <div class="tb-datos sim-datos">
       ${dato(t("sim_area"), "–", "&nbsp;")}
       ${dato(t("sim_prof"), "–", t("sim_prof_sub"))}
@@ -1414,6 +1421,8 @@ function pintarPanelSimulador(d) {
   const barra = document.getElementById("sim-barra");
   barra.oninput = () => { const Mo = SIM.modelo; if (!Mo?.frames.length) return; detenerAnimaciones(); Mo.siguiendo = false; Mo.hora = Math.min(Number(barra.value), Mo.frames.length - 1); mostrarHora(); };
   document.getElementById("sim-play").onclick = () => reproducirSimulador();
+  document.getElementById("sim-reiniciar").onclick = reiniciarSimulador;
+  panel.querySelectorAll("#sim-vel .chip").forEach((b) => { b.onclick = () => { SIM.velocidad = +b.dataset.v; panel.querySelectorAll("#sim-vel .chip").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); }; });
   const mmEl = document.getElementById("sim-mm");
   mmEl.oninput = () => { document.getElementById("sim-mm-valor").textContent = fmt(+mmEl.value); };
   mmEl.onchange = () => correrTormenta({ mm: +mmEl.value });
@@ -1557,19 +1566,28 @@ function hudReproduccion(Mo) {
   hud.hidden = false;
   hud.textContent = mm > 0.1 ? t("sim_hud_llueve")(fmt(mm, 1), fmt(acum)) : pct3 >= 0.5 ? t("sim_hud_escurre") : t("sim_hud_seco");
 }
-function reproducirSimulador() {
+// ⏮: vuelve al comienzo de la tormenta y la reproduce de nuevo
+function reiniciarSimulador() {
+  const Mo = SIM.modelo;
+  if (!Mo?.frames.length) return;
+  detenerAnimaciones();
+  Mo.hora = planReproduccion(Mo).ini; Mo.frac = 0; Mo.siguiendo = false;
+  reproducirSimulador(true);
+}
+function reproducirSimulador(desdeCero = false) {
   const Mo = SIM.modelo, btn = document.getElementById("sim-play");
   if (!Mo?.frames.length) return;
   if (SIM.reproduciendo) { detenerAnimaciones(); return; }
   const { ini, ts } = planReproduccion(Mo), ultimo = ts.length - 1;
   let j0 = Mo.hora - ini;
-  if (j0 < 0 || j0 >= ultimo || Mo.hora === Mo.pico) j0 = 0;   // desde el pico o el final, arranca la tormenta de nuevo
+  if (desdeCero || j0 < 0 || j0 >= ultimo || Mo.hora === Mo.pico) j0 = 0;   // desde el pico o el final, arranca la tormenta de nuevo
   Mo.siguiendo = false;
   btn.innerHTML = icono("pausa");
   if (SIM.maqueta) SIM.maqueta.part.activa = true;
-  const t0 = performance.now() - ts[j0] * 1000;
+  let seg = ts[j0], antes = null;
   const cuadro = (ahora) => {
-    const seg = (ahora - t0) / 1000;
+    seg += antes == null ? 0 : ((ahora - antes) / 1000) * SIM.velocidad;   // la velocidad se puede cambiar en pleno juego
+    antes = ahora;
     let j = j0; while (j < ultimo && ts[j + 1] <= seg) j++;
     const lento = j < ultimo && ts[j + 1] - ts[j] > 0.1;
     Mo.frac = lento ? (seg - ts[j]) / (ts[j + 1] - ts[j]) : 0;

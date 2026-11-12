@@ -849,4 +849,10 @@ body.sim-abierto { overflow: hidden; }
 .sim-estado small { color: var(--tinta-2); }
 .sim-estado .chip { margin-top: 6px; pointer-events: auto; }
 .sim-refs3d { top: 10px; }
+.sim-control .sim-reiniciar { width: 34px; height: 34px; flex: none; }
+.sim-vel { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sim-vel .chip { min-height: 28px; padding: 0 10px; font-size: 0.78rem; }
+.sim-eje-base { stroke: var(--tinta-3); stroke-width: 1; }
+.sim-eje-tit { font-size: 9.5px; fill: var(--tinta-2); font-family: var(--f-ui); font-weight: 600; }
+.sim-eje-nota { margin-left: auto; color: var(--tinta-3); }
 

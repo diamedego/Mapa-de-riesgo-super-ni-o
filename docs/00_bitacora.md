@@ -598,3 +598,10 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   «Escurriendo…» o «Seco». Las líneas blancas (hacia dónde baja el agua) nacen desde 1 mm de lámina (antes 3 mm).
 - Comparado con el respaldo del 10-nov (relleno de bajos por relieve): el modelo actual calcula el flujo, la infiltración y el
   desagüe, así que el agua forma láminas en los bajos y calles en lugar de charcos redondos.
+
+## 2026-11-12 — Simulador: controles de reproducción y gráfico con ejes
+- Panel en este orden: fecha y confianza → ⏮ «Empezar de cero», ▶ y barra de horas → velocidad (×0,5, ×1, ×2, ×4, se puede cambiar en
+  pleno juego) → gráfico de lluvia y % con agua → corte del terreno y mapa topográfico → «Lluvia a simular» (mm y duración, debajo del
+  mapa topográfico) → capas → resultados.
+- El gráfico tiene dos paneles con sus ejes (mm por día y % del círculo con agua): las barras nacen del eje x; la etiqueta del pico
+  baja para no pisar la de «hoy».
