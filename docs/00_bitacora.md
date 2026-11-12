@@ -588,3 +588,13 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   usuaria. Se agregó: enlace «Diagnóstico» (navegador, WebGL, three.js, teselas satelitales, errores) con botón copiar, cuatro
   intentos de WebGL de más a menos exigente, CDN de respaldo para three.js (cdnjs), tiempo límite de 15 s por tesela satelital,
   verificación de que el centro no salga vacío y, si falla, mensaje con el motivo y vuelta al mapa 2D con el agua en celeste.
+
+## 2026-11-12 — Simulador: solo maqueta 3D y tormenta en cámara lenta
+- Se sacaron el selector Mapa/Maqueta y «Relieve ×5»; el simulador abre directo en 3D (el mapa 2D queda como respaldo si falla WebGL).
+  Capas del simulador: «Calles cortadas» (ahora también en rojo sobre la maqueta) y «Corte».
+- El agua se dibuja desde 2 cm, en celeste (antes desde 10 cm: solo se veían las lagunas); las estadísticas siguen contando desde 10 cm.
+- ▶ reproduce la tormenta en cámara lenta: antes pasaba toda en ~1 s (12 h/s). Ahora cada hora con lluvia o agua corriendo dura 0,6 s con
+  fotogramas mezclados (0,18 s si el agua ya casi se fue) y las secas pasan de golpe; cartel «Lloviendo X mm/h · Y mm en total»,
+  «Escurriendo…» o «Seco». Las líneas blancas (hacia dónde baja el agua) nacen desde 1 mm de lámina (antes 3 mm).
+- Comparado con el respaldo del 10-nov (relleno de bajos por relieve): el modelo actual calcula el flujo, la infiltración y el
+  desagüe, así que el agua forma láminas en los bajos y calles en lugar de charcos redondos.

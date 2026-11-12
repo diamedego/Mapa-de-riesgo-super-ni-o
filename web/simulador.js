@@ -13,13 +13,14 @@
 const SIM = { mapa: null, mm: 0, reproduciendo: 0, datos: null,
   capas: { colores: true, curvas: true, drenaje: true, cortes: true, corte: true, x5: false, refs3d: true }, vista: "mapa", maqueta: null,
   modelo: null, desague: 10, crecida: 0, tormenta: { mm: 0, horas: 3 } };   // desagües pluviales supuestos: 10 mm/h en superficies impermeables (no hay datos)
-const AGUA_MIN = 0.1;   // desde 10 cm se cuenta como zona con agua
+const AGUA_MIN = 0.1;   // desde 10 cm se cuenta como zona con agua (superficie, personas)
+const AGUA_VER = 0.02;  // se dibuja desde 2 cm, en celeste claro: así se ve dónde se junta el agua antes de ser profunda
 const CORTE = 0.3;      // desde 30 cm una calle queda cortada para un auto (el agua en movimiento lo puede arrastrar)
 const TERRARIUM = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
 // Agua: de celeste translúcido a azul profundo. Altura: del verde azulado de los bajos al marrón de las lomas.
-const COLOR_AGUA = [[0.1, [125, 211, 252, 0.5]], [0.3, [56, 170, 235, 0.65]], [0.6, [30, 120, 210, 0.76]], [1, [22, 82, 180, 0.84]], [1.5, [14, 50, 130, 0.9]]];
+const COLOR_AGUA = [[0.02, [110, 198, 252, 0.58]], [0.05, [78, 178, 248, 0.66]], [0.1, [54, 158, 242, 0.74]], [0.3, [56, 170, 235, 0.65]], [0.6, [30, 120, 210, 0.76]], [1, [22, 82, 180, 0.84]], [1.5, [14, 50, 130, 0.9]]];
 const COLOR_ALTURA = [[0, [38, 120, 120, 0.6]], [0.25, [92, 160, 110, 0.6]], [0.5, [180, 196, 120, 0.6]], [0.75, [205, 170, 110, 0.6]], [1, [170, 120, 80, 0.6]]];
-const CAPAS_SIM = ["colores", "curvas", "drenaje", "cortes", "corte"];
+const CAPAS_SIM = ["cortes", "corte"];
 
 // Tormenta de prueba (barra de mm y duración): se suma a la lluvia real y pronosticada y se calcula de nuevo desde las últimas dos semanas
 function correrTormenta(cambio) {
@@ -261,6 +262,7 @@ async function prepararSimulacion(s) {
   est.textContent = "";
   agregarAguaAlMapa(D);
   pintarPanelSimulador(SIM.datos);
+  elegirVistaSimulador("maqueta");   // solo maqueta 3D (el mapa 2D queda debajo y es el respaldo si el navegador no puede con WebGL)
   correrTormenta({});   // al abrir: la tormenta de prueba sobre la lluvia real de las últimas dos semanas
 }
 
@@ -370,19 +372,31 @@ function recibirHora(M, m) {
 
 function estadisticaHora(M, h) {
   const g = M.g;
-  let n = 0, maxP = 0, pers = 0, cortes = 0;
+  let n = 0, maxP = 0, pers = 0, cortes = 0, n3 = 0;
   for (let c = 0; c < g.N; c++) {
     if (!g.dentroC[c] || g.tipo2[c] !== 1) continue;
+    if (h[c] >= 0.003) n3++;
     const p = h[c] - g.cauce[c];   // el agua dentro de un arroyo o canal no es inundación
     if (p >= AGUA_MIN) { n++; pers += g.pob[c]; }
     if (p > maxP) maxP = p;
     if (g.ruta[c] === 1 && p >= CORTE) cortes++;
   }
-  return { pct: (100 * n) / Math.max(1, g.nDentro), km2: (n * g.dx * g.dx) / 1e6, maxProf: maxP, personas: pers, cortesKm: (cortes * g.dx) / 1000 };
+  return { pct: (100 * n) / Math.max(1, g.nDentro), km2: (n * g.dx * g.dx) / 1e6, maxProf: maxP, personas: pers, cortesKm: (cortes * g.dx) / 1000, pct3: (100 * n3) / Math.max(1, g.nDentro) };
 }
 
 // Profundidad del agua en un píxel del relieve: el nivel del agua de su celda del modelo contra la altura fina del píxel
 // (así el borde del agua sigue el terreno con más detalle que la celda)
+// Fotograma que se ve: entre dos horas calculadas se mezcla el agua (Mo.frac de 0 a 1) para que la reproducción en cámara lenta sea continua
+function frameVista(M) {
+  const k = M.hora, F = M.frames[k], f = M.frac || 0;
+  if (!f || k >= M.frames.length - 1) return F;
+  if (M.bufK !== k || M.bufF !== f) {
+    const G = M.frames[k + 1], B = (M.bufVista ??= new Uint16Array(F.length));
+    for (let i = 0; i < F.length; i++) B[i] = F[i] + (G[i] - F[i]) * f;
+    M.bufK = k; M.bufF = f;
+  }
+  return M.bufVista;
+}
 function aguaFina(i) {
   const M = SIM.modelo, d = SIM.datos;
   if (!M?.frames.length) return 0;
@@ -390,7 +404,7 @@ function aguaFina(i) {
   if (c < 0) return 0;
   if (g.tipo2[c] === 2) { const sube = M.lagos[M.hora]?.[g.lago[c]] ?? 0; return sube > 0.05 ? sube : 0; }
   if (g.tipo2[c] !== 1) return 0;
-  const h = M.frames[M.hora][c] / 1000;
+  const h = frameVista(M)[c] / 1000;
   if (h < 0.01) return 0;
   const zf = Number.isFinite(d.hs[i]) ? d.hs[i] : g.z[c];
   return Math.max(0, Math.min(g.z[c] + h - zf, h * 3));
@@ -401,7 +415,7 @@ function calleCortada(i) {
   const M = SIM.modelo;
   if (!M?.frames.length) return false;
   const c = M.g.celdaFina[i];
-  return c >= 0 && M.g.ruta[c] === 1 && M.g.tipo2[c] === 1 && M.frames[M.hora][c] / 1000 - M.g.cauce[c] >= CORTE;
+  return c >= 0 && M.g.ruta[c] === 1 && M.g.tipo2[c] === 1 && frameVista(M)[c] / 1000 - M.g.cauce[c] >= CORTE;
 }
 
 // Acceso: desde las calles del borde (la salida del área) se recorren las calles transitables (menos de 30 cm de agua, o
@@ -556,7 +570,7 @@ function dibujarAgua() {
     if (C.colores) c = colorEscala(COLOR_ALTURA, limitar((d.hs[i] - d.hMin) / rango, 0, 1));
     if (C.curvas && d.curva[i]) c = c ? [c[0] * 0.55, c[1] * 0.55, c[2] * 0.5, 0.8] : [70, 60, 50, 0.55];
     const p = aguaFina(i);
-    if (p >= AGUA_MIN) c = colorEscala(COLOR_AGUA, p);
+    if (p >= AGUA_VER) c = colorEscala(COLOR_AGUA, p);
     if (C.cortes && calleCortada(i)) c = [214, 40, 40, 0.92];
     if (C.drenaje) { if (d.cauce[i]) c = [224, 250, 255, 0.98]; else if (d.orilla[i]) c = [14, 70, 90, 0.8]; }
     if (!c) continue;
@@ -603,20 +617,10 @@ function textoDiagnostico() {
 window.addEventListener("error", (e) => { if (/three|WebGL|maqueta/i.test(`${e.message} ${e.filename}`)) DIAG.errores.push(e.message); });
 
 function agregarBotonesVista() {
+  // Solo la maqueta 3D: sin selector Mapa/Maqueta ni «Relieve ×5». Queda el botón de referencias.
   const marco = document.querySelector(".sim-mapa-marco");
   marco.querySelector(".sim-vistas")?.remove();
-  const el = document.createElement("div");
-  el.className = "sim-vistas"; el.setAttribute("role", "group"); el.setAttribute("aria-label", t("sim_vista"));
-  el.innerHTML = ["mapa", "maqueta"].map((v) => `<button type="button" data-v="${v}" aria-pressed="${SIM.vista === v}">${t(`sim_vista_${v}`)}</button>`).join("");
-  el.querySelectorAll("button").forEach((b) => { b.onclick = () => elegirVistaSimulador(b.dataset.v); });
-  marco.appendChild(el);
-  // Relieve ×5 también sobre el mapa: en el celular el panel con los filtros queda debajo y no se ve
-  marco.querySelector(".sim-x5")?.remove();
-  const x5 = document.createElement("button");
-  x5.type = "button"; x5.className = "sim-x5"; x5.textContent = t("sim_f_x5"); x5.title = t("sim_f_x5_ayuda");
-  x5.setAttribute("aria-pressed", String(SIM.capas.x5));
-  x5.onclick = () => document.querySelector('#sim-filtros [data-k="x5"]')?.click();
-  marco.appendChild(x5);
+  marco.querySelector(".sim-x5:not(.sim-refs3d)")?.remove();
   marco.querySelector(".sim-refs3d")?.remove();
   const rf = document.createElement("button");
   rf.type = "button"; rf.className = "sim-x5 sim-refs3d"; rf.textContent = t("sim_refs3d"); rf.dataset.ayuda = t("sim_refs3d_ayuda");
@@ -901,7 +905,7 @@ function crearParticulas() {
     cnt: new Uint8Array(NP), semilla: 11, activa: false };
 }
 function moverLineas(P) {
-  const Mo = SIM.modelo, g = Mo?.g, fr = Mo?.frames[Mo.hora];
+  const Mo = SIM.modelo, g = Mo?.g, fr = Mo?.frames.length ? frameVista(Mo) : null;
   if (!fr) return;
   const T = LARGO_COLA, azar = () => ((P.semilla = (P.semilla * 16807) % 2147483647) / 2147483647);
   const eta = (c) => (g.tipo2[c] === 1 ? g.z[c] + fr[c] / 1000 : g.tipo2[c] === 2 ? g.z[c] : g.z[c] - 2);
@@ -909,10 +913,10 @@ function moverLineas(P) {
     const cx = Math.floor((P.px[n] - g.bx0) / g.f), cy = Math.floor((P.py[n] - g.by0) / g.f), c = cy * g.nx + cx;
     P.vida[n]--;
     const fuera = cx < 1 || cy < 1 || cx >= g.nx - 1 || cy >= g.ny - 1;
-    if (fuera || P.vida[n] <= 0 || g.tipo2[c] !== 1 || fr[c] < 3) {   // nace otra en una celda con agua, dentro del círculo
+    if (fuera || P.vida[n] <= 0 || g.tipo2[c] !== 1 || fr[c] < 1) {   // nace otra en una celda con agua, dentro del círculo
       for (let k = 0; k < 20; k++) {
         const c2 = Math.floor(azar() * g.N);
-        if (g.dentroC[c2] && g.tipo2[c2] === 1 && fr[c2] >= 3) { P.px[n] = g.bx0 + ((c2 % g.nx) + azar()) * g.f; P.py[n] = g.by0 + (Math.floor(c2 / g.nx) + azar()) * g.f; break; }
+        if (g.dentroC[c2] && g.tipo2[c2] === 1 && fr[c2] >= 1) { P.px[n] = g.bx0 + ((c2 % g.nx) + azar()) * g.f; P.py[n] = g.by0 + (Math.floor(c2 / g.nx) + azar()) * g.f; break; }
       }
       P.vida[n] = 20 + azar() * 50; P.cnt[n] = 0;
       continue;
@@ -952,7 +956,7 @@ function alturasMaqueta() {
 
 // Bajos llenos (mismo cálculo y colores que el mapa), en el recuadro del círculo
 function pintarCharcos() {
-  const M = SIM.maqueta, d = SIM.datos, W = d.D.W, clave = `${SIM.modelo?.frames.length ? SIM.modelo.hora : -1}|${SIM.modelo?.hasta}`;
+  const M = SIM.maqueta, d = SIM.datos, W = d.D.W, clave = `${SIM.modelo?.frames.length ? SIM.modelo.hora : -1}.${Math.floor((SIM.modelo?.frac || 0) * 4)}|${SIM.modelo?.hasta}|${SIM.capas.cortes}`;
   if (M.claveCharcos === clave) return;
   M.claveCharcos = clave;
   const c = M.charcos.getContext("2d"), img = c.createImageData(M.bw, M.bh), px = img.data;
@@ -960,16 +964,22 @@ function pintarCharcos() {
     const i = (M.y0 + y) * W + M.x0 + x;
     if (!d.circulo[i]) continue;
     const p = aguaFina(i);
-    if (p < AGUA_MIN) continue;
+    if (p < AGUA_VER) continue;
     const col = colorEscala(COLOR_AGUA, p), o = 4 * (y * M.bw + x);
     px[o] = col[0]; px[o + 1] = col[1]; px[o + 2] = col[2]; px[o + 3] = col[3] * 255;
+  }
+  if (SIM.capas.cortes) for (let y = 0; y < M.bh; y++) for (let x = 0; x < M.bw; x++) {   // calles cortadas (30 cm de agua o más), en rojo
+    const i = (M.y0 + y) * W + M.x0 + x;
+    if (!d.circulo[i] || !calleCortada(i)) continue;
+    const o = 4 * (y * M.bw + x);
+    px[o] = 214; px[o + 1] = 40; px[o + 2] = 40; px[o + 3] = 235;
   }
   c.putImageData(img, 0, 0);
 }
 
 // Textura: satélite → película de agua que corre → bajos llenos → líneas blancas
 function texturaMaqueta() {
-  const M = SIM.maqueta, P = M.part, S = M.S, ct = M.textura.getContext("2d"), Mo = SIM.modelo, g = Mo?.g, fr = Mo?.frames[Mo.hora];
+  const M = SIM.maqueta, P = M.part, S = M.S, ct = M.textura.getContext("2d"), Mo = SIM.modelo, g = Mo?.g, fr = Mo?.frames.length ? frameVista(Mo) : null;
   ct.drawImage(M.sat, 0, 0);
   ct.imageSmoothingEnabled = true;
   if (fr) {   // película de agua que corre (de 2 mm a 10 cm), a la resolución del modelo
@@ -1011,8 +1021,8 @@ function actualizarMaqueta(alturas = false) {
   const M = SIM.maqueta;
   if (!M || !SIM.datos) return;
   // Las alturas (con los bajos llenos) se recalculan cada 4 mm mientras llueve, para no frenar la animación
-  const clave = `${SIM.modelo?.hora}|${SIM.modelo?.hasta}`, salto = SIM.modelo ? Math.abs((M.horaAlturas ?? -99) - SIM.modelo.hora) : 99;
-  if (alturas || (M.claveAlturas !== clave && (salto >= 3 || !SIM.reproduciendo))) { alturasMaqueta(); M.claveAlturas = clave; M.horaAlturas = SIM.modelo?.hora; if (SIM.corte3d) tapaCorte(); }
+  const clave = `${SIM.modelo?.hora}.${Math.floor((SIM.modelo?.frac || 0) * 2)}|${SIM.modelo?.hasta}`, salto = SIM.modelo ? Math.abs((M.horaAlturas ?? -99) - SIM.modelo.hora) : 99;
+  if (alturas || (M.claveAlturas !== clave && (salto >= 1 || !SIM.reproduciendo))) { alturasMaqueta(); M.claveAlturas = clave; M.horaAlturas = SIM.modelo?.hora; if (SIM.corte3d) tapaCorte(); }
   texturaMaqueta();
   pedirCuadroMaqueta();
 }
@@ -1036,6 +1046,8 @@ function pedirCuadroMaqueta() {
 // Reproducción: avanza hora por hora (12 horas por segundo); en la maqueta, además, corren las líneas blancas
 function detenerAnimaciones() {
   if (SIM.reproduciendo) { cancelAnimationFrame(SIM.reproduciendo); SIM.reproduciendo = 0; }
+  if (SIM.modelo) SIM.modelo.frac = 0;
+  const hud = SIM.maqueta?.capa.querySelector(".sim-lluvia-estado"); if (hud) hud.hidden = true;
   if (SIM.maqueta) SIM.maqueta.part.activa = false;
   const btn = document.getElementById("sim-play");
   if (btn) btn.innerHTML = icono("play");
@@ -1338,18 +1350,14 @@ function pintarFiltrosSimulador() {
   const todas = CAPAS_SIM.every((k) => C[k]), maqueta = SIM.vista === "maqueta";
   // En la maqueta se ve la imagen satelital: colores, curvas y drenaje son solo de la vista Mapa
   const soloMapa = (k) => (maqueta && k !== "corte" ? ` disabled title="${t("sim_solo_mapa")}"` : "");
-  cont.innerHTML = `<button type="button" class="chip" aria-pressed="${todas}" data-k="todos"${soloMapa("todos")}>${t("sim_f_todos")}</button>` +
-    CAPAS_SIM.map((k) => `<button type="button" class="chip" aria-pressed="${C[k]}" data-k="${k}"${soloMapa(k)}>${t(`sim_f_${k}`)}</button>`).join("") +
-    `<button type="button" class="chip chip-x5" aria-pressed="${C.x5}" data-k="x5" title="${t("sim_f_x5_ayuda")}">${t("sim_f_x5")}</button>`;
-  document.querySelector(".sim-x5")?.setAttribute("aria-pressed", String(C.x5));
+  cont.innerHTML = CAPAS_SIM.map((k) => `<button type="button" class="chip" aria-pressed="${C[k]}" data-k="${k}">${t(`sim_f_${k}`)}</button>`).join("");
   cont.querySelectorAll("button").forEach((b) => {
     b.onclick = () => {
       const k = b.dataset.k;
       if (k === "todos") CAPAS_SIM.forEach((c) => { C[c] = !todas; });
       else C[k] = !C[k];
-      if (k === "x5") { SIM.mapa?.setTerrain({ source: "relieve-sim", exaggeration: C.x5 ? 5 : 1 }); actualizarMaqueta(true); }
       pintarFiltrosSimulador();
-      if (SIM.datos) { agregarLeyendaSimulador(); actualizarCorteEnMapa(); pintarCorte(); if (SIM.vista === "mapa") dibujarAgua(); else SIM.mapaSucio = true; }
+      if (SIM.datos) { agregarLeyendaSimulador(); actualizarCorteEnMapa(); pintarCorte(); if (SIM.vista === "mapa") dibujarAgua(); else { SIM.mapaSucio = true; if (SIM.maqueta) { SIM.maqueta.claveCharcos = ""; actualizarMaqueta(true); } } }
     };
   });
 }
@@ -1530,20 +1538,46 @@ function actualizarNumeros() {
 function actualizarSimulador() { mostrarHora(); }
 
 // ▶: recorre las horas calculadas (12 por segundo); en la maqueta, además, corren las líneas blancas
+// ▶: reproduce la tormenta en cámara lenta. Mientras llueve o el agua corre (lámina de 3 mm o más en el 3 % del círculo, o lluvia) cada hora dura
+// 0,6 s y se mezclan los fotogramas (0,18 s si el agua ya casi se fue); las horas secas pasan casi de golpe. En la maqueta, las líneas blancas muestran hacia dónde baja
+// el agua y los charcos se llenan donde queda.
+function planReproduccion(Mo) {
+  const n = Mo.frames.length, fuerte = (k) => (Mo.stats[k]?.pct3 ?? 0) >= 3 || (Mo.met.lluvia[k] ?? 0) > 0.1, act = (k) => fuerte(k) || (Mo.stats[k]?.pct3 ?? 0) >= 0.5;
+  let ini = Math.min(Mo.hoy, n - 1);
+  for (let k = Math.max(0, Mo.hoy - 3); k < n; k++) if (act(k)) { ini = Math.max(0, k - 1); break; }
+  const ts = [0];
+  for (let k = ini; k < n - 1; k++) ts.push(ts.at(-1) + (fuerte(k) || fuerte(k + 1) ? 0.6 : act(k) || act(k + 1) ? 0.18 : 0.012));
+  return { ini, ts };
+}
+function hudReproduccion(Mo) {
+  const hud = SIM.maqueta?.capa.querySelector(".sim-lluvia-estado");
+  if (!hud) return;
+  const k = Mo.hora, mm = Mo.met.lluvia[k] ?? 0, pct3 = Mo.stats[k]?.pct3 ?? 0;
+  let acum = 0; for (let j = Math.max(0, Mo.hoy - 3); j <= k; j++) acum += Mo.met.lluvia[j] ?? 0;
+  hud.hidden = false;
+  hud.textContent = mm > 0.1 ? t("sim_hud_llueve")(fmt(mm, 1), fmt(acum)) : pct3 >= 0.5 ? t("sim_hud_escurre") : t("sim_hud_seco");
+}
 function reproducirSimulador() {
   const Mo = SIM.modelo, btn = document.getElementById("sim-play");
   if (!Mo?.frames.length) return;
   if (SIM.reproduciendo) { detenerAnimaciones(); return; }
-  if (Mo.hora >= Mo.frames.length - 1) Mo.hora = Mo.hoy;
+  const { ini, ts } = planReproduccion(Mo), ultimo = ts.length - 1;
+  let j0 = Mo.hora - ini;
+  if (j0 < 0 || j0 >= ultimo || Mo.hora === Mo.pico) j0 = 0;   // desde el pico o el final, arranca la tormenta de nuevo
   Mo.siguiendo = false;
   btn.innerHTML = icono("pausa");
   if (SIM.maqueta) SIM.maqueta.part.activa = true;
-  let t0 = performance.now(), hora0 = Mo.hora;
+  const t0 = performance.now() - ts[j0] * 1000;
   const cuadro = (ahora) => {
-    const k = Math.min(Mo.frames.length - 1, hora0 + Math.floor(((ahora - t0) / 1000) * 12));
-    if (k !== Mo.hora) { Mo.hora = k; actualizarNumeros(); pintarLineaSim(); if (SIM.vista === "mapa") dibujarAgua(); }
-    if (SIM.vista === "maqueta" && SIM.maqueta) { moverLineas(SIM.maqueta.part); actualizarMaqueta(); }
-    if (k >= Mo.frames.length - 1 && !Mo.corriendo) { detenerAnimaciones(); btn.innerHTML = icono("repetir"); return; }
+    const seg = (ahora - t0) / 1000;
+    let j = j0; while (j < ultimo && ts[j + 1] <= seg) j++;
+    const lento = j < ultimo && ts[j + 1] - ts[j] > 0.1;
+    Mo.frac = lento ? (seg - ts[j]) / (ts[j + 1] - ts[j]) : 0;
+    const hora = ini + j;
+    if (hora !== Mo.hora) { Mo.hora = hora; actualizarNumeros(); pintarLineaSim(); }
+    if (SIM.vista === "mapa") dibujarAgua();
+    if (SIM.vista === "maqueta" && SIM.maqueta) { moverLineas(SIM.maqueta.part); actualizarMaqueta(); hudReproduccion(Mo); }
+    if (j >= ultimo && !Mo.corriendo) { detenerAnimaciones(); btn.innerHTML = icono("repetir"); return; }
     SIM.reproduciendo = requestAnimationFrame(cuadro);
   };
   SIM.reproduciendo = requestAnimationFrame(cuadro);

@@ -848,4 +848,5 @@ body.sim-abierto { overflow: hidden; }
 .sim-diag pre { margin: 0 0 8px; white-space: pre-wrap; word-break: break-word; font-family: var(--f-mono); font-size: 0.72rem; line-height: 1.5; user-select: text; }
 .sim-estado small { color: var(--tinta-2); }
 .sim-estado .chip { margin-top: 6px; pointer-events: auto; }
+.sim-refs3d { top: 10px; }
 
