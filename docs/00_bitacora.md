@@ -582,3 +582,9 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   círculo con agua, 1 h → 22,6 %, 24 h → casi nada (se infiltra y desagua).
 - El rediseño tipográfico y del panel (Libre Franklin, Archivo Narrow, secciones) no se aprobó: queda guardado en `git stash`
   («rediseno-12nov-no-aprobado»).
+
+## 2026-11-12 — Maqueta 3D: diagnóstico y respaldos
+- La maqueta se dibuja bien en mis pruebas (claro, oscuro y celular, con pixeles leídos del canvas), pero no en el navegador de la
+  usuaria. Se agregó: enlace «Diagnóstico» (navegador, WebGL, three.js, teselas satelitales, errores) con botón copiar, cuatro
+  intentos de WebGL de más a menos exigente, CDN de respaldo para three.js (cdnjs), tiempo límite de 15 s por tesela satelital,
+  verificación de que el centro no salga vacío y, si falla, mensaje con el motivo y vuelta al mapa 2D con el agua en celeste.

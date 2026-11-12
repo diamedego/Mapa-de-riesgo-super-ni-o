@@ -581,10 +581,26 @@ const THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js
 const SATELITE = "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/{z}/{y}/{x}.jpg";   // mosaico sin nubes de 2025 (el más nuevo)
 const FPS_LLUVIA = 24, CUADROS_LLUVIA = 170, CUADROS_ESCURRE = 130, SUBPASOS = 6, LARGO_COLA = 10;
 let cargaThree = null;
+const THREE_RESPALDO = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r147/three.min.js";
 const cargarThree = () => (cargaThree ??= new Promise((ok, mal) => {
-  const sc = document.createElement("script"); sc.src = THREE_URL; sc.onload = ok; sc.onerror = () => { cargaThree = null; mal(new Error("three")); };
-  document.head.appendChild(sc);
+  const cargar = (url, siFalla) => {
+    const sc = document.createElement("script"); sc.src = url; sc.onload = () => { DIAG.three = url; ok(); };
+    sc.onerror = () => { sc.remove(); if (siFalla) cargar(siFalla); else { cargaThree = null; mal(new Error("no se pudo bajar three.js (¿red, bloqueador de anuncios o firewall?)")); } };
+    document.head.appendChild(sc);
+  };
+  cargar(THREE_URL, THREE_RESPALDO);
 }));
+// Datos para entender por qué una maqueta no se ve en otro navegador (se muestran con el enlace «Diagnóstico»)
+const DIAG = { errores: [] };
+function textoDiagnostico() {
+  const M = SIM.maqueta, gl = M?.ren?.getContext?.(), ext = gl?.getExtension?.("WEBGL_debug_renderer_info");
+  return [`Navegador: ${navigator.userAgent}`, `Pantalla: ${innerWidth}x${innerHeight} · pixel ${devicePixelRatio}`, `three.js: ${DIAG.three ?? "no cargó"}`,
+    `WebGL: ${gl ? (gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER) ?? "?") : "no disponible"}${gl?.isContextLost?.() ? " (CONTEXTO PERDIDO)" : ""}`,
+    `Intento de WebGL: ${DIAG.intentoGL ?? "-"}`, `Imagen satelital: ${DIAG.sat ? `${DIAG.sat.ok}/${DIAG.sat.total} teselas (${DIAG.sat.fallas} fallaron)` : "-"}`,
+    `Malla: ${M ? `${M.celdas?.length ?? "?"} vértices` : "-"}`, `Modelo: ${SIM.modelo?.frames?.length ?? 0} horas calculadas`,
+    `Errores: ${DIAG.errores.length ? DIAG.errores.join(" | ") : "ninguno"}`].join("\n");
+}
+window.addEventListener("error", (e) => { if (/three|WebGL|maqueta/i.test(`${e.message} ${e.filename}`)) DIAG.errores.push(e.message); });
 
 function agregarBotonesVista() {
   const marco = document.querySelector(".sim-mapa-marco");
@@ -630,13 +646,47 @@ async function elegirVistaSimulador(v) {
     await cargarThree();
     if (SIM.vista !== "maqueta" || !SIM.datos) return;
     if (!SIM.maqueta) await crearMaqueta();
-  } catch (e) { est.textContent = t("sim_error"); console.error(e); return; }
+  } catch (e) {
+    console.error(e); DIAG.errores.push(e.message);
+    est.innerHTML = `${t("sim_error_maqueta")}<br><small>${escapar(e.message)}</small><br><button type="button" class="chip" id="sim-diag-ver">${t("sim_diag")}</button>`;
+    document.getElementById("sim-diag-ver").onclick = mostrarDiagnostico;
+    SIM.maqueta?.capa?.remove(); SIM.maqueta = null;
+    setTimeout(() => { if (SIM.vista === "maqueta") elegirVistaSimulador("mapa"); }, 600);   // se deja el mapa 2D con el agua en celeste
+    return;
+  }
   est.textContent = "";
   if (SIM.vista !== "maqueta" || !SIM.maqueta) return;
   if (SIM.camaraPendiente) { Object.assign(SIM.maqueta, SIM.camaraPendiente); SIM.camaraPendiente = null; }
   SIM.maqueta.capa.hidden = false;
   SIM.maqueta.redimensionar();
   actualizarMaqueta(true);
+  setTimeout(verificarMaqueta, 1800);
+}
+// Si después de dibujar el centro de la maqueta sigue vacío, se avisa y se ofrece el diagnóstico
+function verificarMaqueta() {
+  const M = SIM.maqueta;
+  if (!M || SIM.vista !== "maqueta") return;
+  try {
+    const gl = M.ren.getContext(), px = new Uint8Array(4 * 16 * 16), cv = M.ren.domElement;
+    M.ren.render(M.escena, M.cam);
+    gl.readPixels(Math.floor(cv.width / 2) - 8, Math.floor(cv.height / 2) - 8, 16, 16, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    let alfa = 0; for (let i = 3; i < px.length; i += 4) alfa += px[i];
+    if (alfa > 0) return;
+    DIAG.errores.push("el centro de la maqueta salió vacío");
+  } catch (e) { DIAG.errores.push(`verificación: ${e.message}`); }
+  const est = document.getElementById("sim-estado");
+  est.innerHTML = `${t("sim_error_maqueta")}<br><button type="button" class="chip" id="sim-diag-ver">${t("sim_diag")}</button>`;
+  document.getElementById("sim-diag-ver").onclick = mostrarDiagnostico;
+}
+function mostrarDiagnostico() {
+  let caja = document.getElementById("sim-diag");
+  if (!caja) {
+    caja = document.createElement("div"); caja.id = "sim-diag"; caja.className = "sim-diag";
+    document.querySelector(".sim-mapa-marco").appendChild(caja);
+  }
+  caja.innerHTML = `<pre>${escapar(textoDiagnostico())}</pre><button type="button" class="chip" id="sim-diag-copiar">${t("sim_diag_copiar")}</button> <button type="button" class="chip" id="sim-diag-cerrar">${t("cerrar")}</button>`;
+  document.getElementById("sim-diag-cerrar").onclick = () => caja.remove();
+  document.getElementById("sim-diag-copiar").onclick = () => navigator.clipboard?.writeText(textoDiagnostico()).catch(() => {});
 }
 
 // Al cambiar de vista se conserva la cámara: rumbo del mapa ↔ giro de la maqueta, inclinación ↔ elevación, zoom ↔ distancia
@@ -664,19 +714,35 @@ async function sateliteDe(D, x0, y0, bw, bh, S) {
   const tiles = [];
   for (let tx = Math.floor((gx0 * f) / 256); tx <= Math.floor(((gx0 + bw) * f) / 256); tx++)
     for (let ty = Math.floor((gy0 * f) / 256); ty <= Math.floor(((gy0 + bh) * f) / 256); ty++) tiles.push([tx, ty]);
+  DIAG.sat = { total: tiles.length, ok: 0, fallas: 0 };
   const bajar = async ([tx, ty]) => {
     for (let intento = 0; intento < 3; intento++) {
       try {
-        const r = await fetch(SATELITE.replace("{z}", z).replace("{x}", tx).replace("{y}", ty));
+        const ctl = new AbortController(), reloj = setTimeout(() => ctl.abort(), 15000);   // una tesela colgada no deja la maqueta esperando
+        const r = await fetch(SATELITE.replace("{z}", z).replace("{x}", tx).replace("{y}", ty), { signal: ctl.signal }).finally(() => clearTimeout(reloj));
         if (!r.ok) throw new Error(r.status);
         const lado = (256 / f) * S;
         c.drawImage(await createImageBitmap(await r.blob()), ((tx * 256) / f - gx0) * S, ((ty * 256) / f - gy0) * S, lado, lado);
+        DIAG.sat.ok++;
         return;
       } catch (e) { await new Promise((ok) => setTimeout(ok, 400 * (intento + 1))); }
     }
+    DIAG.sat.fallas++;
   };
   for (let i = 0; i < tiles.length; i += 6) await Promise.all(tiles.slice(i, i + 6).map(bajar));   // de a 6 para no saturar el servidor
   return cv;
+}
+
+// WebGL con varios intentos, de más a menos exigente (algunas placas o navegadores rechazan el antialias o el buffer persistente)
+function crearRenderer() {
+  const intentos = [{ antialias: true, alpha: true, preserveDrawingBuffer: true }, { antialias: false, alpha: true, preserveDrawingBuffer: true },
+    { antialias: false, alpha: true, powerPreference: "low-power" }, { antialias: false, alpha: false, powerPreference: "low-power", failIfMajorPerformanceCaveat: false }];
+  let ultimo;
+  for (let i = 0; i < intentos.length; i++) {
+    try { const r = new THREE.WebGLRenderer(intentos[i]); DIAG.intentoGL = `${i + 1} de ${intentos.length}`; return r; }
+    catch (e) { ultimo = e; DIAG.errores.push(`WebGL intento ${i + 1}: ${e.message}`); }
+  }
+  throw new Error(`este navegador no pudo iniciar WebGL (${ultimo?.message ?? "sin detalle"}); revisá que esté activada la aceleración por hardware`);
 }
 
 async function crearMaqueta() {
@@ -691,9 +757,11 @@ async function crearMaqueta() {
   const capa = document.createElement("div");
   capa.className = "sim-maqueta";
   capa.innerHTML = `<p class="sim-maqueta-ayuda">${t("sim_maqueta_ayuda")}</p><p class="sim-lluvia-estado" hidden></p>
+    <button type="button" class="sim-diag-link" id="sim-diag-link">${t("sim_diag")}</button>
     <p class="sim-credito-sat">${t("sim_fecha_sat")} · <a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless · EOX</a> (${t("sim_credito_sat")})</p>`;
   marco.appendChild(capa);
-  const ren = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  capa.querySelector("#sim-diag-link").onclick = mostrarDiagnostico;
+  const ren = crearRenderer();
   ren.setPixelRatio(Math.min(2, devicePixelRatio));
   ren.localClippingEnabled = true;   // para cortar la maqueta por la línea del corte
   capa.prepend(ren.domElement);

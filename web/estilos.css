@@ -843,4 +843,9 @@ body.sim-abierto { overflow: hidden; }
 .sim-lluvia input[type="range"] { width: 100%; accent-color: var(--cian); height: 24px; }
 .sim-dur-etq { align-self: center; font-size: 0.78rem; color: var(--tinta-2); margin-right: 2px; }
 .sim-hint { margin: 0; padding: 8px 10px; border-radius: var(--radio-1); background: var(--atencion-fondo); font-size: 0.8rem; line-height: 1.4; }
+.sim-diag-link { position: absolute; right: 10px; bottom: 26px; z-index: 3; padding: 0; border: 0; background: none; color: var(--tinta-3); font-size: 0.66rem; text-decoration: underline; }
+.sim-diag { position: absolute; z-index: 8; left: 10px; right: 10px; bottom: 10px; max-height: 70%; overflow: auto; padding: 12px; border-radius: var(--radio-2); background: var(--superficie); box-shadow: var(--sombra-2); }
+.sim-diag pre { margin: 0 0 8px; white-space: pre-wrap; word-break: break-word; font-family: var(--f-mono); font-size: 0.72rem; line-height: 1.5; user-select: text; }
+.sim-estado small { color: var(--tinta-2); }
+.sim-estado .chip { margin-top: 6px; pointer-events: auto; }
 
