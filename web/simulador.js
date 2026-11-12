@@ -12,7 +12,7 @@
 
 const SIM = { mapa: null, mm: 0, reproduciendo: 0, datos: null,
   capas: { colores: true, curvas: true, drenaje: true, cortes: true, corte: true, x5: false, refs3d: true }, vista: "mapa", maqueta: null,
-  modelo: null, desague: 10, crecida: 0 };   // desagües pluviales supuestos: 10 mm/h en superficies impermeables (no hay datos)
+  modelo: null, desague: 10, crecida: 0, tormenta: { mm: 0, horas: 3 } };   // desagües pluviales supuestos: 10 mm/h en superficies impermeables (no hay datos)
 const AGUA_MIN = 0.1;   // desde 10 cm se cuenta como zona con agua
 const CORTE = 0.3;      // desde 30 cm una calle queda cortada para un auto (el agua en movimiento lo puede arrastrar)
 const TERRARIUM = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
@@ -21,6 +21,17 @@ const COLOR_AGUA = [[0.1, [125, 211, 252, 0.5]], [0.3, [56, 170, 235, 0.65]], [0
 const COLOR_ALTURA = [[0, [38, 120, 120, 0.6]], [0.25, [92, 160, 110, 0.6]], [0.5, [180, 196, 120, 0.6]], [0.75, [205, 170, 110, 0.6]], [1, [170, 120, 80, 0.6]]];
 const CAPAS_SIM = ["colores", "curvas", "drenaje", "cortes", "corte"];
 
+// Tormenta de prueba (barra de mm y duración): se suma a la lluvia real y pronosticada y se calcula de nuevo desde las últimas dos semanas
+function correrTormenta(cambio) {
+  Object.assign(SIM.tormenta, cambio);
+  const T = SIM.tormenta, mm = document.getElementById("sim-mm");
+  if (mm) { mm.value = T.mm; document.getElementById("sim-mm-valor").textContent = fmt(T.mm); }
+  document.querySelectorAll("#sim-dur .chip").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.h === T.horas)));
+  const hoy = limitesPeriodo().hoy;
+  if (T.mm > 0) simularPeriodo(sumarDias(hoy, 1 + Math.ceil(T.horas / 24)), { ...T });
+  else simularPeriodo(sumarDias(hoy, 6));
+}
+
 // Resultado de la validación contra el satélite (herramientas/validacion/validar.py); null si todavía no existe
 let cargaValidacion = null;
 const validacion = () => (cargaValidacion ??= fetch("datos/validacion.json").then((r) => (r.ok ? r.json() : null)).catch(() => null));
@@ -28,6 +39,7 @@ const validacion = () => (cargaValidacion ??= fetch("datos/validacion.json").the
 function abrirSimulador() {
   const s = estado.sel;
   if (s?.tipo !== "punto") return;
+  SIM.tormenta = { mm: 0, horas: 3 };
   validacion().then((V) => { SIM.validacion = V; pintarValidez(); });
   const caja = document.getElementById("sim");
   caja.hidden = false;
@@ -285,12 +297,15 @@ function mascaraAgua(D, aPx, r = 2) {
 const COLOR_TIPO = ["#7b8794", "#0e7490", "#8e6bbf"];   // dato real · pronóstico · escenario estacional
 function avisoProgreso(txt) { const p = document.getElementById("sim-progreso"); if (p) { p.textContent = txt; p.hidden = !txt; } }
 
-async function simularPeriodo(hastaISO, tormentaMm = 0) {
+// Reparto de una tormenta de prueba hora a hora: 3 h con picos al comienzo (40-40-20 %), el resto parejo
+const repartoTormenta = (h) => (h === 3 ? [0.4, 0.4, 0.2] : Array(h).fill(1 / h));
+async function simularPeriodo(hastaISO, tormenta = 0) {
+  const tor = typeof tormenta === "number" ? { mm: tormenta, horas: 3 } : tormenta, tormentaMm = tor.mm;
   const d = SIM.datos;
   if (!d) return;
   detenerAnimaciones();
   SIM.modelo?.worker?.terminate();
-  const M = (SIM.modelo = { frames: [], lagos: [], stats: [], hora: 0, corriendo: true, siguiendo: true, hasta: hastaISO, tormenta: tormentaMm });
+  const M = (SIM.modelo = { frames: [], lagos: [], stats: [], hora: 0, corriendo: true, siguiendo: true, hasta: hastaISO, tormenta: tor });
   avisoProgreso(t("sim_bajando"));
   let met;
   try { met = await lluviaDelPunto(d.s.punto, hastaISO); } catch (e) { console.error(e); avisoProgreso(t("sim_error_meteo")); return; }
@@ -300,7 +315,7 @@ async function simularPeriodo(hastaISO, tormentaMm = 0) {
   if (n < 0) n = met.horas.length;
   for (const k of ["horas", "lluvia", "et0", "tipo"]) met[k] = met[k].slice(0, n);
   M.hoy = Math.max(0, met.tipo.indexOf(1));
-  if (tormentaMm) [0.4, 0.4, 0.2].forEach((f, j) => { if (M.hoy + j < n) met.lluvia[M.hoy + j] += tormentaMm * f; });   // tormenta de prueba: ahora, en 3 h
+  if (tormentaMm) repartoTormenta(tor.horas).forEach((f, j) => { if (M.hoy + j < n) met.lluvia[M.hoy + j] += tormentaMm * f; });   // tormenta de prueba: desde ahora, en 1 a 24 h
   const g = grillaModelo(d, n);
   g.celdaFina = new Int32Array(d.D.W * d.D.H);
   for (let i = 0; i < g.celdaFina.length; i++) g.celdaFina[i] = g.celdaDe(i);
@@ -347,6 +362,8 @@ function recibirHora(M, m) {
     for (let k = M.hoy; k < M.stats.length; k++) if (M.stats[k].pct > M.stats[pico].pct) pico = k;
     M.pico = pico; M.hora = pico; M.siguiendo = false;
     avisoProgreso("");
+    const hint = document.getElementById("sim-hint");
+    if (hint) hint.hidden = !(M.stats[pico].pct < 0.05 && !(M.tormenta?.mm > 0));
     mostrarHora();
   }
 }
@@ -1273,6 +1290,12 @@ function pintarPanelSimulador(d) {
   const panel = document.getElementById("sim-panel");
   const ps = presetsSimulador();
   panel.innerHTML = `
+    <div class="sim-lluvia">
+      <div class="sim-mm"><span class="sim-mm-valor" id="sim-mm-valor">${fmt(SIM.tormenta.mm)}</span><span class="sim-mm-u">mm</span><span class="sim-mm-etq">${t("sim_mm_etq")}</span></div>
+      <input type="range" id="sim-mm" min="0" max="300" step="10" value="${SIM.tormenta.mm}" aria-label="${t("sim_mm_etq")}"${d ? "" : " disabled"}>
+      <div class="sim-presets" id="sim-dur" role="group" aria-label="${t("sim_dur")}"><span class="sim-dur-etq">${t("sim_dur")}</span>${[1, 3, 6, 12, 24].map((h) => `<button type="button" class="chip" data-h="${h}" aria-pressed="${SIM.tormenta.horas === h}">${h} h</button>`).join("")}</div>
+      <p class="sim-hint" id="sim-hint" hidden>${t("sim_hint")}</p>
+    </div>
     <div class="sim-filtros" id="sim-filtros" role="group" aria-label="${t("sim_capas")}"></div>
     <div class="sim-corte" id="sim-corte" hidden></div>
     <p class="sim-progreso" id="sim-progreso" role="status" hidden></p>
@@ -1315,7 +1338,11 @@ function pintarPanelSimulador(d) {
   const barra = document.getElementById("sim-barra");
   barra.oninput = () => { const Mo = SIM.modelo; if (!Mo?.frames.length) return; detenerAnimaciones(); Mo.siguiendo = false; Mo.hora = Math.min(Number(barra.value), Mo.frames.length - 1); mostrarHora(); };
   document.getElementById("sim-play").onclick = () => reproducirSimulador();
-  panel.querySelectorAll(".sim-presets .chip[data-i]").forEach((b) => { b.onclick = () => simularPeriodo(sumarDias(limitesPeriodo().hoy, 2), ps[+b.dataset.i][1]); });
+  const mmEl = document.getElementById("sim-mm");
+  mmEl.oninput = () => { document.getElementById("sim-mm-valor").textContent = fmt(+mmEl.value); };
+  mmEl.onchange = () => correrTormenta({ mm: +mmEl.value });
+  panel.querySelectorAll("#sim-dur .chip").forEach((b) => { b.onclick = () => correrTormenta({ horas: +b.dataset.h }); });
+  panel.querySelectorAll(".sim-presets .chip[data-i]").forEach((b) => { b.onclick = () => correrTormenta({ mm: ps[+b.dataset.i][1] }); });
   const cre = document.getElementById("sim-crecida"), creV = document.getElementById("sim-crecida-v");
   const pintarCre = () => {
     creV.textContent = `${SIM.crecida > 0 ? "+" : ""}${fmt(SIM.crecida, 2)} m`;

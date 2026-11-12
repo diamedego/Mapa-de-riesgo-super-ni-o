@@ -839,4 +839,8 @@ body.sim-abierto { overflow: hidden; }
 .hero-riesgo .pill-nivel::before { width: 16px; height: 16px; }
 .medidor-caja { margin-top: 12px; padding: 4px 12px 8px; border-radius: var(--radio-1); background: var(--superficie); }
 .medidor-caja .medidor { margin: 14px 2px 2px; }
+.sim-lluvia { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: var(--radio-2); background: var(--cian-suave); }
+.sim-lluvia input[type="range"] { width: 100%; accent-color: var(--cian); height: 24px; }
+.sim-dur-etq { align-self: center; font-size: 0.78rem; color: var(--tinta-2); margin-right: 2px; }
+.sim-hint { margin: 0; padding: 8px 10px; border-radius: var(--radio-1); background: var(--atencion-fondo); font-size: 0.8rem; line-height: 1.4; }
 

@@ -574,3 +574,11 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - Clic en una estación de río: va al punto como en el resto del mapa. Sin cartel de alertas al pasar el mouse; el cartel se esconde
   al tocar, arrastrar o hacer zoom.
 - Riesgo semana a semana en barras con el color de cada nivel. Línea de tiempo del panel y gráfico del simulador con marcas por semana.
+
+## 2026-11-12 — Simulador: vuelve la barra de lluvia a simular
+- El simulador nuevo solo mostraba la lluvia real y pronosticada: sin lluvia fuerte no había agua en celeste y parecía no hacer nada.
+- Vuelve la barra «Lluvia a simular» (0 a 300 mm) con la duración (1, 3, 6, 12 o 24 h): se suma a la real y la pronosticada y recalcula
+  con el modelo hidráulico; al terminar muestra la hora con más agua (celeste). 100 mm en La Plata/Corrientes: 3 h → 11,8 % del
+  círculo con agua, 1 h → 22,6 %, 24 h → casi nada (se infiltra y desagua).
+- El rediseño tipográfico y del panel (Libre Franklin, Archivo Narrow, secciones) no se aprobó: queda guardado en `git stash`
+  («rediseno-12nov-no-aprobado»).
