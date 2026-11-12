@@ -564,3 +564,13 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   (última foto diaria del índice de cada semana, generado por `actualizar_datos_web.py` y subido por el workflow).
 - Radio como barra (0,5 a 20 km) en la fila de filtros.
 - «Líneas de relieve» solo dibuja líneas con su altura: ya no pinta colores, sombreado ni baja la opacidad del riesgo.
+
+## 2026-11-11 — Capas en dos grupos, curvas de nivel adaptativas y ajustes
+- Capas: «Mapa · elegí uno» (riesgo, lluvia, viento, temperatura; botón redondo) y «Sumá capas · podés elegir varias» (Hidrografía,
+  Alertas, Zonas que ya se inundaron, Densidad, Barrios, Suelo, Infraestructura, Rutas; casilleros) en la misma fila; Referencias y
+  Líneas de relieve quedan en la fila chica. 3D eliminado. Con una capa de superficie encendida el riesgo se atenúa al 45 %.
+- Curvas de nivel: la separación se elige según el relieve que se ve (unas 8 líneas de punta a punta, de 1 m a 1 000 m), medido con
+  el terreno a escala 1 %; cada 5.ª línea es principal y lleva su altura, repetida cada ~400 px.
+- Clic en una estación de río: va al punto como en el resto del mapa. Sin cartel de alertas al pasar el mouse; el cartel se esconde
+  al tocar, arrastrar o hacer zoom.
+- Riesgo semana a semana en barras con el color de cada nivel. Línea de tiempo del panel y gráfico del simulador con marcas por semana.

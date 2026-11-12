@@ -450,7 +450,7 @@ function mostrarHora() {
 function pintarLineaSim() {
   const cont = document.getElementById("sim-linea"), M = SIM.modelo;
   if (!cont || !M?.met) return;
-  const met = M.met, n = met.horas.length, ancho = Math.max(240, cont.clientWidth), alto = 120, iz = 4, de = 4;
+  const met = M.met, n = met.horas.length, ancho = Math.max(240, cont.clientWidth), alto = 138, iz = 4, de = 4;
   const x = (k) => iz + (k / Math.max(1, n - 1)) * (ancho - iz - de);
   const dias = [];
   for (let k = 0; k < n; k += 24) { let s = 0, tp = met.tipo[k]; for (let j = k; j < Math.min(n, k + 24); j++) s += met.lluvia[j]; dias.push([k, s, tp]); }
@@ -459,7 +459,13 @@ function pintarLineaSim() {
   const linea = M.stats.map((s, k) => `${k ? "L" : "M"}${x(k).toFixed(1)},${(112 - (s.pct / maxP) * 46).toFixed(1)}`).join("");
   const hito = (k, txt) => (k >= 0 && k < n ? `<line x1="${x(k)}" x2="${x(k)}" y1="2" y2="114" class="sim-hito"/><text x="${x(k) + 3}" y="${k > n * 0.8 ? 64 : 64}" class="sim-hito-txt"${k > n * 0.8 ? ` text-anchor="end" dx="-6"` : ""}>${txt}</text>` : "");
   const finPron = met.tipo.indexOf(2);
-  cont.innerHTML = `<svg width="${ancho}" height="${alto}" class="sim-linea-svg" role="img" aria-label="${t("sim_linea")}">
+  // Eje de fechas: una marca por lunes (semana); si el período es corto, una por día
+  const art = (k) => new Date(met.horas[k] - 3 * 3600e3), lunes = [];
+  for (let k = 0; k < n; k++) if (art(k).getUTCDay() === 1 && art(k).getUTCHours() === 0) lunes.push(k);
+  const porDia = (n / 24) <= 14, marcas = porDia ? Array.from({ length: Math.floor(n / 24) + 1 }, (_, d) => Math.min(n - 1, d * 24 + (24 - art(0).getUTCHours()) % 24)) : lunes;
+  const sep = Math.max(1, Math.ceil(36 / Math.max(1, (x(Math.min(n - 1, 24 * (porDia ? 1 : 7))) - x(0))))), fechaEje = (k) => `${art(k).getUTCDate()}/${art(k).getUTCMonth() + 1}`;
+  const eje = marcas.map((k, i) => `<line x1="${x(k)}" x2="${x(k)}" y1="114" y2="119" class="sim-tick"/>${i % sep === 0 ? `<text x="${x(k)}" y="132" class="sim-tick-txt" text-anchor="middle">${fechaEje(k)}</text>` : ""}`).join("");
+  cont.innerHTML = `<svg width="${ancho}" height="${alto}" class="sim-linea-svg" role="img" aria-label="${t("sim_linea")}">${eje}<text x="${ancho - de}" y="12" class="sim-tick-txt" text-anchor="end">${t(porDia ? "eje_dias" : "eje_semanas")}</text>
     <rect x="${x(M.frames.length - 1)}" y="0" width="${Math.max(0, x(n - 1) - x(M.frames.length - 1))}" height="${alto}" class="sim-pendiente"/>
     ${barras}<path d="${linea}" class="sim-linea-area"/>
     ${hito(M.hoy, t("sim_hito_hoy"))}${finPron > 0 ? hito(finPron, t("sim_hito_fin_pron")) : ""}${M.pico != null ? hito(M.pico, t("sim_hito_pico")) : ""}

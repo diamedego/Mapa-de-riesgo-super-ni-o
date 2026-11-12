@@ -96,18 +96,23 @@ async function pintarGraficosHeader() {
   });
   tipsEn(cont);
 }
+// Barras: una por semana, pintada con el color del nivel de riesgo; escala fija de 0 a 10 para poder comparar lugares
 function lineaSemanal(semanas, ser) {
-  const W = 420, H = 92, iz = 28, de = 10, arr = 8, aba = 20, vs = ser.filter((v) => v != null);
-  const min = Math.floor((Math.min(...vs) - 0.2) * 2) / 2, max = Math.max(min + 1, Math.ceil((Math.max(...vs) + 0.2) * 2) / 2);
-  const x = (k) => iz + (k / (semanas.length - 1)) * (W - iz - de), y = (v) => arr + (1 - (v - min) / (max - min)) * (H - arr - aba);
-  const d = ser.map((v, k) => (v == null ? "" : `${k && ser[k - 1] != null ? "L" : "M"}${x(k).toFixed(1)},${y(v).toFixed(1)}`)).join("");
-  const ult = ser.length - 1, primero = ser.findIndex((v) => v != null), cambio = ser[ult] - ser[primero];
+  const W = 420, H = 176, iz = 24, de = 6, arr = 18, aba = 22, n = semanas.length, banda = (W - iz - de) / n, grueso = Math.min(34, banda - 8);
+  const x = (k) => iz + banda * (k + 0.5), y = (v) => arr + (1 - v / 10) * (H - arr - aba);
+  const vs = ser.filter((v) => v != null), primero = ser.findIndex((v) => v != null), ult = ser.length - 1, cambio = ser[ult] - ser[primero];
   const fecha = (iso) => fmtDia(iso, { day: "numeric", month: "short" });
-  return `<svg class="sem-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${t("sem_t")}">
-    ${[min, (min + max) / 2, max].map((m) => `<line class="sem-grilla" x1="${iz}" x2="${W - de}" y1="${y(m)}" y2="${y(m)}"/><text class="sem-eje" x="${iz - 4}" y="${y(m) + 3}" text-anchor="end">${fmt(m, 1)}</text>`).join("")}
-    <path class="sem-area" d="${d}L${x(ult)},${y(min)}L${x(primero)},${y(min)}Z"/><path class="sem-linea" d="${d}"/>
-    ${ser.map((v, k) => (v == null ? "" : `<circle class="sem-punto" cx="${x(k)}" cy="${y(v)}" r="4" data-tip="${escapar(`<b>${t("sem_semana")(fecha(semanas[k]))}</b><span>${t("riesgo")} ${fmtRiesgo(v)}/10 · ${nombreNivel(v)}</span>`)}"/>`)).join("")}
-    <text class="sem-eje" x="${x(0)}" y="${H - 5}" text-anchor="start">${fecha(semanas[0])}</text><text class="sem-eje" x="${x(ult)}" y="${H - 5}" text-anchor="end">${fecha(semanas[ult])}</text></svg>
+  const barras = ser.map((v, k) => {
+    if (v == null) return "";
+    const alto = Math.max(2, y(0) - y(v)), r = Math.min(4, grueso / 2, alto);
+    return `<path class="sem-barra${k === ult ? " actual" : ""}" style="fill:${colorNivel(v)}" data-tip="${escapar(`<b>${t("sem_semana")(fecha(semanas[k]))}</b><span>${t("riesgo")} ${fmtRiesgo(v)}/10 · ${nombreNivel(v)}</span>`)}"
+      d="M${x(k) - grueso / 2},${y(0)} v${-(alto - r)} q0,${-r} ${r},${-r} h${grueso - 2 * r} q${r},0 ${r},${r} v${alto - r} Z"/>
+      <text class="sem-valor" x="${x(k)}" y="${y(v) - 5}" text-anchor="middle">${fmtRiesgo(v)}</text>`;
+  }).join("");
+  const marcas = semanas.map((d, k) => `<text class="sem-eje" x="${x(k)}" y="${H - 6}" text-anchor="middle">${fecha(d)}</text>`).join("");
+  return `<svg class="sem-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${t("sem_t")}">
+    ${[0, 5, 10].map((m) => `<line class="sem-grilla" x1="${iz}" x2="${W - de}" y1="${y(m)}" y2="${y(m)}"/><text class="sem-eje" x="${iz - 5}" y="${y(m) + 3}" text-anchor="end">${m}</text>`).join("")}
+    ${barras}${marcas}</svg>
     <p class="sem-pie"><b>${fmtRiesgo(ser[ult])}</b>/10 · ${nombreNivel(ser[ult])} · ${t("sem_desde")(fecha(semanas[primero]), cambio)}</p>`;
 }
 

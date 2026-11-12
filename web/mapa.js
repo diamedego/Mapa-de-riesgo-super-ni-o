@@ -41,7 +41,7 @@ function colorRiesgoExpr(meses) {
 const OPAC_RELLENO = [[4, 0.86], [10, 0.78], [13, 0.55], [16, 0.42]];
 function opacidadRiesgo(paradas) {
   const cmus = estado.sel?.tipo === "zona" ? estado.sel.lugar.cmus : null;
-  const f = 1;   // «Líneas de relieve» solo dibuja líneas: no toca los colores del riesgo
+  const f = estado.verInundadas || estado.verDensidad || estado.verSuelo ? 0.45 : 1;   // con una capa de superficie encendida, el riesgo se atenúa para que se lea
   const valor = (v) => (cmus ? ["case", ["in", ["get", "cmu"], ["literal", cmus]], v * f, v * f * 0.38] : v * f);
   return ["interpolate", ["linear"], ["zoom"], ...paradas.flatMap(([z, v]) => [z, valor(v)])];
 }
@@ -151,6 +151,31 @@ const DEM_TERRARIUM = { type: "raster-dem", encoding: "terrarium", tileSize: 256
   tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"] };
 const COLORES_RELIEVE = ["rgb(38,120,120)", "rgb(92,160,110)", "rgb(180,196,120)", "rgb(205,170,110)", "rgb(170,120,80)"];
 let demCurvas = null;
+const EX_MEDIR = 0.01, SEPARACIONES = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000];
+let separacionCurvas = 10;
+const urlCurvas = (m) => demCurvas.contourProtocolUrl({ multiplier: 1, contourLayer: "contours", elevationKey: "ele", levelKey: "level", thresholds: { 0: [m, m * 5] } });
+// La separación entre curvas se elige según el relieve que se ve: unas 8 líneas de punta a punta. En lo llano o cuando se
+// acerca mucho (donde casi no hay diferencia de altura) quedan más espaciadas en metros; en lo empinado, más juntas. Cada
+// 5.ª línea es la principal y lleva su altura.
+let vistaCurvas = "";
+function ajustarCurvas() {
+  if (!estado.relieve || !demCurvas || !mapa.getTerrain() || !mapa.getSource("curvas")) return;
+  const c = mapa.getCanvas(), ctr = mapa.getCenter(), vista = `${ctr.lng.toFixed(4)},${ctr.lat.toFixed(4)},${mapa.getZoom().toFixed(2)},${c.clientWidth}`;
+  if (vista === vistaCurvas) return;
+  const h = [];
+  for (let i = 0; i < 14; i++) for (let j = 0; j < 14; j++) {
+    const v = mapa.queryTerrainElevation(mapa.unproject([((i + 0.5) / 14) * c.clientWidth, ((j + 0.5) / 14) * c.clientHeight]));
+    if (v != null && Number.isFinite(v)) h.push(v / EX_MEDIR);
+  }
+  if (h.length < 50) { clearTimeout(ajustarCurvas.t); ajustarCurvas.t = setTimeout(ajustarCurvas, 1000); return; }   // las teselas todavía no llegaron
+  vistaCurvas = vista;
+  h.sort((x, y) => x - y);
+  const rango = h[Math.floor((h.length - 1) * 0.95)] - h[Math.floor((h.length - 1) * 0.05)];
+  const m = SEPARACIONES.find((v) => v >= rango / 8) ?? SEPARACIONES.at(-1);
+  if (m === separacionCurvas) return;
+  separacionCurvas = m;
+  mapa.getSource("curvas").setTiles([urlCurvas(m)]);
+}
 function agregarRelieve() {
   mapa.addSource("relieve", { ...DEM_TERRARIUM, attribution: "Relieve: AWS Terrain Tiles" });
   mapa.addSource("relieve-sombra", DEM_TERRARIUM);   // una fuente por uso: MapLibre dibuja mejor el sombreado y los colores así
@@ -165,12 +190,11 @@ function agregarRelieve() {
       demCurvas = new mlcontour.DemSource({ url: DEM_TERRARIUM.tiles[0], encoding: "terrarium", maxzoom: 13, worker: true, cacheSize: 100, timeoutMs: 10000 });
       demCurvas.setupMaplibre(maplibregl);
     }
-    mapa.addSource("curvas", { type: "vector", maxzoom: 15, tiles: [demCurvas.contourProtocolUrl({ multiplier: 1, contourLayer: "contours", elevationKey: "ele", levelKey: "level",
-      thresholds: { 11: [20, 100], 12: [10, 50], 13: [5, 25], 14: [2, 10] } })] });
-    mapa.addLayer({ id: "curvas", type: "line", source: "curvas", "source-layer": "contours", minzoom: 11, layout: { visibility: visible },
+    mapa.addSource("curvas", { type: "vector", maxzoom: 15, tiles: [urlCurvas(separacionCurvas)] });
+    mapa.addLayer({ id: "curvas", type: "line", source: "curvas", "source-layer": "contours", minzoom: 9, layout: { visibility: visible },
       paint: { "line-color": temaOscuro() ? "rgba(235,222,198,0.7)" : "rgba(70,50,30,0.7)", "line-width": ["match", ["get", "level"], 1, 1.2, 0.6] } }, antes);
-    mapa.addLayer({ id: "curvas-texto", type: "symbol", source: "curvas", "source-layer": "contours", minzoom: 12, filter: [">", ["get", "level"], 0],
-      layout: { visibility: visible, "symbol-placement": "line", "text-field": ["concat", ["number-format", ["get", "ele"], {}], " m"], "text-font": fuenteMapa(), "text-size": 10 },
+    mapa.addLayer({ id: "curvas-texto", type: "symbol", source: "curvas", "source-layer": "contours", minzoom: 9, filter: [">", ["get", "level"], 0],
+      layout: { visibility: visible, "symbol-placement": "line", "symbol-spacing": 420, "text-field": ["concat", ["number-format", ["get", "ele"], {}], " m"], "text-font": fuenteMapa(), "text-size": 11 },
       paint: { "text-color": temaOscuro() ? "#e8dcc6" : "#5a4632", "text-halo-color": temaOscuro() ? "#000" : "#fff", "text-halo-width": 1.2 } });
   }
   terrenoMapa();
@@ -180,7 +204,8 @@ function agregarRelieve() {
 // Terreno: exageración 1,5 con el botón 3D; escala real con solo el relieve (hace falta para medir alturas)
 function terrenoMapa() {
   if (SIN_TESELAS || !mapa.getSource("relieve")) return;
-  mapa.setTerrain(estado.relieve3d ? { source: "relieve", exaggeration: 1.5 } : null);
+  // Con las líneas de relieve el terreno queda casi plano (1 %): solo sirve para medir las alturas de lo que se ve
+  mapa.setTerrain(estado.relieve3d ? { source: "relieve", exaggeration: 1.5 } : estado.relieve ? { source: "relieve", exaggeration: EX_MEDIR } : null);
 }
 function coloresRelieve(a, b) {
   if (!(b > a + 1)) b = a + 2;
@@ -216,6 +241,7 @@ function alternarRelieve() {
   for (const id of ["curvas", "curvas-texto"]) if (mapa.getLayer(id)) mapa.setLayoutProperty(id, "visibility", vis);
   mapa.setLayoutProperty("sombreado", "visibility", estado.relieve3d ? "visible" : "none");
   terrenoMapa();
+  vistaCurvas = "";
   for (const id of ["riesgo-mun", "riesgo-radio"]) mapa.setPaintProperty(id, "fill-opacity", opacidadRiesgo(OPAC_RELLENO));
   mapa.triggerRepaint();
 }
@@ -454,13 +480,14 @@ function volarAPunto(punto, km) {
 function enlazarEventosMapa() {
   estado.mapaEnlazado = true;
   mapa.on("moveend", () => { cargarRadiosVisibles(); if (SIN_TESELAS) cargarMapaBaseVisible(); });
+  mapa.on("idle", ajustarCurvas);   // cuando terminó de cargar el terreno de la vista, se mide el relieve y se elige la separación
   mapa.on("click", (e) => {
     const est = mapa.getLayer("estaciones") && mapa.queryRenderedFeatures(e.point, { layers: ["estaciones"] })[0];
-    if (est) return;   // la estación muestra su detalle al pasar
+    if (est) return seleccionarPunto(est.geometry.coordinates.slice(0, 2), { nombre: est.properties.estacion, origen: "mapa", volar: true });
     seleccionarPunto([e.lngLat.lng, e.lngLat.lat], { origen: "mapa", volar: mapa.getZoom() < 8.5 });
   });
   mapa.on("mousemove", porCuadro((e) => {
-    const capas = ["estaciones", "alertas-relleno", "riesgo-radio", "riesgo-mun"].filter((id) => mapa.getLayer(id)
+    const capas = ["estaciones", "riesgo-radio", "riesgo-mun"].filter((id) => mapa.getLayer(id)
       && mapa.getLayoutProperty(id, "visibility") !== "none");
     const f = capas.length ? mapa.queryRenderedFeatures(e.point, { layers: capas })[0] : null;
     const html = f ? tooltipCapa(f) : estado.capa !== "riesgo" ? tooltipTiempo(e.lngLat) : null;
@@ -468,6 +495,7 @@ function enlazarEventosMapa() {
     if (html) Tip.mostrar(html, e.originalEvent); else Tip.ocultar();
   }));
   mapa.getCanvas().addEventListener("pointerleave", () => Tip.ocultar());
+  for (const ev of ["mousedown", "touchstart", "dragstart", "zoomstart", "click"]) mapa.on(ev, () => Tip.ocultar());
 }
 
 function tooltipCapa(f) {

@@ -195,13 +195,36 @@ function bloqueEvolucion() {
   const actual = tipo === "mes" ? estado.mesReproduciendo : tipo === "dia" ? estado.diaReproduciendo : jugando ? estado.paso3h : null;
   const pos = actual == null ? -1 : lista.indexOf(actual), pct = pos < 0 ? 0 : (100 * pos) / (lista.length - 1);
   const etq = (k) => (tipo === "mes" ? capitalizar(nombreMes(M[k])) : tipo === "dia" ? fechaCorta(T.dias[k]).slice(0, 5) : fmtHora(T.horas[k]));
-  const cada = Math.max(1, Math.ceil(lista.length / 5));
-  const hitos = lista.map((k, j) => ({ j, k })).filter(({ j }) => j === 0 || j === lista.length - 1 || j % cada === 0 && lista.length - 1 - j > cada / 2);
+  const n1 = lista.length - 1, pos100 = (j) => (100 * j) / n1;
+  // Semanas en el eje: en los días, un hito por lunes (la fecha y «sem»); en los meses, hitos por mes y una marca chica en cada lunes
+  let hitos, semanas = [];
+  if (tipo === "dia") {
+    const lunes = lista.map((k, j) => ({ j, k })).filter(({ k }) => new Date(`${T.dias[k]}T12:00:00Z`).getUTCDay() === 1);
+    hitos = [{ j: 0, k: lista[0] }, ...lunes.filter(({ j }) => j > 0), { j: n1, k: lista[n1] }].filter((h, i, a) => a.findIndex((x) => x.j === h.j) === i)
+      .filter((h, i, a) => i === 0 || (h.j - a[i - 1].j) / n1 > 0.16 || h.j === n1 && (h.j - a[i - 1].j) / n1 > 0.16);
+    semanas = lunes.map(({ j }) => pos100(j));
+  } else {
+    const cada = Math.max(1, Math.ceil(lista.length / 5));
+    hitos = lista.map((k, j) => ({ j, k })).filter(({ j }) => j === 0 || j === n1 || j % cada === 0 && n1 - j > cada / 2);
+    if (tipo === "mes") {
+      const ini = M[lista[0]], fin = M[lista[n1]], d0 = new Date(`${ini}-01T12:00:00Z`), d1 = new Date(`${fin}-01T12:00:00Z`);
+      d1.setUTCMonth(d1.getUTCMonth() + 1);
+      for (let d = new Date(d0); d < d1; d.setUTCDate(d.getUTCDate() + 1)) {
+        if (d.getUTCDay() !== 1) continue;
+        const mi = (d.getUTCFullYear() - d0.getUTCFullYear()) * 12 + d.getUTCMonth() - d0.getUTCMonth();
+        const dias = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate(), j = mi + (d.getUTCDate() - 1) / dias;
+        if (j > 0 && j < n1) semanas.push(pos100(j));
+      }
+    }
+  }
+  const hitoEtq = (k) => (tipo === "dia" ? `${t("sem")} ${etq(k)}` : etq(k));
   const ahora = pos >= 0 ? `<span class="tb-evol-ahora">${escapar(etq(lista[pos]))}</span>` : "";
   return `<div class="tb-evol"><button type="button" class="lt-play" data-accion="evol" aria-label="${jugando ? t("pausar") : t("reproducir")}">${icono(jugando ? "pausa" : "play")}</button>
     <div class="tb-evol-cuerpo"><div class="tb-evol-cab"><span>${t("evolucion")}</span>${ahora}</div>
       <div class="tb-evol-pista"><span class="tb-evol-relleno" style="width:${pct}%"></span>
-        ${hitos.map(({ j, k }) => `<span class="tb-evol-hito${j <= pos ? " ok" : ""}" style="left:${(100 * j) / (lista.length - 1)}%"><i></i><small>${escapar(etq(k))}</small></span>`).join("")}</div></div></div>`;
+        ${semanas.map((x) => `<span class="tb-evol-sem${x <= pct ? " ok" : ""}" style="left:${x}%"></span>`).join("")}
+        ${hitos.map(({ j, k }) => `<span class="tb-evol-hito${j <= pos ? " ok" : ""}" style="left:${pos100(j)}%"><i></i><small>${escapar(hitoEtq(k))}</small></span>`).join("")}</div>
+      <p class="tb-evol-nota">${t(tipo === "dia" ? "evol_nota_dia" : tipo === "mes" ? "evol_nota_mes" : "evol_nota_hora")}</p></div></div>`;
 }
 
 function elegirEnLinea(tipo, a, b, extender = false) {
@@ -326,27 +349,31 @@ function pintarLeyenda() {
 }
 
 // ---------- Panel de capas (fuera del mapa, sirve para las cuatro vistas) ----------
-const OPCIONES_CAPAS = [
-  ["verReferencias", "capa_ref"], ["verHidro", "capa_hidro"], ["verAlertas", "capa_alertas"], ["relieve", "capa_relieve"], ["relieve3d", "capa_3d"],
-  ["verInundadas", "capa_inundadas"], ["verDensidad", "capa_densidad"], ["verBarrios", "capa_barrios"], ["verSuelo", "capa_suelo"],
-  ["verInfra", "capa_infra"], ["verRutas", "capa_rutas"],
+// Dos grupos: el mapa de fondo se elige de a uno (riesgo, lluvia, viento o temperatura: colores que no se pueden superponer) y las
+// capas adicionales se pueden sumar de a varias. Referencias y líneas de relieve quedan aparte, en la fila chica de opciones.
+const OPCIONES_MAPA = [["verReferencias", "capa_ref"], ["relieve", "capa_relieve"]];
+const CAPAS_SUMAR = [
+  ["verHidro", "capa_hidro"], ["verAlertas", "capa_alertas"], ["verInundadas", "capa_inundadas"], ["verDensidad", "capa_densidad"],
+  ["verBarrios", "capa_barrios"], ["verSuelo", "capa_suelo"], ["verInfra", "capa_infra"], ["verRutas", "capa_rutas"],
 ];
 function pintarCapasExtra() {
-  const cont = document.getElementById("capas-extra");
-  if (!cont) return;
-  const sinTeselas = new Set(SIN_TESELAS ? ["relieve", "relieve3d", "verSuelo", "verRutas", "verInundadas"] : []);
-  cont.innerHTML = `<span class="capas-extra-tit">${t("capas_tit")}</span>` + OPCIONES_CAPAS.filter(([k]) => !sinTeselas.has(k)).map(([k, txt]) => {
+  const sinTeselas = new Set(SIN_TESELAS ? ["relieve", "verSuelo", "verRutas", "verInundadas"] : []);
+  const botones = (lista) => lista.filter(([k]) => !sinTeselas.has(k)).map(([k, txt]) => {
     const apagada = k === "verAlertas" && estado.modo !== "actual";
     return `<button type="button" class="capa-chip" data-k="${k}" aria-pressed="${!!estado[k] && !apagada}"${apagada ? " disabled" : ""}
       data-ayuda="${escapar(t(`${txt}_ayuda`))}">${t(txt)}</button>`;
   }).join("");
-  cont.querySelectorAll("[data-k]").forEach((b) => {
-    b.onclick = () => {
-      const k = b.dataset.k;
+  const a = document.getElementById("capas-extra"), b = document.getElementById("capas-sumar");
+  if (a) a.innerHTML = `<span class="capas-extra-tit">${t("capas_tit")}</span>${botones(OPCIONES_MAPA)}`;
+  if (b) b.innerHTML = botones(CAPAS_SUMAR);
+  document.querySelectorAll("#capas-extra [data-k], #capas-sumar [data-k]").forEach((x) => {
+    x.onclick = () => {
+      const k = x.dataset.k;
       if (k === "relieve") return alternarRelieve();
-      if (k === "relieve3d") return alternar3d();
       estado[k] = !estado[k];
       aplicarCapaEnMapa(); pintarLeyenda(); pintarCapasExtra();
+      // Con una capa de superficie encendida el riesgo se atenúa para que se lea
+      if (["verInundadas", "verDensidad", "verSuelo"].includes(k)) for (const id of ["riesgo-mun", "riesgo-radio"]) mapa.setPaintProperty(id, "fill-opacity", opacidadRiesgo(OPAC_RELLENO));
     };
   });
 }
