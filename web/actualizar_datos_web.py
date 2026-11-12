@@ -60,6 +60,30 @@ def lluvia_estacional() -> None:
     print(f"lluvia_estacional.json: {len(salida['cmu'])} gobiernos locales, {meses[0]} a {meses[-1]}")
 
 
+def riesgo_semanal() -> None:
+    """Riesgo de cada municipio semana a semana: la última foto diaria del índice de cada semana (lunes a domingo), con el riesgo
+    del mes en que cae esa semana. Muestra cómo cambió el riesgo vigente a medida que llegaron datos nuevos."""
+    fotos = sorted(glob.glob(str(RAIZ / "data" / "archivo" / "indice" / "2*.parquet")))
+    if not fotos:
+        return
+    por_semana = {}
+    for f in fotos:
+        dia = pd.Timestamp(Path(f).stem)
+        por_semana[(dia - pd.Timedelta(days=dia.weekday())).date().isoformat()] = (dia, f)   # queda la última de la semana
+    semanas, cols = [], {}
+    for lunes, (dia, f) in sorted(por_semana.items()):
+        d = pd.read_parquet(f, columns=["cmu", "mes", "riesgo"])
+        d = d[d["mes"].astype(str).str[:7] == dia.strftime("%Y-%m")]
+        if d.empty:
+            continue
+        semanas.append(lunes)
+        cols[lunes] = d.set_index("cmu")["riesgo"]
+    t = pd.DataFrame(cols).reindex(columns=semanas)
+    salida = {"semanas": semanas, "cmu": {c: [None if pd.isna(v) else round(float(v), 2) for v in fila] for c, fila in t.iterrows()}}
+    (SALIDA / "riesgo_semanal.json").write_text(json.dumps(salida, separators=(",", ":")))
+    print(f"riesgo_semanal.json: {len(semanas)} semanas, {len(salida['cmu'])} municipios")
+
+
 def main() -> None:
     SALIDA.mkdir(parents=True, exist_ok=True)
     idx = pd.read_parquet(GOLD / "indice_riesgo_mensual.parquet").sort_values(["cmu", "mes"])
@@ -131,6 +155,7 @@ def main() -> None:
     }
     (SALIDA / "resumen.json").write_text(json.dumps(resumen, ensure_ascii=False, indent=1, default=float))
     lluvia_estacional()
+    riesgo_semanal()
     for n in ("riesgo.json", "estaciones.geojson", "resumen.json"):
         print(f"{n}: {(SALIDA / n).stat().st_size / 1e3:.0f} KB")
 

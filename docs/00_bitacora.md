@@ -555,3 +555,12 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - Validación: CSI mediano 0,20 → 0,36 (referencia «donde ya hubo agua» 0,35), le gana en 5 de 9; Santa Fe 2015-16 simula 12,7 % del
   círculo con agua contra 13,2 % observado; Corrientes 1,95 % contra 1,91 %. Sigue corto en Santa Fe 2023-24 y Tigre.
 - El simulador del sitio arranca con la altura de hoy de la estación del INA más cercana (antes, nivel fijo de la imagen satelital).
+
+## 2026-11-11 — Ajustes del encabezado y los filtros
+- Título y bajada nuevos; «Datos actualizados» pasó al final de la página.
+- «Zonas de mayor riesgo» como indicador de barras en el encabezado: país → municipios; provincia o partido → sus municipios;
+  municipio → sus radios censales; punto en el mapa → no se muestra. Se actualiza con los filtros y el período.
+- Gráfico de riesgo semana a semana de la zona elegida (promedio ponderado por población), con `web/datos/riesgo_semanal.json`
+  (última foto diaria del índice de cada semana, generado por `actualizar_datos_web.py` y subido por el workflow).
+- Radio como barra (0,5 a 20 km) en la fila de filtros.
+- «Líneas de relieve» solo dibuja líneas con su altura: ya no pinta colores, sombreado ni baja la opacidad del riesgo.

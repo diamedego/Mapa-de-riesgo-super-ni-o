@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Argentina frente a El Niño 2026-27</title>
+<title>Argentina frente a El Niño 2026–27</title>
 <meta name="description" content="Riesgo de inundación y tiempo en los 2 282 gobiernos locales de la Argentina durante El Niño 2026-27, con datos públicos que se actualizan solos.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,7 +22,7 @@
         <path d="M8 30c3 0 3-2 6-2s3 2 6 2 3-2 6-2 3 2 6 2" fill="none" stroke="#a5f3fc" stroke-width="2.4" stroke-linecap="round" opacity=".7"/>
         <path d="M20 8c3 3.6 5 6.3 5 8.8a5 5 0 0 1-10 0c0-2.5 2-5.2 5-8.8Z" fill="#ecfeff"/></svg>
       <div class="marca-textos">
-        <h1 data-i18n="titulo">Argentina frente a El Niño 2026-27</h1>
+        <h1 data-i18n="titulo">Argentina frente a El Niño 2026–27</h1>
         <p class="bajada" data-i18n="bajada">Riesgo de inundación y tiempo en los 2 282 gobiernos locales, con datos públicos que se actualizan solos.</p>
       </div>
     </div>
@@ -36,6 +36,7 @@
   <div class="intro" id="intro" role="region" aria-label="Situación del país"></div>
   <p class="kpis-alcance" id="kpis-alcance"></p>
   <div class="kpis" id="kpis" aria-live="polite"></div>
+  <div class="kpis-graficos" id="kpis-graficos"></div>
 </header>
 
 <section class="controles" aria-label="Búsqueda y período">
@@ -62,7 +63,7 @@
     </div>
     <div class="campo campo-radio">
       <label for="b-radio" data-i18n="b_radio">Radio</label>
-      <select id="b-radio"><option value="1">1 km</option><option value="2" selected>2 km</option><option value="5">5 km</option><option value="10">10 km</option><option value="20">20 km</option></select>
+      <div class="radio-barra"><input type="range" id="b-radio" min="0.5" max="20" step="0.5" value="2" aria-label="Radio"><output id="b-radio-v" for="b-radio">2 km</output></div>
     </div>
     <div class="buscador-botones">
       <button type="submit" class="btn-primario"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><span data-i18n="b_buscar">Buscar</span></button>
@@ -111,11 +112,11 @@
 <section class="analisis" id="analisis" aria-label="Análisis por zonas"></section>
 
 <footer class="pie">
+  <div class="intro-fila pie-datos" id="datos-act"></div>
   <p data-i18n="pie_oficial"><strong>No es un producto oficial.</strong> Ante una emergencia, seguí las indicaciones de Defensa Civil, el SMN y el INA.</p>
   <p data-i18n="pie_metodo"></p>
   <p data-i18n="pie_fuentes"></p>
-  <p><a href="#fuentes" data-i18n="intro_ver_fuentes">Ver fuentes de datos por tipo →</a></p>
-  <p><a href="https://github.com/diamedego/Mapa-de-riesgo-super-ni-o" data-i18n="pie_repo">Código, datos y metodología en GitHub</a></p>
+    <p><a href="https://github.com/diamedego/Mapa-de-riesgo-super-ni-o" data-i18n="pie_repo">Código, datos y metodología en GitHub</a></p>
 </footer>
 
 <div class="sim" id="sim" hidden role="dialog" aria-modal="true" aria-labelledby="sim-titulo">

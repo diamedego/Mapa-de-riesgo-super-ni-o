@@ -357,7 +357,7 @@ function seleccionar(sel, { volar = false } = {}) {
   aplicarSeleccionEnMapa();
   aplicarCapaEnMapa();
   actualizarBorrar();
-  pintarKpis(); pintarTablero(); pintarAnalisis(); pintarLeyenda();
+  pintarKpis(); pintarGraficosHeader(); pintarTablero(); pintarAnalisis(); pintarLeyenda();
   if (volar && sel?.tipo === "zona") volarAZona(sel.lugar);
   if (volar && sel?.tipo === "punto") volarAPunto(sel.punto, sel.km);
   if (!sel && volar !== false) mapa.flyTo({ ...VISTA_PAIS, duration: movimientoReducido() ? 0 : 1400 });
@@ -377,11 +377,12 @@ function seleccionarPunto(punto, { nombre = null, origen = "mapa", volar = false
     nombre: nombre ?? (muni ? t("punto_en")(muni.properties.nam) : t("punto_en_mapa")) }, { volar });
   if (esMovil() && origen !== "mapa") document.getElementById("tablero").scrollIntoView({ behavior: "smooth", block: "start" });
 }
+function cambiarRadioBarra() { document.getElementById("b-radio").value = String(estado.km); document.getElementById("b-radio-v").textContent = `${fmt(estado.km, estado.km % 1 ? 1 : 0)} km`; }
 function cambiarRadio(km) {
   estado.km = km;
-  const sel = document.getElementById("b-radio");
-  if (![...sel.options].some((o) => o.value === String(km))) sel.add(new Option(`${String(km).replace(".", ",")} km`, String(km)));
-  sel.value = String(km);
+  const barra = document.getElementById("b-radio");
+  barra.value = String(km);
+  document.getElementById("b-radio-v").textContent = `${fmt(km, km % 1 ? 1 : 0)} km`;
   if (estado.sel?.tipo === "punto") {
     estado.sel = { ...estado.sel, km };
     aplicarSeleccionEnMapa();
@@ -398,6 +399,7 @@ function actualizarTodo({ ligero = false, cuadro = false } = {}) {
   pintarLeyenda();
   if (cuadro) { pintarKpis(); return; }   // durante la reproducción: mapa, línea y números grandes
   pintarKpis();
+  pintarGraficosHeader();
   pintarMinisDemorado();
   pintarTablero();
   if (!ligero || estado.capa !== "riesgo") pintarAnalisis(); else pintarAnalisisDemorado();
@@ -441,7 +443,7 @@ function alternar3d() {
   pintarCapasExtra();
   if (!SIN_TESELAS && mapa.getSource("relieve")) {
     terrenoMapa();
-    mapa.setLayoutProperty("sombreado", "visibility", estado.relieve || estado.relieve3d ? "visible" : "none");
+    mapa.setLayoutProperty("sombreado", "visibility", estado.relieve3d ? "visible" : "none");
   }
   mapa.easeTo({ pitch: estado.relieve3d ? 55 : 0, bearing: estado.relieve3d ? -12 : 0, duration: 900 });
 }
@@ -458,13 +460,13 @@ async function iniciar() {
   if (q.get("tema")) document.documentElement.dataset.theme = q.get("tema") === "oscuro" || q.get("tema") === "dark" ? "dark" : "light";
   if (q.get("lang") === "en") estado.idioma = "en";
   const archivos = ["resumen.json", "municipios_geo.geojson", "riesgo.json", "estaciones.geojson", "radios/indice.json",
-    "provincias_geo.geojson", "bordes_geo.geojson", "buscador.json", "alertas.geojson"];
-  const [resumen, municipios, riesgo, estaciones, cajas, provincias, bordes, buscador, alertas] = await Promise.all(archivos.map((f) =>
+    "provincias_geo.geojson", "bordes_geo.geojson", "buscador.json", "alertas.geojson", "riesgo_semanal.json"];
+  const [resumen, municipios, riesgo, estaciones, cajas, provincias, bordes, buscador, alertas, semanal] = await Promise.all(archivos.map((f) =>
     fetch(`datos/${f}`, { cache: "no-cache" }).then((r) => r.json()).catch(() => (f === "alertas.geojson" ? { type: "FeatureCollection", features: [] } : null))));
   unirRiesgo(municipios, riesgo);
   unirBordes(bordes, riesgo);
   estado.riesgo = riesgo;
-  estado.datos = { resumen, municipios, estaciones, cajas, provincias, bordes, buscador, alertas };
+  estado.datos = { resumen, municipios, estaciones, cajas, provincias, bordes, buscador, alertas, semanal };
   try { await cargarTiempo(); } catch (e) { estado.tiempo = null; }
   // Mes en curso y períodos por defecto
   const M = riesgo.meses, hoyM = mesLocal();
@@ -495,7 +497,7 @@ async function iniciar() {
   if (CAPAS.includes(q.get("capa"))) estado.capa = q.get("capa");
   if (q.get("modo") === "futuro") estado.modo = "futuro";
   if (q.get("radio")) estado.km = Number(q.get("radio")) || 2;
-  document.getElementById("b-radio").value = String(estado.km);
+  cambiarRadioBarra();
   // Espera a que las capas del mapa existan (el evento "load" puede pasar antes de enganchar y en el celular tarda más)
   const alCargar = (fn) => {
     let t0 = performance.now();

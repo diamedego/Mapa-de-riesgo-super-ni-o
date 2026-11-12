@@ -32,19 +32,83 @@ function pintarIntro() {
   const partes = [t("intro_riesgo")(nombreNivel(rPais).toLowerCase(), fmtRiesgo(rPais)), t("intro_altos")(fmtPersonas(altos)),
     nEv || nAl ? t("intro_rios")(nEv, nAl) : "", tipos ? t("intro_alertas")(tipos, peorAlerta ? t(`nivel_alerta_${peorAlerta}`) : null) : "",
     pico ? t("intro_pico")(nombreMes(pico, true)) : ""].filter(Boolean);
-  cont.innerHTML = `
-    <div class="intro-fila"><span class="intro-etq">${t("intro_pais")(capitalizar(nombreMes(R.meses[iM], true)))}</span><span>${partes.join(" · ")}</span></div>
-    <div class="intro-fila"><span class="intro-etq">${t("intro_zonas")}</span><span class="intro-zonas">${top.map((c) => {
-      const m = estado.porCmu.get(c) ?? {};
-      return `<button type="button" class="intro-zona" data-cmu="${c}"><i style="background:${colorNivel(R.cmu[c].r[iM])}"></i>${escapar(m.nam)}
-        <small>${escapar(ABREV_PROV[m.jur] ?? m.jur)} · ${fmtRiesgo(R.cmu[c].r[iM])}</small></button>`; }).join("")}</span></div>
-    <div class="intro-fila"><span class="intro-etq">${t("intro_datos")}</span><span class="intro-act">${[["riesgo", "upd_riesgo"], ["tiempo", "upd_tiempo"],
+  cont.innerHTML = `<div class="intro-fila"><span class="intro-etq">${t("intro_pais")(capitalizar(nombreMes(R.meses[iM], true)))}</span><span>${partes.join(" · ")}</span></div>`;
+  // Datos actualizados: al final de la página
+  const pie = document.getElementById("datos-act");
+  if (pie) {
+    pie.innerHTML = `<span class="intro-etq">${t("datos_act")}</span><span class="intro-act">${[["riesgo", "upd_riesgo"], ["tiempo", "upd_tiempo"],
       ["alertas", "upd_alertas"], ["ina", "upd_ina"], ["glofas", "upd_glofas"], ["seas5", "upd_seas5"]].filter(([k]) => act[k])
-      .map(([k, e]) => `<span>${t(e)} <b>${act[k]}</b></span>`).join("")}<a href="#fuentes" class="intro-fuentes">${t("intro_ver_fuentes")}</a></span></div>`;
-  cont.querySelectorAll(".intro-zona").forEach((b) => {
-    b.onclick = () => { const l = estado.lugares.find((x) => x.nivel === "gl" && x.cmus[0] === b.dataset.cmu); if (l) elegirLugar("localidad", l); };
+      .map(([k, e]) => `<span>${t(e)} <b>${act[k]}</b></span>`).join("")}<a href="#fuentes" class="intro-fuentes">${t("intro_ver_fuentes")}</a></span>`;
+    pie.querySelector(".intro-fuentes").onclick = (ev) => { ev.preventDefault(); abrirFuentes(); };
+  }
+}
+
+// ---------- Indicadores gráficos del encabezado: zonas de mayor riesgo y riesgo semana a semana ----------
+function nombreZonaSel() { const s = estado.sel; return !s ? "Argentina" : s.tipo === "zona" ? s.lugar.nombre : estado.porCmu.get(s.cmu)?.nam ?? t("punto_en_mapa"); }
+let pedidoZonas = 0;
+async function pintarGraficosHeader() {
+  const cont = document.getElementById("kpis-graficos");
+  if (!cont || !estado.riesgo) return;
+  const s = estado.sel, yo = ++pedidoZonas;
+  // 1) Zonas de mayor riesgo: sin selección, el país; con una provincia o partido, sus municipios; con un municipio, sus radios
+  //    censales; con un punto en el mapa no se muestra
+  let filas = [], sub = "", ocultar = s?.tipo === "punto";
+  if (!ocultar) {
+    const idx = indicesVista(), R = estado.riesgo, M = R.meses;
+    if (s?.tipo === "zona" && s.lugar.cmus.length === 1) {
+      const cmu = s.lugar.cmus[0];
+      await cargarRadiosEn(s.lugar.caja);
+      if (yo !== pedidoZonas) return;
+      filas = estado.radios.filter((f) => f.properties.cmu === cmu).map((f) => {
+        const r = Math.max(...idx.map((i) => Number(f.properties[`r_${M[i]}`]) || 0));
+        return { nombre: `${t("zr_radio")} ${String(f.properties.cod_indec).slice(-7)}`, sub: `${fmtPersonas(f.properties.poblacion)} ${t("poblacion").toLowerCase()}`, r, c: f.properties._c, radio: true };
+      }).sort((a, b) => b.r - a.r).slice(0, 5);
+      sub = t("zr_radios")(s.lugar.nombre);
+    } else {
+      const cmus = cmusSel(), vals = valoresRiesgoVista();
+      filas = cmus.filter((c) => vals.has(c)).map((c) => ({ cmu: c, nombre: estado.porCmu.get(c)?.nam ?? c, sub: ABREV_PROV[estado.porCmu.get(c)?.jur] ?? estado.porCmu.get(c)?.jur, r: vals.get(c) }))
+        .sort((a, b) => b.r - a.r).slice(0, 5);
+      sub = s ? t("zr_sel")(s.lugar.nombre) : t("zr_pais");
+    }
+  }
+  const barras = ocultar ? "" : `<div class="kpi-g zr"><div class="kpi-g-cab"><b>${t("zr_t")}</b><small>${escapar(sub)}</small></div><ol class="zr-lista">${filas.map((f, i) =>
+    `<li class="zr-fila" data-i="${i}" tabindex="0" data-tip="${escapar(`<b>${escapar(f.nombre)}</b><span>${escapar(f.sub ?? "")} · ${nombreNivel(f.r)} (${fmtRiesgo(f.r)}/10)</span>`)}">
+      <span class="zr-nombre">${escapar(f.nombre)}<small>${escapar(f.sub ?? "")}</small></span>
+      <span class="zr-pista"><span style="width:${limitar(f.r * 10, 2, 100)}%;background:${colorNivel(f.r)}"></span></span><b>${fmtRiesgo(f.r)}</b></li>`).join("")}</ol></div>`;
+  // 2) Riesgo semana a semana de la zona elegida (promedio ponderado por población)
+  const W = estado.datos.semanal;
+  let sem = "";
+  if (W?.semanas?.length > 1) {
+    const cmus = (s?.tipo === "zona" ? s.lugar.cmus : s?.cmu ? [s.cmu] : todosLosCmus()).filter((c) => W.cmu[c]);
+    const peso = cmus.map((c) => Math.max(1, Number(estado.porCmu.get(c)?.poblacion) || 1));
+    const ser = W.semanas.map((_, k) => { let a = 0, w = 0; cmus.forEach((c, i) => { const v = W.cmu[c][k]; if (v != null) { a += v * peso[i]; w += peso[i]; } }); return w ? a / w : null; });
+    sem = `<div class="kpi-g sem"><div class="kpi-g-cab"><b>${t("sem_t")}</b><small>${escapar(t("sem_sub")(nombreZonaSel()))}</small></div>${ser.filter((v) => v != null).length > 1 ? lineaSemanal(W.semanas, ser) : `<p class="kpi-g-vacio">${t("sem_sin")}</p>`}</div>`;
+  }
+  cont.hidden = !barras && !sem;
+  cont.className = `kpis-graficos${barras && sem ? " dos" : ""}`;
+  cont.innerHTML = barras + sem;
+  cont.querySelectorAll(".zr-fila").forEach((li) => {
+    const f = filas[+li.dataset.i], ir = () => {
+      if (f.radio) return seleccionarPunto(f.c, { volar: true, origen: "ranking" });
+      const l = estado.lugares.find((x) => x.nivel === "gl" && x.cmus[0] === f.cmu); if (l) elegirLugar("localidad", l);
+    };
+    li.onclick = ir; li.onkeydown = (ev) => { if (ev.key === "Enter") ir(); };
   });
-  cont.querySelector(".intro-fuentes").onclick = (ev) => { ev.preventDefault(); abrirFuentes(); };
+  tipsEn(cont);
+}
+function lineaSemanal(semanas, ser) {
+  const W = 420, H = 92, iz = 28, de = 10, arr = 8, aba = 20, vs = ser.filter((v) => v != null);
+  const min = Math.floor((Math.min(...vs) - 0.2) * 2) / 2, max = Math.max(min + 1, Math.ceil((Math.max(...vs) + 0.2) * 2) / 2);
+  const x = (k) => iz + (k / (semanas.length - 1)) * (W - iz - de), y = (v) => arr + (1 - (v - min) / (max - min)) * (H - arr - aba);
+  const d = ser.map((v, k) => (v == null ? "" : `${k && ser[k - 1] != null ? "L" : "M"}${x(k).toFixed(1)},${y(v).toFixed(1)}`)).join("");
+  const ult = ser.length - 1, primero = ser.findIndex((v) => v != null), cambio = ser[ult] - ser[primero];
+  const fecha = (iso) => fmtDia(iso, { day: "numeric", month: "short" });
+  return `<svg class="sem-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${t("sem_t")}">
+    ${[min, (min + max) / 2, max].map((m) => `<line class="sem-grilla" x1="${iz}" x2="${W - de}" y1="${y(m)}" y2="${y(m)}"/><text class="sem-eje" x="${iz - 4}" y="${y(m) + 3}" text-anchor="end">${fmt(m, 1)}</text>`).join("")}
+    <path class="sem-area" d="${d}L${x(ult)},${y(min)}L${x(primero)},${y(min)}Z"/><path class="sem-linea" d="${d}"/>
+    ${ser.map((v, k) => (v == null ? "" : `<circle class="sem-punto" cx="${x(k)}" cy="${y(v)}" r="4" data-tip="${escapar(`<b>${t("sem_semana")(fecha(semanas[k]))}</b><span>${t("riesgo")} ${fmtRiesgo(v)}/10 · ${nombreNivel(v)}</span>`)}"/>`)).join("")}
+    <text class="sem-eje" x="${x(0)}" y="${H - 5}" text-anchor="start">${fecha(semanas[0])}</text><text class="sem-eje" x="${x(ult)}" y="${H - 5}" text-anchor="end">${fecha(semanas[ult])}</text></svg>
+    <p class="sem-pie"><b>${fmtRiesgo(ser[ult])}</b>/10 · ${nombreNivel(ser[ult])} · ${t("sem_desde")(fecha(semanas[primero]), cambio)}</p>`;
 }
 
 // ---------- Fuentes de datos por tipo (ventana) ----------

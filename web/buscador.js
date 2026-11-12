@@ -16,7 +16,10 @@ function prepararBuscador() {
   document.querySelectorAll(".buscador input").forEach((x) => x.addEventListener("input", actualizarBorrar));
   document.getElementById("form-buscar").addEventListener("submit", (e) => { e.preventDefault(); buscar(); });
   document.getElementById("btn-borrar").onclick = borrarTodo;
-  document.getElementById("b-radio").onchange = (e) => cambiarRadio(Number(e.target.value));
+  // Radio: barra; el número cambia al deslizar y el análisis se recalcula al soltar
+  const barra = document.getElementById("b-radio"), num = document.getElementById("b-radio-v");
+  barra.oninput = () => { num.textContent = `${fmt(+barra.value, +barra.value % 1 ? 1 : 0)} km`; };
+  barra.onchange = () => cambiarRadio(Number(barra.value));
 }
 
 // Candidatos para un campo: coincidencia (exacta, empieza, palabras, contiene) y luego los más poblados
