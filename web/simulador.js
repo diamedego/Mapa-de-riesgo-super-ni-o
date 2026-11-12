@@ -44,6 +44,7 @@ function abrirSimulador() {
   validacion().then((V) => { SIM.validacion = V; pintarValidez(); });
   const caja = document.getElementById("sim");
   caja.hidden = false;
+  document.querySelector(".sim-mapa-marco").classList.add("sim-armando");   // el mapa con relieve queda oculto: se ve directo la maqueta 3D cuando está lista
   document.body.classList.add("sim-abierto");
   document.getElementById("sim-titulo").textContent = s.nombre ?? t("punto_en_mapa");
   document.getElementById("sim-sub").textContent = `${t("sel_circulo")(s.km)} · ${estado.porCmu.get(s.cmu)?.nam ?? ""}`;
@@ -660,6 +661,7 @@ async function elegirVistaSimulador(v) {
     est.innerHTML = `${t("sim_error_maqueta")}<br><small>${escapar(e.message)}</small><br><button type="button" class="chip" id="sim-diag-ver">${t("sim_diag")}</button>`;
     document.getElementById("sim-diag-ver").onclick = mostrarDiagnostico;
     SIM.maqueta?.capa?.remove(); SIM.maqueta = null;
+    document.querySelector(".sim-mapa-marco")?.classList.remove("sim-armando");
     setTimeout(() => { if (SIM.vista === "maqueta") elegirVistaSimulador("mapa"); }, 600);   // se deja el mapa 2D con el agua en celeste
     return;
   }
@@ -667,6 +669,7 @@ async function elegirVistaSimulador(v) {
   if (SIM.vista !== "maqueta" || !SIM.maqueta) return;
   if (SIM.camaraPendiente) { Object.assign(SIM.maqueta, SIM.camaraPendiente); SIM.camaraPendiente = null; }
   SIM.maqueta.capa.hidden = false;
+  document.querySelector(".sim-mapa-marco")?.classList.remove("sim-armando");
   SIM.maqueta.redimensionar();
   actualizarMaqueta(true);
   setTimeout(verificarMaqueta, 1800);

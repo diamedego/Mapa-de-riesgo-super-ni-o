@@ -856,4 +856,7 @@ body.sim-abierto { overflow: hidden; }
 .sim-eje-tit { font-size: 9.5px; fill: var(--tinta-2); font-family: var(--f-ui); font-weight: 600; }
 .sim-eje-nota { margin-left: auto; color: var(--tinta-3); }
 .sim-tick-der, .sim-eje-der { fill: #1f74c9; } .sim-eje-der { stroke: #1f74c9; fill: none; } text.sim-tick-der { text-anchor: start; } text.sim-eje-tit.sim-tick-der { text-anchor: end; }
+/* Mientras se arma la maqueta no se muestra el mapa con relieve: solo el fondo de la maqueta y el aviso de carga */
+.sim-mapa-marco.sim-armando { background: radial-gradient(ellipse at 50% 40%, var(--maq-1) 0%, var(--maq-2) 70%, var(--maq-3) 100%); }
+.sim-mapa-marco.sim-armando #sim-mapa, .sim-mapa-marco.sim-armando .sim-leyenda-mapa { visibility: hidden; }
 
