@@ -197,12 +197,15 @@ function bloqueEvolucion() {
   const semMes = tipo === "mes" ? semanasDeMeses(lista) : [], n1 = lista.length - 1;
   let hitos, semanas, pct = 0, cartel = "", color = "var(--cian)", tinta = "var(--cian-tinta)";
   if (tipo === "mes") {
-    const nS = semMes.length, x = (j) => (nS > 1 ? (100 * j) / (nS - 1) : 0);
-    hitos = lista.map((mi) => ({ x: x(Math.max(0, semMes.findIndex((w) => w.mes === mi))), etq: mesCorto(M[mi]), activo: false, mi }));
-    semanas = semMes.map((_, j) => x(j));
+    // A escala de calendario: arranca el día 1 del primer mes y termina el día 1 del mes siguiente al último (se muestra ese mes)
+    const dia = (iso) => Date.parse(`${iso}T12:00:00Z`) / 864e5, ini = dia(`${M[lista[0]]}-01`);
+    const sig = new Date(`${M[lista[n1]]}-01T12:00:00Z`); sig.setUTCMonth(sig.getUTCMonth() + 1);
+    const fin = sig.getTime() / 864e5, x = (d) => (100 * (d - ini)) / (fin - ini);
+    hitos = [...lista.map((mi) => ({ x: x(dia(`${M[mi]}-01`)), etq: mesCorto(M[mi]), activo: false })), { x: 100, etq: mesCorto(sig.toISOString().slice(0, 7)), activo: false }];
+    semanas = semMes.map((w) => x(dia(w.iso)));
     const w = estado.semanaReproduciendo != null ? semMes[estado.semanaReproduciendo] : null;
     if (w && jugando) {
-      pct = x(estado.semanaReproduciendo);
+      pct = x(dia(w.iso));
       const r = riesgoDelMes(w.mes), niv = nivelRiesgo(r) || 1;
       color = `var(--r${niv})`; tinta = niv === 1 || niv === 5 ? "#fff" : "#1b2430";
       cartel = t("sem_cartel")(w.n, mesCorto(M[w.mes]));
