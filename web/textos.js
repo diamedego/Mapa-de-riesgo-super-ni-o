@@ -136,7 +136,7 @@ const TEXTOS = {
     meses_largos: { "01": "enero", "02": "febrero", "03": "marzo", "04": "abril", "05": "mayo", "06": "junio", "07": "julio", "08": "agosto", "09": "septiembre", "10": "octubre", "11": "noviembre", "12": "diciembre" },
     u_millones: "M", u_mil: "mil",
     // Tablero
-    sel_pais: "Todo el país", sel_zona: "Zona elegida", sel_circulo: (k) => `Círculo de ${k} km`, sub_pais: "2 282 gobiernos locales",
+    sel_pais: "Todo el país", sel_zona: "Zona elegida", sel_circulo: (k) => `Círculo de ${k} km`, sub_pais: "2.282 gobiernos locales",
     provincia: "Provincia", punto_en_mapa: "Punto en el mapa", punto_en: (m) => `Punto en ${m}`, radio_km: "Radio del círculo",
     quitar_seleccion: "Quitar la selección", ver_municipio: (m) => `Ver todo ${m}`,
     que_hacer: "Qué hacer", nota_oficial: "Orientativo, no es un producto oficial. Ante una emergencia, seguí a Defensa Civil, el SMN y el INA.",
@@ -281,7 +281,7 @@ const TEXTOS = {
     comp_riesgo: "Riesgo", comp_amenaza: "Amenaza", comp_amenaza_sub: "agua, ríos y quebradas", comp_exposicion: "Exposición", comp_exposicion_sub: "gente en terreno bajo",
     comp_vulnerabilidad: "Vulnerabilidad", comp_vulnerabilidad_sub: "cloacas, NBI y vivienda", pareto_puesto: (n, p) => `${n} está en el puesto ${p}.`,
     ranking_t: "Municipios prioritarios", tab_relativo: "Por nivel de riesgo", tab_personas: "Por cantidad de personas", robustez: "Robustez",
-    robustez_nota: "Robustez: % de 1 000 simulaciones con pesos distintos en las que el municipio queda en el 10 % de mayor riesgo.",
+    robustez_nota: "Robustez: % de 1.000 simulaciones con pesos distintos en las que el municipio queda en el 10 % de mayor riesgo.",
     // Recorrido guiado
     anterior: "Anterior", siguiente: "Siguiente", terminar: "Terminar", cerrar: "Cerrar",
     g1_t: "Qué es este tablero", g1_p: "Muestra el riesgo de inundación de cada municipio durante El Niño 2026-27 y el tiempo de los próximos días. Acá arriba está la situación del país; más abajo, las zonas de mayor riesgo (tocá una para ir) y cómo cambió el riesgo semana a semana. Al final de la página, cuándo se actualizó cada dato.",
@@ -304,7 +304,7 @@ const TEXTOS = {
     intro_zonas: "Zonas de mayor riesgo", intro_datos: "Datos actualizados", intro_ver_fuentes: "Ver fuentes de datos por tipo →",
     eje_dias: "marcas: días", eje_semanas: "marcas: cada lunes (semana)", sem_cartel: (n, m) => `Semana ${n}, ${m}`, sem_cartel_dia: (n, f) => `Semana ${n}, ${f}`, sem: "sem.", evol_nota_dia: "Los hitos marcan el comienzo de cada semana (lunes); «sem.» = semana que empieza ese día.", evol_nota_mes: "Los puntos son meses; las marcas chicas, cada semana (lunes).", evol_nota_hora: "Cada punto es un paso de 3 horas.",
     info_aria: "Detalle de este indicador (pronto, un PDF con la metodología)", info_generico: "Detalle y metodología de este indicador: próximamente.",
-    info_riesgo: "<b>Riesgo de inundación</b>, de 0 a 10.<br><b>Riesgo = ∛(Amenaza × Exposición × Vulnerabilidad)</b> (estructura INFORM; la raíz cúbica da el mismo peso, ⅓, a cada una).<br><br><b>Amenaza</b> (por mes) = 10 − Π(10 − Hᵢ)/100, combinando tres amenazas:<br>• Agua en superficie = 10 × P × f. P = ⅓ superficie con agua alguna vez (JRC 1984-2021) + ⅓ agua en los Niño 2015-16 y 2023-24 (Dynamic World) + ⅓ terreno a menos de 2 m del cauce. f = lluvia pronosticada ÷ normal ÷ 2, entre 0 y 1 (SEAS5).<br>• Crecida de ríos = 10 × máx(prob. de evacuación; ½ × prob. de alerta) de la estación INA confiable a ≤ 30 km (GloFAS).<br>• Quebradas = 10 × pendiente × f × (½ + ½ arcilla).<br><b>Exposición</b> = 10 × (½ rango de la población en terreno bajo + ½ rango de su proporción).<br><b>Vulnerabilidad</b> = 10 × (¼ sin cloaca + ¼ NBI + ¼ materiales deficientes + ¼ barrios populares por habitante), todos como rango entre municipios.<br><br>Con 1 000 combinaciones aleatorias de pesos se mide la robustez. En un círculo o radio censal: ∛(Amenaza del municipio × Exposición del radio × Vulnerabilidad del radio). Es una estimación, no una medición.",
+    info_riesgo: "<b>Riesgo de inundación</b>, de 0 a 10.<br><b>Riesgo = ∛(Amenaza × Exposición × Vulnerabilidad)</b> (estructura INFORM; la raíz cúbica da el mismo peso, ⅓, a cada una).<br><br><b>Amenaza</b> (por mes) = 10 − Π(10 − Hᵢ)/100, combinando tres amenazas:<br>• Agua en superficie = 10 × P × f. P = ⅓ superficie con agua alguna vez (JRC 1984-2021) + ⅓ agua en los Niño 2015-16 y 2023-24 (Dynamic World) + ⅓ terreno a menos de 2 m del cauce. f = lluvia pronosticada ÷ normal ÷ 2, entre 0 y 1 (SEAS5).<br>• Crecida de ríos = 10 × máx(prob. de evacuación; ½ × prob. de alerta) de la estación INA confiable a ≤ 30 km (GloFAS).<br>• Quebradas = 10 × pendiente × f × (½ + ½ arcilla).<br><b>Exposición</b> = 10 × (½ rango de la población en terreno bajo + ½ rango de su proporción).<br><b>Vulnerabilidad</b> = 10 × (¼ sin cloaca + ¼ NBI + ¼ materiales deficientes + ¼ barrios populares por habitante), todos como rango entre municipios.<br><br>Con 1.000 combinaciones aleatorias de pesos se mide la robustez. En un círculo o radio censal: ∛(Amenaza del municipio × Exposición del radio × Vulnerabilidad del radio). Es una estimación, no una medición.",
     info_situacion_en: "Resumen del lugar elegido: nivel de riesgo, de qué se compone, ahora y en el período, por qué el agua no se absorbe, antecedentes y población (Censo 2022). Índice propio de 0 a 10 con el Censo 2022, el relieve, satélites y los pronósticos SEAS5 y GloFAS. Antecedentes: agua vista por satélite de noviembre a abril, comparada con la sequía de 2022-23. Orientativo, no es un producto oficial: ante una emergencia, seguí a Defensa Civil, el SMN y el INA.",
     info_que_hacer: "Recomendaciones armadas con los datos del lugar (amenaza dominante, terreno, suelo, cloacas, antecedentes, ríos, alertas y horizonte), separadas en prevención y emergencia. Orientativo: no reemplaza a Defensa Civil.",
     info_que_lo_explica: "Las tres amenazas del peor mes, de 0 a 10: agua en superficie (relieve, satélite y lluvia SEAS5), crecida de ríos (GloFAS e INA) y quebradas (pendiente, arcilla y lluvia). Se combinan como 10 − Π(10 − Hᵢ)/100.",
@@ -326,7 +326,7 @@ const TEXTOS = {
     info_zr_t: "Los 5 lugares de mayor riesgo del período elegido: municipios del país o de la zona, o radios censales si elegís un municipio. Riesgo de 0 a 10 (ver la fórmula en «Riesgo de inundación»). Con un punto en el mapa no se muestra.",
     info_sem_t: "Riesgo vigente cada semana, tomado de la última foto diaria del índice de esa semana, promedio ponderado por población de la zona elegida. Muestra cómo cambió el riesgo a medida que llegaron datos nuevos (lluvia, ríos, pronósticos).",
     info_pareto_t: "Personas en riesgo de cada zona (el color es su nivel); la zona elegida va resaltada. Se llega al 80 % de las personas en riesgo con las zonas indicadas. Tocá una barra para filtrar.",
-    info_ranking_t: "Municipios por nivel de riesgo o por cantidad de personas en riesgo. Robustez: % de 1 000 simulaciones con pesos distintos en las que el municipio queda en el 10 % de mayor riesgo.",
+    info_ranking_t: "Municipios por nivel de riesgo o por cantidad de personas en riesgo. Robustez: % de 1.000 simulaciones con pesos distintos en las que el municipio queda en el 10 % de mayor riesgo.",
     info_explica_t: "Promedios ponderados por población, de 0 a 10, en el peor mes de cada zona: amenaza, exposición y vulnerabilidad de la selección frente a su provincia y al país. Riesgo = ∛(amenaza × exposición × vulnerabilidad).",
     info_an_dia_dia: "Pronóstico diario de cada zona con la misma escala en todos los paneles; la franja marca el período. Tocá un día para verlo o una zona para filtrar.",
     info_an_lluvia_personas: "Personas que viven en municipios con 20 mm o más de lluvia ese día, según el pronóstico en el centro de cada municipio.",
@@ -363,9 +363,9 @@ const TEXTOS = {
         { n: "Superficie construida, humedales y cultivos", f: "MapBiomas Argentina, colección 2", tipo: "hist", cada: "una vez por año", u: "https://argentina.mapbiomas.org", d: "Cuánto suelo está construido o pavimentado (no absorbe) y cuánto es humedal (retiene el agua)." },
       ] },
       { t: "Población y vivienda", items: [
-        { n: "Población, cloacas, NBI y vivienda", f: "INDEC, Censo 2022 (radios censales)", tipo: "hist", cada: "fijo (censo)", u: "https://censo.gob.ar", d: "66 515 radios censales: personas, hogares sin cloaca, necesidades básicas insatisfechas y materiales de la vivienda." },
-        { n: "Barrios populares", f: "Registro Nacional de Barrios Populares (RENABAP)", tipo: "hist", cada: "fijo", d: "6 467 barrios con su superficie, cantidad de viviendas y familias." },
-        { n: "Municipios, departamentos y localidades", f: "INDEC (gobiernos locales), IGN y Georef", tipo: "ref", cada: "fijo", u: "https://www.ign.gob.ar", d: "Los 2 282 gobiernos locales, las provincias, los departamentos y las localidades del buscador." },
+        { n: "Población, cloacas, NBI y vivienda", f: "INDEC, Censo 2022 (radios censales)", tipo: "hist", cada: "fijo (censo)", u: "https://censo.gob.ar", d: "66.515 radios censales: personas, hogares sin cloaca, necesidades básicas insatisfechas y materiales de la vivienda." },
+        { n: "Barrios populares", f: "Registro Nacional de Barrios Populares (RENABAP)", tipo: "hist", cada: "fijo", d: "6.467 barrios con su superficie, cantidad de viviendas y familias." },
+        { n: "Municipios, departamentos y localidades", f: "INDEC (gobiernos locales), IGN y Georef", tipo: "ref", cada: "fijo", u: "https://www.ign.gob.ar", d: "Los 2.282 gobiernos locales, las provincias, los departamentos y las localidades del buscador." },
       ] },
       { t: "Infraestructura y mapa", items: [
         { n: "Hospitales, bombeo, plantas y subestaciones", f: "OpenStreetMap (ODbL)", tipo: "ref", cada: "fijo (descarga propia)", u: "https://www.openstreetmap.org", d: "Infraestructura crítica para las recomendaciones y la capa del mapa; la cobertura es despareja según la zona." },
@@ -373,7 +373,7 @@ const TEXTOS = {
         { n: "Imagen satelital", f: "EOX Sentinel-2 cloudless 2025 (Copernicus)", tipo: "ref", cada: "una vez por año", u: "https://s2maps.eu", d: "Mosaico sin nubes que se usa en la maqueta 3D del simulador." },
       ] },
       { t: "Cálculos propios", items: [
-        { n: "Índice de riesgo de inundación", f: "Elaboración propia, estructura INFORM", tipo: "est", cada: "todos los días", act: "riesgo", u: "repo", d: "Riesgo = ∛(amenaza × exposición × vulnerabilidad), de 0 a 10, probado con 1 000 combinaciones de pesos (robustez). Lo medido reemplaza al pronóstico a medida que pasan los días." },
+        { n: "Índice de riesgo de inundación", f: "Elaboración propia, estructura INFORM", tipo: "est", cada: "todos los días", act: "riesgo", u: "repo", d: "Riesgo = ∛(amenaza × exposición × vulnerabilidad), de 0 a 10, probado con 1.000 combinaciones de pesos (robustez). Lo medido reemplaza al pronóstico a medida que pasan los días." },
         { n: "Simulador de lluvia e inundación", f: "Modelo hidráulico 2D propio (onda inercial de Bates 2010 e infiltración Green-Ampt)", tipo: "sim", cada: "al abrir el simulador", u: "repo", d: "Mueve sobre el relieve el agua de la lluvia que no se infiltra; separa el dato real, el pronóstico y el escenario estacional. Validado contra el agua vista por satélite en 20 ciudades en los Niño 2015-16 y 2023-24: orientativo (resultados en el simulador)." },
       ] },
     ],

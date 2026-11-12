@@ -14,7 +14,7 @@ const esMovil = () => matchMedia("(max-width: 760px)").matches;
 // ---------- Números ----------
 function fmt(v, dec = 0) {
   if (v == null || Number.isNaN(v)) return "–";
-  return Number(v).toLocaleString(loc(), { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  return Number(v).toLocaleString(loc(), { minimumFractionDigits: dec, maximumFractionDigits: dec, useGrouping: "always" });   // 1.234 también con 4 cifras
 }
 function fmtPersonas(n) {
   if (n == null || Number.isNaN(n)) return "–";
