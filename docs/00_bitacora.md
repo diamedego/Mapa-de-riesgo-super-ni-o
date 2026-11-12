@@ -605,3 +605,10 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   mapa topográfico) → capas → resultados.
 - El gráfico tiene dos paneles con sus ejes (mm por día y % del círculo con agua): las barras nacen del eje x; la etiqueta del pico
   baja para no pisar la de «hoy».
+
+## 2026-11-12 — Simulador: solo acumulaciones netas y solo hacia adelante
+- La película de agua que corre y las líneas blancas (los «destellos», 17 % de los píxeles cambiaban en 0,7 s) quedan detrás de la capa
+  «Escurrimiento», apagada por defecto: sin ella, 3 % (solo los charcos de 2 cm o más).
+- El gráfico, la barra de horas, el texto de lluvia acumulada y la reproducción arrancan en «ahora»: las 2 semanas anteriores se
+  calculan en silencio (humedad del suelo y lagunas) pero no se muestran. La lluvia se muestra como pronóstico, tormenta de prueba y
+  escenario estacional por separado.

@@ -11,7 +11,7 @@
 // Solo en la versión completa (las teselas de relieve vienen de un servidor externo).
 
 const SIM = { mapa: null, mm: 0, reproduciendo: 0, datos: null,
-  capas: { colores: true, curvas: true, drenaje: true, cortes: true, corte: true, x5: false, refs3d: true }, vista: "mapa", maqueta: null,
+  capas: { colores: true, curvas: true, drenaje: true, cortes: true, flujo: false, corte: true, x5: false, refs3d: true }, vista: "mapa", maqueta: null,
   modelo: null, desague: 10, crecida: 0, tormenta: { mm: 0, horas: 3 }, velocidad: 1 };   // desagües pluviales supuestos: 10 mm/h en superficies impermeables (no hay datos)
 const AGUA_MIN = 0.1;   // desde 10 cm se cuenta como zona con agua (superficie, personas)
 const AGUA_VER = 0.02;  // se dibuja desde 2 cm, en celeste claro: así se ve dónde se junta el agua antes de ser profunda
@@ -20,7 +20,7 @@ const TERRARIUM = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{
 // Agua: de celeste translúcido a azul profundo. Altura: del verde azulado de los bajos al marrón de las lomas.
 const COLOR_AGUA = [[0.02, [110, 198, 252, 0.58]], [0.05, [78, 178, 248, 0.66]], [0.1, [54, 158, 242, 0.74]], [0.3, [56, 170, 235, 0.65]], [0.6, [30, 120, 210, 0.76]], [1, [22, 82, 180, 0.84]], [1.5, [14, 50, 130, 0.9]]];
 const COLOR_ALTURA = [[0, [38, 120, 120, 0.6]], [0.25, [92, 160, 110, 0.6]], [0.5, [180, 196, 120, 0.6]], [0.75, [205, 170, 110, 0.6]], [1, [170, 120, 80, 0.6]]];
-const CAPAS_SIM = ["cortes", "corte"];
+const CAPAS_SIM = ["cortes", "flujo", "corte"];
 
 // Tormenta de prueba (barra de mm y duración): se suma a la lluvia real y pronosticada y se calcula de nuevo desde las últimas dos semanas
 function correrTormenta(cambio) {
@@ -482,19 +482,19 @@ function pintarLineaSim() {
   const cont = document.getElementById("sim-linea"), M = SIM.modelo;
   if (!cont || !M?.met) return;
   // Un solo gráfico con un solo eje de fechas: barras de lluvia (eje izquierdo, mm por día) y línea del agua (eje derecho, % del círculo)
-  const met = M.met, n = met.horas.length, ancho = Math.max(240, cont.clientWidth), alto = 190, iz = 36, de = 38, yB = 146, hB = 112;
-  const x = (k) => iz + (k / Math.max(1, n - 1)) * (ancho - iz - de);
+  const met = M.met, n = met.horas.length, k0 = M.hoy, ancho = Math.max(240, cont.clientWidth), alto = 190, iz = 36, de = 38, yB = 146, hB = 112;
+  const x = (k) => iz + (Math.max(0, k - k0) / Math.max(1, n - 1 - k0)) * (ancho - iz - de);   // el eje arranca ahora: lo pasado no se muestra
   const dias = [];
-  for (let k = 0; k < n; k += 24) { let s = 0, tp = met.tipo[k]; for (let j = k; j < Math.min(n, k + 24); j++) s += met.lluvia[j]; dias.push([k, s, tp]); }
+  for (let k = k0; k < n; k += 24) { let s = 0, tp = met.tipo[k]; for (let j = k; j < Math.min(n, k + 24); j++) s += met.lluvia[j]; dias.push([k, s, tp]); }
   const maxL = Math.max(10, ...dias.map((v) => v[1])), maxP = Math.max(1, ...M.stats.map((s) => s.pct));
   const barras = dias.map(([k, s, tp]) => `<rect x="${x(k).toFixed(1)}" y="${(yB - (s / maxL) * hB).toFixed(1)}" width="${Math.max(1, x(k + 24) - x(k) - 1).toFixed(1)}" height="${((s / maxL) * hB).toFixed(1)}" fill="${COLOR_TIPO[tp]}"/>`).join("");
-  const linea = M.stats.map((s, k) => `${k ? "L" : "M"}${x(k).toFixed(1)},${(yB - (s.pct / maxP) * hB).toFixed(1)}`).join("");
+  const linea = M.stats.map((s, k) => (k < k0 ? "" : `${k > k0 ? "L" : "M"}${x(k).toFixed(1)},${(yB - (s.pct / maxP) * hB).toFixed(1)}`)).join("");
   const hito = (k, txt, dy = 12) => (k >= 0 && k < n ? `<line x1="${x(k)}" x2="${x(k)}" y1="${yB - hB}" y2="${yB + 2}" class="sim-hito"/><text x="${x(k) + 3}" y="${yB - hB + dy}" class="sim-hito-txt"${k > n * 0.8 ? ` text-anchor="end" dx="-6"` : ""}>${txt}</text>` : "");
   const finPron = met.tipo.indexOf(2);
   // Eje de fechas: una marca por lunes (semana); si el período es corto, una por día
   const art = (k) => new Date(met.horas[k] - 3 * 3600e3), lunes = [];
-  for (let k = 0; k < n; k++) if (art(k).getUTCDay() === 1 && art(k).getUTCHours() === 0) lunes.push(k);
-  const porDia = (n / 24) <= 14, marcas = porDia ? Array.from({ length: Math.floor(n / 24) + 1 }, (_, d) => Math.min(n - 1, d * 24 + (24 - art(0).getUTCHours()) % 24)) : lunes;
+  for (let k = k0; k < n; k++) if (art(k).getUTCDay() === 1 && art(k).getUTCHours() === 0) lunes.push(k);
+  const porDia = ((n - k0) / 24) <= 14, marcas = porDia ? Array.from({ length: Math.floor((n - k0) / 24) + 1 }, (_, d) => Math.min(n - 1, k0 + d * 24 + (24 - art(k0).getUTCHours()) % 24)) : lunes;
   const sep = Math.max(1, Math.ceil(36 / Math.max(1, (x(Math.min(n - 1, 24 * (porDia ? 1 : 7))) - x(0))))), fechaEje = (k) => `${art(k).getUTCDate()}/${art(k).getUTCMonth() + 1}`;
   const eje = marcas.map((k, i) => `<line x1="${x(k)}" x2="${x(k)}" y1="${yB}" y2="${yB + 5}" class="sim-tick"/>${i % sep === 0 ? `<text x="${x(k)}" y="${yB + 17}" class="sim-tick-txt" text-anchor="middle">${fechaEje(k)}</text>` : ""}`).join("");
   const ejes = `<line x1="${iz}" x2="${ancho - de}" y1="${yB}" y2="${yB}" class="sim-eje-base"/><line x1="${iz}" x2="${iz}" y1="${yB - hB}" y2="${yB}" class="sim-eje-base"/><line x1="${ancho - de}" x2="${ancho - de}" y1="${yB - hB}" y2="${yB}" class="sim-eje-base sim-eje-der"/>
@@ -509,8 +509,8 @@ function pintarLineaSim() {
     <div class="sim-linea-ley"><span><i style="background:${COLOR_TIPO[0]}"></i>${t("sim_tipo_real")}</span><span><i style="background:${COLOR_TIPO[1]}"></i>${t("sim_tipo_pronostico")}</span>${finPron > 0 ? `<span><i style="background:${COLOR_TIPO[2]}"></i>${t("sim_tipo_escenario")}</span>` : ""}<span><i class="sim-ley-linea"></i>${t("sim_area")}</span><span class="sim-eje-nota">${t(porDia ? "eje_dias" : "eje_semanas")}</span></div>`;
   const svg = cont.querySelector("svg");
   const ir = (ev) => {
-    const r = svg.getBoundingClientRect(), k = Math.round(((ev.clientX - r.left - iz) / (ancho - iz - de)) * (n - 1));
-    M.siguiendo = false; M.hora = limitar(k, 0, M.frames.length - 1); detenerAnimaciones(); mostrarHora();
+    const r = svg.getBoundingClientRect(), k = k0 + Math.round(((ev.clientX - r.left - iz) / (ancho - iz - de)) * (n - 1 - k0));
+    M.siguiendo = false; M.hora = limitar(k, k0, M.frames.length - 1); detenerAnimaciones(); mostrarHora();
   };
   svg.onpointerdown = (ev) => { ir(ev); svg.setPointerCapture(ev.pointerId); svg.onpointermove = (e2) => { if (e2.buttons) ir(e2); }; };
 }
@@ -987,7 +987,7 @@ function texturaMaqueta() {
   const M = SIM.maqueta, P = M.part, S = M.S, ct = M.textura.getContext("2d"), Mo = SIM.modelo, g = Mo?.g, fr = Mo?.frames.length ? frameVista(Mo) : null;
   ct.drawImage(M.sat, 0, 0);
   ct.imageSmoothingEnabled = true;
-  if (fr) {   // película de agua que corre (de 2 mm a 10 cm), a la resolución del modelo
+  if (fr && SIM.capas.flujo) {   // película de agua que corre (de 2 mm a 10 cm), a la resolución del modelo; solo con «Escurrimiento»
     if (M.pelicula.width !== g.nx || M.pelicula.height !== g.ny) { M.pelicula.width = g.nx; M.pelicula.height = g.ny; }
     const cp = M.pelicula.getContext("2d"), img = cp.createImageData(g.nx, g.ny), px = img.data;
     for (let c = 0; c < g.N; c++) {
@@ -1002,7 +1002,7 @@ function texturaMaqueta() {
   pintarCharcos();
   ct.drawImage(M.charcos, 0, 0, M.bw * S, M.bh * S);
   if (SIM.capas.refs3d) { M.refs ??= capaReferencias3D(); ct.drawImage(M.refs, 0, 0); }
-  if (P.activa) {   // líneas: una pasada por tramo de cola (el más nuevo, más blanco y grueso)
+  if (P.activa && SIM.capas.flujo) {   // líneas: una pasada por tramo de cola (el más nuevo, más blanco y grueso); solo con «Escurrimiento»
     const T = LARGO_COLA, aX = (v) => (v - M.x0) * S, aY = (v) => (v - M.y0) * S;
     ct.lineCap = "round";
     for (let r = 0; r < T - 1; r++) {
@@ -1419,7 +1419,7 @@ function pintarPanelSimulador(d) {
     <div class="sim-presets">${ps.map(([e, v], i) => `<button type="button" class="chip" data-i="${i}"${d ? "" : " disabled"}>${e} · ${fmt(v)} mm</button>`).join("")}</div>
     <details class="sim-metodo"><summary>${t("sim_como")}</summary><p>${t("sim_metodo")}</p><p id="sim-supuestos"></p></details>`;
   const barra = document.getElementById("sim-barra");
-  barra.oninput = () => { const Mo = SIM.modelo; if (!Mo?.frames.length) return; detenerAnimaciones(); Mo.siguiendo = false; Mo.hora = Math.min(Number(barra.value), Mo.frames.length - 1); mostrarHora(); };
+  barra.oninput = () => { const Mo = SIM.modelo; if (!Mo?.frames.length) return; detenerAnimaciones(); Mo.siguiendo = false; Mo.hora = limitar(Number(barra.value), Mo.hoy, Mo.frames.length - 1); mostrarHora(); };
   document.getElementById("sim-play").onclick = () => reproducirSimulador();
   document.getElementById("sim-reiniciar").onclick = reiniciarSimulador;
   panel.querySelectorAll("#sim-vel .chip").forEach((b) => { b.onclick = () => { SIM.velocidad = +b.dataset.v; panel.querySelectorAll("#sim-vel .chip").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); }; });
@@ -1517,11 +1517,14 @@ function actualizarNumeros() {
   document.getElementById("sim-fecha").textContent = fecha.toLocaleString(estado.idioma === "en" ? "en-GB" : "es-AR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const etq = document.getElementById("sim-tipo");
   etq.textContent = t(`sim_tipo_${tp}`); etq.style.background = COLOR_TIPO[met.tipo[k]];
-  let real = 0, pron = 0, esc = 0;
-  for (let j = 0; j <= k; j++) { const v = met.lluvia[j]; if (met.tipo[j] === 0) real += v; else if (met.tipo[j] === 1) pron += v; else esc += v; }
-  document.getElementById("sim-acum").innerHTML = t("sim_acum")(fmt(real), fmt(pron), fmt(esc));
+  // Solo desde ahora: lo que ya pasó no se muestra (el modelo lo usa en silencio para saber qué tan mojado está el suelo)
+  let pron = 0, esc = 0, test = 0;
+  const reparto = repartoTormenta((Mo.tormenta?.horas) || 3);
+  for (let j = Mo.hoy; j <= k; j++) { const v = met.lluvia[j]; if (met.tipo[j] === 2) esc += v; else pron += v; }
+  if (Mo.tormenta?.mm) for (let j = 0; j < reparto.length && Mo.hoy + j <= k; j++) test += Mo.tormenta.mm * reparto[j];
+  document.getElementById("sim-acum").innerHTML = t("sim_acum_ahora")(fmt(Math.max(0, pron - test)), fmt(test), fmt(esc));
   const barra = document.getElementById("sim-barra");
-  barra.max = String(met.horas.length - 1); barra.value = String(k);
+  barra.min = String(Mo.hoy); barra.max = String(met.horas.length - 1); barra.value = String(k);
   const vals = document.querySelectorAll(".sim-datos .tb-dato-valor"), ext = document.querySelectorAll(".sim-datos .tb-dato-extra");
   vals[0].textContent = `${fmt(R.pct, R.pct < 10 ? 1 : 0)} %`; ext[0].textContent = `${fmt(R.km2, 2)} km²`;
   vals[1].textContent = R.maxProf >= 0.01 ? `${fmt(R.maxProf, 2)} m` : "–";
@@ -1553,7 +1556,7 @@ function actualizarSimulador() { mostrarHora(); }
 function planReproduccion(Mo) {
   const n = Mo.frames.length, fuerte = (k) => (Mo.stats[k]?.pct3 ?? 0) >= 3 || (Mo.met.lluvia[k] ?? 0) > 0.1, act = (k) => fuerte(k) || (Mo.stats[k]?.pct3 ?? 0) >= 0.5;
   let ini = Math.min(Mo.hoy, n - 1);
-  for (let k = Math.max(0, Mo.hoy - 3); k < n; k++) if (act(k)) { ini = Math.max(0, k - 1); break; }
+  for (let k = Mo.hoy; k < n; k++) if (act(k)) { ini = Math.max(Mo.hoy, k - 1); break; }
   const ts = [0];
   for (let k = ini; k < n - 1; k++) ts.push(ts.at(-1) + (fuerte(k) || fuerte(k + 1) ? 0.6 : act(k) || act(k + 1) ? 0.18 : 0.012));
   return { ini, ts };
@@ -1562,7 +1565,7 @@ function hudReproduccion(Mo) {
   const hud = SIM.maqueta?.capa.querySelector(".sim-lluvia-estado");
   if (!hud) return;
   const k = Mo.hora, mm = Mo.met.lluvia[k] ?? 0, pct3 = Mo.stats[k]?.pct3 ?? 0;
-  let acum = 0; for (let j = Math.max(0, Mo.hoy - 3); j <= k; j++) acum += Mo.met.lluvia[j] ?? 0;
+  let acum = 0; for (let j = Mo.hoy; j <= k; j++) acum += Mo.met.lluvia[j] ?? 0;
   hud.hidden = false;
   hud.textContent = mm > 0.1 ? t("sim_hud_llueve")(fmt(mm, 1), fmt(acum)) : pct3 >= 0.5 ? t("sim_hud_escurre") : t("sim_hud_seco");
 }
