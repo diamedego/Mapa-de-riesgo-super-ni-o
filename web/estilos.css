@@ -855,4 +855,5 @@ body.sim-abierto { overflow: hidden; }
 .sim-eje-base { stroke: var(--tinta-3); stroke-width: 1; }
 .sim-eje-tit { font-size: 9.5px; fill: var(--tinta-2); font-family: var(--f-ui); font-weight: 600; }
 .sim-eje-nota { margin-left: auto; color: var(--tinta-3); }
+.sim-tick-der, .sim-eje-der { fill: #1f74c9; } .sim-eje-der { stroke: #1f74c9; fill: none; } text.sim-tick-der { text-anchor: start; } text.sim-eje-tit.sim-tick-der { text-anchor: end; }
 

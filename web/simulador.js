@@ -481,30 +481,30 @@ function mostrarHora() {
 function pintarLineaSim() {
   const cont = document.getElementById("sim-linea"), M = SIM.modelo;
   if (!cont || !M?.met) return;
-  const met = M.met, n = met.horas.length, ancho = Math.max(240, cont.clientWidth), alto = 196, iz = 38, de = 6;
-  const yB = 64, hB = 46, yL = 148, hL = 46;   // base de las barras (mm por día) y base de la línea (% con agua)
+  // Un solo gráfico con un solo eje de fechas: barras de lluvia (eje izquierdo, mm por día) y línea del agua (eje derecho, % del círculo)
+  const met = M.met, n = met.horas.length, ancho = Math.max(240, cont.clientWidth), alto = 190, iz = 36, de = 38, yB = 146, hB = 112;
   const x = (k) => iz + (k / Math.max(1, n - 1)) * (ancho - iz - de);
   const dias = [];
   for (let k = 0; k < n; k += 24) { let s = 0, tp = met.tipo[k]; for (let j = k; j < Math.min(n, k + 24); j++) s += met.lluvia[j]; dias.push([k, s, tp]); }
   const maxL = Math.max(10, ...dias.map((v) => v[1])), maxP = Math.max(1, ...M.stats.map((s) => s.pct));
   const barras = dias.map(([k, s, tp]) => `<rect x="${x(k).toFixed(1)}" y="${(yB - (s / maxL) * hB).toFixed(1)}" width="${Math.max(1, x(k + 24) - x(k) - 1).toFixed(1)}" height="${((s / maxL) * hB).toFixed(1)}" fill="${COLOR_TIPO[tp]}"/>`).join("");
-  const linea = M.stats.map((s, k) => `${k ? "L" : "M"}${x(k).toFixed(1)},${(yL - (s.pct / maxP) * hL).toFixed(1)}`).join("");
-  const hito = (k, txt, dy = 13) => (k >= 0 && k < n ? `<line x1="${x(k)}" x2="${x(k)}" y1="6" y2="${yL + 2}" class="sim-hito"/><text x="${x(k) + 3}" y="${yB + dy}" class="sim-hito-txt"${k > n * 0.8 ? ` text-anchor="end" dx="-6"` : ""}>${txt}</text>` : "");
+  const linea = M.stats.map((s, k) => `${k ? "L" : "M"}${x(k).toFixed(1)},${(yB - (s.pct / maxP) * hB).toFixed(1)}`).join("");
+  const hito = (k, txt, dy = 12) => (k >= 0 && k < n ? `<line x1="${x(k)}" x2="${x(k)}" y1="${yB - hB}" y2="${yB + 2}" class="sim-hito"/><text x="${x(k) + 3}" y="${yB - hB + dy}" class="sim-hito-txt"${k > n * 0.8 ? ` text-anchor="end" dx="-6"` : ""}>${txt}</text>` : "");
   const finPron = met.tipo.indexOf(2);
   // Eje de fechas: una marca por lunes (semana); si el período es corto, una por día
   const art = (k) => new Date(met.horas[k] - 3 * 3600e3), lunes = [];
   for (let k = 0; k < n; k++) if (art(k).getUTCDay() === 1 && art(k).getUTCHours() === 0) lunes.push(k);
   const porDia = (n / 24) <= 14, marcas = porDia ? Array.from({ length: Math.floor(n / 24) + 1 }, (_, d) => Math.min(n - 1, d * 24 + (24 - art(0).getUTCHours()) % 24)) : lunes;
   const sep = Math.max(1, Math.ceil(36 / Math.max(1, (x(Math.min(n - 1, 24 * (porDia ? 1 : 7))) - x(0))))), fechaEje = (k) => `${art(k).getUTCDate()}/${art(k).getUTCMonth() + 1}`;
-  const eje = marcas.map((k, i) => `<line x1="${x(k)}" x2="${x(k)}" y1="${yL}" y2="${yL + 5}" class="sim-tick"/>${i % sep === 0 ? `<text x="${x(k)}" y="${yL + 17}" class="sim-tick-txt" text-anchor="middle">${fechaEje(k)}</text>` : ""}`).join("");
-  const ejeY = (yBase, alto, tope, unidad) => `<line x1="${iz}" x2="${ancho - de}" y1="${yBase}" y2="${yBase}" class="sim-eje-base"/><line x1="${iz}" x2="${iz}" y1="${yBase - alto}" y2="${yBase}" class="sim-eje-base"/>
-    <text x="${iz - 4}" y="${yBase + 3}" class="sim-tick-txt" text-anchor="end">0</text><text x="${iz - 4}" y="${yBase - alto + 8}" class="sim-tick-txt" text-anchor="end">${fmt(tope, tope < 10 ? 1 : 0)}</text>
-    <text x="${iz}" y="${yBase - alto - 8}" class="sim-eje-tit">${unidad}</text>`;
+  const eje = marcas.map((k, i) => `<line x1="${x(k)}" x2="${x(k)}" y1="${yB}" y2="${yB + 5}" class="sim-tick"/>${i % sep === 0 ? `<text x="${x(k)}" y="${yB + 17}" class="sim-tick-txt" text-anchor="middle">${fechaEje(k)}</text>` : ""}`).join("");
+  const ejes = `<line x1="${iz}" x2="${ancho - de}" y1="${yB}" y2="${yB}" class="sim-eje-base"/><line x1="${iz}" x2="${iz}" y1="${yB - hB}" y2="${yB}" class="sim-eje-base"/><line x1="${ancho - de}" x2="${ancho - de}" y1="${yB - hB}" y2="${yB}" class="sim-eje-base sim-eje-der"/>
+    <text x="${iz - 4}" y="${yB + 3}" class="sim-tick-txt" text-anchor="end">0</text><text x="${iz - 4}" y="${yB - hB + 8}" class="sim-tick-txt" text-anchor="end">${fmt(maxL, maxL < 10 ? 1 : 0)}</text>
+    <text x="${ancho - de + 4}" y="${yB + 3}" class="sim-tick-txt sim-tick-der">0</text><text x="${ancho - de + 4}" y="${yB - hB + 8}" class="sim-tick-txt sim-tick-der">${fmt(maxP, maxP < 10 ? 1 : 0)} %</text>
+    <text x="${iz}" y="${yB - hB - 8}" class="sim-eje-tit">${t("sim_eje_mm")}</text><text x="${ancho - de}" y="${yB - hB - 8}" class="sim-eje-tit sim-tick-der" text-anchor="end">${t("sim_eje_pct")}</text>`;
   cont.innerHTML = `<svg width="${ancho}" height="${alto}" class="sim-linea-svg" role="img" aria-label="${t("sim_linea")}">
     <rect x="${x(M.frames.length - 1)}" y="0" width="${Math.max(0, x(n - 1) - x(M.frames.length - 1))}" height="${alto}" class="sim-pendiente"/>
-    ${ejeY(yB, hB, maxL, t("sim_eje_mm"))}${ejeY(yL, hL, maxP, t("sim_eje_pct"))}${eje}
-    ${barras}<path d="${linea}" class="sim-linea-area"/>
-    ${hito(M.hoy, t("sim_hito_hoy"))}${finPron > 0 ? hito(finPron, t("sim_hito_fin_pron")) : ""}${M.pico != null ? hito(M.pico, t("sim_hito_pico"), 26) : ""}
+    ${ejes}${eje}${barras}<path d="${linea}" class="sim-linea-area"/>
+    ${hito(M.hoy, t("sim_hito_hoy"))}${finPron > 0 ? hito(finPron, t("sim_hito_fin_pron")) : ""}${M.pico != null ? hito(M.pico, t("sim_hito_pico"), 25) : ""}
     <line x1="${x(M.hora)}" x2="${x(M.hora)}" y1="0" y2="${alto}" class="sim-marca"/></svg>
     <div class="sim-linea-ley"><span><i style="background:${COLOR_TIPO[0]}"></i>${t("sim_tipo_real")}</span><span><i style="background:${COLOR_TIPO[1]}"></i>${t("sim_tipo_pronostico")}</span>${finPron > 0 ? `<span><i style="background:${COLOR_TIPO[2]}"></i>${t("sim_tipo_escenario")}</span>` : ""}<span><i class="sim-ley-linea"></i>${t("sim_area")}</span><span class="sim-eje-nota">${t(porDia ? "eje_dias" : "eje_semanas")}</span></div>`;
   const svg = cont.querySelector("svg");
