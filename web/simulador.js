@@ -927,10 +927,10 @@ function moverLineas(P) {
     const cx = Math.floor((P.px[n] - g.bx0) / g.f), cy = Math.floor((P.py[n] - g.by0) / g.f), c = cy * g.nx + cx;
     P.vida[n]--;
     const fuera = cx < 1 || cy < 1 || cx >= g.nx - 1 || cy >= g.ny - 1;
-    if (fuera || P.vida[n] <= 0 || g.tipo2[c] !== 1 || fr[c] < 1) {   // nace otra en una celda con agua, dentro del círculo
+    if (fuera || P.vida[n] <= 0 || g.tipo2[c] !== 1 || fr[c] < 0.3) {   // nace otra en una celda mojada (0,3 mm o más), dentro del círculo
       for (let k = 0; k < 20; k++) {
         const c2 = Math.floor(azar() * g.N);
-        if (g.dentroC[c2] && g.tipo2[c2] === 1 && fr[c2] >= 1) { P.px[n] = g.bx0 + ((c2 % g.nx) + azar()) * g.f; P.py[n] = g.by0 + (Math.floor(c2 / g.nx) + azar()) * g.f; break; }
+        if (g.dentroC[c2] && g.tipo2[c2] === 1 && fr[c2] >= 0.3) { P.px[n] = g.bx0 + ((c2 % g.nx) + azar()) * g.f; P.py[n] = g.by0 + (Math.floor(c2 / g.nx) + azar()) * g.f; break; }
       }
       P.vida[n] = 20 + azar() * 50; P.cnt[n] = 0;
       continue;
