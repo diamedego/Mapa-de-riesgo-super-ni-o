@@ -37,91 +37,79 @@
   <div class="marco">
     <header class="franja">
       <h2 class="franja-tit" id="lamina-titulo">Lámina 01 · Panorama y mapa</h2>
-      <div class="franja-acciones">
+      <form id="form-buscar" class="buscar-franja" role="search" autocomplete="off">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+        <input id="b-direccion" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" data-i18n-ph="b_franja_ph" data-i18n-aria="b_direccion" placeholder="Buscar provincia, municipio o dirección" aria-label="Buscar" spellcheck="false">
+        <ul class="sugerencias" role="listbox" hidden></ul>
+        <p id="aviso-busqueda" class="aviso" role="status" hidden></p>
+        <div class="buscador-oculto" hidden>
+          <input id="b-provincia" type="text"><ul class="sugerencias" hidden></ul>
+          <input id="b-partido" type="text"><ul class="sugerencias" hidden></ul>
+          <input id="b-localidad" type="text"><ul class="sugerencias" hidden></ul>
+          <input type="range" id="b-radio" min="0.5" max="20" step="0.5" value="2"><output id="b-radio-v">2 km</output>
+          <button type="button" id="btn-borrar" hidden></button>
+        </div>
+      </form>
       <a id="enlace-completo" class="btn-banda" href="https://mapa-de-riesgo-super-nino.diamedego.workers.dev/" target="_blank" rel="noopener" hidden><span data-i18n="version_completa">Versión completa</span> ↗</a>
-      <button id="btn-recorrido" class="btn-banda" type="button"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5.5v13l10.5-6.5L8 5.5Z"/></svg><span data-i18n="recorrido">Recorrido guiado</span></button>
-      <button id="btn-idioma" class="btn-banda" type="button" data-i18n-aria="idioma_aria" aria-label="Change language to English"><span>EN</span></button>
-      <button id="btn-tema" class="btn-banda" type="button" data-i18n-aria="tema_aria" aria-label="Cambiar entre tema claro y oscuro"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17Z" fill="currentColor"/></svg></button>
-    </div>
+      <button id="btn-idioma" class="idioma" type="button" data-i18n-aria="idioma_aria" aria-label="Change language to English"><b>ES</b><span>EN</span></button>
+      <button id="btn-recorrido" type="button" hidden></button>
+      <button id="btn-tema" type="button" hidden></button>
     </header>
 
     <main class="hoja hoja-mapa" id="hoja-mapa">
-<section class="controles" aria-label="Búsqueda y período">
-  <form id="form-buscar" class="buscador" role="search" autocomplete="off">
-    <div class="campo">
-      <label for="b-provincia" data-i18n="b_provincia">Provincia</label>
-      <input id="b-provincia" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" data-i18n-ph="b_provincia_ph" placeholder="Ej.: Corrientes" spellcheck="false">
-      <ul class="sugerencias" role="listbox" hidden></ul>
-    </div>
-    <div class="campo">
-      <label for="b-partido" data-i18n="b_partido">Partido o departamento</label>
-      <input id="b-partido" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" data-i18n-ph="b_partido_ph" placeholder="Ej.: Campana" spellcheck="false">
-      <ul class="sugerencias" role="listbox" hidden></ul>
-    </div>
-    <div class="campo">
-      <label for="b-localidad" data-i18n="b_localidad">Localidad o municipio</label>
-      <input id="b-localidad" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" data-i18n-ph="b_localidad_ph" placeholder="Ej.: Zárate" spellcheck="false">
-      <ul class="sugerencias" role="listbox" hidden></ul>
-    </div>
-    <div class="campo campo-ancho">
-      <label for="b-direccion" data-i18n="b_direccion">Buscar</label>
-      <input id="b-direccion" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" data-i18n-ph="b_direccion_ph" placeholder="Buscá una dirección, empresa, club, hospital o coordenadas" spellcheck="false">
-      <ul class="sugerencias" role="listbox" hidden></ul>
-    </div>
-    <div class="campo campo-radio">
-      <label for="b-radio" data-i18n="b_radio">Radio</label>
-      <div class="radio-barra"><input type="range" id="b-radio" min="0.5" max="20" step="0.5" value="2" aria-label="Radio"><output id="b-radio-v" for="b-radio">2 km</output></div>
-    </div>
-    <div class="buscador-botones">
-      <button type="submit" class="btn-primario"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><span data-i18n="b_buscar">Buscar</span></button>
-      <button type="button" id="btn-borrar" class="btn-texto" hidden data-i18n="borrar_filtros">Borrar filtros</button>
-    </div>
-  </form>
-  <p id="aviso-busqueda" class="aviso" role="status" hidden></p>
-  <div class="modo-fila">
-    <div class="segmentado" id="modo" role="radiogroup" aria-label="Período">
-      <button type="button" role="radio" aria-checked="true" data-modo="actual"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span data-i18n="modo_actual">Condiciones actuales</span></button>
-      <button type="button" role="radio" aria-checked="false" data-modo="futuro"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span data-i18n="modo_futuro">Condiciones futuras</span></button>
-    </div>
-    <button type="button" class="btn-sim-top" id="btn-sim-top" data-i18n-ayuda="sim_desc"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15.5a4.5 4.5 0 1 1 1.3-8.8A5.5 5.5 0 0 1 18.8 9 3.3 3.3 0 0 1 17 15.5Z"/><path d="M9 18.5l-1 2M13 18.5l-1 2M17 18.5l-1 2"/></svg><span data-i18n="sim_boton">Simulador en 3D</span></button>
-    <div class="periodo-futuro" id="periodo-futuro" hidden>
-      <label><span data-i18n="desde">Desde</span><input type="date" id="f-desde"></label>
-      <label><span data-i18n="hasta">Hasta</span><input type="date" id="f-hasta"></label>
-    </div>
-    <span class="periodo-texto" id="periodo-texto"></span>
-  </div>
-</section>
       <div class="cuerpo" id="escenario">
-  <section class="vista" aria-label="Mapa">
-    <div class="vista-cabeza">
-      <div class="grupo-capas"><span class="grupo-tit" data-i18n="mapa_elegir">Mapa · elegí uno</span>
-      <div class="capas-tabs" role="tablist" aria-label="Capa en grande">
-        <button type="button" role="tab" data-capa="riesgo" aria-selected="true"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3.5 4.2 6 7.4 6 10.5A6 6 0 0 1 6 13.5C6 10.4 8.5 7.2 12 3Z"/></svg><span data-i18n="capa_riesgo">Riesgo</span></button>
-        <button type="button" role="tab" data-capa="lluvia" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15.5a4.5 4.5 0 1 1 1.3-8.8A5.5 5.5 0 0 1 18.8 9 3.3 3.3 0 0 1 17 15.5Z"/><path d="M9 18.5l-1 2M13 18.5l-1 2M17 18.5l-1 2"/></svg><span data-i18n="capa_lluvia">Lluvia</span></button>
-        <button type="button" role="tab" data-capa="viento" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5h10.5a2.5 2.5 0 1 0-2.5-2.5"/><path d="M3 12.5h15a2.5 2.5 0 1 1-2.5 2.5"/><path d="M3 16.5h7"/></svg><span data-i18n="capa_viento">Viento</span></button>
-        <button type="button" role="tab" data-capa="temp" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14.8V5a2 2 0 1 1 4 0v9.8a4 4 0 1 1-4 0Z"/><path d="M12 16.5v-6"/></svg><span data-i18n="capa_temp">Temperatura</span></button>
-      </div></div>
-      <div class="grupo-capas"><span class="grupo-tit" data-i18n="capas_sumar">Sumá capas · podés elegir varias</span><div class="capas-sumar" id="capas-sumar" role="group" aria-label="Capas adicionales"></div></div>
-    </div>
-    <div class="capas-extra" id="capas-extra" role="group" aria-label="Capas del mapa"></div>
-    <div class="mapa-marco">
-      <div id="mapa" role="region" aria-label="Mapa de la Argentina"></div>
-      <div class="ley-relieve" id="ley-relieve" hidden></div>
-      <canvas id="particulas" hidden aria-hidden="true"></canvas>
-      <div class="mapa-titulo" id="mapa-titulo"></div>
-      <div class="leyenda" id="leyenda"></div>
-      <div class="linea-tiempo" id="linea-tiempo" hidden></div>
-    </div>
-  </section>
+        <section class="vista" aria-label="Mapa">
+          <div class="mapa-marco">
+            <div id="mapa" role="region" aria-label="Mapa de la Argentina"></div>
+            <div class="reticula" id="reticula" aria-hidden="true"></div>
+            <div class="ley-relieve" id="ley-relieve" hidden></div>
+            <canvas id="particulas" hidden aria-hidden="true"></canvas>
+            <div class="plano-cab">
+              <div class="seg capas-tabs" role="tablist" aria-label="Capa en grande">
+                <button type="button" role="tab" data-capa="riesgo" aria-selected="true"><span data-i18n="capa_riesgo">Riesgo</span></button>
+                <button type="button" role="tab" data-capa="lluvia" aria-selected="false"><span data-i18n="capa_lluvia">Lluvia</span></button>
+                <button type="button" role="tab" data-capa="viento" aria-selected="false"><span data-i18n="capa_viento">Viento</span></button>
+                <button type="button" role="tab" data-capa="temp" aria-selected="false"><span data-i18n="capa_temp">Temperatura</span></button>
+              </div>
+              <div class="seg" id="modo" role="radiogroup" aria-label="Período">
+                <button type="button" role="radio" aria-checked="true" data-modo="actual"><span data-i18n="modo_ahora">Ahora</span></button>
+                <button type="button" role="radio" aria-checked="false" data-modo="futuro"><span data-i18n="modo_pronostico">Pronóstico</span></button>
+              </div>
+              <button type="button" class="seg-btn" id="btn-capas" aria-expanded="false" aria-controls="panel-capas"><span data-i18n="capas_btn">Capas</span> <i aria-hidden="true">▾</i></button>
+              <div class="panel-capas" id="panel-capas" hidden>
+                <span class="grupo-tit" data-i18n="capas_sumar">Capas · varias</span>
+                <div class="capas-sumar" id="capas-sumar" role="group" aria-label="Capas adicionales"></div>
+                <div class="capas-extra" id="capas-extra" role="group" aria-label="Opciones del mapa"></div>
+              </div>
+              <div class="periodo-fila">
+                <div class="periodo-futuro" id="periodo-futuro" hidden>
+                  <label><span data-i18n="desde">Desde</span><input type="date" id="f-desde"></label>
+                  <label><span data-i18n="hasta">Hasta</span><input type="date" id="f-hasta"></label>
+                </div>
+                <span class="periodo-texto" id="periodo-texto"></span>
+              </div>
+            </div>
+            <div class="refs" id="refs"><div class="mapa-titulo" id="mapa-titulo"></div><div class="leyenda" id="leyenda"></div></div>
+            <div class="detalle" id="detalle" hidden><header><b data-i18n="detalle_a">Detalle A</b><span data-i18n="detalle_litoral">Litoral y NEA</span></header><canvas id="detalle-lienzo"></canvas></div>
+            <div class="linea-tiempo" id="linea-tiempo" hidden></div>
+            <button type="button" class="btn-sim-top" id="btn-sim-top" hidden></button>
+          </div>
+        </section>
         <aside class="lectura" aria-label="Lectura">
           <div class="lec-1">
             <div class="lec-cabeza">
-              <h1 class="titular" data-i18n="titulo">Argentina frente a El Niño 2026–27</h1>
-              <p class="bajada" data-i18n="bajada"></p>
-              <div class="intro" id="intro" role="region" aria-label="Situación del país"></div>
-              <p class="kpis-alcance" id="kpis-alcance"></p>
+              <div><span class="etq" id="lec-etq"></span><h1 class="titular" id="lec-titular"></h1></div>
+              <p class="bajada" id="lec-bajada"></p>
               <div class="kpis" id="kpis" aria-live="polite"></div>
+              <div class="lec-pie">
+                <div><h3 class="tit" data-i18n="escala_t">Escala de riesgo</h3><p class="sub" id="escala-sub"></p><div id="lec-escala"></div></div>
+                <div><h3 class="tit" data-i18n="pico_t">Camino al pico</h3><p class="sub" data-i18n="pico_sub">Estaciones con ≥ 50 % de prob. de evacuación</p><div id="lec-pico"></div></div>
+              </div>
+            </div>
+            <div class="lec-mas">
+              <p class="kpis-alcance" id="kpis-alcance"></p>
               <div class="kpis-graficos" id="kpis-graficos"></div>
+              <div class="intro" id="intro" role="region" aria-label="Situación del país"></div>
             </div>
             <div class="tablero" id="tablero" aria-live="polite" aria-label="Tablero"></div>
             <div class="miniaturas" id="miniaturas" aria-label="Otras capas"></div>

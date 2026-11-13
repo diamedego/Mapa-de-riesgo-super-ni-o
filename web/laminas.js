@@ -122,7 +122,8 @@ async function pintarValidacionLamina() {
 // Lo que depende del idioma o de los datos: título de la franja, fecha del cajetín y las láminas 03 y 04 si están a la vista
 function refrescarLaminas() {
   mostrarLamina(laminaActual);
-  document.getElementById("caj-fecha").textContent = (estado.datos.resumen && actualizaciones().riesgo) || "–";
+  const cal = String(estado.datos.resumen?.calculado ?? "");
+  document.getElementById("caj-fecha").textContent = /^\d{4}-\d{2}-\d{2}/.test(cal) ? `${cal.slice(8, 10)}-${cal.slice(5, 7)}-${cal.slice(2, 4)}` : "–";
   if (laminaActual === 4) pintarValidacionLamina();
 }
 
@@ -133,4 +134,86 @@ function iniciarLaminas() {
   addEventListener("hashchange", () => deHash());
   const inicial = location.hash;   // se guarda ahora: al pintar la lámina 01 el enlace queda sin ancla
   return () => deHash(inicial);
+}
+
+// ---------- Plano de la lámina 01: retícula con grados, recuadro «A», escala gráfica y detalle del Litoral ----------
+const CAJA_A = [-63, -31.6, -53.4, -24];   // oeste, sur, este, norte
+function iniciarPlano() {
+  if (mapa.getSource("reticula")) return;
+  const lineas = [];
+  for (let lon = -75; lon <= -50; lon += 5) lineas.push([[lon, -58], [lon, -18]]);
+  for (let lat = -20; lat >= -55; lat -= 5) lineas.push([[-78, lat], [-48, lat]]);
+  const [o, s, e, n] = CAJA_A;
+  mapa.addSource("reticula", { type: "geojson", data: { type: "FeatureCollection", features: lineas.map((c) => ({ type: "Feature", geometry: { type: "LineString", coordinates: c }, properties: {} })) } });
+  mapa.addLayer({ id: "reticula", type: "line", source: "reticula", paint: { "line-color": css("--cian"), "line-opacity": 0.3, "line-width": 0.6, "line-dasharray": [3, 3] } });
+  mapa.addSource("caja-a", { type: "geojson", data: { type: "Feature", geometry: { type: "LineString", coordinates: [[o, n], [e, n], [e, s], [o, s], [o, n]] }, properties: {} } });
+  mapa.addLayer({ id: "caja-a", type: "line", source: "caja-a", paint: { "line-color": css("--tinta-1"), "line-width": 1.2, "line-dasharray": [4, 2.5] } });
+  mapa.on("move", actualizarReticula);
+  mapa.on("moveend", dibujarDetalle);
+  mapa.on("resize", () => { actualizarReticula(); dibujarDetalle(); });
+  actualizarReticula();
+}
+function actualizarReticula() {
+  const cont = document.getElementById("reticula");
+  if (!cont || typeof mapa === "undefined" || !mapa.getSource?.("reticula")) return;
+  const W = cont.clientWidth, H = cont.clientHeight, c = mapa.getCenter(), vis = verPlanoNacional();
+  let html = "";
+  if (vis) {
+    for (let lon = -75; lon <= -50; lon += 5) { const x = mapa.project([lon, c.lat]).x; if (x > 40 && x < W - 30) html += `<span class="ret-lon" style="left:${x.toFixed(0)}px">${-lon}° ${t("oeste_corto")}</span>`; }
+    for (let lat = -20; lat >= -55; lat -= 5) { const y = mapa.project([c.lng, lat]).y; if (y > 50 && y < H - 20) html += `<span class="ret-lat" style="top:${y.toFixed(0)}px">${-lat}° S</span>`; }
+    const p = mapa.project([CAJA_A[2], CAJA_A[3]]);
+    if (estado.capa === "riesgo") html += `<b class="ret-a" style="left:${p.x.toFixed(0)}px;top:${p.y.toFixed(0)}px">A</b>`;
+  }
+  cont.innerHTML = html;
+  for (const id of ["reticula", "caja-a"]) if (mapa.getLayer(id)) mapa.setLayoutProperty(id, "visibility", vis && (id === "reticula" || estado.capa === "riesgo") ? "visible" : "none");
+  // Escala gráfica de 500 km (o 50 km de cerca) en la leyenda
+  const km = document.getElementById("ley-km");
+  if (km) {
+    const a = mapa.project([c.lng, c.lat]), b = mapa.project([c.lng + 1, c.lat]), pxKm = Math.abs(b.x - a.x) / (111.32 * Math.cos((c.lat * Math.PI) / 180));
+    const largo = [500, 200, 100, 50, 20, 10, 5, 2, 1].find((k) => k * pxKm <= 120) ?? 1;
+    km.querySelector("i").style.width = `${(largo * pxKm).toFixed(0)}px`; km.querySelector("span").textContent = `${largo} km`;
+  }
+}
+// La retícula y el detalle se ven con el país entero en pantalla (sin zona elegida y con poco zoom)
+const verPlanoNacional = () => !estado.sel && mapa.getZoom() < 5.6;
+
+function dibujarDetalle() {
+  const caja = document.getElementById("detalle"), cv = document.getElementById("detalle-lienzo");
+  if (!caja || typeof mapa === "undefined" || !estado.riesgo) return;
+  const ver = estado.capa === "riesgo" && verPlanoNacional() && innerWidth > 1100;
+  caja.hidden = !ver;
+  if (!ver) return;
+  const r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+  if (!r.width) return;
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+  const c = cv.getContext("2d"); c.scale(dpr, dpr);
+  const [o, s, e, n] = CAJA_A, k = Math.cos(((s + n) / 2) * Math.PI / 180);
+  const esc = Math.max(r.width / ((e - o) * k), r.height / (n - s)), ox = (r.width - (e - o) * k * esc) / 2, oy = (r.height - (n - s) * esc) / 2;
+  const X = (lon) => ox + (lon - o) * k * esc, Y = (lat) => oy + (n - lat) * esc;
+  const traza = (anillo) => { anillo.forEach(([lon, lat], i) => (i ? c.lineTo(X(lon), Y(lat)) : c.moveTo(X(lon), Y(lat)))); c.closePath(); };
+  const poligonos = (g) => (g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : []);
+  c.fillStyle = css("--superficie"); c.fillRect(0, 0, r.width, r.height);
+  // Retícula cada 2°
+  c.strokeStyle = css("--cian"); c.globalAlpha = 0.3; c.lineWidth = 0.6; c.setLineDash([3, 3]);
+  for (let lon = -62; lon <= -54; lon += 2) { c.beginPath(); c.moveTo(X(lon), 0); c.lineTo(X(lon), r.height); c.stroke(); }
+  for (let lat = -26; lat >= -30; lat -= 2) { c.beginPath(); c.moveTo(0, Y(lat)); c.lineTo(r.width, Y(lat)); c.stroke(); }
+  c.setLineDash([]); c.globalAlpha = 1;
+  const idx = indicesVista(), cortes = CORTES, colores = [1, 2, 3, 4, 5].map((i) => css(`--r${i}`));
+  for (const f of estado.datos.municipios.features) {
+    const cj = cajaDe(f.geometry);
+    if (cj[2] < o || cj[0] > e || cj[3] < s || cj[1] > n) continue;
+    const reg = estado.riesgo.cmu[f.properties.cmu], v = reg ? Math.max(...idx.map((i) => reg.r[i] ?? -1)) : -1;
+    c.beginPath(); poligonos(f.geometry).forEach((p) => p.forEach(traza));
+    c.fillStyle = v < 0 ? css("--sin-datos") : colores[cortes.filter((x) => v >= x).length]; c.fill("evenodd");
+  }
+  c.strokeStyle = css("--tinta-1"); c.globalAlpha = 0.55; c.lineWidth = 0.9; c.lineJoin = "round";
+  for (const f of estado.datos.provincias.features) { c.beginPath(); poligonos(f.geometry).forEach((p) => p.forEach(traza)); c.stroke(); }
+  c.globalAlpha = 1;
+  const tono = { evacuacion: css("--critico"), alerta: css("--serio") };
+  for (const f of estado.datos.estaciones.features) {
+    const [lon, lat] = f.geometry.coordinates, q = f.properties.estado;
+    if (lon < o || lon > e || lat < s || lat > n || !q) continue;
+    c.beginPath(); c.arc(X(lon), Y(lat), q === "normal" ? 3.2 : 4.6, 0, 7); c.fillStyle = tono[q] ?? css("--rio-normal"); c.fill();
+    c.strokeStyle = "#fff"; c.lineWidth = 1; c.stroke();
+  }
 }

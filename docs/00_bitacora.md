@@ -644,3 +644,11 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 - Mapas, animaciones (viento, lluvia) y simulador 3D satelital quedan como estaban; solo cambia el marco. Módulo nuevo `web/laminas.js`; `index.html` reescrito; `estilos.css` con tokens nuevos y sección «Láminas».
 - Escritorio: página a pantalla completa con desplazamiento interno (mínimo 860 px de alto); ≤1100 px: una columna (titular e indicadores, mapa, gráficos, tablero).
 - Verificado por DOM en 1440×900, 1366×768, 1200×800 y 390×800: sin desborde horizontal, las 4 láminas, ES/EN, tema oscuro, recorrido de 14 pasos, simulador y partículas de viento (con red abierta), y `construir_artifact.py`.
+
+## 13-nov-2026 — Láminas 01 y 02 iguales a la maqueta aprobada
+- Lámina 01: buscador único y ES | EN en la franja; el mapa ocupa la izquierda con los controles encima (mapa, ahora/pronóstico, panel «Capas»),
+  referencias arriba a la derecha (niveles con rango, ríos con cantidad, escala gráfica), retícula con grados, recuadro A y «Detalle A» del Litoral.
+  Lectura: rótulo, titular «Riesgo medio de inundación: 4,7 sobre 10», bajada, 8 indicadores con ícono, escala de riesgo y camino al pico.
+- Lámina 02: panel derecho con «¿Hasta dónde llega el agua?», lluvia a simular (− / +), «Cae en», ▶, 6 indicadores y validación
+  (acierto CSI frente a JRC y modelo vs. satélite). El modelo, la maqueta 3D y el resto de los controles quedan igual, debajo.
+- Verificado por DOM en 1440, 1280 y 390 px, ES/EN, tema oscuro, capas, pronóstico, buscador y láminas 03-04.

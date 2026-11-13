@@ -34,16 +34,14 @@ function pintarKpis() {
   const ests = estado.datos.estaciones.features.filter((f) => f.properties.estado && enCaja(f.geometry.coordinates)).map((f) => f.properties);
   const evac = ests.filter((e) => e.estado === "evacuacion").length, alerta = ests.filter((e) => e.estado === "alerta").length;
   const kpis = [
-    { k: "riesgo", ico: "riesgo", etq: t("kpi_riesgo"), valor: fmtRiesgo(rV), unidad: "/10", sub: `${nombreNivel(rV)} · ${textoPeriodoCorto()}`,
-      sev: nivelRiesgo(rV) >= 4 ? "critico" : nivelRiesgo(rV) === 3 ? "atencion" : "ok", spark: spark(Z.riesgo, { color: "var(--cian-vivo)", marca: idx[idx.length - 1] }), ir: () => elegirCapa("riesgo") },
     { k: "personas", ico: "personas", etq: t("kpi_personas"), valor: fmtPersonas(pobAlto), sub: t("kpi_personas_sub")(fmt((100 * pobAlto) / (Z.poblacion || 1), 1)),
       sev: pobAlto > 0 ? "atencion" : "ok", ir: () => { elegirCapa("riesgo"); irALamina(4); } },
     { k: "municipios", ico: "municipio", etq: t("kpi_municipios"), valor: fmt(altos.length), unidad: ` / ${fmt(A.cmus.length)}`, sub: t("kpi_municipios_sub"),
       sev: altos.length ? "atencion" : "ok", ir: () => { elegirCapa("riesgo"); irALamina(4); } },
-    { k: "alertas", ico: "alerta", etq: t("kpi_alertas"), valor: fmt(alertas.length), sub: alertas.length ? [...new Set(alertas.map((a) => t(`alerta_${a.tipo}`)))].slice(0, 2).join(" · ") : t("sin_alertas"),
-      sev: nivelAl === "roja" || nivelAl === "naranja" ? "critico" : nivelAl ? "atencion" : "ok", nivelAl, ir: () => irALamina(3) },
     { k: "rios", ico: "rio", etq: t("kpi_rios"), valor: fmt(evac + alerta), unidad: ` / ${fmt(ests.length)}`, sub: t("kpi_rios_sub")(evac, alerta),
       sev: evac ? "critico" : alerta ? "atencion" : "ok", ir: () => irALamina(3) },
+    { k: "alertas", ico: "alerta", etq: t("kpi_alertas"), valor: fmt(alertas.length), sub: alertas.length ? [...new Set(alertas.map((a) => t(`alerta_${a.tipo}`)))].slice(0, 2).join(" · ") : t("sin_alertas"),
+      sev: nivelAl === "roja" || nivelAl === "naranja" ? "critico" : nivelAl ? "atencion" : "ok", nivelAl, ir: () => irALamina(3) },
   ];
   if (estado.tiempo) {
     const T = estado.tiempo, TM = tiempoMunicipios(), h0 = diaHoy(T), h6 = Math.min(T.dias.length - 1, h0 + 6), h2 = Math.min(T.dias.length - 1, h0 + 2);
@@ -59,13 +57,51 @@ function pintarKpis() {
       { k: "temp", ico: "temp", etq: t("kpi_temp"), valor: fmt(tmx?.v), unidad: " °C", sub: lugar(tmx), sev: tmx?.v >= 38 ? "critico" : tmx?.v >= 34 ? "atencion" : "ok", ir: irA("temp", tmx, h6) },
     );
   }
+  // Pico estimado del evento (mes con más estaciones de río con 50 % o más de probabilidad de evacuación)
+  const res = estado.datos.resumen, mp = res?.mes_pico;
+  if (mp) kpis.push({ k: "pico", ico: "calendario", etq: t("kpi_pico"), valor: mesAbrev(mp), unidad: ` ${mp.slice(0, 4)}`, sub: t("kpi_pico_sub"), sev: "ok", ir: () => { elegirCapa("riesgo"); elegirModo("futuro"); } });
   document.getElementById("kpis-alcance").textContent = t("kpis_de")(A.nombre);
   const cont = document.getElementById("kpis");
   cont.innerHTML = kpis.map((k, i) => `<button class="kpi" data-i="${i}" data-sev="${k.sev}"${k.nivelAl ? ` data-alerta="${k.nivelAl}"` : ""} type="button" data-ayuda="${escapar(t(`kpi_ayuda_${k.k}`))}">
-      <span class="kpi-cab">${icono(k.ico)}<span>${k.etq}</span><span class="info info-kpi" aria-hidden="true">!</span></span>
-      <span class="kpi-valor">${k.valor}${k.unidad ? `<small>${k.unidad}</small>` : ""}</span>
-      <span class="kpi-pie">${escapar(k.sub)}</span>${k.spark ?? ""}</button>`).join("");
+      <span class="kpi-l">${k.etq}</span><span class="kpi-i">${icono(k.ico)}</span>
+      <span class="kpi-v">${k.valor}${k.unidad ? `<small>${k.unidad.trim()}</small>` : ""}</span>
+      <span class="kpi-f">${escapar(k.sub)}</span></button>`).join("");
   cont.querySelectorAll(".kpi").forEach((b) => { b.onclick = () => kpis[+b.dataset.i].ir(); });
+  pintarCabezaLectura(A, rV, pobAlto, evac);
+}
+
+// ---------- Cabeza de la lámina 01: titular, bajada, escala de riesgo y camino al pico ----------
+const mesAbrev = (m) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString(loc(), { month: "short", timeZone: "UTC" }).replace(".", "");
+const mesLargo = (m) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString(loc(), { month: "long", year: "numeric", timeZone: "UTC" });
+function pintarCabezaLectura(A, rV, pobAlto, evac) {
+  const pais = A.nombre === "Argentina", h = hoyLocal(), hoy = `${+h.slice(8, 10)} ${mesAbrev(h.slice(0, 7))} ${h.slice(0, 4)}`;
+  const mp = estado.datos.resumen?.mes_pico, nivel = nombreNivel(rV).toLowerCase();
+  document.getElementById("lec-etq").textContent = t("lec_etq")(pais ? t("lec_pais") : A.nombre, hoy);
+  document.getElementById("lec-titular").innerHTML = `${escapar(capitalizar(t("lec_titular")(nivel)))} <span>${t("sobre_10")(fmtRiesgo(rV))}</span>`;
+  const pers = pobAlto >= 1e6 ? t("personas_txt")(fmt(pobAlto / 1e6, 1), true) : t("personas_txt")(fmt(Math.round(pobAlto)), false);
+  document.getElementById("lec-bajada").textContent = mp ? (evac ? t("lec_bajada")(capitalizar(pers), evac, mesLargo(mp)) : t("lec_bajada_sin")(capitalizar(pers), mesLargo(mp))) : "";
+  document.getElementById("escala-sub").textContent = t("escala_sub")(pais ? t("el_pais") : A.nombre);
+  // Regla de 0 a 10 con los cortes del índice y una aguja en el valor de hoy
+  const cortes = [0, ...CORTES, 10], nombres = t("niveles_cortos");
+  document.getElementById("lec-escala").innerHTML = `<div class="regla"><div class="regla-aguja" style="left:${limitar(rV, 0, 10) * 10}%">${fmtRiesgo(rV)}</div>
+    <div class="regla-barra">${cortes.slice(1).map((c, i) => `<i style="flex:${c - cortes[i]};background:var(--r${i + 1})"></i>`).join("")}</div>
+    <div class="regla-marcas">${cortes.map((c) => `<span style="left:${c * 10}%">${fmt(c, c % 1 ? 1 : 0)}</span>`).join("")}${cortes.slice(1).map((c, i) => `<em style="left:${(c + cortes[i]) * 5}%">${nombres[i]}</em>`).join("")}</div></div>`;
+  // Camino al pico: estaciones con 50 % o más de probabilidad de evacuación, mes a mes
+  const res = estado.datos.resumen, meses = res?.meses ?? [];
+  const vals = meses.map((m) => res.por_mes?.[m]?.estaciones_prob_evacuacion_50 ?? 0);
+  if (!vals.length) { document.getElementById("lec-pico").innerHTML = ""; return; }
+  const W = 230, H = 150, iz = 6, ab = 36, ar = 20, n = vals.length, max = Math.max(1, ...vals) * 1.05, bw = (W - iz * 2) / n;
+  const imax = vals.indexOf(Math.max(...vals)), mHoy = hoyLocal().slice(0, 7);
+  let g = `<line x1="${iz}" x2="${W - iz}" y1="${H - ab}" y2="${H - ab}" stroke="var(--borde-fuerte)"/>`;
+  vals.forEach((v, i) => {
+    const h = (v / max) * (H - ab - ar), x = iz + i * bw + bw * 0.16, w = bw * 0.68, esHoy = meses[i] === mHoy;
+    const color = i === imax ? "var(--cian)" : esHoy ? "var(--ocre)" : "var(--pico-resto)";
+    g += `<rect x="${x.toFixed(1)}" y="${(H - ab - h).toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(h, 1.5).toFixed(1)}" style="fill:${color}"><title>${mesLargo(meses[i])}: ${v}</title></rect>`;
+    g += `<text class="v" x="${(x + w / 2).toFixed(1)}" y="${(H - ab - h - 5).toFixed(1)}" text-anchor="middle">${v}</text>`;
+    g += `<text x="${(x + w / 2).toFixed(1)}" y="${H - 21}" text-anchor="middle">${mesAbrev(meses[i])}</text>`;
+    if (esHoy || i === imax) g += `<text class="v" x="${(x + w / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle">${esHoy ? t("pico_hoy") : t("pico_max")}</text>`;
+  });
+  document.getElementById("lec-pico").innerHTML = `<svg class="pico" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img">${g}</svg>`;
 }
 
 // ---------- Modo, presets y línea de tiempo ----------
@@ -351,12 +387,14 @@ function pintarLeyenda() {
   const interruptores = claves ? `<p class="ley-claves">${claves}</p>` : "";
   let cuerpo;
   if (capa === "riesgo") {
-    cuerpo = `<p class="ley-titulo">${t("ley_riesgo")}</p>
-      <div class="ley-niveles">${[1, 2, 3, 4, 5].map((n) => `<span class="ley-nivel"><i style="background:var(--r${n})"></i><b>${t("niveles")[n - 1]}</b><small>${["< 3", "3–4,5", "4,5–6", "6–7", "≥ 7"][n - 1]}</small></span>`).join("")}
-        <span class="ley-nivel"><i class="ley-sin-dato"></i><b>${t("sin_dato")}</b><small>&nbsp;</small></span></div>
-      ${estado.verHidro ? `<p class="ley-rios">${estado.modo === "actual"
-        ? `<i class="pt" style="background:var(--critico)"></i>${t("rio_evacuacion")} <i class="pt" style="background:var(--serio)"></i>${t("rio_alerta")} <i class="pt" style="background:var(--rio-normal)"></i>${t("rio_normal")}`
-        : `<i class="pt" style="background:var(--serio)"></i>${t("ley_rios_prob")}`}</p>` : ""}`;
+    // Como la lámina aprobada: una fila por nivel con su rango, y las estaciones de río con su cantidad
+    const est = estado.datos.estaciones.features.map((f) => f.properties.estado), cuenta = (e) => est.filter((x) => x === e).length;
+    const fila = (muestra, nombre, dato) => `<div>${muestra}<span>${nombre}</span><b>${dato}</b></div>`;
+    cuerpo = `<div class="ley-lista">${[1, 2, 3, 4, 5].map((n) => fila(`<i style="background:var(--r${n})"></i>`, t("niveles")[n - 1], ["0 – 3", "3 – 4,5", "4,5 – 6", "6 – 7", "7 – 10"][n - 1])).join("")}</div>
+      ${estado.verHidro ? `<div class="ley-lista">${estado.modo === "actual"
+        ? fila('<i class="pto" style="background:var(--critico)"></i>', t("ley_rio_ev"), cuenta("evacuacion")) + fila('<i class="pto" style="background:var(--serio)"></i>', t("ley_rio_al"), cuenta("alerta")) + fila('<i class="pto" style="background:var(--rio-normal)"></i>', t("ley_rio_no"), est.filter((x) => x && x !== "evacuacion" && x !== "alerta").length)
+        : fila('<i class="pto" style="background:var(--serio)"></i>', t("ley_rios_prob"), "")}</div>` : ""}
+      <div class="ley-km" id="ley-km"><i></i><span></span></div>`;
   } else if (estado.campo) {
     const c = estado.campo, esc = c.escala, n = esc.length;
     const pasos = esc.map(([v, col], i) => `<span style="background:${rgba(col, 0.25)}"></span>`).join("");
@@ -459,6 +497,7 @@ function actualizarTodo({ ligero = false, cuadro = false } = {}) {
   pintarMinisDemorado();
   pintarTablero();
   if (laminaActual === 3) pintarLamina3();
+  if (typeof mapa !== "undefined" && mapa.getSource?.("reticula")) { actualizarReticula(); dibujarDetalle(); }
   if (!ligero || estado.capa !== "riesgo") pintarAnalisis(); else pintarAnalisisDemorado();
 }
 const pintarAnalisisDemorado = demorar(() => pintarAnalisis(), 250);
@@ -479,7 +518,7 @@ function aplicarIdioma() {
   document.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
   document.querySelectorAll("[data-i18n-aria]").forEach((el) => { el.setAttribute("aria-label", t(el.dataset.i18nAria)); });
   document.querySelectorAll("[data-i18n-ayuda]").forEach((el) => { el.dataset.ayuda = t(el.dataset.i18nAyuda); el.setAttribute("aria-description", t(el.dataset.i18nAyuda)); });
-  document.getElementById("btn-idioma").querySelector("span").textContent = estado.idioma === "es" ? "EN" : "ES";
+  document.getElementById("btn-idioma").innerHTML = estado.idioma === "es" ? "<b>ES</b><span>EN</span>" : "<span>ES</span><b>EN</b>";
   document.title = t("titulo");
   pintarIntro();
   refrescarLaminas();
@@ -548,6 +587,10 @@ async function iniciar() {
   const laminaDelEnlace = iniciarLaminas();
   pintarCapasExtra();
   document.getElementById("btn-sim-top").onclick = usarSimulador;
+  // Capas adicionales y opciones del mapa en un panel desplegable sobre el mapa
+  const btnCapas = document.getElementById("btn-capas"), panelCapas = document.getElementById("panel-capas");
+  btnCapas.onclick = (ev) => { ev.stopPropagation(); panelCapas.hidden = !panelCapas.hidden; btnCapas.setAttribute("aria-expanded", String(!panelCapas.hidden)); };
+  document.addEventListener("click", (ev) => { if (!panelCapas.hidden && !panelCapas.contains(ev.target) && ev.target !== btnCapas) { panelCapas.hidden = true; btnCapas.setAttribute("aria-expanded", "false"); } });
   if (SIN_TESELAS) { document.getElementById("enlace-completo").hidden = false; }
   addEventListener("resize", demorar(() => { pintarTablero(); pintarAnalisis(); pintarMinis(); }, 250));
 
@@ -566,6 +609,7 @@ async function iniciar() {
     probar();
   };
   alCargar(() => {
+    iniciarPlano();
     actualizarTodo();
     laminaDelEnlace();   // enlaces directos a una lámina: #lamina-2, #lamina-3, #lamina-4
     const buscarL = (nombre, niveles) => estado.lugares.find((l) => niveles.includes(l.nivel) && l.clave === normalizar(nombre));

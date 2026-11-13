@@ -26,7 +26,8 @@ const CAPAS_SIM = ["cortes", "flujo", "corte"];
 function correrTormenta(cambio) {
   Object.assign(SIM.tormenta, cambio);
   const T = SIM.tormenta, mm = document.getElementById("sim-mm");
-  if (mm) { mm.value = T.mm; document.getElementById("sim-mm-valor").textContent = fmt(T.mm); }
+  if (mm) mm.value = T.mm;
+  const mmV = document.getElementById("sim-mm-valor"); if (mmV) mmV.textContent = `${fmt(T.mm)} mm`;
   document.querySelectorAll("#sim-dur .chip").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.h === T.horas)));
   const hoy = limitesPeriodo().hoy;
   if (T.mm > 0) simularPeriodo(sumarDias(hoy, 1 + Math.ceil(T.horas / 24)), { ...T }, true);
@@ -1418,33 +1419,34 @@ function pintarFiltrosSimulador() {
 function pintarPanelSimulador(d) {
   const panel = document.getElementById("sim-panel");
   const ps = presetsSimulador();
+  const kpiSim = (etq, sub) => `<div class="kpi"><span class="kpi-l">${etq}</span><span class="kpi-v tb-dato-valor">–</span><span class="kpi-f tb-dato-extra">${sub}</span></div>`;
   panel.innerHTML = `
+    <div class="sim-lec">
+      <div><span class="etq" id="sim-etq"></span><h2 class="titular" id="sim-titular">${t("sim_tit_q")} <span>–</span></h2></div>
+      <div><p class="bajada">${t("sim_bajada_lam")}</p>
+        <div class="ctrls">
+          <div class="ctrl"><span class="etq">${t("sim_mm_etq_c")}</span><div class="seg" id="sim-mm-paso"><button type="button" data-paso="-10" aria-label="−10 mm">−</button><b id="sim-mm-valor">${fmt(SIM.tormenta.mm)} mm</b><button type="button" data-paso="10" aria-label="+10 mm">+</button></div></div>
+          <div class="ctrl"><span class="etq">${t("sim_cae_en")}</span><div class="seg" id="sim-dur" role="group" aria-label="${t("sim_dur")}">${[1, 3, 6, 12, 24].map((h) => `<button type="button" class="chip" data-h="${h}" aria-pressed="${SIM.tormenta.horas === h}">${h} h</button>`).join("")}</div></div>
+          <div class="ctrl"><span class="etq">${t("sim_lluvia_etq")}</span><div class="seg"><button type="button" id="sim-reiniciar" aria-label="${t("sim_reiniciar")}" data-ayuda="${t("sim_reiniciar")}">${icono("repetir")}</button><button type="button" id="sim-play" aria-label="${t("sim_reproducir")}">${icono("play")}</button></div></div>
+        </div>
+        <p class="sim-hint" id="sim-hint" hidden>${t("sim_hint")}</p></div>
+      <div class="kpis sim-datos">
+        ${kpiSim(t("sim_area"), "&nbsp;")}${kpiSim(t("sim_prof"), t("sim_prof_sub"))}${kpiSim(t("sim_personas"), t("sim_personas_sub"))}
+        ${kpiSim(t("sim_cortes"), "&nbsp;")}${kpiSim(t("sim_aisladas"), t("sim_aisladas_sub"))}${kpiSim(t("sim_salud"), t("sim_salud_sub"))}
+      </div>
+      <div class="lec-pie" id="sim-pie"></div>
+    </div>
+    <div class="sim-mas">
     <p class="sim-progreso" id="sim-progreso" role="status" hidden></p>
     <div class="sim-ahora"><span class="sim-ahora-fecha" id="sim-fecha">–</span><span class="sim-ahora-tipo" id="sim-tipo"></span>
       <span class="pill" id="sim-conf" tabindex="0"></span><span class="sim-ahora-lluvia" id="sim-acum"></span></div>
     <div class="sim-control">
-      <button type="button" class="btn-icono sim-reiniciar" id="sim-reiniciar" aria-label="${t("sim_reiniciar")}" title="${t("sim_reiniciar")}">${icono("repetir")}</button>
-      <button type="button" class="lt-play" id="sim-play" aria-label="${t("sim_reproducir")}">${icono("play")}</button>
       <input type="range" id="sim-barra" min="0" max="0" step="1" value="0" aria-label="${t("sim_linea")}">
     </div>
     <div class="sim-vel" id="sim-vel" role="group" aria-label="${t("sim_velocidad")}"><span class="sim-dur-etq">${t("sim_velocidad")}</span>${[0.5, 1, 2, 4].map((v) => `<button type="button" class="chip" data-v="${v}" aria-pressed="${SIM.velocidad === v}">×${String(v).replace(".", ",")}</button>`).join("")}</div>
     <div class="sim-linea" id="sim-linea"></div>
     <div class="sim-corte" id="sim-corte" hidden></div>
-    <div class="sim-lluvia">
-      <div class="sim-mm"><span class="sim-mm-valor" id="sim-mm-valor">${fmt(SIM.tormenta.mm)}</span><span class="sim-mm-u">mm</span><span class="sim-mm-etq">${t("sim_mm_etq")}</span></div>
-      <input type="range" id="sim-mm" min="0" max="300" step="10" value="${SIM.tormenta.mm}" aria-label="${t("sim_mm_etq")}"${d ? "" : " disabled"}>
-      <div class="sim-presets" id="sim-dur" role="group" aria-label="${t("sim_dur")}"><span class="sim-dur-etq">${t("sim_dur")}</span>${[1, 3, 6, 12, 24].map((h) => `<button type="button" class="chip" data-h="${h}" aria-pressed="${SIM.tormenta.horas === h}">${h} h</button>`).join("")}</div>
-      <p class="sim-hint" id="sim-hint" hidden>${t("sim_hint")}</p>
-    </div>
     <div class="sim-filtros" id="sim-filtros" role="group" aria-label="${t("sim_capas")}"></div>
-    <div class="tb-datos sim-datos">
-      ${dato(t("sim_area"), "–", "&nbsp;")}
-      ${dato(t("sim_prof"), "–", t("sim_prof_sub"))}
-      ${dato(t("sim_personas"), "–", t("sim_personas_sub"))}
-      ${dato(t("sim_cortes"), "–", "&nbsp;")}
-      ${dato(t("sim_aisladas"), "–", t("sim_aisladas_sub"))}
-      ${dato(t("sim_salud"), "–", t("sim_salud_sub"))}
-    </div>
     <div class="sim-leyenda">${COLOR_AGUA.map(([v, c]) => `<span><i style="background:${rgba(c, 0.6)}"></i>${v < 1 ? `${fmt(v * 100)} cm` : `${fmt(v)} m`}</span>`).join("")}
       <span><i style="background:rgb(214, 40, 40)"></i>${t("sim_f_cortes")}</span></div>
     <div class="sim-validez" id="sim-validez">${t("sim_validez")}</div>
@@ -1465,15 +1467,14 @@ function pintarPanelSimulador(d) {
     </div>
     <h3 class="sim-h3">${t("sim_tormentas")}</h3>
     <div class="sim-presets">${ps.map(([e, v], i) => `<button type="button" class="chip" data-i="${i}"${d ? "" : " disabled"}>${e} · ${fmt(v)} mm</button>`).join("")}</div>
-    <details class="sim-metodo"><summary>${t("sim_como")}</summary><p>${t("sim_metodo")}</p><p id="sim-supuestos"></p></details>`;
+    <details class="sim-metodo"><summary>${t("sim_como")}</summary><p>${t("sim_metodo")}</p><p id="sim-supuestos"></p></details>
+    </div>`;
   const barra = document.getElementById("sim-barra");
   barra.oninput = () => { const Mo = SIM.modelo; if (!Mo?.frames.length) return; detenerAnimaciones(); Mo.siguiendo = false; Mo.hora = limitar(Number(barra.value), Mo.hoy, Mo.frames.length - 1); mostrarHora(); };
   document.getElementById("sim-play").onclick = () => reproducirSimulador();
   document.getElementById("sim-reiniciar").onclick = reiniciarSimulador;
   panel.querySelectorAll("#sim-vel .chip").forEach((b) => { b.onclick = () => { SIM.velocidad = +b.dataset.v; panel.querySelectorAll("#sim-vel .chip").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); }; });
-  const mmEl = document.getElementById("sim-mm");
-  mmEl.oninput = () => { document.getElementById("sim-mm-valor").textContent = fmt(+mmEl.value); };
-  mmEl.onchange = () => correrTormenta({ mm: +mmEl.value });
+  panel.querySelectorAll("#sim-mm-paso [data-paso]").forEach((b) => { b.onclick = () => { if (!SIM.datos) return; correrTormenta({ mm: limitar(SIM.tormenta.mm + Number(b.dataset.paso), 0, 300) }); }; });
   panel.querySelectorAll("#sim-dur .chip").forEach((b) => { b.onclick = () => correrTormenta({ horas: +b.dataset.h }); });
   panel.querySelectorAll(".sim-presets .chip[data-i]").forEach((b) => { b.onclick = () => correrTormenta({ mm: ps[+b.dataset.i][1] }); });
   const cre = document.getElementById("sim-crecida"), creV = document.getElementById("sim-crecida-v");
@@ -1491,6 +1492,34 @@ function pintarPanelSimulador(d) {
   if (d) pintarCorte();
 }
 
+// Cabeza y pie de la lámina 02: rótulo del lugar y, abajo, cómo le fue al modelo en esta ciudad (o en todas) frente al satélite
+function pintarCabezaSim() {
+  const d = SIM.datos, etq = document.getElementById("sim-etq");
+  if (!etq || !d) return;
+  const m = estado.porCmu.get(d.s.cmu);
+  etq.textContent = [m?.nam ?? document.getElementById("sim-titulo")?.textContent, t("sel_circulo")(d.s.km), t("sim_relieve_real")].filter(Boolean).join(" · ");
+}
+function pintarPieSim() {
+  const cont = document.getElementById("sim-pie"), V = SIM.validacion;
+  if (!cont) return;
+  pintarCabezaSim();
+  if (!V?.nino) { cont.innerHTML = ""; return; }
+  const v = validacionCiudad(SIM.datos), temp = (f) => f.temporada.replace(/^nino_/, "").replace("_", "-");
+  const fila = (n, a, b, max, dec) => `<div class="fila-b"><span class="n">${n}</span><span class="pista doble"><i style="width:${(100 * limitar(a / max, 0, 1)).toFixed(1)}%"></i><i style="width:${(100 * limitar((b ?? 0) / max, 0, 1)).toFixed(1)}%"></i></span><b>${fmt(a, dec)}<small>${b == null ? "–" : fmt(b, dec)}</small></b></div>`;
+  const ley = (b) => `<div class="leyq"><span><i style="background:var(--cian)"></i>${t("sim_val_modelo_c")}</span><span><i style="background:var(--pista-ref)"></i>${b}</span></div>`;
+  let a, b;
+  if (v?.filas?.length) {
+    a = `<h3 class="tit">${t("sim_acierto_en")(escapar(v.ciudad))}</h3><p class="sub">${t("sim_csi_sub")}</p><div class="barras">${v.filas.map((f) => fila(temp(f), f.csi, f.csi_jrc, 1, 2)).join("")}</div>${ley(t("sim_ref_jrc"))}`;
+    const mx = Math.max(1, ...v.filas.flatMap((f) => [f.sup_sim_pct ?? 0, f.sup_obs_pct ?? 0])) * 1.1;
+    b = `<h3 class="tit">${t("sim_vs_sat")}</h3><p class="sub">${t("sim_vs_sat_sub")(V.radio_km)}</p><div class="barras">${v.filas.map((f) => fila(temp(f), f.sup_sim_pct ?? 0, f.sup_obs_pct, mx, 1)).join("")}</div>${ley(t("sim_satelite"))}`;
+  } else {
+    const N = V.nino;
+    a = `<h3 class="tit">${t("sim_acierto_todas")}</h3><p class="sub">${t("sim_csi_sub_todas")(V.ciudades)}</p><div class="barras">${fila(t("sim_mediana"), N.csi_mediana, N.csi_jrc_mediana, 1, 2)}</div>${ley(t("sim_ref_jrc"))}`;
+    b = `<h3 class="tit">${t("sim_aciertos_t")}</h3><p class="sub">${t("sim_aciertos_sub")}</p><div class="barras">${fila(t("sim_detecta"), 100 * N.pod_mediana, null, 100, 0)}${fila(t("sim_falsas"), 100 * N.far_mediana, null, 100, 0)}</div>`;
+  }
+  cont.innerHTML = `<div>${a}</div><div>${b}</div>`;
+}
+
 // Validación: cómo le fue al modelo en esta ciudad (si está entre las validadas) y en todas
 function validacionCiudad(d) {
   const V = SIM.validacion, filas = V?.por_ciudad?.[d?.s?.cmu];
@@ -1502,6 +1531,7 @@ function validacionCiudad(d) {
 const textoModelo = (v) => (v?.csi != null ? t("sim_modelo_ciudad")(escapar(v.ciudad), fmt(v.csi, 2)) : v?.sinAgua ? t("sim_modelo_sin_agua")(escapar(v.ciudad))
   : SIM.validacion ? t("sim_modelo_otras")(SIM.validacion.ciudades) : t("sim_modelo_teorico"));
 function pintarValidez() {
+  pintarPieSim();
   const cont = document.getElementById("sim-validez"), V = SIM.validacion;
   if (!cont) return;
   if (!V?.nino) { cont.innerHTML = `${t("sim_validez")} ${t("sim_limites")}`; return; }
@@ -1575,14 +1605,17 @@ function actualizarNumeros() {
   const barra = document.getElementById("sim-barra");
   barra.min = String(Mo.hoy); barra.max = String(met.horas.length - 1); barra.value = String(k);
   const vals = document.querySelectorAll(".sim-datos .tb-dato-valor"), ext = document.querySelectorAll(".sim-datos .tb-dato-extra");
-  vals[0].textContent = `${fmt(R.pct, R.pct < 10 ? 1 : 0)} %`; ext[0].textContent = `${fmt(R.km2, 2)} km²`;
-  vals[1].textContent = R.maxProf >= 0.01 ? `${fmt(R.maxProf, 2)} m` : "–";
+  const conU = (v, u) => `${v}<small>${u}</small>`, pctTxt = fmt(R.pct, R.pct < 10 ? 1 : 0);
+  vals[0].innerHTML = conU(pctTxt, "%"); ext[0].textContent = t("sim_km2_circulo")(fmt(R.km2, 2));
+  vals[1].innerHTML = R.maxProf >= 0.01 ? conU(fmt(R.maxProf, 2), "m") : "–";
+  pintarCabezaSim();
+  const tit = document.getElementById("sim-titular"); if (tit) tit.innerHTML = `${t("sim_tit_q")} <span>${t("sim_tit_pct")(pctTxt)}</span>`;
   vals[2].textContent = fmtPersonas(R.personas);
   const g = Mo.g, ac = accesoHora(Mo);
-  vals[3].textContent = g.nRuta ? `${fmt(R.cortesKm, R.cortesKm < 10 ? 1 : 0)} km` : t("sin_informacion");
+  vals[3].innerHTML = g.nRuta ? conU(fmt(R.cortesKm, R.cortesKm < 10 ? 1 : 0), "km") : t("sin_informacion");
   ext[3].textContent = g.nRuta ? t("sim_cortes_de")(fmt((g.nRuta * g.dx) / 1000)) : "";
   vals[4].textContent = ac ? fmtPersonas(ac.aisladas) : t("sin_informacion");
-  vals[5].textContent = ac && ac.salud ? `${ac.sinAcceso} / ${ac.salud}` : t("sin_informacion");
+  vals[5].innerHTML = ac && ac.salud ? conU(ac.sinAcceso, `/ ${ac.salud}`) : t("sin_informacion");
   const cf = confianzaHora(Mo, k, d), pc = document.getElementById("sim-conf");
   pc.className = `pill sem-${cf.nivel === 3 ? "ok" : cf.nivel === 2 ? "atencion" : "critico"}`;
   pc.textContent = t("sim_conf")(NIVELES_CONF[cf.nivel]);
