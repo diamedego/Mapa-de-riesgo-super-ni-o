@@ -101,7 +101,7 @@ def capitulos(F, P):
 <tr><td>Vecina o vecino</td><td>Saber si su zona es riesgosa y qué hacer</td><td>Buscador de direcciones, panel «Situación» y «Qué hacer» con prevención y emergencia</td></tr>
 <tr><td>Equipos municipales y de Defensa Civil</td><td>Priorizar zonas y personas expuestas</td><td>Rankings por nivel y por personas, calles cortadas y centros de salud sin acceso</td></tr>
 <tr><td>Periodistas y público general</td><td>Entender el panorama del país</td><td>Situación del país, zonas de mayor riesgo, riesgo semana a semana, recorrido guiado</td></tr>
-<tr><td>Reclutadores y colegas técnicos</td><td>Evaluar la metodología</td><td>Fuentes por tipo de dato, fórmulas, validación publicada y repositorio abierto</td></tr></tbody></table></section>''',
+<tr><td>Colegas técnicos y comunidad de datos</td><td>Evaluar y reutilizar la metodología</td><td>Fuentes por tipo de dato, fórmulas, validación publicada y repositorio abierto</td></tr></tbody></table></section>''',
 
 2: f'''<section><h1><span class="num">Capítulo 2</span>Marco conceptual</h1>
 <h2><span class="n">2.1</span>Riesgo, amenaza, exposición y vulnerabilidad</h2>
@@ -261,7 +261,6 @@ def capitulos(F, P):
 
 10: f'''<section><h1><span class="num">Capítulo 10</span>Registro cronológico del proceso</h1>
 <p>El proyecto se desarrolló entre el 27 de septiembre y el 12 de noviembre de 2026 en conversación continua entre la autora y el asistente. Cada paso quedó en una bitácora fechada del repositorio y en más de 270 commits. La autora tomó las decisiones de alcance, método y diseño; el asistente investigó, programó y verificó.</p>
-{fig(F["crono"], 8, "Línea de tiempo de las etapas del proyecto (los bloques se solapan porque varias etapas avanzaron en paralelo).")}
 <div class="tabla-t">Tabla 3. Cronología de hitos</div>
 <table class="cronologia"><thead><tr><th>Fecha</th><th>Hito y decisiones</th></tr></thead><tbody>
 <tr><td>27 sep</td><td>Investigación de fuentes. Se descubre que BA Data, el GeoServer del INDEC y el SMN «ws» fallan por momentos: la ingesta tendrá reintentos y copia de todo.</td></tr>
@@ -271,11 +270,10 @@ def capitulos(F, P):
 <tr><td>8–15 oct</td><td>Consumo de IA como línea base; análisis por zona estilo Power BI; calles y tres buscadores; búsqueda por dirección con callejero propio; versión para celular; simulación mes a mes; capas del tiempo (lluvia, viento y temperatura) dibujadas en lienzo.</td></tr>
 <tr><td>5–6 nov</td><td>Rediseño completo como «sala de situación». Sitio público en Cloudflare Workers. Primer simulador de lluvia en 3D (llenado de bajos) y relieve en el mapa principal.</td></tr>
 <tr><td>8 nov</td><td>Maqueta 3D con lluvia animada. Se detecta y corrige la automatización inválida.</td></tr>
-<tr><td>10 nov</td><td>Pedido de 28 puntos de la autora, con respaldo previo del código (etiqueta de Git). Modelo hidráulico 2D en un Web Worker, suelo real por lugar, terreno FABDEM en 20 ciudades (se descargan 6,3 GB y se conservan 89 MB).</td></tr>
+<tr><td>10 nov</td><td>Pedido de mejoras de 28 puntos, con respaldo previo del código (etiqueta de Git). Modelo hidráulico 2D en un Web Worker, suelo real por lugar, terreno FABDEM en 20 ciudades (se descargan 6,3 GB y se conservan 89 MB).</td></tr>
 <tr><td>10–11 nov</td><td>Tandas 1 a 9: colores de semáforo y sin dato punteado; capas y relieve con altura; filtros en una fila; condiciones futuras; panel «Situación» con tortas y recomendaciones; análisis con filtros globales; encabezado, fuentes por tipo y recorrido guiado; calles cortadas, aislados y confianza; validación contra el satélite y su mejora.</td></tr>
-<tr><td>11–12 nov</td><td>Ajustes por indicaciones de la autora: línea de tiempo a escala de calendario; riesgo semana a semana; íconos «!» con fórmula; capas en dos grupos; separador de miles; diagnóstico de la maqueta; simulador solo en 3D; tormenta en cámara lenta con velocidad y reinicio; cálculo en segundos; se descarta un rediseño tipográfico no aprobado.</td></tr></tbody></table>
-<h2><span class="n">10.1</span>Decisiones de la autora que moldearon el producto</h2>
-<ul><li>Un único lanzamiento (LinkedIn, alrededor del 1 de diciembre de 2026): sitio, video y repositorio.</li><li>Todo gratuito; ningún dato sensible en el repositorio; no usar la computadora del trabajo.</li><li>Datos reales siempre, y decir qué es real y qué es pronóstico o escenario.</li><li>Gráficos en lugar de tablas; explicaciones al pasar el mouse en lugar de letra chica.</li><li>Modelo híbrido para el simulador (2D en el navegador y relieve de 30 m en las 20 ciudades de mayor riesgo) y validación contra «todas las inundaciones reales con datos».</li><li>Mostrar capturas solo cuando ella las pide.</li></ul></section>''',
+<tr><td>11–12 nov</td><td>Ajustes por indicaciones de la autora: línea de tiempo a escala de calendario; riesgo semana a semana; íconos «!» con fórmula; capas en dos grupos; separador de miles; diagnóstico de la maqueta; simulador solo en 3D; tormenta en cámara lenta con velocidad y reinicio; cálculo en segundos.</td></tr></tbody></table>
+</section>''',
 
 11: f'''<section><h1><span class="num">Capítulo 11</span>Cumplimiento del pedido de noviembre</h1>
 <p>El 10 de noviembre la autora entregó un pedido de 28 puntos. A continuación se indica el estado de cada uno con criterio estricto: «cumplido» significa implementado y probado; «parcial» significa que falta una parte.</p>
@@ -305,7 +303,7 @@ def capitulos(F, P):
 <table><thead><tr><th>Riesgo</th><th>Mitigación</th></tr></thead><tbody>
 <tr><td>Fuentes inestables (INA, SMN, BA Data, Open-Meteo)</td><td>Reintentos, copia de lo descargado y avisos en pantalla; fecha de actualización de cada fuente</td></tr>
 <tr><td>Interpretación alarmista o como producto oficial</td><td>Aviso permanente, lenguaje medido, confianza visible y fuentes por tipo</td></tr>
-<tr><td>Licencias</td><td>FABDEM es CC BY-NC-SA (uso no comercial); OpenStreetMap exige atribución; Open-Meteo y Earth Engine son gratuitos para uso no comercial: aptos para un portfolio</td></tr>
+<tr><td>Licencias</td><td>FABDEM es CC BY-NC-SA (uso no comercial); OpenStreetMap exige atribución; Open-Meteo y Earth Engine son gratuitos para uso no comercial: aptos para un proyecto personal sin fines de lucro</td></tr>
 <tr><td>Fecha de lanzamiento (antes del 30 de noviembre)</td><td>Lo que falta se muestra como faltante; el alcance no demora la publicación</td></tr></tbody></table>
 <h2><span class="n">12.3</span>Trabajo futuro</h2>
 <ol><li>Confirmar el ajuste del río con otras temporadas (2019 y la propia 2026–27) y cerrar la brecha en Santa Fe 2023–24 y el delta.</li><li>Incorporar la sudestada (Servicio de Hidrografía Naval) al índice y reintentar los suelos del INTA.</li><li>Conectar los íconos «!» con un PDF metodológico por indicador y comparar el escenario con inundaciones históricas puntuales.</li><li>Usar canales, alcantarillas y puentes de OpenStreetMap en el modelo hidráulico y probar relieve de 5 m (IGN, IDECOR) en ciudades puntuales.</li><li>Ejecutar el modelo en capas en Databricks (perfil preparado) y retomar dengue, impacto agrícola y la capa social.</li><li>Lanzamiento: video de 30 a 60 segundos, publicación bilingüe, README final y repositorio público con página en GitHub Pages; volver a medir el consumo de IA.</li></ol></section>''',
