@@ -45,7 +45,7 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
 - Pedido 10-nov (`docs/02_plan_cambios_nov.md`): tandas 1 a 6 publicadas (colores, capas, filtros, período, Situación con tortas y
   recomendaciones, análisis tipo Power BI, encabezado con fuentes por tipo y recorrido guiado en `web/guia.js`) y tandas 7-8
   (calles cortadas, aislados, confianza, validación contra satélite en `herramientas/validacion/`, ver `docs/04_validacion_simulador.md`).
-  Próximo: mejorar el modelo donde falla (nivel de referencia del río, lagunas) y volver a correr `validar.py`.
+  13-nov: revisada una crítica externa (ver bitácora): confianza baja sin validación, «Sin información» en ríos sin estación, límites explícitos. Próximo: mejorar el modelo donde falla (nivel de referencia del río, lagunas) y volver a correr `validar.py`.
 - Sitio público (Cloudflare Workers, gratis): https://mapa-de-riesgo-super-nino.diamedego.workers.dev — se publica solo con cada push
   (configuración en `wrangler.jsonc` y `web/.assetsignore`; ~11 publicaciones por día, plan gratis 500 por mes).
 - Simulador (versión pública): vista Mapa + Maqueta 3D con lluvia animada (estilo reel CutSheetRX). Posible mejora: relieve

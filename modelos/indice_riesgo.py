@@ -73,9 +73,12 @@ def amenaza_rios(rasgos: pd.DataFrame) -> pd.DataFrame:
     pts = gpd.GeoDataFrame(rasgos[["cmu"]], geometry=gpd.points_from_xy(rasgos["lon"], rasgos["lat"]), crs=4326)
     cerca = gpd.sjoin_nearest(pts.to_crs(5345), est[["series_id", "geometry"]], max_distance=30_000,
                               distance_col="dist_m").drop_duplicates("cmu")
+    # Sin corte brusco: peso 1 hasta 15 km, baja en línea recta hasta 0 a 30 km (la estación pierde relevancia con la distancia)
+    cerca["peso_dist"] = (1 - (cerca["dist_m"] - 15_000) / 15_000).clip(0, 1)
     rios["h"] = 10 * np.maximum(rios["p_evacuacion"].fillna(0), 0.5 * rios["p_alerta"].fillna(0))
-    return cerca[["cmu", "series_id"]].merge(rios[["series_id", "mes", "h"]], on="series_id") \
-        .rename(columns={"h": "H_rio"})[["cmu", "mes", "H_rio"]]
+    out = cerca[["cmu", "series_id", "peso_dist"]].merge(rios[["series_id", "mes", "h"]], on="series_id")
+    out["H_rio"] = out["h"] * out["peso_dist"]
+    return out[["cmu", "mes", "H_rio"]]
 
 
 def main() -> None:
@@ -113,7 +116,9 @@ def main() -> None:
         f = (d["r"] / 2).clip(0, 1)
         d["H_agua"] = 10 * d["P_agua"] * f
         d["H_quebrada"] = 10 * d["s_quebrada"] * f * (0.5 + 0.5 * d["arcilla_rel"])
-        d = d.merge(rios[rios["mes"] == mes][["cmu", "H_rio"]], on="cmu", how="left").fillna({"H_rio": 0})
+        d = d.merge(rios[rios["mes"] == mes][["cmu", "H_rio"]], on="cmu", how="left")
+        d["rio_dato"] = d["H_rio"].notna()   # sin estación confiable a ≤ 30 km: sin información (no es "sin amenaza")
+        d["H_rio"] = d["H_rio"].fillna(0)
         comps = d[["H_agua", "H_rio", "H_quebrada"]].clip(0, 10)
         d["H"] = 10 - np.prod(10 - comps.values, axis=1) / 10 ** (comps.shape[1] - 1)
         d["riesgo"] = np.cbrt(d["H"] * d["E"] * d["V"])
@@ -145,7 +150,7 @@ def main() -> None:
     out.round(4).to_parquet(GOLD / "indice_riesgo_mensual.parquet", index=False)
     foto = RAIZ / "data" / "archivo" / "indice" / f"{dt.date.today().isoformat()}.parquet"
     foto.parent.mkdir(parents=True, exist_ok=True)
-    out[["cmu", "mes", "H", "H_agua", "H_rio", "H_quebrada", "E", "V", "riesgo", "personas_en_riesgo"]] \
+    out[["cmu", "mes", "H", "H_agua", "H_rio", "H_quebrada", "rio_dato", "E", "V", "riesgo", "personas_en_riesgo"]] \
         .round(3).to_parquet(foto, index=False)
 
     print(f"Mes pico: {pico}")

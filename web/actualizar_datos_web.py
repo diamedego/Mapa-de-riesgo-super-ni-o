@@ -102,7 +102,7 @@ def main() -> None:
         por_cmu[cmu] = {
             "r": serie(g, "riesgo", 2), "p": serie(g, "personas_en_riesgo", 0), "h": serie(g, "H", 2),
             "ha": serie(g, "H_agua", 2), "hr": serie(g, "H_rio", 2), "hq": serie(g, "H_quebrada", 2),
-            "E": round(float(f["E"]), 1), "V": round(float(f["V"]), 1),
+            "sr": int(not g["rio_dato"].any()) if "rio_dato" in g else 0, "E": round(float(f["E"]), 1), "V": round(float(f["V"]), 1),
             "rob": round(float(f["pct_simulaciones_top10"]), 1), "c": centro.get(cmu),
         }
     (SALIDA / "riesgo.json").write_text(json.dumps({"meses": meses, "cmu": por_cmu}, separators=(",", ":")))

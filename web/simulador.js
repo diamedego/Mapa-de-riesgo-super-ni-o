@@ -466,13 +466,13 @@ function accesoHora(M) {
 
 // Confianza de la hora que se ve: la menor entre la lluvia (dato real o pronóstico a menos de 3 días: alta; a 3-7 días: media;
 // más lejos o escenario estacional: baja), el relieve (FABDEM: alta; satelital con edificios y árboles: media) y el modelo
-// (probado con casos teóricos, todavía sin comparar con inundaciones reales: media)
+// (según el CSI validado en esa ciudad; sin validación: baja)
 const NIVELES_CONF = ["", "baja", "media", "alta"];
 function confianzaHora(M, k, d) {
   const tp = M.met.tipo[k], adelante = k - M.hoy;
   const lluvia = tp === 0 ? 3 : tp === 2 ? 1 : adelante <= 72 ? 3 : adelante <= 168 ? 2 : 1;
   const terreno = d.D.fuente === "fabdem" ? 3 : 2, v = validacionCiudad(d);
-  const modelo = v?.csi != null ? (v.csi >= 0.5 ? 3 : v.csi >= 0.3 ? 2 : 1) : 2;
+  const modelo = v?.csi != null ? (v.csi >= 0.5 ? 3 : v.csi >= 0.3 ? 2 : 1) : 1;   // sin validación en esta ciudad: confianza baja, no media
   return { nivel: Math.min(lluvia, terreno, modelo), lluvia, terreno, modelo, v };
 }
 
@@ -1465,7 +1465,7 @@ const textoModelo = (v) => (v?.csi != null ? t("sim_modelo_ciudad")(escapar(v.ci
 function pintarValidez() {
   const cont = document.getElementById("sim-validez"), V = SIM.validacion;
   if (!cont) return;
-  if (!V?.nino) { cont.innerHTML = t("sim_validez"); return; }
+  if (!V?.nino) { cont.innerHTML = `${t("sim_validez")} ${t("sim_limites")}`; return; }
   const N = V.nino, v = validacionCiudad(SIM.datos), mejor = N.csi_mediana > N.csi_jrc_mediana;
   const filas = [], sinAgua = [];
   for (const [cmu, fs] of Object.entries(V.por_ciudad)) {
@@ -1478,6 +1478,7 @@ function pintarValidez() {
   const x = (c) => `${(100 * limitar(c, 0, 1)).toFixed(1)}%`;
   cont.innerHTML = `<p>${t("sim_validez_res")(V.ciudades, N.casos, fmt(100 * N.pod_mediana), fmt(100 * N.far_mediana), fmt(N.csi_mediana, 2), fmt(N.csi_jrc_mediana, 2),
       N.mejor_que_jrc, N.spearman_superficie == null ? "–" : fmt(N.spearman_superficie, 2), mejor)}</p>
+    <p>${t("sim_limites")}</p>
     ${v ? `<p>${v.csi != null ? t("sim_validez_ciudad")(escapar(v.ciudad), v.filas.map((f) => `${f.temporada.slice(5).replace("_", "-")}: ${fmt(f.csi, 2)}`).join(" · "))
       : capitalizar(t("sim_modelo_sin_agua")(escapar(v.ciudad)))}.</p>` : ""}
     <details class="sim-val-det"><summary>${t("sim_val_ver")}</summary>

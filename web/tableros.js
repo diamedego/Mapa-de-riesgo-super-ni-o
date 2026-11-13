@@ -56,7 +56,7 @@ function analisisRiesgoZona(cmus) {
   return {
     tipo: "zona", n: items.length, poblacion, porNivel,
     riesgo: pond((d, i) => d.r[i]), agua: pond((d, i) => d.ha[i]), rio: pond((d, i) => d.hr[i]), quebrada: pond((d, i) => d.hq[i]),
-    amenaza: pond((d, i) => d.h[i]), E: pondR("E"), V: pondR("V"),
+    amenaza: pond((d, i) => d.h[i]), E: pondR("E"), V: pondR("V"), sinRio: items.length > 0 && items.every(([, d]) => d.sr === 1),
     personas: M.map((_, i) => sumar(items.map(([, d]) => d.p[i] ?? 0))),
     altos: M.map((_, i) => items.filter(([, d]) => (d.r[i] ?? 0) >= CORTES[2]).length),
     bajo: poblacion ? (100 * sumar(items.map(([, , p]) => Number(p.pob_terreno_bajo) || 0))) / poblacion : null,
@@ -84,7 +84,7 @@ async function analisisRiesgoCirculo(s) {
   return {
     tipo: "circulo", n: props.length, poblacion: sumar(props.map((p) => Number(p.poblacion) || 0)), porNivel,
     riesgo: M.map((m) => (props.length ? pond((p) => Number(p[`r_${m}`])) : null)),
-    agua: zona?.agua ?? M.map(() => null), rio: zona?.rio ?? M.map(() => null), quebrada: zona?.quebrada ?? M.map(() => null), amenaza: zona?.amenaza ?? M.map(() => null),
+    agua: zona?.agua ?? M.map(() => null), rio: zona?.rio ?? M.map(() => null), quebrada: zona?.quebrada ?? M.map(() => null), sinRio: zona?.sinRio ?? false, amenaza: zona?.amenaza ?? M.map(() => null),
     bajo: props.length ? pond((p) => Number(p.pct_area_hand_2m)) : null,
     sinCloaca: props.length ? pond((p) => 100 - Number(p.pct_cloaca)) : null,
     E: pond((p) => Number(p.E)), V: pond((p) => Number(p.V)), municipio: zona, radios: dentro,
@@ -391,7 +391,7 @@ async function tableroRiesgo(cont) {
     ${situacion}
     <section class="tb-bloque"><h3>${tit("que_lo_explica")}</h3><p class="tb-sub">${t("explica_nota")}</p>
       <div class="tb-comps">${comps.map(([k, v]) => `<div class="comp"><span class="comp-etq">${t(`comp_${k}`)}</span>
-        <span class="comp-pista"><span style="width:${limitar((v ?? 0) * 10, 0, 100)}%;background:${colorNivel(v)}"></span></span><b>${fmtRiesgo(v)}</b></div>`).join("")}</div>
+        ${k === "rio" && A.sinRio ? `<span class="comp-pista"></span><b data-tip="${escapar(t("sin_info_rio"))}">${t("sin_info")}</b>` : `<span class="comp-pista"><span style="width:${limitar((v ?? 0) * 10, 0, 100)}%;background:${colorNivel(v)}"></span></span><b>${fmtRiesgo(v)}</b>`}</div>`).join("")}</div>
     </section>
     ${rios ? `<section class="tb-bloque"><h3>${icono("rio")} ${tit("rios_cercanos")}</h3><p class="tb-sub">${t("fuente_ina")}</p><ul class="rios">${rios}</ul></section>` : ""}
     ${enlacesCapas("riesgo")}`;
