@@ -626,3 +626,11 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   modelos, simulador, validación, requerimientos funcionales, calidad, cronología, cumplimiento del pedido de noviembre, limitaciones,
   glosario, referencias y anexo. Se regenera con `docs/documento_funcional/generar.py` (HTML + Chrome sin ventana; tipografías del
   sistema, sin descargas).
+
+## 2026-11-13 — Mails «Run failed» de GitHub Actions
+- Causa: el SMN limita las consultas seguidas (HTTP 429 y respuestas vacías); `ingesta/smn_alertas.py` bajaba ~160 avisos CAP uno por
+  uno y un XML inválido o un 429 tiraba abajo toda la corrida.
+- Arreglo: el script lee cada aviso con tolerancia (limpia caracteres inválidos y, si no puede, lo saltea), espera 0,4 s entre
+  pedidos, no vuelve a pedir los avisos que ya guardó hoy y corta después de 3 fallas seguidas (lo que falta se baja 3 horas después).
+- El workflow ya no falla por una fuente caída: las ingestas siguen adelante con una advertencia en el registro (sin mail) y el
+  guardado reintenta 4 veces dando prioridad a los datos de la corrida. Un error real del recálculo del índice sigue fallando.

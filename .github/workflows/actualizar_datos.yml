@@ -59,30 +59,34 @@ jobs:
 
       - name: Grilla del tiempo (lluvia, viento y temperatura, 48 h cada 3 h y 16 días)
         if: steps.tarea.outputs.tarea == 'tiempo'
+        continue-on-error: true   # una fuente caída no debe tirar la corrida ni mandar mails: se reintenta en la próxima
         run: python ingesta/tiempo_grilla.py
 
       - name: Alertas SMN
         if: steps.tarea.outputs.tarea == 'smn'
         run: |
-          python ingesta/smn_alertas.py
-          python web/exportar_alertas.py
+          python ingesta/smn_alertas.py || echo "::warning::El SMN no respondió bien; se reintenta en 3 horas"
+          python web/exportar_alertas.py || echo "::warning::No se pudieron exportar las alertas; se reintenta en 3 horas"
 
       - name: Pronóstico de lluvia a 16 días (ECMWF)
         if: steps.tarea.outputs.tarea == 'ina'
+        continue-on-error: true
         run: python ingesta/pronostico_corto.py
 
       - name: Alturas INA (últimos 10 días)
         if: steps.tarea.outputs.tarea == 'ina' || steps.tarea.outputs.tarea == 'glofas'
         run: |
           export INA_DESDE=$(date -u -d '10 days ago' +%F) INA_SALIDA_FECHADA=1
-          python ingesta/ina_rios.py
+          python ingesta/ina_rios.py || echo "::warning::El INA no respondió bien; se reintenta mañana"
 
       - name: Caudales GloFAS
         if: steps.tarea.outputs.tarea == 'glofas'
+        continue-on-error: true
         run: python ingesta/glofas_rios.py
 
       - name: Pronóstico estacional SEAS5
         if: steps.tarea.outputs.tarea == 'estacional'
+        continue-on-error: true
         run: |
           python ingesta/open_meteo_estacional.py gobiernos_locales
           python ingesta/open_meteo_estacional.py departamentos
@@ -101,4 +105,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f data/archivo data/gold web/datos/riesgo.json web/datos/estaciones.geojson web/datos/resumen.json web/datos/tiempo.json web/datos/alertas.geojson web/datos/lluvia_estacional.json web/datos/riesgo_semanal.json
           git diff --cached --quiet || git commit -m "Datos automáticos: ${{ steps.tarea.outputs.tarea }} $(date -u +%F\ %H:%M) UTC"
-          git pull --rebase --autostash && git push
+          for i in 1 2 3 4; do   # si alguien subió algo justo antes, se rebasa dando prioridad a los datos de esta corrida y se reintenta
+            git pull --rebase --autostash -X theirs && git push && exit 0
+            sleep $((i * 6))
+          done
+          echo "::warning::No se pudo subir esta corrida; la próxima la recupera"
