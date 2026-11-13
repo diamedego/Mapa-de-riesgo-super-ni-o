@@ -49,7 +49,7 @@ async function lluviaDelPunto(punto, hastaISO) {
   const horas = h.time.map((t) => Date.parse(`${t}:00-03:00`));
   const tipo = horas.map((t) => (t <= ahora ? 0 : 1));
   const met = { horas, lluvia: h.precipitation.map((v) => v ?? 0), et0: h.et0_fao_evapotranspiration.map((v) => v ?? 0), tipo,
-    theta0: h.soil_moisture_3_to_9cm.find((v) => v != null) ?? 0.25 };
+    theta0: h.soil_moisture_3_to_9cm.find((v) => v != null) ?? 0.25, theta: h.soil_moisture_3_to_9cm };
   if (hastaISO && Date.parse(`${hastaISO}T23:00:00-03:00`) > horas.at(-1)) await extenderEscenario(met, punto, hastaISO);
   return met;
 }
@@ -113,13 +113,13 @@ async function climatologia(punto) {
 
 // ---------- Grilla del modelo ----------
 // Celdas de 20 a 60 m según el tamaño del área y la duración (más días → celdas más grandes, para que el cálculo dure poco).
-function grillaModelo(d, horas) {
+function grillaModelo(d, horas, nMaxForzado = null) {
   const D = d.D, W = D.W, s = d.s;
   const aPx = (lon, lat) => [(xDeLon(lon, D.z) - D.tx0) * 256, (yDeLat(lat, D.z) - D.ty0) * 256];
   const [cx0, cy0, cx1, cy1] = cajaCirculo(s.punto, s.km * 1.3);   // un poco más que el círculo: el agua que baja de afuera entra
   const [px0, py1] = aPx(cx0, cy0), [px1, py0] = aPx(cx1, cy1);
   const bx0 = Math.max(0, Math.floor(px0)), by0 = Math.max(0, Math.floor(py0)), bx1 = Math.min(W, Math.ceil(px1)), by1 = Math.min(D.H, Math.ceil(py1));
-  const ancho = (bx1 - bx0) * d.metrosPx, nMax = horas <= 96 ? 200 : horas <= 500 ? 150 : horas <= 1500 ? 110 : 85;
+  const ancho = (bx1 - bx0) * d.metrosPx, nMax = nMaxForzado ?? (horas <= 96 ? 200 : horas <= 500 ? 150 : horas <= 1500 ? 110 : 85);
   const tam = Math.max(20, ancho / nMax), f = Math.max(1, Math.round(tam / d.metrosPx)), dx = f * d.metrosPx;
   const nx = Math.floor((bx1 - bx0) / f), ny = Math.floor((by1 - by0) / f), N = nx * ny;
   const z = new Float32Array(N), tipo2 = new Uint8Array(N).fill(1), lago = new Int32Array(N).fill(-1), cauce = new Float32Array(N);

@@ -612,3 +612,11 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
 - El gráfico, la barra de horas, el texto de lluvia acumulada y la reproducción arrancan en «ahora»: las 2 semanas anteriores se
   calculan en silencio (humedad del suelo y lagunas) pero no se muestran. La lluvia se muestra como pronóstico, tormenta de prueba y
   escenario estacional por separado.
+
+## 2026-11-12 — Simulador: rápido, sin arranque solo, reinicio que funciona y desagües a la vista
+- La tormenta de prueba ya no recorre las 2 semanas anteriores: arranca 24 h antes de ahora con la humedad del suelo de Open-Meteo a
+  esa hora, y usa celdas de ~60 m. Abre en 17 s (antes 41) y recalcula en ~7 s (antes 37 s) con el mismo pico (5,7 % contra 5,2 %).
+- Mientras el modelo calcula no se anima nada (antes parecía que el ▶ se disparaba solo) y ▶ / ⏮ quedan bloqueados; al terminar se
+  muestra el pico, quieto.
+- Las líneas de escurrimiento («Desagües») vuelven a estar encendidas por defecto; se eliminó la película de agua que titilaba.
+- La reproducción dura ~12 s a ×1 sin importar el largo de la tormenta.

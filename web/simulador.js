@@ -11,7 +11,7 @@
 // Solo en la versión completa (las teselas de relieve vienen de un servidor externo).
 
 const SIM = { mapa: null, mm: 0, reproduciendo: 0, datos: null,
-  capas: { colores: true, curvas: true, drenaje: true, cortes: true, flujo: false, corte: true, x5: false, refs3d: true }, vista: "mapa", maqueta: null,
+  capas: { colores: true, curvas: true, drenaje: true, cortes: true, flujo: true, corte: true, x5: false, refs3d: true }, vista: "mapa", maqueta: null,
   modelo: null, desague: 10, crecida: 0, tormenta: { mm: 0, horas: 3 }, velocidad: 1 };   // desagües pluviales supuestos: 10 mm/h en superficies impermeables (no hay datos)
 const AGUA_MIN = 0.1;   // desde 10 cm se cuenta como zona con agua (superficie, personas)
 const AGUA_VER = 0.02;  // se dibuja desde 2 cm, en celeste claro: así se ve dónde se junta el agua antes de ser profunda
@@ -29,8 +29,8 @@ function correrTormenta(cambio) {
   if (mm) { mm.value = T.mm; document.getElementById("sim-mm-valor").textContent = fmt(T.mm); }
   document.querySelectorAll("#sim-dur .chip").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.h === T.horas)));
   const hoy = limitesPeriodo().hoy;
-  if (T.mm > 0) simularPeriodo(sumarDias(hoy, 1 + Math.ceil(T.horas / 24)), { ...T });
-  else simularPeriodo(sumarDias(hoy, 6));
+  if (T.mm > 0) simularPeriodo(sumarDias(hoy, 1 + Math.ceil(T.horas / 24)), { ...T }, true);
+  else simularPeriodo(sumarDias(hoy, 2), 0, true);
 }
 
 // Resultado de la validación contra el satélite (herramientas/validacion/validar.py); null si todavía no existe
@@ -302,13 +302,14 @@ function avisoProgreso(txt) { const p = document.getElementById("sim-progreso");
 
 // Reparto de una tormenta de prueba hora a hora: 3 h con picos al comienzo (40-40-20 %), el resto parejo
 const repartoTormenta = (h) => (h === 3 ? [0.4, 0.4, 0.2] : Array(h).fill(1 / h));
-async function simularPeriodo(hastaISO, tormenta = 0) {
+async function simularPeriodo(hastaISO, tormenta = 0, corto = false) {
   const tor = typeof tormenta === "number" ? { mm: tormenta, horas: 3 } : tormenta, tormentaMm = tor.mm;
   const d = SIM.datos;
   if (!d) return;
   detenerAnimaciones();
   SIM.modelo?.worker?.terminate();
-  const M = (SIM.modelo = { frames: [], lagos: [], stats: [], hora: 0, corriendo: true, siguiendo: true, hasta: hastaISO, tormenta: tor });
+  const M = (SIM.modelo = { frames: [], lagos: [], stats: [], hora: 0, corriendo: true, siguiendo: true, hasta: hastaISO, tormenta: tor, corto });
+  bloquearControles(true);
   avisoProgreso(t("sim_bajando"));
   let met;
   try { met = await lluviaDelPunto(d.s.punto, hastaISO); } catch (e) { console.error(e); avisoProgreso(t("sim_error_meteo")); return; }
@@ -316,10 +317,15 @@ async function simularPeriodo(hastaISO, tormenta = 0) {
   const fin = Date.parse(`${hastaISO}T23:59:00-03:00`);
   let n = met.horas.findIndex((x) => x > fin);
   if (n < 0) n = met.horas.length;
-  for (const k of ["horas", "lluvia", "et0", "tipo"]) met[k] = met[k].slice(0, n);
+  // Tormenta de prueba: no hace falta recorrer las 2 semanas anteriores; se arranca 24 h antes de ahora con la humedad del suelo que informa
+  // Open-Meteo a esa hora (así calcula en unos segundos y no en un minuto)
+  const a = corto ? Math.max(0, met.tipo.indexOf(1) - 24) : 0;
+  if (corto && met.theta?.[a] != null) met.theta0 = met.theta[a];
+  for (const k of ["horas", "lluvia", "et0", "tipo"]) met[k] = met[k].slice(a, n);
+  n -= a;
   M.hoy = Math.max(0, met.tipo.indexOf(1));
   if (tormentaMm) repartoTormenta(tor.horas).forEach((f, j) => { if (M.hoy + j < n) met.lluvia[M.hoy + j] += tormentaMm * f; });   // tormenta de prueba: desde ahora, en 1 a 24 h
-  const g = grillaModelo(d, n);
+  const g = grillaModelo(d, n, corto ? 100 : null);   // tormenta de prueba: celdas de ~60 m (el agua se dibuja igual sobre el relieve fino)
   g.celdaFina = new Int32Array(d.D.W * d.D.H);
   for (let i = 0; i < g.celdaFina.length; i++) g.celdaFina[i] = g.celdaDe(i);
   g.nDentro = g.dentroC.reduce((a, b) => a + b, 0);
@@ -356,8 +362,7 @@ function recibirHora(M, m) {
     M.frames.push(f); M.lagos.push(Float32Array.from(m.lagos)); M.stats.push(estadisticaHora(M, m.h));
     const dia = Math.floor(m.k / 24) + 1, total = Math.ceil(m.horas / 24);
     avisoProgreso(t("sim_calculando")(dia, total, t(`sim_tipo_${TIPO_DATO[M.met.tipo[m.k]]}`)));
-    if (M.siguiendo && (m.k % 3 === 0 || m.k === m.horas - 1)) { M.hora = M.frames.length - 1; mostrarHora(); }
-    else if (m.k % 6 === 0) pintarLineaSim();
+    if (m.k % 6 === 0) pintarLineaSim();   // mientras calcula no se anima nada: se muestra el resultado al terminar
   } else if (m.tipo === "fin") {
     M.corriendo = false; M.cuenta = m.cuenta;
     // Al terminar: la hora con más agua desde hoy
@@ -365,6 +370,7 @@ function recibirHora(M, m) {
     for (let k = M.hoy; k < M.stats.length; k++) if (M.stats[k].pct > M.stats[pico].pct) pico = k;
     M.pico = pico; M.hora = pico; M.siguiendo = false;
     avisoProgreso("");
+    bloquearControles(false);
     const hint = document.getElementById("sim-hint");
     if (hint) hint.hidden = !(M.stats[pico].pct < 0.05 && !(M.tormenta?.mm > 0));
     mostrarHora();
@@ -990,7 +996,7 @@ function texturaMaqueta() {
   const M = SIM.maqueta, P = M.part, S = M.S, ct = M.textura.getContext("2d"), Mo = SIM.modelo, g = Mo?.g, fr = Mo?.frames.length ? frameVista(Mo) : null;
   ct.drawImage(M.sat, 0, 0);
   ct.imageSmoothingEnabled = true;
-  if (fr && SIM.capas.flujo) {   // película de agua que corre (de 2 mm a 10 cm), a la resolución del modelo; solo con «Escurrimiento»
+  if (false && fr) {   // película de agua que corre: eliminada (hacía titilar toda la maqueta); quedan los charcos y las líneas de escurrimiento
     if (M.pelicula.width !== g.nx || M.pelicula.height !== g.ny) { M.pelicula.width = g.nx; M.pelicula.height = g.ny; }
     const cp = M.pelicula.getContext("2d"), img = cp.createImageData(g.nx, g.ny), px = img.data;
     for (let c = 0; c < g.N; c++) {
@@ -1438,7 +1444,7 @@ function pintarPanelSimulador(d) {
     if (nota) nota.textContent = e ? t("sim_rio_ina")(e.estacion, fmt(e.h, 2), fmt(e.ref, 2)) : t("sim_rio_nota");
   };
   cre.oninput = () => { SIM.crecida = Number(cre.value); pintarCre(); };
-  cre.onchange = () => { if (SIM.modelo?.hasta) simularPeriodo(SIM.modelo.hasta, SIM.modelo.tormenta); };
+  cre.onchange = () => { if (SIM.modelo?.hasta) simularPeriodo(SIM.modelo.hasta, SIM.modelo.tormenta, SIM.modelo.corto); };
   pintarCre();
   pintarFiltrosSimulador();
   prepararPeriodo();
@@ -1553,6 +1559,10 @@ function actualizarNumeros() {
 function actualizarSimulador() { mostrarHora(); }
 
 // ▶: recorre las horas calculadas (12 por segundo); en la maqueta, además, corren las líneas blancas
+// Mientras el modelo calcula no se puede reproducir ni reiniciar
+function bloquearControles(si) {
+  for (const id of ["sim-play", "sim-reiniciar"]) { const b = document.getElementById(id); if (b) b.disabled = si; }
+}
 // ▶: reproduce la tormenta en cámara lenta. Mientras llueve o el agua corre (lámina de 3 mm o más en el 3 % del círculo, o lluvia) cada hora dura
 // 0,6 s y se mezclan los fotogramas (0,18 s si el agua ya casi se fue); las horas secas pasan casi de golpe. En la maqueta, las líneas blancas muestran hacia dónde baja
 // el agua y los charcos se llenan donde queda.
@@ -1561,7 +1571,10 @@ function planReproduccion(Mo) {
   let ini = Math.min(Mo.hoy, n - 1);
   for (let k = Mo.hoy; k < n; k++) if (act(k)) { ini = Math.max(Mo.hoy, k - 1); break; }
   const ts = [0];
-  for (let k = ini; k < n - 1; k++) ts.push(ts.at(-1) + (fuerte(k) || fuerte(k + 1) ? 0.6 : act(k) || act(k + 1) ? 0.18 : 0.012));
+  const dur = [];
+  for (let k = ini; k < n - 1; k++) dur.push(fuerte(k) || fuerte(k + 1) ? 0.6 : act(k) || act(k + 1) ? 0.18 : 0.012);
+  const activo = dur.reduce((a, d) => a + (d > 0.1 ? d : 0), 0), f = activo ? limitar(12 / activo, 0.3, 1.6) : 1;   // la parte con agua dura unos 12 s a ×1
+  dur.forEach((d) => ts.push(ts.at(-1) + (d > 0.1 ? d * f : d)));
   return { ini, ts };
 }
 function hudReproduccion(Mo) {
