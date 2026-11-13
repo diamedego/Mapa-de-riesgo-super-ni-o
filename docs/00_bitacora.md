@@ -620,3 +620,9 @@ Registro cronológico de lo que se hizo, las decisiones tomadas y los problemas 
   muestra el pico, quieto.
 - Las líneas de escurrimiento («Desagües») vuelven a estar encendidas por defecto; se eliminó la película de agua que titilaba.
 - La reproducción dura ~12 s a ×1 sin importar el largo de la tormenta.
+
+## 2026-11-12 — Documento funcional en PDF
+- `docs/Documento_funcional_El_Nino_2026-27.pdf` (26 páginas, estilo universitario): resumen, marco conceptual, datos, arquitectura,
+  modelos, simulador, validación, requerimientos funcionales, calidad, cronología, cumplimiento del pedido de noviembre, limitaciones,
+  glosario, referencias y anexo. Se regenera con `docs/documento_funcional/generar.py` (HTML + Chrome sin ventana; tipografías del
+  sistema, sin descargas).
