@@ -7,38 +7,45 @@
 <meta name="description" content="Riesgo de inundación y tiempo en los 2.282 gobiernos locales de la Argentina durante El Niño 2026-27, con datos públicos que se actualizan solos.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css">
 <link rel="stylesheet" href="estilos.css">
 </head>
-<body>
-<a class="saltar" href="#analisis" data-i18n="saltar">Ir al análisis</a>
+<body data-lamina="1">
+<a class="saltar" href="#lamina-4" data-i18n="saltar">Ir al análisis</a>
 
-<header class="banda">
-  <div class="banda-arriba">
-    <div class="marca">
-      <svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="#0e7490"/>
-        <path d="M8 24c3 0 3-2 6-2s3 2 6 2 3-2 6-2 3 2 6 2" fill="none" stroke="#22d3ee" stroke-width="2.4" stroke-linecap="round"/>
-        <path d="M8 30c3 0 3-2 6-2s3 2 6 2 3-2 6-2 3 2 6 2" fill="none" stroke="#a5f3fc" stroke-width="2.4" stroke-linecap="round" opacity=".7"/>
-        <path d="M20 8c3 3.6 5 6.3 5 8.8a5 5 0 0 1-10 0c0-2.5 2-5.2 5-8.8Z" fill="#ecfeff"/></svg>
-      <div class="marca-textos">
-        <h1 data-i18n="titulo">Argentina frente a El Niño 2026–27</h1>
-        <p class="bajada" data-i18n="bajada">Riesgo de inundación y tiempo en los 2.282 gobiernos locales, con datos públicos que se actualizan solos.</p>
-      </div>
+<div class="obra">
+  <nav class="riel" aria-label="Láminas">
+    <div class="marca"><b data-i18n="marca_t">Observatorio El Niño</b><small data-i18n="marca_s">Argentina 2026–27</small></div>
+    <span class="riel-etq" data-i18n="laminas_indice">Índice de láminas</span>
+    <div class="solapas" role="tablist">
+      <button type="button" class="solapa" role="tab" data-lamina="1" aria-selected="true"><i>01</i><span data-i18n="lam1">Panorama y mapa</span></button>
+      <button type="button" class="solapa" role="tab" data-lamina="2" aria-selected="false"><i>02</i><span data-i18n="lam2">Simulador 3D</span></button>
+      <button type="button" class="solapa" role="tab" data-lamina="3" aria-selected="false"><i>03</i><span data-i18n="lam3">Alertas y ríos</span></button>
+      <button type="button" class="solapa" role="tab" data-lamina="4" aria-selected="false"><i>04</i><span data-i18n="lam4">Análisis y validación</span></button>
     </div>
-    <div class="banda-acciones">
+    <dl class="cajetin">
+      <div class="caj-ancho"><dt data-i18n="caj_proyecto">Proyecto</dt><dd data-i18n="titulo">Argentina frente a El Niño 2026–27</dd></div>
+      <div><dt data-i18n="caj_lamina">Lámina</dt><dd id="caj-lamina">01 / 04</dd></div>
+      <div><dt data-i18n="caj_fecha">Fecha</dt><dd id="caj-fecha">–</dd></div>
+      <div><dt data-i18n="caj_fuentes">Fuentes</dt><dd>SMN · INA · ECMWF</dd></div>
+      <div><dt data-i18n="caj_metodo">Método</dt><dd>INFORM · ∛(A·E·V)</dd></div>
+      <div class="caj-ancho"><dt data-i18n="caj_aviso">Aviso</dt><dd data-i18n="caj_no_oficial">No es producto oficial</dd></div>
+    </dl>
+  </nav>
+
+  <div class="marco">
+    <header class="franja">
+      <h2 class="franja-tit" id="lamina-titulo">Lámina 01 · Panorama y mapa</h2>
+      <div class="franja-acciones">
       <a id="enlace-completo" class="btn-banda" href="https://mapa-de-riesgo-super-nino.diamedego.workers.dev/" target="_blank" rel="noopener" hidden><span data-i18n="version_completa">Versión completa</span> ↗</a>
       <button id="btn-recorrido" class="btn-banda" type="button"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5.5v13l10.5-6.5L8 5.5Z"/></svg><span data-i18n="recorrido">Recorrido guiado</span></button>
       <button id="btn-idioma" class="btn-banda" type="button" data-i18n-aria="idioma_aria" aria-label="Change language to English"><span>EN</span></button>
       <button id="btn-tema" class="btn-banda" type="button" data-i18n-aria="tema_aria" aria-label="Cambiar entre tema claro y oscuro"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17Z" fill="currentColor"/></svg></button>
     </div>
-  </div>
-  <div class="intro" id="intro" role="region" aria-label="Situación del país"></div>
-  <p class="kpis-alcance" id="kpis-alcance"></p>
-  <div class="kpis" id="kpis" aria-live="polite"></div>
-  <div class="kpis-graficos" id="kpis-graficos"></div>
-</header>
+    </header>
 
+    <main class="hoja hoja-mapa" id="hoja-mapa">
 <section class="controles" aria-label="Búsqueda y período">
   <form id="form-buscar" class="buscador" role="search" autocomplete="off">
     <div class="campo">
@@ -84,8 +91,7 @@
     <span class="periodo-texto" id="periodo-texto"></span>
   </div>
 </section>
-
-<main class="escenario" id="escenario">
+      <div class="cuerpo" id="escenario">
   <section class="vista" aria-label="Mapa">
     <div class="vista-cabeza">
       <div class="grupo-capas"><span class="grupo-tit" data-i18n="mapa_elegir">Mapa · elegí uno</span>
@@ -107,21 +113,26 @@
       <div class="linea-tiempo" id="linea-tiempo" hidden></div>
     </div>
   </section>
-  <aside class="tablero" id="tablero" aria-live="polite" aria-label="Tablero"></aside>
-  <aside class="miniaturas" id="miniaturas" aria-label="Otras capas"></aside>
-</main>
+        <aside class="lectura" aria-label="Lectura">
+          <div class="lec-1">
+            <div class="lec-cabeza">
+              <h1 class="titular" data-i18n="titulo">Argentina frente a El Niño 2026–27</h1>
+              <p class="bajada" data-i18n="bajada"></p>
+              <div class="intro" id="intro" role="region" aria-label="Situación del país"></div>
+              <p class="kpis-alcance" id="kpis-alcance"></p>
+              <div class="kpis" id="kpis" aria-live="polite"></div>
+              <div class="kpis-graficos" id="kpis-graficos"></div>
+            </div>
+            <div class="tablero" id="tablero" aria-live="polite" aria-label="Tablero"></div>
+            <div class="miniaturas" id="miniaturas" aria-label="Otras capas"></div>
+          </div>
+          <div class="lec-3" id="lamina-3" aria-live="polite"></div>
+        </aside>
+      </div>
+    </main>
 
-<section class="analisis" id="analisis" aria-label="Análisis por zonas"></section>
-
-<footer class="pie">
-  <div class="intro-fila pie-datos" id="datos-act"></div>
-  <p data-i18n="pie_oficial"><strong>No es un producto oficial.</strong> Ante una emergencia, seguí las indicaciones de Defensa Civil, el SMN y el INA.</p>
-  <p data-i18n="pie_metodo"></p>
-  <p data-i18n="pie_fuentes"></p>
-    <p><a href="https://github.com/diamedego/Mapa-de-riesgo-super-ni-o" data-i18n="pie_repo">Código, datos y metodología en GitHub</a></p>
-</footer>
-
-<div class="sim" id="sim" hidden role="dialog" aria-modal="true" aria-labelledby="sim-titulo">
+    <section class="hoja hoja-sim" id="hoja-sim" hidden>
+<div class="sim" id="sim" hidden role="region" aria-labelledby="sim-titulo">
   <div class="sim-caja">
     <header class="sim-cabeza">
       <div><span class="tb-tipo" data-i18n="sim_tipo">Simulador de lluvia · relieve real</span><h2 id="sim-titulo"></h2><p id="sim-sub"></p></div>
@@ -131,6 +142,27 @@
       <div class="sim-mapa-marco"><div id="sim-mapa"></div><p class="sim-estado" id="sim-estado"></p></div>
       <aside class="sim-panel" id="sim-panel"></aside>
     </div>
+  </div>
+</div>
+      <div class="sim-vacio">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.3"/></svg>
+        <h3 data-i18n="sim_vacio_t">Elegí un punto para simular</h3>
+        <p data-i18n="sim_elegir_punto"></p>
+        <button type="button" class="btn-primario" id="sim-ir-mapa" data-i18n="sim_ir_mapa">Ir al mapa</button>
+      </div>
+    </section>
+
+    <section class="hoja hoja-analisis" id="hoja-analisis" hidden>
+<section class="analisis" id="analisis" aria-label="Análisis por zonas"></section>
+      <section class="lam-validacion an-bloque" id="lam-validacion" hidden></section>
+<footer class="pie">
+  <div class="intro-fila pie-datos" id="datos-act"></div>
+  <p data-i18n="pie_oficial"><strong>No es un producto oficial.</strong> Ante una emergencia, seguí las indicaciones de Defensa Civil, el SMN y el INA.</p>
+  <p data-i18n="pie_metodo"></p>
+  <p data-i18n="pie_fuentes"></p>
+    <p><a href="https://github.com/diamedego/Mapa-de-riesgo-super-ni-o" data-i18n="pie_repo">Código, datos y metodología en GitHub</a></p>
+</footer>
+    </section>
   </div>
 </div>
 
@@ -145,6 +177,7 @@
 <script src="tableros.js"></script>
 <script src="modelo_inundacion.js"></script>
 <script src="simulador.js"></script>
+<script src="laminas.js"></script>
 <script src="guia.js"></script>
 <script src="app.js"></script>
 </body>

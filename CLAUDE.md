@@ -10,7 +10,8 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
 - `sql/` — medallón bronze→silver→gold; `correr_duckdb.py` (local, validado igual a Python) y `correr_databricks.py` (perfil `mapa-nino`, login pendiente).
 - `web/` — tablero "sala de situación" (MapLibre, sin otras librerías). Módulos: `textos.js` (ES/EN), `utiles.js`, `graficos.js`,
   `tiempo.js` (campos del tiempo, partículas de viento, miniaturas), `mapa.js`, `buscador.js`, `tableros.js` (un tablero por capa y
-  el análisis de abajo), `guia.js` (encabezado, fuentes por tipo, recorrido guiado), `app.js` (estado, indicadores, modo actual/futuro). Datos: `preparar_geometrias.py` y `preparar_centros.py` (fijos, Mac),
+  el análisis de abajo), `laminas.js` (las cuatro láminas: solapas, lámina 03 de alertas y ríos, validación en la 04),
+  `guia.js` (encabezado, fuentes por tipo, recorrido guiado), `app.js` (estado, indicadores, modo actual/futuro). Datos: `preparar_geometrias.py` y `preparar_centros.py` (fijos, Mac),
   `actualizar_datos_web.py` (diario), `exportar_alertas.py` (cada 3 h), `ingesta/tiempo_grilla.py` (2 veces por día).
   `construir_artifact.py` arma la versión privada en claude.ai (inlina los módulos; mapa base propio).
 - `consumo_ia/` — medición del consumo de tokens de Claude Code en este proyecto.
@@ -41,7 +42,7 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
   `datos/tiempo.json`, `alertas.geojson`, `estaciones.geojson`, `riesgo.json` y `resumen.json`, que cambian todos los días).
   Al republicar subir también `datos/callejero/*` (`web/preparar_callejero.py`) y `datos/base/*` (`web/preparar_mapa_base.py`:
   calles y agua propias, no se commitea; en dos publicaciones porque supera 64 MB) si se regeneraron.
-- Rediseño 5-nov: probar en el celular y elegir entre las opciones de diseño enviadas (A implementada).
+- Rediseño «láminas» (13-nov) aplicado al sitio: probar en el celular; falta republicar la versión privada de claude.ai.
 - Pedido 10-nov (`docs/02_plan_cambios_nov.md`): tandas 1 a 6 publicadas (colores, capas, filtros, período, Situación con tortas y
   recomendaciones, análisis tipo Power BI, encabezado con fuentes por tipo y recorrido guiado en `web/guia.js`) y tandas 7-8
   (calles cortadas, aislados, confianza, validación contra satélite en `herramientas/validacion/`, ver `docs/04_validacion_simulador.md`).

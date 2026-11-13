@@ -44,12 +44,13 @@ function abrirSimulador() {
   validacion().then((V) => { SIM.validacion = V; pintarValidez(); });
   const caja = document.getElementById("sim");
   caja.hidden = false;
+  SIM.clave = JSON.stringify([s.punto, s.km]);
+  mostrarLamina(2);   // el simulador ocupa la lámina 02
   document.querySelector(".sim-mapa-marco").classList.add("sim-armando");   // el mapa con relieve queda oculto: se ve directo la maqueta 3D cuando está lista
-  document.body.classList.add("sim-abierto");
   document.getElementById("sim-titulo").textContent = s.nombre ?? t("punto_en_mapa");
   document.getElementById("sim-sub").textContent = `${t("sel_circulo")(s.km)} · ${estado.porCmu.get(s.cmu)?.nam ?? ""}`;
-  document.getElementById("sim-cerrar").onclick = cerrarSimulador;
-  caja.onkeydown = (e) => { if (e.key === "Escape") cerrarSimulador(); };
+  document.getElementById("sim-cerrar").onclick = salirSimulador;
+  caja.onkeydown = (e) => { if (e.key === "Escape") salirSimulador(); };
   document.getElementById("sim-cerrar").focus();
   if (SIN_TESELAS) {
     document.getElementById("sim-panel").innerHTML = `<p class="sim-aviso">${t("sim_sin_relieve")}</p>
@@ -66,7 +67,6 @@ function abrirSimulador() {
 function cerrarSimulador() {
   cancelAnimationFrame(SIM.reproduciendo); SIM.reproduciendo = 0;
   document.getElementById("sim").hidden = true;
-  document.body.classList.remove("sim-abierto");
   SIM.mapa?.remove(); SIM.mapa = null; SIM.datos = null;
   SIM.modelo?.worker?.terminate(); SIM.modelo = null; SIM.industrias = null;
   cerrarMaqueta(); SIM.vista = "mapa"; SIM.corte3d = false;
@@ -485,35 +485,74 @@ function mostrarHora() {
 
 // Línea de tiempo: arriba la lluvia de cada día (gris = dato real, cian = pronóstico, violeta = escenario estacional);
 // abajo, el % del círculo con agua de 10 cm o más; la marca es la hora que se ve; se puede tocar para ir a otra hora.
+// Curva suave que no se pasa de los puntos (interpolación monótona de Fritsch-Carlson): no inventa picos ni valores negativos
+function trazoSuave(P) {
+  const n = P.length;
+  if (n < 2) return n ? `M${P[0][0]},${P[0][1]}` : "";
+  const dx = [], m = [], tg = [];
+  for (let i = 0; i < n - 1; i++) { dx[i] = P[i + 1][0] - P[i][0]; m[i] = (P[i + 1][1] - P[i][1]) / (dx[i] || 1); }
+  tg[0] = m[0]; tg[n - 1] = m[n - 2];
+  for (let i = 1; i < n - 1; i++) tg[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+  for (let i = 0; i < n - 1; i++) {
+    if (m[i] === 0) { tg[i] = tg[i + 1] = 0; continue; }
+    const a = tg[i] / m[i], b = tg[i + 1] / m[i], h = Math.hypot(a, b);
+    if (h > 3) { tg[i] = (3 * a * m[i]) / h; tg[i + 1] = (3 * b * m[i]) / h; }
+  }
+  let d = `M${P[0][0].toFixed(1)},${P[0][1].toFixed(1)}`;
+  for (let i = 0; i < n - 1; i++) d += `C${(P[i][0] + dx[i] / 3).toFixed(1)},${(P[i][1] + (tg[i] * dx[i]) / 3).toFixed(1)} ${(P[i + 1][0] - dx[i] / 3).toFixed(1)},${(P[i + 1][1] - (tg[i + 1] * dx[i]) / 3).toFixed(1)} ${P[i + 1][0].toFixed(1)},${P[i + 1][1].toFixed(1)}`;
+  return d;
+}
+
+// Línea de tiempo en áreas suaves: celeste = lluvia (mm por día), azul = superficie con agua (% del círculo). Lo ya simulado va
+// con color pleno y lo que falta, más claro; el globo marca la hora que se ve. Una franja sobre el eje indica si la lluvia
+// es dato real (gris), pronóstico (cian) o escenario estacional (violeta). Se puede tocar o arrastrar para ir a otra hora.
 function pintarLineaSim() {
   const cont = document.getElementById("sim-linea"), M = SIM.modelo;
   if (!cont || !M?.met) return;
-  // Un solo gráfico con un solo eje de fechas: barras de lluvia (eje izquierdo, mm por día) y línea del agua (eje derecho, % del círculo)
-  const met = M.met, n = met.horas.length, k0 = M.hoy, ancho = Math.max(240, cont.clientWidth), alto = 190, iz = 36, de = 38, yB = 146, hB = 112;
+  const met = M.met, n = met.horas.length, k0 = M.hoy, ancho = Math.max(240, cont.clientWidth), alto = 206, iz = 34, de = 38, yB = 150, hB = 100;
   const x = (k) => iz + (Math.max(0, k - k0) / Math.max(1, n - 1 - k0)) * (ancho - iz - de);   // el eje arranca ahora: lo pasado no se muestra
-  const dias = [];
-  for (let k = k0; k < n; k += 24) { let s = 0, tp = met.tipo[k]; for (let j = k; j < Math.min(n, k + 24); j++) s += met.lluvia[j]; dias.push([k, s, tp]); }
-  const maxL = Math.max(10, ...dias.map((v) => v[1])), maxP = Math.max(1, ...M.stats.map((s) => s.pct));
-  const barras = dias.map(([k, s, tp]) => `<rect x="${x(k).toFixed(1)}" y="${(yB - (s / maxL) * hB).toFixed(1)}" width="${Math.max(1, x(k + 24) - x(k) - 1).toFixed(1)}" height="${((s / maxL) * hB).toFixed(1)}" fill="${COLOR_TIPO[tp]}"/>`).join("");
-  const linea = M.stats.map((s, k) => (k < k0 ? "" : `${k > k0 ? "L" : "M"}${x(k).toFixed(1)},${(yB - (s.pct / maxP) * hB).toFixed(1)}`)).join("");
-  const hito = (k, txt, dy = 12) => (k >= 0 && k < n ? `<line x1="${x(k)}" x2="${x(k)}" y1="${yB - hB}" y2="${yB + 2}" class="sim-hito"/><text x="${x(k) + 3}" y="${yB - hB + dy}" class="sim-hito-txt"${k > n * 0.8 ? ` text-anchor="end" dx="-6"` : ""}>${txt}</text>` : "");
-  const finPron = met.tipo.indexOf(2);
-  // Eje de fechas: una marca por lunes (semana); si el período es corto, una por día
-  const art = (k) => new Date(met.horas[k] - 3 * 3600e3), lunes = [];
+  const art = (k) => new Date(met.horas[k] - 3 * 3600e3), ci = estado.idioma === "en" ? "en-GB" : "es-AR";
+  const porDia = ((n - k0) / 24) <= 14, bloque = porDia ? 6 : 24;
+  // Lluvia por bloque (6 h en períodos cortos, un día en los largos), llevada a mm por día para leerla con el mismo eje
+  const lluv = [];
+  for (let k = k0; k < n; k += bloque) { let sum = 0; const f = Math.min(n, k + bloque); for (let j = k; j < f; j++) sum += met.lluvia[j]; lluv.push([k + (f - k) / 2, (sum * 24) / (f - k), met.tipo[k]]); }
+  const maxL = Math.max(10, ...lluv.map((v) => v[1])), maxP = Math.max(1, ...M.stats.map((s) => s.pct));
+  const yL = (v) => yB - (v / maxL) * hB, yP = (v) => yB - (v / maxP) * hB;
+  const paso = Math.max(1, Math.ceil((n - k0) / 140)), agua = [];
+  for (let k = k0; k < n; k += paso) agua.push([x(k), yP(M.stats[k]?.pct ?? 0)]);
+  if (agua.length && agua.at(-1)[0] < x(n - 1) - 1) agua.push([x(n - 1), yP(M.stats[n - 1]?.pct ?? 0)]);
+  const lluvPts = [[x(k0), yL(lluv[0]?.[1] ?? 0)], ...lluv.map(([k, v]) => [x(k), yL(v)]), [x(n - 1), yL(lluv.at(-1)?.[1] ?? 0)]];
+  const area = (P) => `${trazoSuave(P)}L${P.at(-1)[0].toFixed(1)},${yB}L${P[0][0].toFixed(1)},${yB}Z`;
+  const dL = area(lluvPts), dP = area(agua), tL = trazoSuave(lluvPts), tP = trazoSuave(agua);
+  const xh = x(M.hora), xf = x(M.frames.length - 1);
+  // Franja de tipo de dato sobre el eje
+  const franja = lluv.map(([k, , tp]) => `<rect x="${x(k - bloque / 2 < k0 ? k0 : k - bloque / 2).toFixed(1)}" y="${yB}" width="${Math.max(1, x(Math.min(n - 1, k + bloque / 2)) - x(Math.max(k0, k - bloque / 2)) + 0.5).toFixed(1)}" height="3" fill="${COLOR_TIPO[tp]}"/>`).join("");
+  // Eje: marcas por día (o por lunes si el período es largo); día en grande y mes abajo; el de la hora que se ve, resaltado
+  const lunes = [];
   for (let k = k0; k < n; k++) if (art(k).getUTCDay() === 1 && art(k).getUTCHours() === 0) lunes.push(k);
-  const porDia = ((n - k0) / 24) <= 14, marcas = porDia ? Array.from({ length: Math.floor((n - k0) / 24) + 1 }, (_, d) => Math.min(n - 1, k0 + d * 24 + (24 - art(k0).getUTCHours()) % 24)) : lunes;
-  const sep = Math.max(1, Math.ceil(36 / Math.max(1, (x(Math.min(n - 1, 24 * (porDia ? 1 : 7))) - x(0))))), fechaEje = (k) => `${art(k).getUTCDate()}/${art(k).getUTCMonth() + 1}`;
-  const eje = marcas.map((k, i) => `<line x1="${x(k)}" x2="${x(k)}" y1="${yB}" y2="${yB + 5}" class="sim-tick"/>${i % sep === 0 ? `<text x="${x(k)}" y="${yB + 17}" class="sim-tick-txt" text-anchor="middle">${fechaEje(k)}</text>` : ""}`).join("");
-  const ejes = `<line x1="${iz}" x2="${ancho - de}" y1="${yB}" y2="${yB}" class="sim-eje-base"/><line x1="${iz}" x2="${iz}" y1="${yB - hB}" y2="${yB}" class="sim-eje-base"/><line x1="${ancho - de}" x2="${ancho - de}" y1="${yB - hB}" y2="${yB}" class="sim-eje-base sim-eje-der"/>
-    <text x="${iz - 4}" y="${yB + 3}" class="sim-tick-txt" text-anchor="end">0</text><text x="${iz - 4}" y="${yB - hB + 8}" class="sim-tick-txt" text-anchor="end">${fmt(maxL, maxL < 10 ? 1 : 0)}</text>
+  const marcas = porDia ? Array.from({ length: Math.floor((n - k0) / 24) + 1 }, (_, d) => Math.min(n - 1, k0 + d * 24 + (24 - art(k0).getUTCHours()) % 24)) : lunes;
+  const sep = Math.max(1, Math.ceil(34 / Math.max(1, x(Math.min(n - 1, 24 * (porDia ? 1 : 7))) - x(0))));
+  const mes = (k) => art(k).toLocaleString(ci, { month: "short", timeZone: "UTC" }).replace(".", "");
+  const etiqueta = (k, fuerte) => `<text x="${x(k)}" y="${yB + 20}" class="sim-eje-dia${fuerte ? " fuerte" : ""}" text-anchor="middle">${art(k).getUTCDate()}</text><text x="${x(k)}" y="${yB + 31}" class="sim-eje-mes${fuerte ? " fuerte" : ""}" text-anchor="middle">${mes(k)}</text>`;
+  const eje = marcas.map((k, i) => `<line x1="${x(k)}" x2="${x(k)}" y1="${yB + 4}" y2="${yB + 9}" class="sim-tick"/>${i % sep === 0 && Math.abs(x(k) - xh) > 20 ? etiqueta(k, false) : ""}`).join("");
+  const R = M.stats[M.hora] ?? { pct: 0 }, yD = yP(R.pct);   // al empezar todavía no hay horas calculadas
+  const txt = `${fmt(R.pct, R.pct < 10 ? 1 : 0)} %`, bw = Math.max(46, txt.length * 8 + 16), bx = limitar(xh, iz + bw / 2, ancho - de - bw / 2), by = Math.max(14, yD - 36);
+  const globo = `<line x1="${xh}" x2="${xh}" y1="${yD}" y2="${yB + 9}" class="sim-marca"/>
+    <g class="sim-globo"><rect x="${bx - bw / 2}" y="${by}" width="${bw}" height="24" rx="6"/><path d="M${xh - 5},${by + 24}L${xh},${by + 30}L${xh + 5},${by + 24}Z"/><text x="${bx}" y="${by + 16}" text-anchor="middle">${txt}</text></g>
+    <circle cx="${xh}" cy="${yD}" r="4.5" class="sim-punto"/>${etiqueta(M.hora, true)}`;
+  const hito = (k, texto) => (k > k0 && k < n ? `<line x1="${x(k)}" x2="${x(k)}" y1="${yB - hB}" y2="${yB}" class="sim-hito"/><text x="${x(k) + 3}" y="${yB - hB + 10}" class="sim-hito-txt"${k > n * 0.8 ? ` text-anchor="end" dx="-6"` : ""}>${texto}</text>` : "");
+  const finPron = met.tipo.indexOf(2);
+  const ejes = `<text x="${iz - 4}" y="${yB + 3}" class="sim-tick-txt" text-anchor="end">0</text><text x="${iz - 4}" y="${yB - hB + 8}" class="sim-tick-txt" text-anchor="end">${fmt(maxL, maxL < 10 ? 1 : 0)}</text>
     <text x="${ancho - de + 4}" y="${yB + 3}" class="sim-tick-txt sim-tick-der">0</text><text x="${ancho - de + 4}" y="${yB - hB + 8}" class="sim-tick-txt sim-tick-der">${fmt(maxP, maxP < 10 ? 1 : 0)} %</text>
-    <text x="${iz}" y="${yB - hB - 8}" class="sim-eje-tit">${t("sim_eje_mm")}</text><text x="${ancho - de}" y="${yB - hB - 8}" class="sim-eje-tit sim-tick-der" text-anchor="end">${t("sim_eje_pct")}</text>`;
+    <text x="${iz}" y="10" class="sim-eje-tit">${t("sim_eje_mm")}</text><text x="${ancho - de}" y="10" class="sim-eje-tit sim-tick-der" text-anchor="end">${t("sim_eje_pct")}</text>`;
+  const capa = (cls) => `<path d="${dL}" class="sim-ar-lluvia"/><path d="${tL}" class="sim-tr-lluvia"/><path d="${dP}" class="sim-ar-agua"/><path d="${tP}" class="sim-tr-agua"/>`;
   cont.innerHTML = `<svg width="${ancho}" height="${alto}" class="sim-linea-svg" role="img" aria-label="${t("sim_linea")}">
-    <rect x="${x(M.frames.length - 1)}" y="0" width="${Math.max(0, x(n - 1) - x(M.frames.length - 1))}" height="${alto}" class="sim-pendiente"/>
-    ${ejes}${eje}${barras}<path d="${linea}" class="sim-linea-area"/>
-    ${hito(M.hoy, t("sim_hito_hoy"))}${finPron > 0 ? hito(finPron, t("sim_hito_fin_pron")) : ""}${M.pico != null ? hito(M.pico, t("sim_hito_pico"), 25) : ""}
-    <line x1="${x(M.hora)}" x2="${x(M.hora)}" y1="0" y2="${alto}" class="sim-marca"/></svg>
-    <div class="sim-linea-ley"><span><i style="background:${COLOR_TIPO[0]}"></i>${t("sim_tipo_real")}</span><span><i style="background:${COLOR_TIPO[1]}"></i>${t("sim_tipo_pronostico")}</span>${finPron > 0 ? `<span><i style="background:${COLOR_TIPO[2]}"></i>${t("sim_tipo_escenario")}</span>` : ""}<span><i class="sim-ley-linea"></i>${t("sim_area")}</span><span class="sim-eje-nota">${t(porDia ? "eje_dias" : "eje_semanas")}</span></div>`;
+    <defs><clipPath id="sim-clip-ya"><rect x="0" y="0" width="${Math.max(0, xh)}" height="${alto}"/></clipPath><clipPath id="sim-clip-falta"><rect x="${xh}" y="0" width="${ancho}" height="${alto}"/></clipPath></defs>
+    <rect x="${xf}" y="${yB - hB}" width="${Math.max(0, x(n - 1) - xf)}" height="${hB}" class="sim-pendiente"/>
+    <g clip-path="url(#sim-clip-falta)" class="sim-futuro">${capa()}</g><g clip-path="url(#sim-clip-ya)">${capa()}</g>
+    <line x1="${iz}" x2="${ancho - de}" y1="${yB}" y2="${yB}" class="sim-eje-base"/>${franja}${ejes}${eje}
+    ${finPron > 0 ? hito(finPron, t("sim_hito_fin_pron")) : ""}${M.pico != null ? hito(M.pico, t("sim_hito_pico")) : ""}${globo}</svg>
+    <div class="sim-linea-ley"><span><i class="sim-ley-lluvia"></i>${t("sim_ley_lluvia")}</span><span><i class="sim-ley-agua"></i>${t("sim_area")}</span><span><i style="background:${COLOR_TIPO[0]}"></i>${t("sim_tipo_real")}</span><span><i style="background:${COLOR_TIPO[1]}"></i>${t("sim_tipo_pronostico")}</span>${finPron > 0 ? `<span><i style="background:${COLOR_TIPO[2]}"></i>${t("sim_tipo_escenario")}</span>` : ""}</div>`;
   const svg = cont.querySelector("svg");
   const ir = (ev) => {
     const r = svg.getBoundingClientRect(), k = k0 + Math.round(((ev.clientX - r.left - iz) / (ancho - iz - de)) * (n - 1 - k0));

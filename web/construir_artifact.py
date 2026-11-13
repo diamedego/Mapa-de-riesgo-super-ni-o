@@ -13,12 +13,12 @@ from pathlib import Path
 
 WEB = Path(__file__).resolve().parent
 MAPLIBRE = "https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl"
-MODULOS = ["textos", "utiles", "graficos", "tiempo", "mapa", "buscador", "tableros", "modelo_inundacion", "simulador", "guia", "app"]
+MODULOS = ["textos", "utiles", "graficos", "tiempo", "mapa", "buscador", "tableros", "modelo_inundacion", "simulador", "laminas", "guia", "app"]
 
 
 def main(salida: Path) -> None:
     html = (WEB / "index.html").read_text()
-    cuerpo = re.search(r"<body>(.*)</body>", html, re.S).group(1)
+    cuerpo = re.search(r"<body[^>]*>(.*)</body>", html, re.S).group(1)
     cuerpo = re.sub(r'<script src="[^"]+"></script>\s*', "", cuerpo)
     fuentes = re.search(r'<link rel="stylesheet" href="(https://fonts\.googleapis\.com/[^"]+)">', html).group(1)
     css_maplibre = urllib.request.urlopen(f"{MAPLIBRE}.css", timeout=60).read().decode()

@@ -144,10 +144,12 @@ function abrirFuentes() {
 
 // ---------- Recorrido guiado: cómo se usa el tablero ----------
 // Cada paso resalta una parte de la página, la lleva a la vista y pone el cartel al lado (en el celular, abajo)
+// (el tercer dato es la lámina donde está esa parte; sin dato, la 01)
 const PASOS = [
-  ["#intro", "g1"], ["#kpis", "g2"], ["#form-buscar", "g3"], ["#modo", "g4"], ["#btn-sim-top", "g5"], [".capas-tabs", "g6"],
-  ["#capas-extra", "g7"], ["#mapa", "g8"], ["#leyenda", "g9"], ["#miniaturas", "g10"], ["#tablero", "g11"], ["#analisis", "g12"], [".intro-fuentes", "g13"],
+  [".solapas", "g0"], ["#intro", "g1"], ["#kpis", "g2"], ["#form-buscar", "g3"], ["#modo", "g4"], ["#btn-sim-top", "g5"], [".capas-tabs", "g6"],
+  ["#capas-extra", "g7"], ["#mapa", "g8"], ["#leyenda", "g9"], ["#miniaturas", "g10"], ["#tablero", "g11"], ["#analisis", "g12", 4], [".intro-fuentes", "g13", 4],
 ];
+const verPaso = (i) => { mostrarLamina(PASOS[i][2] ?? 1); return document.querySelector(PASOS[i][0]); };
 let guia = null;
 function recorrido(i = 0) {
   if (i < 0 || i >= PASOS.length) return cerrarRecorrido();
@@ -163,8 +165,8 @@ function recorrido(i = 0) {
   }
   // Saltear lo que no se ve (por ejemplo, las miniaturas en una pantalla angosta)
   const dir = i >= guia.i ? 1 : -1;
-  let el = document.querySelector(PASOS[i][0]);
-  while ((!el || !el.getClientRects().length) && i + dir >= 0 && i + dir < PASOS.length) { i += dir; el = document.querySelector(PASOS[i][0]); }
+  let el = verPaso(i);
+  while ((!el || !el.getClientRects().length) && i + dir >= 0 && i + dir < PASOS.length) { i += dir; el = verPaso(i); }
   guia.i = i; guia.el = el;
   const clave = PASOS[i][1], ultimo = i === PASOS.length - 1;
   guia.cartel.innerHTML = `<span class="rec-paso">${i + 1} / ${PASOS.length}</span><h3>${t(`${clave}_t`)}</h3><p>${t(`${clave}_p`)}</p>
@@ -175,8 +177,8 @@ function recorrido(i = 0) {
   if (el) {
     const r = el.getBoundingClientRect(), alto = Math.min(r.height, innerHeight);
     // Celular: arriba de todo (el cartel va abajo). Escritorio: centrado, o arriba si es más alto que media pantalla.
-    const margen = esMovil() || alto > innerHeight * 0.55 ? 16 : (innerHeight - alto) / 2 - 40;
-    scrollTo({ top: Math.max(0, scrollY + r.top - Math.max(16, margen)), behavior: movimientoReducido() ? "auto" : "smooth" });
+    // (cada lámina se desplaza por dentro: se mueve el contenedor que haga falta)
+    el.scrollIntoView({ block: esMovil() || alto > innerHeight * 0.55 ? "start" : "center", behavior: movimientoReducido() ? "auto" : "smooth" });
   }
   ubicarGuia();
   setTimeout(ubicarGuia, 500);
