@@ -710,3 +710,7 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 - Lámina 01: fuera de la Argentina color de fondo liso (sin cuadrícula ni retícula punteada); zonas sin dato con color de tierra (ya no transparentes).
 - Detalle: sigue al punto, localidad, partido o provincia elegidos (círculo o borde en celeste, radios censales de cerca); no tapa la atribución.
 - Camino al pico fuera; el radio queda al lado de la escala de riesgo.
+
+### 14-nov — Encuadre y océano
+- Vista inicial del país a la izquierda del cuadro de referencias (no lo tapa) y con los botones de zoom a la vista.
+- Océano con la cuadrícula del papel (patrón de 20 px); demás países color de fondo liso.

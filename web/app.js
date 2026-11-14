@@ -516,7 +516,7 @@ function seleccionar(sel, { volar = false } = {}) {
   pintarKpis(); pintarGraficosHeader(); pintarTablero(); pintarAnalisis(); pintarLeyenda();
   if (volar && sel?.tipo === "zona") volarAZona(sel.lugar);
   if (volar && sel?.tipo === "punto") volarAPunto(sel.punto, sel.km);
-  if (!sel && volar !== false) mapa.flyTo({ ...VISTA_PAIS, duration: movimientoReducido() ? 0 : 1400 });
+  if (!sel && volar !== false) mapa.flyTo({ ...vistaPais(), duration: movimientoReducido() ? 0 : 1400 });
 }
 function seleccionarZona(lugar, opciones = {}) { seleccionar({ tipo: "zona", lugar }, opciones); }
 function municipioEn(punto) {
@@ -571,6 +571,13 @@ function mostrarAviso(txt) {
 
 // Vista inicial del país (el recorrido guiado está en guia.js)
 const VISTA_PAIS = { center: [-63.6, -38.6], zoom: 3.55, pitch: 0, bearing: 0 };
+// El país entero a la izquierda del cuadro de referencias (que no tape la mitad del país) y sin tapar los botones de zoom
+function vistaPais() {
+  const refs = document.getElementById("refs"), marco = document.querySelector(".mapa-marco");
+  const der = refs && marco && !refs.hidden ? marco.getBoundingClientRect().right - refs.getBoundingClientRect().left + 16 : 40;
+  const c = mapa.cameraForBounds([[-73.6, -55.2], [-53.5, -21.7]], { padding: { top: 70, bottom: 24, left: 70, right: Math.max(40, der) } });
+  return c ? { center: c.center, zoom: c.zoom, pitch: 0, bearing: 0 } : VISTA_PAIS;
+}
 
 // ---------- Idioma y tema ----------
 function aplicarIdioma() {
@@ -639,6 +646,7 @@ async function iniciar() {
   const vistaInicial = v?.length === 3 ? { center: [v[0], v[1]], zoom: v[2], pitch: 0, bearing: 0 } : VISTA_PAIS;
   mapa = new maplibregl.Map({ container: "mapa", style: estiloBase(), ...vistaInicial, maxPitch: 75, attributionControl: { compact: true } });
   mapa.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-left");
+  if (!(v?.length === 3)) mapa.once("load", () => { if (!estado.sel) mapa.jumpTo(vistaPais()); });   // con el tamaño real del mapa y del cuadro de referencias
   mapa.on("style.load", () => { if (!mapa.getSource("municipios")) agregarCapas(); });
 
   document.querySelectorAll("#modo [data-modo]").forEach((b) => { b.onclick = () => elegirModo(b.dataset.modo); });
