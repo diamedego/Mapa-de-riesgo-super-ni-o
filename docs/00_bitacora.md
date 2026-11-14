@@ -705,3 +705,8 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 - Radio del círculo: más chico, entre líneas, visible aunque no haya punto elegido; radio por defecto 1 km.
 - Lámina 01: océano y demás países transparentes (se ve el papel); la costa queda con su línea fina; la hidrografía ya no pinta el océano.
 - Maqueta de 0,5 km: medido en el sitio, la imagen es z 18 (Esri) y la maqueta dibujada conserva el detalle de la textura.
+
+### 14-nov — Fondo liso, sin dato y detalle
+- Lámina 01: fuera de la Argentina color de fondo liso (sin cuadrícula ni retícula punteada); zonas sin dato con color de tierra (ya no transparentes).
+- Detalle: sigue al punto, localidad, partido o provincia elegidos (círculo o borde en celeste, radios censales de cerca); no tapa la atribución.
+- Camino al pico fuera; el radio queda al lado de la escala de riesgo.

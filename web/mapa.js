@@ -26,7 +26,7 @@ function nombresEnEspanol() {
     }
   });
 }
-// Mapa base liso: océano y demás países transparentes (se ve el papel); la costa queda marcada con una línea fina (sin bosques, parques ni relieve pintado)
+// Mapa base liso: océano y demás países del color de fondo de la hoja (sin cuadrícula); la costa queda marcada con una línea fina (sin bosques, parques ni relieve pintado)
 function mapaBaseLiso() {
   mapa.getStyle().layers.forEach((capa) => {
     const sl = capa["source-layer"];
@@ -71,7 +71,7 @@ function agregarCapas() {
 
   mapa.addSource("provincias", { type: "geojson", data: D.provincias });
   mapa.addLayer({ id: "sin-datos", type: "fill", source: "provincias",
-    paint: { "fill-color": css("--sin-datos"), "fill-opacity": ["interpolate", ["linear"], ["zoom"], 4, 0.9, 13, 0.35] } }, antesLineas);
+    paint: { "fill-color": css("--sin-datos"), "fill-opacity": ["interpolate", ["linear"], ["zoom"], 4, 1, 13, 0.35] } }, antesLineas);
   mapa.addSource("municipios", { type: "geojson", data: D.municipios, promoteId: "cmu" });
   mapa.addLayer({ id: "riesgo-mun", type: "fill", source: "municipios", maxzoom: 10.2,
     paint: { "fill-color": colorRiesgoExpr(meses), "fill-opacity": opacidadRiesgo(OPAC_RELLENO) } }, antesLineas);

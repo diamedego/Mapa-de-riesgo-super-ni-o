@@ -14,7 +14,7 @@
   --banda: var(--superficie); --banda-2: var(--superficie-2); --banda-tinta: var(--tinta-1); --banda-tinta-2: var(--tinta-2); --banda-borde: var(--borde-fuerte); --banda-kpi: transparent;
   /* Riesgo: 5 niveles, semáforo (muy bajo verde → muy alto rojo) */
   --r1: #1a9850; --r2: #91cf60; --r3: #fee08b; --r4: #fc8d59; --r5: #d73027;
-  --sin-datos: rgba(0, 0, 0, 0); --borde-riesgo: #4a4945; --borde-prov: rgba(14, 23, 38, 0.5);
+  --sin-datos: #e4dfd1; --borde-riesgo: #4a4945; --borde-prov: rgba(14, 23, 38, 0.5);
   /* Series de gráficos (paleta validada) y estados */
   --s-1: #2a78d6; --s-2: #eb6834; --s-3: #1baf7a;
   --torta-resto: #ddd8cb;
@@ -46,7 +46,7 @@
     --cian: #5cc6d6; --cian-hover: #86d8e4; --cian-tinta: #06262c; --cian-suave: rgba(92, 198, 214, 0.12); --halo: #00121a;
     --marco: #aeb8b3; --cuadricula: rgba(92, 198, 214, 0.055); --velo-hoja: rgba(20, 28, 27, 0.6); --ocre: #d9a548; --pico-resto: rgba(92, 198, 214, 0.3); --pista-ref: #5d6763;
     --r1: #2fb366; --r2: #a6d96a; --r3: #fee08b; --r4: #fc8d59; --r5: #f04a3a;
-    --sin-datos: rgba(0, 0, 0, 0); --borde-riesgo: #8d99a8; --borde-prov: rgba(255, 255, 255, 0.45);
+    --sin-datos: #1f2b29; --borde-riesgo: #8d99a8; --borde-prov: rgba(255, 255, 255, 0.45);
     --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --torta-resto: #2a3634; --violeta: #a689d6;
     --ok: #3ccf6e; --atencion: #fab219; --critico: #ff6b6b; --rio-normal: #58a6e6;
     --ok-fondo: rgba(60, 207, 110, 0.12); --atencion-fondo: rgba(250, 178, 25, 0.14); --critico-fondo: rgba(255, 107, 107, 0.14);
@@ -65,7 +65,7 @@
   --cian: #5cc6d6; --cian-hover: #86d8e4; --cian-tinta: #06262c; --cian-suave: rgba(92, 198, 214, 0.12); --halo: #00121a;
   --marco: #aeb8b3; --cuadricula: rgba(92, 198, 214, 0.055); --velo-hoja: rgba(20, 28, 27, 0.6); --ocre: #d9a548; --pico-resto: rgba(92, 198, 214, 0.3); --pista-ref: #5d6763;
   --r1: #2fb366; --r2: #a6d96a; --r3: #fee08b; --r4: #fc8d59; --r5: #f04a3a;
-  --sin-datos: rgba(0, 0, 0, 0); --borde-riesgo: #8d99a8; --borde-prov: rgba(255, 255, 255, 0.45);
+  --sin-datos: #1f2b29; --borde-riesgo: #8d99a8; --borde-prov: rgba(255, 255, 255, 0.45);
   --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --torta-resto: #2a3634; --violeta: #a689d6;
   --ok: #3ccf6e; --atencion: #fab219; --critico: #ff6b6b; --rio-normal: #58a6e6;
   --ok-fondo: rgba(60, 207, 110, 0.12); --atencion-fondo: rgba(250, 178, 25, 0.14); --critico-fondo: rgba(255, 107, 107, 0.14);
@@ -1312,5 +1312,10 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
 .lec-radio-cab b { font-size: 12px; }
 .lec-radio input { height: 14px; }
 .lec-radio-ext { font-size: 9px; }
-/* Lámina 01: fuera de la Argentina el mapa es transparente y se ve el papel cuadriculado */
-.hoja-mapa .mapa-marco { background: transparent; }
+/* Lámina 01: fuera de la Argentina, color de fondo liso (sin la cuadrícula del papel) */
+.hoja-mapa .mapa-marco { background: var(--superficie); }
+/* El detalle no tapa la atribución del mapa (OpenFreeMap / OpenStreetMap), abajo a la derecha */
+.detalle { bottom: 38px; }
+.detalle header span { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Radio al lado de la escala de riesgo (en lugar del camino al pico) */
+.lec-pie .lec-radio { align-self: start; margin: 0; max-width: none; }

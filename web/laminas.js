@@ -162,13 +162,13 @@ function actualizarReticula() {
   const W = cont.clientWidth, H = cont.clientHeight, c = mapa.getCenter(), vis = verPlanoNacional();
   let html = "";
   if (vis) {
-    for (let lon = -75; lon <= -50; lon += 5) { const x = mapa.project([lon, c.lat]).x; if (x > 40 && x < W - 30) html += `<span class="ret-lon" style="left:${x.toFixed(0)}px">${-lon}° ${t("oeste_corto")}</span>`; }
-    for (let lat = -20; lat >= -55; lat -= 5) { const y = mapa.project([c.lng, lat]).y; if (y > 50 && y < H - 20) html += `<span class="ret-lat" style="top:${y.toFixed(0)}px">${-lat}° S</span>`; }
+    if (false) for (let lon = -75; lon <= -50; lon += 5) { const x = mapa.project([lon, c.lat]).x; if (x > 40 && x < W - 30) html += `<span class="ret-lon" style="left:${x.toFixed(0)}px">${-lon}° ${t("oeste_corto")}</span>`; }
+    if (false) for (let lat = -20; lat >= -55; lat -= 5) { const y = mapa.project([c.lng, lat]).y; if (y > 50 && y < H - 20) html += `<span class="ret-lat" style="top:${y.toFixed(0)}px">${-lat}° S</span>`; }
     const p = mapa.project([CAJA_A[2], CAJA_A[3]]);
     if (estado.capa === "riesgo") html += `<b class="ret-a" style="left:${p.x.toFixed(0)}px;top:${p.y.toFixed(0)}px">A</b>`;
   }
   cont.innerHTML = html;
-  for (const id of ["reticula", "caja-a"]) if (mapa.getLayer(id)) mapa.setLayoutProperty(id, "visibility", vis && (id === "reticula" || estado.capa === "riesgo") ? "visible" : "none");
+  for (const id of ["reticula", "caja-a"]) if (mapa.getLayer(id)) mapa.setLayoutProperty(id, "visibility", vis && id !== "reticula" && estado.capa === "riesgo" ? "visible" : "none");   // sin la retícula punteada: fondo liso
   // Escala gráfica de 500 km (o 50 km de cerca) en la leyenda
   const km = document.getElementById("ley-km");
   if (km) {
@@ -183,14 +183,19 @@ const verPlanoNacional = () => !estado.sel && mapa.getZoom() < 5.6;
 function dibujarDetalle() {
   const caja = document.getElementById("detalle"), cv = document.getElementById("detalle-lienzo");
   if (!caja || typeof mapa === "undefined" || !estado.riesgo) return;
-  const ver = estado.capa === "riesgo" && verPlanoNacional() && innerWidth > 1100;
+  // Sin selección: el Litoral (recuadro A). Con un punto, una localidad, un partido o una provincia: lo elegido
+  const sel = estado.sel, ver = estado.capa === "riesgo" && innerWidth > 1100 && (sel || verPlanoNacional());
   caja.hidden = !ver;
   if (!ver) return;
+  let cajaD = CAJA_A, titulo = t("detalle_litoral");
+  if (sel?.tipo === "punto") { cajaD = cajaCirculo(sel.punto, sel.km * 1.4); titulo = sel.nombre ?? estado.porCmu.get(sel.cmu)?.nam ?? t("punto_en_mapa"); }
+  else if (sel?.tipo === "zona") { const [a, b, c2, d] = sel.lugar.caja, m = Math.max(c2 - a, d - b) * 0.08; cajaD = [a - m, b - m, c2 + m, d + m]; titulo = sel.lugar.nombre; }
+  document.getElementById("detalle-tit").textContent = titulo;
   const r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
   if (!r.width) return;
   cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
   const c = cv.getContext("2d"); c.scale(dpr, dpr);
-  const [o, s, e, n] = CAJA_A, k = Math.cos(((s + n) / 2) * Math.PI / 180);
+  const [o, s, e, n] = cajaD, k = Math.cos(((s + n) / 2) * Math.PI / 180);
   const esc = Math.max(r.width / ((e - o) * k), r.height / (n - s)), ox = (r.width - (e - o) * k * esc) / 2, oy = (r.height - (n - s) * esc) / 2;
   const X = (lon) => ox + (lon - o) * k * esc, Y = (lat) => oy + (n - lat) * esc;
   const traza = (anillo) => { anillo.forEach(([lon, lat], i) => (i ? c.lineTo(X(lon), Y(lat)) : c.moveTo(X(lon), Y(lat)))); c.closePath(); };
@@ -198,8 +203,9 @@ function dibujarDetalle() {
   c.fillStyle = css("--superficie"); c.fillRect(0, 0, r.width, r.height);
   // Retícula cada 2°
   c.strokeStyle = css("--cian"); c.globalAlpha = 0.3; c.lineWidth = 0.6; c.setLineDash([3, 3]);
-  for (let lon = -62; lon <= -54; lon += 2) { c.beginPath(); c.moveTo(X(lon), 0); c.lineTo(X(lon), r.height); c.stroke(); }
-  for (let lat = -26; lat >= -30; lat -= 2) { c.beginPath(); c.moveTo(0, Y(lat)); c.lineTo(r.width, Y(lat)); c.stroke(); }
+  const paso = [5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01].find((p) => (e - o) / p >= 3) ?? 0.01;   // unas 4 líneas por lado
+  for (let lon = Math.ceil(o / paso) * paso; lon <= e; lon += paso) { c.beginPath(); c.moveTo(X(lon), 0); c.lineTo(X(lon), r.height); c.stroke(); }
+  for (let lat = Math.ceil(s / paso) * paso; lat <= n; lat += paso) { c.beginPath(); c.moveTo(0, Y(lat)); c.lineTo(r.width, Y(lat)); c.stroke(); }
   c.setLineDash([]); c.globalAlpha = 1;
   const idx = indicesVista(), cortes = CORTES, colores = [1, 2, 3, 4, 5].map((i) => css(`--r${i}`));
   for (const f of estado.datos.municipios.features) {
@@ -209,6 +215,18 @@ function dibujarDetalle() {
     c.beginPath(); poligonos(f.geometry).forEach((p) => p.forEach(traza));
     c.fillStyle = v < 0 ? css("--sin-datos") : colores[cortes.filter((x) => v >= x).length]; c.fill("evenodd");
   }
+  // De cerca (menos de ~0,6°): radios censales con su riesgo, si ya están cargados
+  if (e - o < 0.6) for (const f of estado.radios ?? []) {
+    const cj = cajaDe(f.geometry), M = estado.riesgo.meses;
+    if (cj[2] < o || cj[0] > e || cj[3] < s || cj[1] > n || f.properties[`r_${M[0]}`] == null) continue;
+    const v = Math.max(...idx.map((i) => Number(f.properties[`r_${M[i]}`]) || 0));
+    c.beginPath(); poligonos(f.geometry).forEach((p) => p.forEach(traza)); c.fillStyle = colores[cortes.filter((x) => v >= x).length]; c.fill("evenodd");
+    c.strokeStyle = "rgba(255,255,255,0.6)"; c.lineWidth = 0.5; c.stroke();
+  }
+  // Lo elegido: el círculo o el borde de la zona
+  c.strokeStyle = css("--cian"); c.lineWidth = 2;
+  if (sel?.tipo === "punto") { const R = (sel.km / 111.32) * esc; c.beginPath(); c.arc(X(sel.punto[0]), Y(sel.punto[1]), R, 0, 7); c.stroke(); }
+  else if (sel?.tipo === "zona") for (const f of estado.datos.municipios.features) if (sel.lugar.cmus.includes(f.properties.cmu)) { c.beginPath(); poligonos(f.geometry).forEach((p) => p.forEach(traza)); c.stroke(); }
   c.strokeStyle = css("--tinta-1"); c.globalAlpha = 0.55; c.lineWidth = 0.9; c.lineJoin = "round";
   for (const f of estado.datos.provincias.features) { c.beginPath(); poligonos(f.geometry).forEach((p) => p.forEach(traza)); c.stroke(); }
   c.globalAlpha = 1;
