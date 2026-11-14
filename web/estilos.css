@@ -1313,8 +1313,12 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
 .lec-radio input { height: 14px; }
 .lec-radio-ext { font-size: 9px; }
 /* Lámina 01: fuera de la Argentina, color de fondo liso (sin la cuadrícula del papel) */
-.hoja-mapa .mapa-marco, .detalle canvas { background-color: var(--superficie);
-  background-image: linear-gradient(var(--cuadricula) 1px, transparent 1px), linear-gradient(90deg, var(--cuadricula) 1px, transparent 1px); background-size: 20px 20px; }
+/* Como la lámina aprobada: el mapa no tiene fondo propio; se ve la hoja translúcida sobre la cuadrícula de 20 px de la página
+   (la misma, continua). El detalle tiene fondo liso de hoja, sin cuadrícula. */
+.hoja-mapa .vista, .hoja-mapa .mapa-marco { background: transparent; }
+.ret-lon, .ret-lat { line-height: 9px; }
+.ret-lon { top: 3px; }
+.ret-lat { transform: translateY(-4px); }
 /* El detalle no tapa la atribución del mapa (OpenFreeMap / OpenStreetMap), abajo a la derecha */
 .detalle { bottom: 38px; }
 .detalle header span { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

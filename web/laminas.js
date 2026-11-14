@@ -143,12 +143,12 @@ function iniciarLaminas() {
 const CAJA_A = [-63, -31.6, -53.4, -24];   // oeste, sur, este, norte
 function iniciarPlano() {
   if (mapa.getSource("reticula")) return;
-  const lineas = [];
-  for (let lon = -75; lon <= -50; lon += 5) lineas.push([[lon, -58], [lon, -18]]);
-  for (let lat = -20; lat >= -55; lat -= 5) lineas.push([[-78, lat], [-48, lat]]);
   const [o, s, e, n] = CAJA_A;
-  mapa.addSource("reticula", { type: "geojson", data: { type: "FeatureCollection", features: lineas.map((c) => ({ type: "Feature", geometry: { type: "LineString", coordinates: c }, properties: {} })) } });
-  mapa.addLayer({ id: "reticula", type: "line", source: "reticula", paint: { "line-color": css("--reticula"), "line-width": 1, "line-dasharray": [4, 4] } });   // rayas de 4 px, igual que en el detalle
+  // Retícula idéntica a la lámina aprobada: cada 5°, petróleo al 30 %, 0,6 px, rayas de 3 px y huecos de 3 px (MapLibre mide las
+  // rayas en anchos de línea: 5 × 0,6 = 3 px); debajo de la Argentina (no la cruza). Las líneas se recortan en actualizarReticula
+  mapa.addSource("reticula", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  mapa.addLayer({ id: "reticula", type: "line", source: "reticula", paint: { "line-color": css("--cian"), "line-opacity": 0.3, "line-width": 0.6, "line-dasharray": [5, 5] } },
+    mapa.getLayer("sin-datos") ? "sin-datos" : undefined);
   mapa.addSource("caja-a", { type: "geojson", data: { type: "Feature", geometry: { type: "LineString", coordinates: [[o, n], [e, n], [e, s], [o, s], [o, n]] }, properties: {} } });
   mapa.addLayer({ id: "caja-a", type: "line", source: "caja-a", paint: { "line-color": css("--tinta-1"), "line-width": 1.2, "line-dasharray": [4, 2.5] } });
   mapa.on("move", actualizarReticula);
@@ -161,13 +161,29 @@ function actualizarReticula() {
   if (!cont || typeof mapa === "undefined" || !mapa.getSource?.("reticula")) return;
   const W = cont.clientWidth, H = cont.clientHeight, c = mapa.getCenter(), vis = verPlanoNacional();
   let html = "";
+  const lineas = [];
   if (vis) {
-    for (let lon = -75; lon <= -50; lon += 5) { const x = mapa.project([lon, c.lat]).x; if (x > 40 && x < W - 30) html += `<span class="ret-lon" style="left:${x.toFixed(0)}px">${-lon}° ${t("oeste_corto")}</span>`; }
-    for (let lat = -20; lat >= -55; lat -= 5) { const y = mapa.project([c.lng, lat]).y; if (y > 50 && y < H - 20) html += `<span class="ret-lat" style="top:${y.toFixed(0)}px">${-lat}° S</span>`; }
+    // Como la lámina: meridianos desde 14 px del borde de arriba (arriba, el rótulo, solo a la izquierda del cuadro de
+    // referencias) y paralelos desde 30 px del borde izquierdo (ahí, el rótulo)
+    const refs = document.getElementById("refs"), limRot = refs && !refs.hidden ? refs.getBoundingClientRect().left - cont.getBoundingClientRect().left : W;
+    const geo = (x, y) => mapa.unproject([x, y]).toArray();
+    for (let lon = -80; lon <= -30; lon += 5) {
+      const x = mapa.project([lon, c.lat]).x;
+      if (x < 30 || x > W - 4) continue;
+      lineas.push([[lon, geo(x, 14)[1]], [lon, geo(x, H)[1]]]);
+      if (x < limRot) html += `<span class="ret-lon" style="left:${x.toFixed(1)}px">${-lon}° ${t("oeste_corto")}</span>`;
+    }
+    for (let lat = -20; lat >= -60; lat -= 5) {
+      const y = mapa.project([c.lng, lat]).y;
+      if (y < 16 || y > H - 4) continue;
+      lineas.push([[geo(30, y)[0], lat], [geo(W, y)[0], lat]]);
+      html += `<span class="ret-lat" style="top:${y.toFixed(1)}px">${-lat}° S</span>`;
+    }
     const p = mapa.project([CAJA_A[2], CAJA_A[3]]);
     if (estado.capa === "riesgo") html += `<b class="ret-a" style="left:${p.x.toFixed(0)}px;top:${p.y.toFixed(0)}px">A</b>`;
   }
   cont.innerHTML = html;
+  mapa.getSource("reticula").setData({ type: "FeatureCollection", features: lineas.map((co) => ({ type: "Feature", geometry: { type: "LineString", coordinates: co }, properties: {} })) });
   for (const id of ["reticula", "caja-a"]) if (mapa.getLayer(id)) mapa.setLayoutProperty(id, "visibility", vis && (id === "reticula" || estado.capa === "riesgo") ? "visible" : "none");
   // Escala gráfica de 500 km (o 50 km de cerca) en la leyenda
   const km = document.getElementById("ley-km");
@@ -200,9 +216,9 @@ function dibujarDetalle() {
   const X = (lon) => ox + (lon - o) * k * esc, Y = (lat) => oy + (n - lat) * esc;
   const traza = (anillo) => { anillo.forEach(([lon, lat], i) => (i ? c.lineTo(X(lon), Y(lat)) : c.moveTo(X(lon), Y(lat)))); c.closePath(); };
   const poligonos = (g) => (g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : []);
-  c.clearRect(0, 0, r.width, r.height);   // fondo: la cuadrícula del papel (CSS), igual que el océano del mapa
-  // Retícula: mismo trazo que en el mapa grande
-  c.strokeStyle = css("--reticula"); c.lineWidth = 1; c.setLineDash([4, 4]);
+  c.clearRect(0, 0, r.width, r.height);   // fondo liso de la hoja, sin cuadrícula (como la lámina aprobada)
+  // Retícula idéntica a la lámina: petróleo al 30 %, 0,6 px, rayas de 3 px; cada 2° en el Litoral
+  c.strokeStyle = "rgba(12,90,105,.3)"; c.lineWidth = 0.6; c.setLineDash([3, 3]);
   const paso = [5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01].find((p) => (e - o) / p >= 3) ?? 0.01;   // unas 4 líneas por lado
   for (let lon = Math.ceil(o / paso) * paso; lon <= e; lon += paso) { c.beginPath(); c.moveTo(X(lon), 0); c.lineTo(X(lon), r.height); c.stroke(); }
   for (let lat = Math.ceil(s / paso) * paso; lat <= n; lat += paso) { c.beginPath(); c.moveTo(0, Y(lat)); c.lineTo(r.width, Y(lat)); c.stroke(); }
