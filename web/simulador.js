@@ -890,32 +890,47 @@ function pasarCamara(de, a) {
 }
 
 // Imagen satelital (Sentinel-2 sin nubes, EOX) del recuadro del círculo, a `S` píxeles por píxel de relieve
+// Imagen de la maqueta: Esri World Imagery (fotos aéreas y satelitales de hasta ~0,5 m en ciudades) hasta z 18; donde Esri no
+// tiene ese zoom devuelve una tesela «sin datos» de ~2,5 KB y se usa la de un zoom menor recortada. Si Esri no responde,
+// el mosaico Sentinel-2 de EOX (~10 m, hasta z 15).
+const SATELITE_ALTA = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+const TESELA_VACIA = 3000;
 async function sateliteDe(D, x0, y0, bw, bh, S) {
   const cv = document.createElement("canvas");
   cv.width = Math.round(bw * S); cv.height = Math.round(bh * S);
   const c = cv.getContext("2d");
   c.fillStyle = "rgb(150,140,110)"; c.fillRect(0, 0, cv.width, cv.height);
-  const k = Math.min(Math.ceil(Math.log2(S)), 15 - D.z), z = D.z + k, f = 2 ** k;   // la imagen llega hasta z 15 (detalle real ~10 m)
+  const k = Math.max(0, Math.min(Math.ceil(Math.log2(S)), 18 - D.z)), z = D.z + k, f = 2 ** k;
   const gx0 = D.tx0 * 256 + x0, gy0 = D.ty0 * 256 + y0;   // píxeles globales del relieve en el zoom D.z
   const tiles = [];
   for (let tx = Math.floor((gx0 * f) / 256); tx <= Math.floor(((gx0 + bw) * f) / 256); tx++)
     for (let ty = Math.floor((gy0 * f) / 256); ty <= Math.floor(((gy0 + bh) * f) / 256); ty++) tiles.push([tx, ty]);
-  DIAG.sat = { total: tiles.length, ok: 0, fallas: 0 };
+  DIAG.sat = { total: tiles.length, ok: 0, fallas: 0, zoom: z };
+  const pedir = async (url) => {
+    const ctl = new AbortController(), reloj = setTimeout(() => ctl.abort(), 15000);   // una tesela colgada no deja la maqueta esperando
+    const r = await fetch(url, { signal: ctl.signal }).finally(() => clearTimeout(reloj));
+    if (!r.ok) throw new Error(r.status);
+    return r.blob();
+  };
+  // Fuentes en orden: Esri en el zoom pedido y hasta 3 niveles menos; después EOX (como mucho z 15)
+  const fuentes = [0, 1, 2, 3].filter((d) => z - d >= 10).map((d) => [SATELITE_ALTA, d]).concat([[SATELITE, Math.max(0, z - 15)]]);
   const bajar = async ([tx, ty]) => {
-    for (let intento = 0; intento < 3; intento++) {
-      try {
-        const ctl = new AbortController(), reloj = setTimeout(() => ctl.abort(), 15000);   // una tesela colgada no deja la maqueta esperando
-        const r = await fetch(SATELITE.replace("{z}", z).replace("{x}", tx).replace("{y}", ty), { signal: ctl.signal }).finally(() => clearTimeout(reloj));
-        if (!r.ok) throw new Error(r.status);
-        const lado = (256 / f) * S;
-        c.drawImage(await createImageBitmap(await r.blob()), ((tx * 256) / f - gx0) * S, ((ty * 256) / f - gy0) * S, lado, lado);
-        DIAG.sat.ok++;
-        return;
-      } catch (e) { await new Promise((ok) => setTimeout(ok, 400 * (intento + 1))); }
+    const lado = (256 / f) * S, dx = ((tx * 256) / f - gx0) * S, dy = ((ty * 256) / f - gy0) * S;
+    for (const [url, d] of fuentes) {
+      const q = 2 ** d, zz = z - d, px = Math.floor(tx / q), py = Math.floor(ty / q), sub = 256 / q;
+      for (let intento = 0; intento < 2; intento++) {
+        try {
+          const b = await pedir(url.replace("{z}", zz).replace("{x}", px).replace("{y}", py));
+          if (url === SATELITE_ALTA && b.size < TESELA_VACIA) break;   // Esri no tiene ese zoom acá: se prueba uno menor
+          c.drawImage(await createImageBitmap(b), (tx % q) * sub, (ty % q) * sub, sub, sub, dx, dy, lado, lado);
+          DIAG.sat.ok++;
+          return;
+        } catch (e) { await new Promise((ok) => setTimeout(ok, 400 * (intento + 1))); }
+      }
     }
     DIAG.sat.fallas++;
   };
-  for (let i = 0; i < tiles.length; i += 6) await Promise.all(tiles.slice(i, i + 6).map(bajar));   // de a 6 para no saturar el servidor
+  for (let i = 0; i < tiles.length; i += 8) await Promise.all(tiles.slice(i, i + 8).map(bajar));   // de a 8 para no saturar el servidor
   return cv;
 }
 
@@ -936,7 +951,7 @@ async function crearMaqueta() {
   // Recuadro del círculo, en píxeles del relieve
   let x0 = W, x1 = 0, y0 = H, y1 = 0;
   for (let i = 0; i < d.circulo.length; i++) if (d.circulo[i]) { const x = i % W, y = (i / W) | 0; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
-  const bw = x1 - x0 + 1, bh = y1 - y0 + 1, S = Math.min(2, 1024 / Math.max(bw, bh));
+  const bw = x1 - x0 + 1, bh = y1 - y0 + 1, S = Math.min(8, (innerWidth < 700 ? 1536 : 2048) / Math.max(bw, bh));   // textura de hasta 2048 px: en un radio de 0,5 km, ~0,5 m por píxel
   const sat = await sateliteDe(D, x0, y0, bw, bh, S);
   if (SIM.datos !== d) return;
   const marco = document.querySelector(".sim-mapa-marco");
@@ -944,7 +959,7 @@ async function crearMaqueta() {
   capa.className = "sim-maqueta";
   capa.innerHTML = `<p class="sim-maqueta-ayuda">${t("sim_maqueta_ayuda")}</p><p class="sim-lluvia-estado" hidden></p>
     <button type="button" class="sim-diag-link" id="sim-diag-link">${t("sim_diag")}</button>
-    <p class="sim-credito-sat">${t("sim_fecha_sat")} · <a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless · EOX</a> (${t("sim_credito_sat")})</p>`;
+    <p class="sim-credito-sat">${t("sim_fecha_sat")} · <a href="https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9" target="_blank" rel="noopener">Esri World Imagery</a> (${t("sim_credito_sat")})</p>`;
   marco.appendChild(capa);
   capa.querySelector("#sim-diag-link").onclick = mostrarDiagnostico;
   const ren = crearRenderer();
@@ -1638,6 +1653,8 @@ function pintarPanelSimulador(d) {
   const kpiSim = (etq, sub) => `<div class="kpi"><span class="kpi-l">${etq}</span><span class="kpi-v tb-dato-valor">–</span><span class="kpi-f tb-dato-extra">${sub}</span></div>`;
   panel.innerHTML = `
     <div class="sim-lec">
+      <div class="lec-radio" id="sim-radio">${estado.sel?.tipo === "punto" ? `<div class="lec-radio-cab"><span class="etq">${t("radio_km")}</span><b id="sim-radio-v">${fmt(estado.sel.km, estado.sel.km % 1 ? 1 : 0)} km</b></div>
+        <input type="range" min="0.5" max="20" step="0.5" value="${estado.sel.km}" aria-label="${t("radio_km")}"><div class="lec-radio-ext"><span>0,5 km</span><span>20 km</span></div>` : ""}</div>
       <div><span class="etq" id="sim-etq"></span><h2 class="titular" id="sim-titular">${t("sim_tit_q")} <span>–</span></h2></div>
       <div><p class="bajada">${t("sim_bajada_lam")}</p>
         <h3 class="tit esc-tit">${t("sim_esc_t")}</h3>
@@ -1683,6 +1700,12 @@ function pintarPanelSimulador(d) {
   document.getElementById("sim-reiniciar").onclick = reiniciarSimulador;
   panel.querySelectorAll("#sim-vel .chip").forEach((b) => { b.onclick = () => { SIM.velocidad = +b.dataset.v; panel.querySelectorAll("#sim-vel .chip").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); }; });
   pintarEscenario();
+  // Radio del círculo arriba de todo: al soltar, la maqueta se arma de nuevo con el círculo nuevo
+  const rad = panel.querySelector("#sim-radio input");
+  if (rad) {
+    rad.oninput = () => { document.getElementById("sim-radio-v").textContent = `${fmt(+rad.value, +rad.value % 1 ? 1 : 0)} km`; };
+    rad.onchange = () => { cambiarRadio(Number(rad.value)); cerrarSimulador(); abrirSimulador(); };
+  }
   pintarFiltrosSimulador();
   prepararPeriodo();
   pintarValidez();

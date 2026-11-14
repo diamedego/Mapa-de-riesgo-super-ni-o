@@ -693,3 +693,7 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 ### 14-nov — Radio del círculo arriba de la lectura
 - El control del radio del círculo pasó del tablero a lo primero de la lectura de la lámina 01 (solo con un punto elegido); al cambiarlo se recalculan los indicadores del círculo.
 - Buscador: «Maasterbus en zarate» no encontraba nada. Ahora separa el lugar también después de «en», «de», «del» o «cerca de», y si ningún resultado se parece al nombre prueba sin las letras repetidas por error de tipeo (también en el respaldo con Nominatim).
+
+### 14-nov — Imagen de alta resolución en la maqueta 3D y radio en el simulador
+- La maqueta usa Esri World Imagery hasta z 18 (~0,5 m por píxel en un radio de 0,5 km; antes Sentinel-2 de EOX, ~10 m, hasta z 15) con textura de hasta 2048 px (1536 en celular). Donde Esri no tiene ese zoom devuelve una tesela «sin datos» de ~2,5 KB: se usa la de un zoom menor recortada (hasta 3 niveles) y, si Esri no responde, EOX. Probado en Zárate (81/81 teselas z 18) y en campo pampeano (sin huecos).
+- El radio del círculo también está arriba de todo en la lámina 02: al soltarlo, la maqueta se arma de nuevo con el círculo nuevo.
