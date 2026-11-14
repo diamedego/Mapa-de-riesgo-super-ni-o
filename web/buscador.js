@@ -168,6 +168,10 @@ const LUGARES_PROPIOS = [
   // Zárate: RN 9, Colectora Sur km 87,5. Ubicada con la captura de Google Maps que pasó la usuaria (14-nov): al sur de la ruta,
   // en la esquina noreste del barrio Los Mirtillos, sobre el trazado de la RN 9 de OpenStreetMap
   { alias: ["masterbus", "master bus"], nombre: "MasterBus · terminal de micros", detalle: "Ruta Nacional 9, Colectora Sur km 87,5 · Zárate · Buenos Aires", cat: "cat_transporte", punto: [-59.077632, -34.128394], lugar: "zarate" },
+  // Ubicadas con las capturas de Google Maps de la usuaria (14-nov): en el cruce de la RN 9 al sur del barrio San Cayetano (Campana),
+  // sobre el trazado de la ruta de OpenStreetMap
+  { alias: ["toyota boshoku", "boshoku"], nombre: "Toyota Boshoku Argentina", detalle: "RN 9 km 80, Camino a Capilla del Señor · Campana · Buenos Aires", cat: "cat_industria", punto: [-58.9998, -34.1683], lugar: "campana" },
+  { alias: ["padilla logistica", "padilla logística", "transportes padilla", "padilla"], nombre: "Padilla Logística", detalle: "RN 9 km 79,5 · Campana · Buenos Aires", cat: "cat_industria", punto: [-58.9967, -34.1670], lugar: "campana" },
   { alias: ["masterbus", "master bus"], nombre: "MasterBus · oficina", detalle: "Doctor Salk 243 · Campana · Buenos Aires", cat: "cat_transporte", punto: [-58.948364, -34.1869741], lugar: "campana" },
 ];
 // Barrios populares del RENABAP (6.467, con su localidad): «barrio San Cayetano zárate», «san cayetano, zarate». Con un lugar
