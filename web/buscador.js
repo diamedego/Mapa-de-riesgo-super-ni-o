@@ -191,7 +191,7 @@ function lugaresPropios(texto) {
   const { nombre, lugar } = separarLugar(texto), q = normalizar(nombre ?? texto).replace(/(\p{L})\1+/gu, "$1").replace(/[^\p{L}\p{N}]/gu, "");
   if (q.length < 4) return [];
   const pegado = (a) => a.replace(/[^\p{L}\p{N}]/gu, "");
-  return LUGARES_PROPIOS.filter((x) => x.alias.some((a) => { const b = pegado(a); return b.startsWith(q) || distanciaEdicion(q, b) <= 2 || (q.length > b.length && distanciaEdicion(q.slice(0, b.length + 1), b) <= 2); }))
+  return LUGARES_PROPIOS.filter((x) => x.alias.some((a) => { const b = pegado(a); return (b.startsWith(q) && q.length >= 0.6 * b.length) || distanciaEdicion(q, b) <= 2 || (q.length > b.length && distanciaEdicion(q.slice(0, b.length + 1), b) <= 2); }))
     .map((x) => ({ tipo: "osm", nombre: x.nombre, detalle: x.detalle, cat: x.cat, punto: x.punto, orden: lugar && lugar.clave.includes(x.lugar) ? -1 : 0 }))
     .sort((a, b) => a.orden - b.orden);
 }
