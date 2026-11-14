@@ -729,3 +729,4 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 - MasterBus terminal Zárate ubicada con la captura de Google Maps de la usuaria: al sur de la RN 9, esquina noreste de Los Mirtillos (-34.128394, -59.077632).
 - Detalle: con un punto elegido marca el punto y el círculo, y en el centro un botón «Simulador 3D →» que abre la lámina 02 (como la solapa).
 - Celular: el detalle (con el botón «Simulador 3D») se ve debajo del mapa, a todo el ancho; las referencias quedan sobre el mapa. Antes el detalle estaba oculto en pantallas de 1100 px o menos.
+- Simulador: al abrir, sin lluvia y sin correr el modelo (maqueta seca, como la imagen satelital); calcula al mover una barra o tocar un botón.

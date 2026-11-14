@@ -44,7 +44,7 @@ function estacionCercana(d) {
 let cargaRiosExtremos = null;
 const riosExtremos = () => (cargaRiosExtremos ??= fetch("datos/rios_extremos.json").then((r) => (r.ok ? r.json() : {})).catch(() => ({})));
 
-// Al abrir: busca los extremos de los Niños en el lugar y arranca con las condiciones de hoy y la peor lluvia de 3 h registrada
+// Al abrir: busca los extremos de los Niños en el lugar y deja las barras en las condiciones de hoy, sin lluvia (terreno seco)
 async function iniciarEscenario() {
   const d = SIM.datos;
   avisoProgreso(t("sim_hist_cargando"));
@@ -54,9 +54,11 @@ async function iniciarEscenario() {
   SIM.hist = { H, est, rio: est ? X[String(est.estacion_id)] ?? null : null, humedadHoy: hoy };
   SIM.esc = { horas: 3, mm: 0, theta: 0.3, lagos: 0, rio: est?.h ?? 0, crecida: 0, desague: 10 };
   aplicarCondicionesHoy(false);
-  SIM.esc.mm = Math.round(limitesEscenario().lluvia.max);
+  // Sin lluvia: la maqueta queda seca, tal como se ve en la imagen satelital (no hay agua de hoy medida por satélite para el
+  // lugar). El modelo recién calcula cuando se mueve una barra o se elige un botón
+  SIM.esc.mm = 0;
+  avisoProgreso("");
   pintarEscenario();
-  simularEscenario();
 }
 function aplicarCondicionesHoy(correr = true) {
   const E = SIM.esc, L = limitesEscenario();
@@ -104,7 +106,7 @@ function pintarEscenario() {
       <input type="range" min="${min}" max="${max}" step="${paso}" value="${v}" aria-label="${etq}">
       <div class="esc-pie"><span>${extremos[0]}</span><span class="esc-fuente">${fuente}</span><span>${extremos[1]}</span></div></div>`;
   const rioTxt = L.rio.estacion ? `${fmt(E.rio, 2)} m` : `${E.crecida > 0 ? "+" : ""}${fmt(E.crecida, 2)} m`;
-  cont.innerHTML = `
+  cont.innerHTML = `${SIM.modelo?.escenario ? "" : `<p class="sim-hint">${t("sim_seco_inicio")}</p>`}
     <div class="ctrl"><span class="etq">${t("sim_cae_en")}</span><div class="seg" id="sim-dur" role="group" aria-label="${t("sim_dur")}">${DURACIONES.map((h) => `<button type="button" class="chip" data-h="${h}" aria-pressed="${E.horas === h}">${h} h</button>`).join("")}</div></div>
     ${fila("mm", t("sim_f_lluvia"), E.mm, 0, L.lluvia.max, 1, `${fmt(E.mm)} mm`, ["0", `${fmt(L.lluvia.max)} mm`], L.lluvia.fuente)}
     ${fila("theta", t("sim_f_humedad"), E.theta, L.humedad.min.toFixed(3), L.humedad.max.toFixed(3), 0.005, t("sim_v_humedad")(sat(E.theta)), [t("sim_r_seco"), t("sim_r_saturado")], L.humedad.fuente)}
@@ -361,7 +363,7 @@ async function prepararSimulacion(s) {
   agregarAguaAlMapa(D);
   pintarPanelSimulador(SIM.datos);
   elegirVistaSimulador("maqueta");   // solo maqueta 3D (el mapa 2D queda debajo y es el respaldo si el navegador no puede con WebGL)
-  iniciarEscenario();   // al abrir: escenario con las condiciones de hoy y la peor lluvia de 3 h registrada en un Niño
+  iniciarEscenario();   // al abrir: condiciones de hoy y sin lluvia (la maqueta queda seca, como en la imagen satelital)
 }
 
 // Ríos, lagunas y embalses del mapa base, rasterizados a la grilla del relieve
