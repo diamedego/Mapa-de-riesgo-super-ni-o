@@ -69,10 +69,11 @@ const rioDelEvento = (ev) => (SIM.hist?.est && ev ? SIM.hist.riosNinos?.[String(
 async function iniciarEscenario() {
   const d = SIM.datos;
   avisoProgreso(t("sim_hist_cargando"));
-  const [H, X, RN, hoy] = await Promise.all([historicoNino(d.s.punto), riosExtremos(), riosNinos(), humedadHoy(d.s.punto)]);
+  const [H, X, RN, hoy, suelo] = await Promise.all([historicoNino(d.s.punto), riosExtremos(), riosNinos(), humedadHoy(d.s.punto),
+    sueloEn(d.s.punto).catch(() => null).then((x) => x ?? { ...TEXTURAS.franco, nombre: "franco", supuesto: true })]);
   if (SIM.datos !== d) return;
   const est = estacionCercana(d);
-  SIM.hist = { H, est, rio: est ? X[String(est.estacion_id)] ?? null : null, riosNinos: RN, humedadHoy: hoy, ranking: {}, peor: null };
+  SIM.hist = { H, est, rio: est ? X[String(est.estacion_id)] ?? null : null, riosNinos: RN, humedadHoy: hoy, suelo, peor: null };
   SIM.esc = { horas: 3, mm: 0, theta: 0.3, lagos: 0, rio: est?.h ?? 0, crecida: 0, desague: 10, nino: null, perfil: null, forma: null };
   aplicarCondicionesHoy(false);
   // Sin lluvia: la maqueta queda seca, tal como se ve en la imagen satelital (no hay agua de hoy medida por satélite para el
@@ -80,7 +81,7 @@ async function iniciarEscenario() {
   SIM.esc.mm = 0;
   avisoProgreso("");
   pintarEscenario();
-  rankingNinos();
+  H?.horarias?.then(() => { if (SIM.hist?.H === H) pintarEscenario(); });   // con las tormentas hora por hora: el peor y los máximos finos
 }
 function aplicarCondicionesHoy(correr = true) {
   const E = SIM.esc, L = limitesEscenario();
@@ -90,8 +91,12 @@ function aplicarCondicionesHoy(correr = true) {
   if (correr) cambiarEscenario({});
 }
 // Elegir un Niño: su peor tormenta, tal como cayó, con la humedad del suelo de ese momento y (si se midió) el río de ese día
-function aplicarNino(temporada) {
-  const n = SIM.hist?.H?.ninos.find((x) => x.temporada === temporada), ev = n?.evento;
+async function aplicarNino(temporada) {
+  const n = SIM.hist?.H?.ninos.find((x) => x.temporada === temporada);
+  avisoProgreso(t("sim_bajando_tormenta"));
+  await SIM.hist.H.horarias;
+  const ev = await eventoHorario(SIM.hist.H, n);
+  avisoProgreso("");
   if (!ev) return;
   const E = SIM.esc, rio = rioDelEvento(ev);
   Object.assign(E, { nino: temporada, forma: temporada, horas: ev.dur, perfil: ev.lluvia.map((v) => v / ev.total), lagos: 0,
@@ -103,58 +108,78 @@ function aplicarNino(temporada) {
 function aplicarPeorNino() {
   const H = SIM.hist?.H;
   if (!H?.ninos.length) return;
-  // El que afectó a más personas (si ya se calculó); si no, el de la tormenta con más lluvia
-  const tp = SIM.hist.peor?.[0] ?? [...H.ninos].filter((n) => n.evento).sort((a, b) => b.evento.total - a.evento.total)[0]?.temporada;
+  const tp = calcularPeor()?.[0];   // el de más agua estimada en los bajos (indiceNino)
   if (tp) aplicarNino(tp);
 }
 
-// ¿Qué Niño afectó a más personas aquí? Corre el modelo con la peor tormenta de cada temporada (sin mostrarla) y cuenta las
-// personas con 10 cm de agua o más en la peor hora. De a una corrida, en segundo plano; al terminar, marca el selector.
-let rankingVersion = 0;
-async function rankingNinos() {
-  const d = SIM.datos, H = SIM.hist?.H, yo = ++rankingVersion;
-  if (!d || !H?.ninos.length) return;
-  const g = grillaModelo(d, 100, 100);
-  g.nDentro = g.dentroC.reduce((a, b) => a + b, 0);
-  const suelo = SIM.modelo?.suelo ?? (await sueloEn(d.s.punto).catch(() => null)) ?? { ...TEXTURAS.franco, nombre: "franco", supuesto: true };
-  const est = SIM.hist.est, orden = H.ninos.filter((n) => n.evento).sort((a, b) => b.evento.total - a.evento.total);
-  for (const [k, n] of orden.entries()) {
-    if (yo !== rankingVersion || SIM.datos !== d) return;
-    SIM.hist.calculando = [k, orden.length]; pintarPeorLinea();
-    const ev = n.evento, nh = 2 + ev.dur + 24, lluvia = new Float32Array(nh), rio = rioDelEvento(ev);
-    ev.lluvia.forEach((v, j) => { lluvia[2 + j] = v; });
-    SIM.hist.ranking[n.temporada] = await new Promise((ok) => {
-      const w = new Worker("hidraulica.js");
-      let max = 0;
-      w.onmessage = (e) => { const m = e.data; if (m.tipo === "hora") { const st = estadisticaHora({ g }, m.h); if (st.personas > max) max = st.personas; } else if (m.tipo === "fin") { w.terminate(); ok(max); } };
-      w.onerror = () => { w.terminate(); ok(null); };
-      w.postMessage({ tipo: "iniciar", nx: g.nx, ny: g.ny, dx: g.dx, z: g.z, tipo2: g.tipo2, lago: g.lago, nMan: g.nMan, imp: g.imp, suelo,
-        theta0: ev.theta ?? 0.3, desague: 10, crecida: 0, lagoOffset: 0, lluvia, et0: new Float32Array(nh).fill(H.et0h),
-        ...(est ? { relEvac: new Float32Array(nh).fill((rio ?? est.h) - est.ref) } : {}) });
-    });
+// ---------- El peor Niño para la población, estimado con una fórmula (sin simular el agua) ----------
+// Rasgos fijos del lugar (una vez), de los radios censales del círculo pesados por su superficie dentro de él: bajos = % de la
+// superficie a menos de 2 m sobre el cauce (HAND, MERIT Hydro, el mismo dato del índice), pendiente media (Copernicus 30 m) y
+// personas que viven en los bajos; parte impermeable, de la grilla del modelo (edificios, calles y usos urbanos)
+function rasgosLugar() {
+  const h = SIM.hist, d = SIM.datos;
+  if (h.lugar || !d) return h.lugar;
+  const { dentro, celdas, radios, radioDe, celdasRadio } = d, cuenta = new Map();
+  celdas.forEach((i, k) => { if (dentro[i] && radioDe[k]) cuenta.set(radioDe[k], (cuenta.get(radioDe[k]) ?? 0) + 1); });
+  let a = 0, sBajo = 0, sPend = 0, pobBajo = 0, pobTot = 0;
+  for (const [r, n] of cuenta) {
+    const p = radios[r - 1].properties, hand = (Number(p.pct_area_hand_2m) || 0) / 100, pend = Math.tan(((Number(p.pend) || 0) * Math.PI) / 180) * 100;
+    const pob = ((Number(p.poblacion) || 0) * n) / Math.max(1, celdasRadio[r]);   // personas del radio que viven dentro del círculo
+    a += n; sBajo += hand * n; sPend += pend * n; pobBajo += pob * hand; pobTot += pob;
   }
-  let peor = null;
-  for (const [tp, p] of Object.entries(SIM.hist.ranking)) if (p != null && (!peor || p > peor[1])) peor = [tp, p];
-  SIM.hist.peor = peor; SIM.hist.calculando = null;
-  pintarPeorLinea();
+  const g = SIM.modelo?.g ?? grillaModelo(d, 100, 100);
+  let sImp = 0, nImp = 0;
+  for (let c = 0; c < g.N; c++) if (g.dentroC[c] && g.tipo2[c] === 1) { sImp += g.imp[c]; nImp++; }
+  return (h.lugar = { imp: nImp ? sImp / nImp : 0, fBajo: a ? sBajo / a : 0.2, pend: a ? sPend / a : 0, pobBajo, pobTot });
 }
+// Número de Curva (SCS) del suelo del lugar con humedad media (grupo hidrológico según la textura, pastura en estado regular)
+const cnTextura = (nombre = "") => (/^arcill/.test(nombre) ? 84 : /arcill/.test(nombre) ? 79 : /^arenos/.test(nombre) ? 49 : /arenos/.test(nombre) ? 61 : 69);
+// Agua estimada en los bajos (mm) con la peor tormenta de un Niño, usando todo lo que se sabe del lugar y de la tormenta:
+//  · suelo permeable: escorrentía del Número de Curva, Q = (P − 0,2 S)² / (P + 0,8 S), S = 25 400 / CN − 254, con CN según la
+//    textura y la humedad del suelo justo antes (seco: CN I; saturado: CN III);
+//  · superficie impermeable: lo que llueve en cada hora por encima de la capacidad de los desagües (barra «Desagües»), así cuenta
+//    cuánto cayó y en cuánto tiempo;
+//  · desniveles: esa agua se junta en los bajos (se divide por su fracción del círculo) y se va más rápido con pendiente;
+//  · río: si ese día (o hoy, sin medición) estaba por encima del nivel de evacuación, lo que lo supera se suma en los bajos.
+function indiceNino(ev) {
+  const L = rasgosLugar(), E = SIM.esc, suelo = SIM.modelo?.suelo ?? SIM.hist.suelo;
+  if (!ev || !L) return null;
+  const cn2 = cnTextura(suelo?.nombre), cn1 = (4.2 * cn2) / (10 - 0.058 * cn2), cn3 = (23 * cn2) / (10 + 0.13 * cn2);
+  const sat = ev.theta != null ? ev.theta / (suelo?.thetaS ?? 0.46) : 0.6;
+  const cn = sat <= 0.6 ? cn1 + (cn2 - cn1) * limitar((sat - 0.3) / 0.3, 0, 1) : cn2 + (cn3 - cn2) * limitar((sat - 0.6) / 0.3, 0, 1);
+  const S = 25400 / cn - 254, P = ev.total, qPerm = P > 0.2 * S ? (P - 0.2 * S) ** 2 / (P + 0.8 * S) : 0;
+  const qImp = ev.lluvia.reduce((a, v) => a + Math.max(0, v - E.desague), 0);
+  const escurre = (1 - L.imp) * qPerm + L.imp * qImp;
+  const est = SIM.hist.est, rio = est ? (rioDelEvento(ev) ?? est.h) - est.ref : 0;
+  return { mm: escurre / Math.max(0.05, L.fBajo) / (1 + L.pend) + Math.max(0, rio) * 1000, escurre, cn };
+}
+function calcularPeor() {
+  const H = SIM.hist?.H;
+  if (!H?.ninos.length || !SIM.datos) return null;
+  let peor = null;
+  for (const n of H.ninos) { const ix = n.evento?.horaria ? indiceNino(n.evento.horaria) : null; if (ix && (!peor || ix.mm > peor[1])) peor = [n.temporada, ix.mm]; }
+  return (SIM.hist.peor = peor);
+}
+
 // Opciones del selector y la línea del peor (se actualizan sin rearmar las barras)
 function opcionesNino() {
   const H = SIM.hist?.H, E = SIM.esc, peor = SIM.hist?.peor?.[0];
   if (!H?.ninos.length) return "";
-  const fecha = (iso) => new Date(`${iso}:00-03:00`).toLocaleDateString(loc(), { day: "numeric", month: "short", year: "numeric" });
+  const fecha = (iso) => new Date(`${iso}T12:00:00-03:00`).toLocaleDateString(loc(), { day: "numeric", month: "short", year: "numeric" });
   return `<option value="">${t(E.forma && !E.nino ? "sim_nino_forma" : "sim_nino_propio")(E.forma ?? "")}</option>` + [...H.ninos].reverse().map((n) => {
-    const ev = n.evento, txt = ev ? `${n.temporada} · ${t(`int_${n.intensidad}`)} · ${t("sim_mm_en_h")(fmt(ev.total), ev.dur)} · ${fecha(ev.ini)}` : `${n.temporada} · ${t("sin_dato")}`;
+    const ev = n.evento, txt = ev ? `${n.temporada} · ${t(`int_${n.intensidad}`)} · ${t("sim_mm_en_3d")(fmt(ev.total))} · ${fecha(ev.dias[0])}` : `${n.temporada} · ${t("sin_dato")}`;
     return `<option value="${n.temporada}"${E.nino === n.temporada ? " selected" : ""}${ev ? "" : " disabled"}${n.temporada === peor ? ' class="peor"' : ""}>${n.temporada === peor ? "▲ " : ""}${txt}</option>`;
   }).join("");
 }
 function pintarPeorLinea() {
   const el = document.getElementById("esc-peor-linea"), sel = document.getElementById("esc-nino");
   if (!el) return;
-  const h = SIM.hist, c = h?.calculando;
-  el.innerHTML = c ? t("sim_peor_calc")(c[0] + 1, c[1]) : h?.peor ? t("sim_peor_res")(h.peor[0], fmtPersonas(h.peor[1])) : "";
-  el.classList.toggle("listo", !!h?.peor && !c);
-  if (sel && !c) sel.innerHTML = opcionesNino();
+  const h = SIM.hist;
+  calcularPeor();   // depende también de la barra de desagües
+  el.innerHTML = !h?.H?.horariasListas ? t("sim_peor_estimando") : h?.peor ? t("sim_peor_res")(h.peor[0], fmt(h.peor[1] / 10), fmtPersonas(rasgosLugar()?.pobBajo ?? 0)) : "";
+  el.dataset.ayuda = t("sim_peor_ayuda");
+  el.classList.toggle("listo", !!h?.peor);
+  if (sel) sel.innerHTML = opcionesNino();
 }
 
 // Límites de cada barra y de dónde salen
@@ -162,8 +187,8 @@ function limitesEscenario() {
   const Hh = SIM.hist, E = SIM.esc;
   if (!Hh || !E) return null;
   const H = Hh.H, ts = SIM.modelo?.suelo?.thetaS ?? 0.46;
-  const ll = H?.lluvia?.[E.horas], ev = E.nino ? H.ninos.find((n) => n.temporada === E.nino)?.evento : null;
-  const lluvia = ll?.max > 0 ? { max: Math.max(5, Math.ceil(ll.max)), fuente: ev ? t("sim_r_evento")(E.nino) : t("sim_r_nino")(ll.temporada) } : { max: 300, fuente: t("sim_r_supuesto") };
+  const ll = H?.lluvia?.[E.horas], ev = E.nino ? H.ninos.find((n) => n.temporada === E.nino)?.evento?.horaria : null;
+  const lluvia = ll?.max > 0 ? { max: Math.max(5, Math.ceil(ll.max), ev ? Math.ceil(ev.total) : 0), fuente: ev ? t("sim_r_evento")(E.nino) : t("sim_r_nino")(ll.temporada) } : { max: 300, fuente: t("sim_r_supuesto") };
   const hu = H?.humedad;
   const humedad = hu ? { min: Math.min(hu.min, ts - 0.02), max: Math.min(hu.max, ts), fuente: t("sim_r_nino_todas")(H.temporadas) }
     : { min: 0.1, max: ts, fuente: t("sim_r_supuesto") };
@@ -532,7 +557,7 @@ async function simularEscenario() {
   if (!d || !E) return;
   detenerAnimaciones();
   SIM.modelo?.worker?.terminate();
-  const tor = { mm: E.mm, horas: E.horas }, suelo0 = SIM.modelo?.suelo;
+  const tor = { mm: E.mm, horas: E.horas }, suelo0 = SIM.modelo?.suelo ?? SIM.hist?.suelo;
   SIM.tormenta = { ...tor }; SIM.desague = E.desague;
   const M = (SIM.modelo = { frames: [], lagos: [], stats: [], hora: 0, corriendo: true, siguiendo: true, hasta: null, tormenta: tor, corto: true, escenario: true, suelo: suelo0 });
   bloquearControles(true);
