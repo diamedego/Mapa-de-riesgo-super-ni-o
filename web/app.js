@@ -4,7 +4,7 @@
 // mapa, buscador y tableros.
 
 const estado = {
-  idioma: "es", capa: "riesgo", modo: "actual", sel: null, km: 2,
+  idioma: "es", capa: "riesgo", modo: "actual", sel: null, km: 1,
   iMesActual: 0, rangoMeses: [0, 0], rangoDias: [0, 6], paso3h: null,
   mesReproduciendo: null, diaReproduciendo: null, semanaReproduciendo: null, reproduciendo: null,
   verRios: true, verAlertas: false, verReferencias: true, verHidro: true, verInundadas: false, verDensidad: false,
@@ -103,7 +103,7 @@ function pintarKpis() {
       <span class="kpi-f">${escapar(k.sub)}</span></button>`).join("");
   cont.querySelectorAll(".kpi").forEach((b) => { b.onclick = () => kpis[+b.dataset.i].ir(); });
   pintarCabezaLectura(A, rV, pobAlto, evac, mp, pico);
-  pintarRadioLectura(A.circulo);
+  pintarRadioLectura(A.circulo ?? (estado.sel ? null : { km: estado.km }));   // sin nada elegido: el radio que tendrá el próximo punto
 }
 
 // Radio del círculo, arriba de todo de la lectura (solo con un punto elegido)
@@ -117,7 +117,7 @@ function pintarRadioLectura(s) {
       <input type="range" min="0.5" max="20" step="0.5" aria-label="${t("radio_km")}"><div class="lec-radio-ext"><span>0,5 km</span><span>20 km</span></div>`;
     const inp = cont.querySelector("input");
     inp.oninput = () => { document.getElementById("lec-radio-v").textContent = txt(+inp.value); };
-    inp.onchange = () => cambiarRadio(Number(inp.value));
+    inp.onchange = () => { cambiarRadio(Number(inp.value)); if (!estado.sel) pintarRadioLectura({ km: estado.km }); };
   }
   cont.querySelector(".etq").textContent = t("radio_km");
   const inp = cont.querySelector("input");

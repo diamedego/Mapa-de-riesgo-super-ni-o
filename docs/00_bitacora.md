@@ -700,3 +700,8 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 
 ### 14-nov — Orden de la lectura
 - Lámina 01: titular → radio del círculo → escala de riesgo y camino al pico → bajada → indicadores.
+
+### 14-nov — Radio por defecto y países transparentes
+- Radio del círculo: más chico, entre líneas, visible aunque no haya punto elegido; radio por defecto 1 km.
+- Lámina 01: océano y demás países transparentes (se ve el papel); la costa queda con su línea fina; la hidrografía ya no pinta el océano.
+- Maqueta de 0,5 km: medido en el sitio, la imagen es z 18 (Esri) y la maqueta dibujada conserva el detalle de la textura.

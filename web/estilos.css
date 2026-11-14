@@ -1306,3 +1306,11 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
 .lec-radio-cab b { font: 500 15px var(--f-mono); color: var(--tinta-1); }
 .lec-radio input { width: 100%; margin: 0; accent-color: var(--cian); }
 .lec-radio-ext { display: flex; justify-content: space-between; font: 400 10px var(--f-mono); color: var(--tinta-3); }
+/* Radio: más chico y separado por una línea */
+.lec-radio { gap: 2px; padding: 8px 0; margin: 8px 0 4px; border-top: 1px solid var(--borde-fuerte); border-bottom: 1px solid var(--borde-fuerte); max-width: 260px; }
+.lec-radio-cab .etq { font-size: 9.5px; }
+.lec-radio-cab b { font-size: 12px; }
+.lec-radio input { height: 14px; }
+.lec-radio-ext { font-size: 9px; }
+/* Lámina 01: fuera de la Argentina el mapa es transparente y se ve el papel cuadriculado */
+.hoja-mapa .mapa-marco { background: transparent; }

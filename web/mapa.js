@@ -26,13 +26,13 @@ function nombresEnEspanol() {
     }
   });
 }
-// Mapa base liso: océano del color del papel y los demás países de un solo tono (sin bosques, parques ni relieve pintado)
+// Mapa base liso: océano y demás países transparentes (se ve el papel); la costa queda marcada con una línea fina (sin bosques, parques ni relieve pintado)
 function mapaBaseLiso() {
   mapa.getStyle().layers.forEach((capa) => {
     const sl = capa["source-layer"];
-    if (capa.type === "background") mapa.setPaintProperty(capa.id, "background-color", css("--mapa-tierra"));
+    if (capa.type === "background") mapa.setPaintProperty(capa.id, "background-opacity", 0);   // los demás países, transparentes: se ve el papel
     else if (capa.type === "raster" || ["landcover", "landuse", "park", "aeroway"].includes(sl)) mapa.setLayoutProperty(capa.id, "visibility", "none");
-    else if (sl === "water" && capa.type === "fill") { mapa.setPaintProperty(capa.id, "fill-color", css("--mapa-fondo")); mapa.setPaintProperty(capa.id, "fill-pattern", undefined); }
+    else if (sl === "water" && capa.type === "fill") { mapa.setPaintProperty(capa.id, "fill-opacity", 0); mapa.setPaintProperty(capa.id, "fill-pattern", undefined); }
     else if (sl === "waterway" && capa.type === "line") mapa.setPaintProperty(capa.id, "line-color", css("--mapa-fondo"));
   });
   // Borde fino de la costa: el océano y los países tienen tonos parecidos
@@ -371,7 +371,7 @@ function agregarCapasOpcionales() {
     mapa.setFilter(id, f ? ["all", f, ["!=", ["get", "class"], "bus"]] : ["!=", ["get", "class"], "bus"]);
   }
   // Hidrografía: ríos, arroyos y canales en azul, lagunas resaltadas (más las estaciones del INA)
-  mapa.addLayer({ id: "hidro-agua", type: "fill", source: base, "source-layer": "water", layout: { visibility: vis("verHidro") }, paint: { "fill-color": "#3d8bd6", "fill-opacity": 0.35 } }, antes);
+  mapa.addLayer({ id: "hidro-agua", type: "fill", source: base, "source-layer": "water", filter: ["!=", ["get", "class"], "ocean"], layout: { visibility: vis("verHidro") }, paint: { "fill-color": "#3d8bd6", "fill-opacity": 0.35 } }, antes);
   mapa.addLayer({ id: "hidro-cursos", type: "line", source: base, "source-layer": "waterway", minzoom: 7, layout: { visibility: vis("verHidro"), "line-cap": "round" },
     paint: { "line-color": "#1f6fb5", "line-width": ["interpolate", ["linear"], ["zoom"], 7, 0.5, 12, 1.6, 15, 3] } }, antes);
   // Suelo urbano (impermeable) y verde
