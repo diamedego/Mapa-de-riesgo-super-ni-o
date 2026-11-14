@@ -6,7 +6,7 @@ Por estación (las mismas de estaciones.geojson, con nivel de alerta):
 - todo: mínimo y máximo de todo el registro (2015 → hoy), para cuando la estación no midió durante un Niño.
 
 Se corre en la Mac (necesita data/raw/ina) cuando se actualizan las alturas históricas.
-Salida: web/datos/rios_extremos.json
+Salida: web/datos/rios_extremos.json y web/datos/rios_ninos.json (altura de cada día de los Niños medidos)
 """
 import json
 from pathlib import Path
@@ -40,6 +40,14 @@ def main() -> None:
                          "temporada_max": k_max, "temporadas": [k for k, _ in enN]}
         out[str(int(est))] = e
     (RAIZ / "web" / "datos" / "rios_extremos.json").write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
+    # Altura de cada día de las temporadas Niño medidas (para repetir el río del día de la peor tormenta de ese Niño)
+    serie = {}
+    for est, d in dia[dia["estacion_id"].isin(estaciones)].groupby("estacion_id"):
+        dd = pd.concat([d[d["fecha"].between(a, b)] for a, b in NINOS.values()])
+        if len(dd):
+            serie[str(int(est))] = {f.date().isoformat(): round(float(h), 2) for f, h in zip(dd["fecha"], dd["altura_m"])}
+    (RAIZ / "web" / "datos" / "rios_ninos.json").write_text(json.dumps(serie, separators=(",", ":")))
+    print(f"rios_ninos.json: {len(serie)} estaciones, {sum(len(v) for v in serie.values())} días")
     con = sum("nino" in v for v in out.values())
     print(f"rios_extremos.json: {len(out)} estaciones, {con} con registro en un Niño")
 

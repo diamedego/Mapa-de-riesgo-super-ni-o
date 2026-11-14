@@ -111,38 +111,55 @@ async function climatologia(punto) {
   return { pDia, reparto, media, et0 };
 }
 
-// ---------- Extremos de los Niños en el punto (límites de las barras del escenario) ----------
-// Temporadas Niño fuertes y moderadas (oct → abr): 1982-83, 1986-87, 1991-92, 1997-98, 2002-03, 2009-10, 2015-16 y 2023-24.
-// Archivo horario de Open-Meteo (ERA5 y, desde 2017, modelos de mayor resolución): lluvia máxima en 1 a 72 horas seguidas,
-// humedad del suelo (0-7 cm) mínima y máxima, y evaporación media por hora. ERA5 (celdas de ~25 km) suaviza las tormentas
-// locales: los máximos reales en una ciudad pueden ser mayores.
-const TEMPORADAS_NINO = [1982, 1986, 1991, 1997, 2002, 2009, 2015, 2023];
-const DURACIONES = [1, 3, 6, 12, 24, 72];
+// ---------- Los Niños en el punto: la peor tormenta de cada uno y los límites de las barras del escenario ----------
+// Todas las temporadas Niño desde 1950 según el ONI de NOAA, con su intensidad (clasificación de Golden Gate Weather Services),
+// de octubre a abril. Archivo horario de Open-Meteo (ERA5, ~25 km; desde 2017 con modelos de mayor resolución): de cada
+// temporada, la peor tormenta (las 72 horas seguidas con más lluvia, sin las horas secas de los bordes) hora por hora, con la
+// humedad del suelo justo antes; y de todas, la lluvia máxima en 1 a 72 horas seguidas y la humedad mínima y máxima.
+const NINOS = [
+  [1951, "moderado"], [1952, "debil"], [1953, "debil"], [1957, "fuerte"], [1958, "debil"], [1963, "moderado"], [1965, "fuerte"], [1968, "moderado"],
+  [1969, "debil"], [1972, "fuerte"], [1976, "debil"], [1977, "debil"], [1979, "debil"], [1982, "muy_fuerte"], [1986, "moderado"], [1987, "fuerte"],
+  [1991, "fuerte"], [1994, "moderado"], [1997, "muy_fuerte"], [2002, "moderado"], [2004, "debil"], [2006, "debil"], [2009, "moderado"], [2014, "debil"],
+  [2015, "muy_fuerte"], [2018, "debil"], [2023, "fuerte"],
+];
+const DUR_MAX = 72;
 const cacheHistorico = new Map();
 function historicoNino(punto) {
   const [lon, lat] = punto.map((v) => v.toFixed(2)), clave = `${lon},${lat}`;
   if (!cacheHistorico.has(clave)) cacheHistorico.set(clave, (async () => {
     const pedir = (a) => fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${a}-10-01&end_date=${a + 1}-04-30`
       + "&hourly=precipitation,soil_moisture_0_to_7cm,et0_fao_evapotranspiration&timezone=America%2FArgentina%2FBuenos_Aires")
-      .then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    const res = await Promise.all(TEMPORADAS_NINO.map(pedir));
-    const lluvia = Object.fromEntries(DURACIONES.map((w) => [w, { max: 0, temporada: null }]));
-    let hMin = Infinity, hMax = -Infinity, sEt = 0, nEt = 0, n = 0;
+      .then((r) => (r.ok ? r.json() : null)).catch(() => null)
+      .then(async (d) => d ?? (await new Promise((ok) => setTimeout(ok, 2000)), await fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${a}-10-01&end_date=${a + 1}-04-30`
+        + "&hourly=precipitation,soil_moisture_0_to_7cm,et0_fao_evapotranspiration&timezone=America%2FArgentina%2FBuenos_Aires").then((r) => (r.ok ? r.json() : null)).catch(() => null)));   // un reintento (límite por minuto)
+    const res = [];
+    for (let i = 0; i < NINOS.length; i += 7) res.push(...await Promise.all(NINOS.slice(i, i + 7).map(([a]) => pedir(a))));   // de a 7
+    const lluvia = Array.from({ length: DUR_MAX + 1 }, () => ({ max: 0, temporada: null }));
+    let hMin = Infinity, hMax = -Infinity, sEt = 0, nEt = 0;
+    const ninos = [];
     res.forEach((d, k) => {
-      const h = d?.hourly;
+      const h = d?.hourly, [anio, intensidad] = NINOS[k], temporada = `${anio}-${String(anio + 1).slice(2)}`;
       if (!h?.precipitation?.length) return;
-      n++;
-      const temporada = `${TEMPORADAS_NINO[k]}-${String(TEMPORADAS_NINO[k] + 1).slice(2)}`, p = h.precipitation.map((v) => v ?? 0);
-      for (const w of DURACIONES) {   // máximo de la suma en w horas seguidas (ventana móvil)
+      const p = h.precipitation.map((v) => v ?? 0);
+      for (let w = 1; w <= DUR_MAX; w++) {   // máximo de la suma en w horas seguidas (ventana móvil)
         let s = 0, m = 0;
         for (let i = 0; i < p.length; i++) { s += p[i] - (i >= w ? p[i - w] : 0); if (s > m) m = s; }
         if (m > lluvia[w].max) lluvia[w] = { max: m, temporada };
       }
-      for (const v of h.soil_moisture_0_to_7cm ?? []) if (v != null) { if (v < hMin) hMin = v; if (v > hMax) hMax = v; }
+      // Peor tormenta: las 72 h con más lluvia, sin las horas secas (< 0,1 mm) de los bordes
+      let s = 0, mejor = -1, fin = 0;
+      for (let i = 0; i < p.length; i++) { s += p[i] - (i >= DUR_MAX ? p[i - DUR_MAX] : 0); if (s > mejor) { mejor = s; fin = i; } }
+      let a = Math.max(0, fin - DUR_MAX + 1), b = fin;
+      while (a < b && p[a] < 0.1) a++;
+      while (b > a && p[b] < 0.1) b--;
+      const ll = p.slice(a, b + 1), total = ll.reduce((x, y) => x + y, 0), sm = h.soil_moisture_0_to_7cm ?? [];
+      ninos.push({ temporada, anio, intensidad, evento: total > 0 ? { lluvia: ll, total, dur: ll.length, pico: Math.max(...ll), ini: h.time[a], fin: h.time[b],
+        theta: sm[Math.max(0, a - 1)] ?? sm[a] ?? null } : null });
+      for (const v of sm) if (v != null) { if (v < hMin) hMin = v; if (v > hMax) hMax = v; }
       for (const v of h.et0_fao_evapotranspiration ?? []) if (v != null) { sEt += v; nEt++; }
     });
-    if (!n) { cacheHistorico.delete(clave); return null; }
-    return { temporadas: n, lluvia, humedad: Number.isFinite(hMin) ? { min: hMin, max: hMax } : null, et0h: nEt ? sEt / nEt : 0.15 };
+    if (!ninos.length) { cacheHistorico.delete(clave); return null; }
+    return { temporadas: ninos.length, ninos, lluvia, humedad: Number.isFinite(hMin) ? { min: hMin, max: hMax } : null, et0h: nEt ? sEt / nEt : 0.15 };
   })());
   return cacheHistorico.get(clave);
 }
