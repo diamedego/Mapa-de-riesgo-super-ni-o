@@ -697,3 +697,6 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 ### 14-nov — Imagen de alta resolución en la maqueta 3D y radio en el simulador
 - La maqueta usa Esri World Imagery hasta z 18 (~0,5 m por píxel en un radio de 0,5 km; antes Sentinel-2 de EOX, ~10 m, hasta z 15) con textura de hasta 2048 px (1536 en celular). Donde Esri no tiene ese zoom devuelve una tesela «sin datos» de ~2,5 KB: se usa la de un zoom menor recortada (hasta 3 niveles) y, si Esri no responde, EOX. Probado en Zárate (81/81 teselas z 18) y en campo pampeano (sin huecos).
 - El radio del círculo también está arriba de todo en la lámina 02: al soltarlo, la maqueta se arma de nuevo con el círculo nuevo.
+
+### 14-nov — Orden de la lectura
+- Lámina 01: titular → radio del círculo → escala de riesgo y camino al pico → bajada → indicadores.
