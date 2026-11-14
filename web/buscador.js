@@ -560,6 +560,9 @@ async function buscarDireccion(texto) {
     }
     if (!punto) {   // 2) OpenStreetMap: rutas, colectoras, kilómetros y calles que el servicio oficial no tiene
       const o = await buscarEnOSM(calle, zona).catch(() => null);
+      // Un kilómetro de ruta («RN 9 km 80») que OpenStreetMap no ubica: devuelve un punto cualquiera de la ruta, que puede estar
+      // a decenas de km. Mejor avisar que llevar a cualquier lado
+      if (o?.aproximada && /\bkm\b|kil[oó]metro/i.test(texto)) return avisar(t("dir_km_no"));
       if (o) ({ punto, nombre, aproximada } = o);
     }
   }
