@@ -165,9 +165,9 @@ let photonVersion = 0;
 // Lugares cargados a mano: empresas importantes que OpenStreetMap no tiene o tiene en un solo sitio. Se encuentran aunque el
 // nombre esté mal escrito (hasta 2 letras de diferencia). Con el lugar en el texto («… zárate»), primero el de ese lugar.
 const LUGARES_PROPIOS = [
-  // Zárate: RN 9, Colectora Sur km 87,5 (dirección del link de Google Maps que pasó la usuaria). Google no da la posición exacta:
-  // se calculó 2 km al noroeste del km 85,5 (RN 9 y Larrea, servicio oficial de direcciones) sobre el trazado de la ruta (OSM)
-  { alias: ["masterbus", "master bus"], nombre: "MasterBus · terminal de micros", detalle: "Ruta Nacional 9, Colectora Sur km 87,5 · Zárate · Buenos Aires", cat: "cat_transporte", punto: [-59.084059, -34.125982], lugar: "zarate" },
+  // Zárate: RN 9, Colectora Sur km 87,5. Ubicada con la captura de Google Maps que pasó la usuaria (14-nov): al sur de la ruta,
+  // en la esquina noreste del barrio Los Mirtillos, sobre el trazado de la RN 9 de OpenStreetMap
+  { alias: ["masterbus", "master bus"], nombre: "MasterBus · terminal de micros", detalle: "Ruta Nacional 9, Colectora Sur km 87,5 · Zárate · Buenos Aires", cat: "cat_transporte", punto: [-59.077632, -34.128394], lugar: "zarate" },
   { alias: ["masterbus", "master bus"], nombre: "MasterBus · oficina", detalle: "Doctor Salk 243 · Campana · Buenos Aires", cat: "cat_transporte", punto: [-58.948364, -34.1869741], lugar: "campana" },
 ];
 // Barrios populares del RENABAP (6.467, con su localidad): «barrio San Cayetano zárate», «san cayetano, zarate». Con un lugar
