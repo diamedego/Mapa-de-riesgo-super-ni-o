@@ -714,3 +714,4 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 ### 14-nov — Encuadre y océano
 - Vista inicial del país a la izquierda del cuadro de referencias (no lo tapa) y con los botones de zoom a la vista.
 - Océano con la cuadrícula del papel (patrón de 20 px); demás países color de fondo liso.
+- Créditos del mapa cerrados por defecto; se abren con el ícono (i). Se mantienen los tres (OpenFreeMap, OpenMapTiles, OpenStreetMap): sus licencias exigen la atribución.

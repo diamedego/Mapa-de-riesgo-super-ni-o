@@ -646,6 +646,9 @@ async function iniciar() {
   const vistaInicial = v?.length === 3 ? { center: [v[0], v[1]], zoom: v[2], pitch: 0, bearing: 0 } : VISTA_PAIS;
   mapa = new maplibregl.Map({ container: "mapa", style: estiloBase(), ...vistaInicial, maxPitch: 75, attributionControl: { compact: true } });
   mapa.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-left");
+  // Créditos del mapa (obligatorios por licencia) cerrados: se abren solo al tocar el ícono (i)
+  const cerrarCreditos = () => document.querySelectorAll("#mapa .maplibregl-ctrl-attrib").forEach((e) => e.classList.remove("maplibregl-compact-show"));
+  mapa.once("load", cerrarCreditos); mapa.once("idle", cerrarCreditos);
   if (!(v?.length === 3)) mapa.once("load", () => { if (!estado.sel) mapa.jumpTo(vistaPais()); });   // con el tamaño real del mapa y del cuadro de referencias
   mapa.on("style.load", () => { if (!mapa.getSource("municipios")) agregarCapas(); });
 
