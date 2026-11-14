@@ -1095,8 +1095,8 @@ async function crearMaqueta() {
   const capa = document.createElement("div");
   capa.className = "sim-maqueta";
   capa.innerHTML = `<p class="sim-maqueta-ayuda">${t("sim_maqueta_ayuda")}</p><p class="sim-lluvia-estado" hidden></p>
-    <button type="button" class="sim-diag-link" id="sim-diag-link">${t("sim_diag")}</button>
-    <p class="sim-credito-sat">${t("sim_fecha_sat")} · <a href="https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9" target="_blank" rel="noopener">Esri World Imagery</a> (${t("sim_credito_sat")})</p>`;
+    <div class="sim-pie-maqueta"><button type="button" class="sim-diag-link" id="sim-diag-link">${t("sim_diag")}</button>
+    <p class="sim-credito-sat">${t("sim_fecha_sat")} · <a href="https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9" target="_blank" rel="noopener">Esri World Imagery</a> (${t("sim_credito_sat")})</p></div>`;
   marco.appendChild(capa);
   capa.querySelector("#sim-diag-link").onclick = mostrarDiagnostico;
   const ren = crearRenderer();

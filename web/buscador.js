@@ -168,10 +168,6 @@ const LUGARES_PROPIOS = [
   // Zárate: RN 9, Colectora Sur km 87,5. Ubicada con la captura de Google Maps que pasó la usuaria (14-nov): al sur de la ruta,
   // en la esquina noreste del barrio Los Mirtillos, sobre el trazado de la RN 9 de OpenStreetMap
   { alias: ["masterbus", "master bus"], nombre: "MasterBus · terminal de micros", detalle: "Ruta Nacional 9, Colectora Sur km 87,5 · Zárate · Buenos Aires", cat: "cat_transporte", punto: [-59.077632, -34.128394], lugar: "zarate" },
-  // Ubicadas con las capturas de Google Maps de la usuaria (14-nov): en el cruce de la RN 9 al sur del barrio San Cayetano (Campana),
-  // sobre el trazado de la ruta de OpenStreetMap
-  { alias: ["toyota boshoku", "boshoku"], nombre: "Toyota Boshoku Argentina", detalle: "RN 9 km 80, Camino a Capilla del Señor · Campana · Buenos Aires", cat: "cat_industria", punto: [-58.9998, -34.1683], lugar: "campana" },
-  { alias: ["padilla logistica", "padilla logística", "transportes padilla", "padilla"], nombre: "Padilla Logística", detalle: "RN 9 km 79,5 · Campana · Buenos Aires", cat: "cat_industria", punto: [-58.9967, -34.1670], lugar: "campana" },
   { alias: ["masterbus", "master bus"], nombre: "MasterBus · oficina", detalle: "Doctor Salk 243 · Campana · Buenos Aires", cat: "cat_transporte", punto: [-58.948364, -34.1869741], lugar: "campana" },
 ];
 // Barrios populares del RENABAP (6.467, con su localidad): «barrio San Cayetano zárate», «san cayetano, zarate». Con un lugar
@@ -234,13 +230,31 @@ async function consultaPhoton(texto, centro, limite, escala = "0.3") {
   const d = await fetch(`${PHOTON}?${params}`).then((r) => (r.ok ? r.json() : { features: [] }));
   return d.features.filter((f) => (f.properties.countrycode ?? "AR") === "AR");
 }
+// TomTom Search (plan gratuito, 2.500 búsquedas por día; clave en web/claves.js): empresas e industrias que OpenStreetMap no tiene.
+// Devuelve resultados con la misma forma que Photon para ordenarlos juntos
+async function consultaTomTom(texto, centro, cerca) {
+  const k = window.CLAVES?.tomtom;
+  if (!k || !texto) return [];
+  const p = new URLSearchParams({ key: k, countrySet: "AR", language: "es-419", limit: "6", typeahead: "false" });
+  if (centro) { p.set("lat", centro[1].toFixed(4)); p.set("lon", centro[0].toFixed(4)); if (cerca) p.set("radius", "40000"); }
+  const d = await fetch(`https://api.tomtom.com/search/2/search/${encodeURIComponent(texto)}.json?${p}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  return (d?.results ?? []).filter((r) => r.position).map((r) => {
+    const cat = (r.poi?.categories ?? []).join(" "), a = r.address ?? {};
+    const [key, value] = /industr|factor|manufact|compan|business|warehouse|logist|transport/i.test(cat) ? ["office", "company"]
+      : r.type === "Street" ? ["highway", "residential"] : r.type === "Geography" ? ["place", "town"] : ["tomtom", cat.split(" ")[0] ?? ""];
+    return { geometry: { coordinates: [r.position.lon, r.position.lat] }, properties: { name: r.poi?.name ?? a.freeformAddress, osm_key: key, osm_value: value,
+      street: a.streetName, housenumber: a.streetNumber, city: a.municipality, state: a.countrySubdivision, countrycode: "AR" } };
+  });
+}
 async function buscarPhoton(texto, { limite = 8 } = {}) {
   const { nombre, lugar } = separarLugar(texto);
   const zona = lugar ?? zonaDireccion() ?? estado.filtros.provincia;
   const centro = zona?.caja ? [(zona.caja[0] + zona.caja[2]) / 2, (zona.caja[1] + zona.caja[3]) / 2] : mapa ? mapa.getCenter().toArray() : null;
   // Con un lugar en el texto se busca también solo el nombre, cerca de ese lugar (una empresa de Zárate puede figurar en Campana)
-  const [todo, solo] = await Promise.all([consultaPhoton(texto, centro, limite * 2).catch(() => []),
-    lugar && nombre ? consultaPhoton(nombre, centro, limite * 2, "0.6").catch(() => []) : []]);
+  const [todo, solo, tt] = await Promise.all([consultaPhoton(texto, centro, limite * 2).catch(() => []),
+    lugar && nombre ? consultaPhoton(nombre, centro, limite * 2, "0.6").catch(() => []) : [],
+    consultaTomTom(lugar && nombre ? nombre : texto, centro, !!lugar).catch(() => [])]);
+  solo.unshift(...tt);   // TomTom primero: es la fuente con más empresas
   // Error de tipeo con letras repetidas («Maasterbus»): si nada se parece al nombre, se prueba sin las letras de más
   const simple = (x) => normalizar(x).replace(/(\p{L})\1+/gu, "$1");
   const sinRepetir = nombre && simple(nombre) !== normalizar(nombre) ? simple(nombre) : null;

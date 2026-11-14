@@ -1373,3 +1373,36 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
 .tabla-ninos tr.peor td { color: var(--critico); font-weight: 600; }
 .tabla-ninos .barrita { display: inline-block; width: 50px; height: 6px; margin-right: 6px; background: var(--superficie-3); vertical-align: middle; }
 .tabla-ninos .barrita i { display: block; height: 100%; background: var(--cian); }
+
+/* ---------- Revisión visual (14-nov): sin textos encimados ---------- */
+/* Los bloques de abajo del simulador no se achican (antes su contenido se salía sobre el bloque siguiente) */
+.sim-mas > *, .lec-mas > *, .lec-1 > * { flex-shrink: 0; }
+/* Cajetín: el texto completo, en dos líneas si hace falta (antes quedaba cortado con «…») */
+.cajetin dd { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+/* Rótulo y radio de la lectura: si no entran en una línea, el radio baja */
+.lec-fila-etq { flex-wrap: wrap; row-gap: 6px; }
+/* Evolución en el período: lugar para el último rótulo */
+.lec-arriba .tb-evol-pista { margin-right: 28px; }
+/* Leyenda del mapa: el cuadro usa todo su ancho */
+.refs .leyenda { width: 100%; }
+/* Créditos de la maqueta: el diagnóstico arriba de los créditos, sin pisarse */
+.sim-pie-maqueta { position: absolute; z-index: 3; right: 8px; bottom: 6px; max-width: 40%; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.sim-pie-maqueta .sim-credito-sat, .sim-pie-maqueta .sim-diag-link { position: static; max-width: none; }
+@media (max-width: 760px) {
+  .refs { width: 200px; }
+  .ley-lista div { grid-template-columns: 12px minmax(0, 1fr) auto; gap: 6px; font-size: 10.5px; }
+  .ley-lista b { font-size: 9px; }
+  /* Barras del escenario: la fuente del dato va en su propia línea */
+  .esc-pie { grid-template-columns: auto auto; justify-content: space-between; }
+  .esc-pie .esc-fuente { grid-column: 1 / -1; grid-row: 2; text-align: left; white-space: normal; }
+  .sim-pie-maqueta { max-width: 60%; }
+}
+@media (max-width: 760px) {
+  /* El tiempo en el lugar: números que entren en su columna */
+  .lec-arriba .salto { padding: 10px 6px 9px; }
+  .lec-arriba .salto b { font-size: 17px; }
+  .lec-arriba .salto > .ico { display: none; }
+  /* Maqueta: la ayuda y los créditos, cada uno en su mitad */
+  .sim-maqueta-ayuda { max-width: 44%; font-size: 0.66rem; }
+  .sim-pie-maqueta { max-width: 52%; }
+}

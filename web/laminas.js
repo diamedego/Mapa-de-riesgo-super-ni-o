@@ -179,11 +179,12 @@ function actualizarReticula() {
     // referencias) y paralelos desde 30 px del borde izquierdo (ahí, el rótulo)
     const refs = document.getElementById("refs"), limRot = refs && !refs.hidden ? refs.getBoundingClientRect().left - cont.getBoundingClientRect().left : W;
     const geo = (x, y) => mapa.unproject([x, y]).toArray();
+    let ultimoRot = -Infinity;   // un rótulo cada 44 px como mínimo (en el celular, 5° ocupan menos que el texto)
     for (let lon = -80; lon <= -30; lon += 5) {
       const x = mapa.project([lon, c.lat]).x;
       if (x < 30 || x > W - 4) continue;
       lineas.push([[lon, geo(x, 14)[1]], [lon, geo(x, H)[1]]]);
-      if (x < limRot) html += `<span class="ret-lon" style="left:${x.toFixed(1)}px">${-lon}° ${t("oeste_corto")}</span>`;
+      if (x < limRot && x - ultimoRot >= 44 && (ultimoRot = x)) html += `<span class="ret-lon" style="left:${x.toFixed(1)}px">${-lon}° ${t("oeste_corto")}</span>`;
     }
     for (let lat = -20; lat >= -60; lat -= 5) {
       const y = mapa.project([c.lng, lat]).y;
