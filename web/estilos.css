@@ -9,7 +9,7 @@
   /* Acento: petróleo. En el mapa la selección sigue en cian vivo con halo oscuro (se ve sobre cualquier color de riesgo) */
   --cian: #0c5a69; --cian-hover: #094552; --cian-tinta: #ffffff; --cian-vivo: #22d3ee; --cian-suave: rgba(12, 90, 105, 0.09); --halo: #062e3b;
   /* Marco de la lámina, cuadrícula del papel y velo de la hoja sobre la cuadrícula */
-  --marco: #16211f; --cuadricula: rgba(12, 90, 105, 0.07); --velo-hoja: rgba(251, 250, 246, 0.55); --ocre: #c48a2c; --pico-resto: rgba(12, 90, 105, 0.32); --pista-ref: #a9b0ab;
+  --marco: #16211f; --cuadricula: rgba(12, 90, 105, 0.07); --reticula: rgba(70, 80, 77, 0.45); --velo-hoja: rgba(251, 250, 246, 0.55); --ocre: #c48a2c; --pico-resto: rgba(12, 90, 105, 0.32); --pista-ref: #a9b0ab;
   /* Indicadores del encabezado (antes iban sobre una franja oscura): ahora sobre la hoja */
   --banda: var(--superficie); --banda-2: var(--superficie-2); --banda-tinta: var(--tinta-1); --banda-tinta-2: var(--tinta-2); --banda-borde: var(--borde-fuerte); --banda-kpi: transparent;
   /* Riesgo: 5 niveles, semáforo (muy bajo verde → muy alto rojo) */
@@ -44,7 +44,7 @@
     --tinta-1: #e9ece5; --tinta-2: #a8b3af; --tinta-3: #7a8682;
     --grilla: #1f2a28; --eje: #33413e; --borde: rgba(233, 236, 229, 0.13); --borde-fuerte: rgba(233, 236, 229, 0.28);
     --cian: #5cc6d6; --cian-hover: #86d8e4; --cian-tinta: #06262c; --cian-suave: rgba(92, 198, 214, 0.12); --halo: #00121a;
-    --marco: #aeb8b3; --cuadricula: rgba(92, 198, 214, 0.055); --velo-hoja: rgba(20, 28, 27, 0.6); --ocre: #d9a548; --pico-resto: rgba(92, 198, 214, 0.3); --pista-ref: #5d6763;
+    --marco: #aeb8b3; --cuadricula: rgba(92, 198, 214, 0.055); --reticula: rgba(174, 184, 179, 0.4); --velo-hoja: rgba(20, 28, 27, 0.6); --ocre: #d9a548; --pico-resto: rgba(92, 198, 214, 0.3); --pista-ref: #5d6763;
     --r1: #2fb366; --r2: #a6d96a; --r3: #fee08b; --r4: #fc8d59; --r5: #f04a3a;
     --sin-datos: #1f2b29; --borde-riesgo: #8d99a8; --borde-prov: rgba(255, 255, 255, 0.45);
     --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --torta-resto: #2a3634; --violeta: #a689d6;
@@ -63,7 +63,7 @@
   --tinta-1: #e9ece5; --tinta-2: #a8b3af; --tinta-3: #7a8682;
   --grilla: #1f2a28; --eje: #33413e; --borde: rgba(233, 236, 229, 0.13); --borde-fuerte: rgba(233, 236, 229, 0.28);
   --cian: #5cc6d6; --cian-hover: #86d8e4; --cian-tinta: #06262c; --cian-suave: rgba(92, 198, 214, 0.12); --halo: #00121a;
-  --marco: #aeb8b3; --cuadricula: rgba(92, 198, 214, 0.055); --velo-hoja: rgba(20, 28, 27, 0.6); --ocre: #d9a548; --pico-resto: rgba(92, 198, 214, 0.3); --pista-ref: #5d6763;
+  --marco: #aeb8b3; --cuadricula: rgba(92, 198, 214, 0.055); --reticula: rgba(174, 184, 179, 0.4); --velo-hoja: rgba(20, 28, 27, 0.6); --ocre: #d9a548; --pico-resto: rgba(92, 198, 214, 0.3); --pista-ref: #5d6763;
   --r1: #2fb366; --r2: #a6d96a; --r3: #fee08b; --r4: #fc8d59; --r5: #f04a3a;
   --sin-datos: #1f2b29; --borde-riesgo: #8d99a8; --borde-prov: rgba(255, 255, 255, 0.45);
   --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --torta-resto: #2a3634; --violeta: #a689d6;
@@ -1313,7 +1313,8 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
 .lec-radio input { height: 14px; }
 .lec-radio-ext { font-size: 9px; }
 /* Lámina 01: fuera de la Argentina, color de fondo liso (sin la cuadrícula del papel) */
-.hoja-mapa .mapa-marco { background: transparent; }
+.hoja-mapa .mapa-marco, .detalle canvas { background-color: var(--superficie);
+  background-image: linear-gradient(var(--cuadricula) 1px, transparent 1px), linear-gradient(90deg, var(--cuadricula) 1px, transparent 1px); background-size: 20px 20px; }
 /* El detalle no tapa la atribución del mapa (OpenFreeMap / OpenStreetMap), abajo a la derecha */
 .detalle { bottom: 38px; }
 .detalle header span { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

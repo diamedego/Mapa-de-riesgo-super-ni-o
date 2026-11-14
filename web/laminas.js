@@ -148,7 +148,7 @@ function iniciarPlano() {
   for (let lat = -20; lat >= -55; lat -= 5) lineas.push([[-78, lat], [-48, lat]]);
   const [o, s, e, n] = CAJA_A;
   mapa.addSource("reticula", { type: "geojson", data: { type: "FeatureCollection", features: lineas.map((c) => ({ type: "Feature", geometry: { type: "LineString", coordinates: c }, properties: {} })) } });
-  mapa.addLayer({ id: "reticula", type: "line", source: "reticula", paint: { "line-color": css("--cian"), "line-opacity": 0.3, "line-width": 0.6, "line-dasharray": [3, 3] } });
+  mapa.addLayer({ id: "reticula", type: "line", source: "reticula", paint: { "line-color": css("--reticula"), "line-width": 1, "line-dasharray": [4, 4] } });   // rayas de 4 px, igual que en el detalle
   mapa.addSource("caja-a", { type: "geojson", data: { type: "Feature", geometry: { type: "LineString", coordinates: [[o, n], [e, n], [e, s], [o, s], [o, n]] }, properties: {} } });
   mapa.addLayer({ id: "caja-a", type: "line", source: "caja-a", paint: { "line-color": css("--tinta-1"), "line-width": 1.2, "line-dasharray": [4, 2.5] } });
   mapa.on("move", actualizarReticula);
@@ -200,9 +200,9 @@ function dibujarDetalle() {
   const X = (lon) => ox + (lon - o) * k * esc, Y = (lat) => oy + (n - lat) * esc;
   const traza = (anillo) => { anillo.forEach(([lon, lat], i) => (i ? c.lineTo(X(lon), Y(lat)) : c.moveTo(X(lon), Y(lat)))); c.closePath(); };
   const poligonos = (g) => (g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : []);
-  c.fillStyle = css("--superficie"); c.fillRect(0, 0, r.width, r.height);
-  // Retícula cada 2°
-  c.strokeStyle = css("--cian"); c.globalAlpha = 0.3; c.lineWidth = 0.6; c.setLineDash([3, 3]);
+  c.clearRect(0, 0, r.width, r.height);   // fondo: la cuadrícula del papel (CSS), igual que el océano del mapa
+  // Retícula: mismo trazo que en el mapa grande
+  c.strokeStyle = css("--reticula"); c.lineWidth = 1; c.setLineDash([4, 4]);
   const paso = [5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01].find((p) => (e - o) / p >= 3) ?? 0.01;   // unas 4 líneas por lado
   for (let lon = Math.ceil(o / paso) * paso; lon <= e; lon += paso) { c.beginPath(); c.moveTo(X(lon), 0); c.lineTo(X(lon), r.height); c.stroke(); }
   for (let lat = Math.ceil(s / paso) * paso; lat <= n; lat += paso) { c.beginPath(); c.moveTo(0, Y(lat)); c.lineTo(r.width, Y(lat)); c.stroke(); }

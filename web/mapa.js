@@ -6,7 +6,7 @@ let mapa;
 // sin mapa base ni relieve externos; calles, agua y nombres salen de archivos propios.
 const SIN_TESELAS = window.SIN_TESELAS === true;
 const fuenteMapa = (negrita = false) => (SIN_TESELAS ? ["noto"] : [negrita ? "Noto Sans Bold" : "Noto Sans Regular"]);
-const CAPAS_RIESGO = ["sin-datos", "riesgo-mun", "riesgo-radio", "bordes-riesgo", "estaciones"];
+const CAPAS_RIESGO = ["sin-datos", "riesgo-mun", "riesgo-radio", "estaciones"];   // sin «bordes-riesgo»: como la lámina aprobada, sin línea entre zonas
 const CAPAS_TIEMPO = ["atenuar", "tiempo-raster", "ciudades-punto", "ciudades-texto"];
 
 function estiloBase() {
@@ -101,7 +101,7 @@ function agregarCapas() {
   if (SIN_TESELAS) agregarMapaBasePropio();
 
   mapa.addSource("bordes", { type: "geojson", data: D.bordes });
-  mapa.addLayer({ id: "bordes-riesgo", type: "line", source: "bordes", maxzoom: 10.2, filter: filtroBordes(meses),
+  mapa.addLayer({ id: "bordes-riesgo", type: "line", source: "bordes", maxzoom: 10.2, filter: filtroBordes(meses), layout: { visibility: "none" },
     paint: { "line-color": css("--borde-riesgo"), "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.35, 8, 0.8, 10, 1.1], "line-opacity": 0.85 } });
   mapa.addLayer({ id: "provincias-borde", type: "line", source: "provincias",
     paint: { "line-color": css("--borde-prov"), "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.7, 10, 1.4] } });
