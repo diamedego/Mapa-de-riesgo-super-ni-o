@@ -37,7 +37,9 @@ function irALamina(n) {
     if (abierto && clave && clave !== SIM.clave) cerrarSimulador();   // se eligió otro punto: se vuelve a simular
     if (document.getElementById("sim").hidden && (s?.tipo === "punto" || (s?.tipo === "zona" && s.lugar.nivel !== "prov"))) usarSimulador();
   }
-  if (n === 3) { estado.verAlertas = true; estado.verRios = true; estado.capa = "riesgo"; elegirModo("actual"); }
+  // La lámina 03 enciende las alertas del SMN; al salir vuelven a como estaban (por defecto, apagadas)
+  if (n === 3) { estado.alertasAntes ??= estado.verAlertas; estado.verAlertas = true; estado.verRios = true; estado.capa = "riesgo"; elegirModo("actual"); }
+  else if (estado.alertasAntes != null) { estado.verAlertas = estado.alertasAntes; estado.alertasAntes = null; actualizarTodo(); }
   if (n === 4) pintarValidacionLamina();
 }
 function salirSimulador() { cerrarSimulador(); mostrarLamina(1); }

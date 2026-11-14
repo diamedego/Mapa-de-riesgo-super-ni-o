@@ -26,6 +26,16 @@ function nombresEnEspanol() {
     }
   });
 }
+// Mapa base liso: océano del color del papel y los demás países de un solo tono (sin bosques, parques ni relieve pintado)
+function mapaBaseLiso() {
+  mapa.getStyle().layers.forEach((capa) => {
+    const sl = capa["source-layer"];
+    if (capa.type === "background") mapa.setPaintProperty(capa.id, "background-color", css("--mapa-tierra"));
+    else if (capa.type === "raster" || ["landcover", "landuse", "park", "aeroway"].includes(sl)) mapa.setLayoutProperty(capa.id, "visibility", "none");
+    else if (sl === "water" && capa.type === "fill") { mapa.setPaintProperty(capa.id, "fill-color", css("--mapa-fondo")); mapa.setPaintProperty(capa.id, "fill-pattern", undefined); }
+    else if (sl === "waterway" && capa.type === "line") mapa.setPaintProperty(capa.id, "line-color", css("--mapa-fondo"));
+  });
+}
 const primeraCapa = (tipos) => mapa.getStyle().layers.find((l) => tipos.includes(l.type))?.id;
 
 // ---------- Expresiones de riesgo para un conjunto de meses (el peor mes del período) ----------
@@ -49,7 +59,7 @@ function opacidadRiesgo(paradas) {
 // ---------- Capas ----------
 function agregarCapas() {
   nombresEnEspanol();
-  if (!SIN_TESELAS) agregarRelieve();
+  if (!SIN_TESELAS) { mapaBaseLiso(); agregarRelieve(); }
   const antesLineas = SIN_TESELAS ? undefined : primeraCapa(["line", "symbol"]);
   const antesNombres = SIN_TESELAS ? undefined : primeraCapa(["symbol"]);
   const meses = mesesVista();
@@ -165,13 +175,15 @@ function ajustarCurvas() {
   const h = [];
   for (let i = 0; i < 14; i++) for (let j = 0; j < 14; j++) {
     const v = mapa.queryTerrainElevation(mapa.unproject([((i + 0.5) / 14) * c.clientWidth, ((j + 0.5) / 14) * c.clientHeight]));
-    if (v != null && Number.isFinite(v)) h.push(v / EX_MEDIR);
+    if (v != null && Number.isFinite(v)) h.push(Math.max(0, v / EX_MEDIR));   // el fondo del mar no cuenta
   }
   if (h.length < 50) { clearTimeout(ajustarCurvas.t); ajustarCurvas.t = setTimeout(ajustarCurvas, 1000); return; }   // las teselas todavía no llegaron
   vistaCurvas = vista;
   h.sort((x, y) => x - y);
   const rango = h[Math.floor((h.length - 1) * 0.95)] - h[Math.floor((h.length - 1) * 0.05)];
-  const m = SEPARACIONES.find((v) => v >= rango / 8) ?? SEPARACIONES.at(-1);
+  // Con todo el país a la vista las líneas no pueden ir tan juntas (en la cordillera se empastan): cada 500 m como mínimo
+  const porRango = SEPARACIONES.find((v) => v >= rango / 8) ?? SEPARACIONES.at(-1);
+  const m = mapa.getZoom() < 5 && h.at(-1) - h[0] >= 1500 ? Math.max(porRango, 500) : porRango;
   if (m === separacionCurvas) return;
   separacionCurvas = m;
   mapa.getSource("curvas").setTiles([urlCurvas(m)]);
@@ -191,11 +203,11 @@ function agregarRelieve() {
       demCurvas.setupMaplibre(maplibregl);
     }
     mapa.addSource("curvas", { type: "vector", maxzoom: 15, tiles: [urlCurvas(separacionCurvas)] });
-    mapa.addLayer({ id: "curvas", type: "line", source: "curvas", "source-layer": "contours", minzoom: 9, layout: { visibility: visible },
-      paint: { "line-color": temaOscuro() ? "rgba(235,222,198,0.7)" : "rgba(70,50,30,0.7)", "line-width": ["match", ["get", "level"], 1, 1.2, 0.6] } }, antes);
-    mapa.addLayer({ id: "curvas-texto", type: "symbol", source: "curvas", "source-layer": "contours", minzoom: 9, filter: [">", ["get", "level"], 0],
-      layout: { visibility: visible, "symbol-placement": "line", "symbol-spacing": 420, "text-field": ["concat", ["number-format", ["get", "ele"], {}], " m"], "text-font": fuenteMapa(), "text-size": 11 },
-      paint: { "text-color": temaOscuro() ? "#e8dcc6" : "#5a4632", "text-halo-color": temaOscuro() ? "#000" : "#fff", "text-halo-width": 1.2 } });
+    mapa.addLayer({ id: "curvas", type: "line", source: "curvas", "source-layer": "contours", minzoom: 3, filter: [">", ["get", "ele"], 0], layout: { visibility: visible },
+      paint: { "line-color": temaOscuro() ? "rgba(235,222,198,0.8)" : "rgba(70,50,30,0.8)", "line-width": ["match", ["get", "level"], 1, 1.4, 0.7] } }, primeraCapa(["symbol"]));   // encima del riesgo, para que se vean también de lejos
+    mapa.addLayer({ id: "curvas-texto", type: "symbol", source: "curvas", "source-layer": "contours", minzoom: 3, filter: [">", ["get", "ele"], 0],
+      layout: { visibility: visible, "symbol-placement": "line", "symbol-spacing": 240, "text-max-angle": 180, "text-rotation-alignment": "viewport", "text-padding": 8, "symbol-sort-key": ["-", 1, ["get", "level"]], "text-field": ["concat", ["number-format", ["get", "ele"], {}], " m"], "text-font": fuenteMapa(), "text-size": 11 },
+      paint: { "text-color": temaOscuro() ? "#e8dcc6" : "#5a4632", "text-halo-color": temaOscuro() ? "#000" : "#fff", "text-halo-width": 1.6 } });
   }
   terrenoMapa();
   claveRelieve = "";

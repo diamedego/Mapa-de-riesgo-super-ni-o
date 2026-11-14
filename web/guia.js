@@ -43,7 +43,7 @@ function pintarIntro() {
   }
 }
 
-// ---------- Indicadores gráficos del encabezado: zonas de mayor riesgo y riesgo semana a semana ----------
+// ---------- Indicadores gráficos del encabezado: zonas de mayor riesgo ----------
 function nombreZonaSel() { const s = estado.sel; return !s ? "Argentina" : s.tipo === "zona" ? s.lugar.nombre : estado.porCmu.get(s.cmu)?.nam ?? t("punto_en_mapa"); }
 let pedidoZonas = 0;
 async function pintarGraficosHeader() {
@@ -75,15 +75,7 @@ async function pintarGraficosHeader() {
     `<li class="zr-fila" data-i="${i}" tabindex="0" data-tip="${escapar(`<b>${escapar(f.nombre)}</b><span>${escapar(f.sub ?? "")} · ${nombreNivel(f.r)} (${fmtRiesgo(f.r)}/10)</span>`)}">
       <span class="zr-nombre">${escapar(f.nombre)}<small>${escapar(f.sub ?? "")}</small></span>
       <span class="zr-pista"><span style="width:${limitar(f.r * 10, 2, 100)}%;background:${colorNivel(f.r)}"></span></span><b>${fmtRiesgo(f.r)}</b></li>`).join("")}</ol></div>`;
-  // 2) Riesgo semana a semana de la zona elegida (promedio ponderado por población)
-  const W = estado.datos.semanal;
-  let sem = "";
-  if (W?.semanas?.length > 1) {
-    const cmus = (s?.tipo === "zona" ? s.lugar.cmus : s?.cmu ? [s.cmu] : todosLosCmus()).filter((c) => W.cmu[c]);
-    const peso = cmus.map((c) => Math.max(1, Number(estado.porCmu.get(c)?.poblacion) || 1));
-    const ser = W.semanas.map((_, k) => { let a = 0, w = 0; cmus.forEach((c, i) => { const v = W.cmu[c][k]; if (v != null) { a += v * peso[i]; w += peso[i]; } }); return w ? a / w : null; });
-    sem = `<div class="kpi-g sem"><div class="kpi-g-cab"><b>${t("sem_t")}${infoIcono("sem_t", infoTexto("sem_t"))}</b><small>${escapar(t("sem_sub")(nombreZonaSel()))}</small></div>${ser.filter((v) => v != null).length > 1 ? lineaSemanal(W.semanas, ser) : `<p class="kpi-g-vacio">${t("sem_sin")}</p>`}</div>`;
-  }
+  const sem = "";
   cont.hidden = !barras && !sem;
   cont.className = `kpis-graficos${barras && sem ? " dos" : ""}`;
   cont.innerHTML = barras + sem;
@@ -96,25 +88,6 @@ async function pintarGraficosHeader() {
   });
   prepararInfo(cont);
   tipsEn(cont);
-}
-// Barras: una por semana, pintada con el color del nivel de riesgo; escala fija de 0 a 10 para poder comparar lugares
-function lineaSemanal(semanas, ser) {
-  const W = 420, H = 176, iz = 24, de = 6, arr = 18, aba = 22, n = semanas.length, banda = (W - iz - de) / n, grueso = Math.min(34, banda - 8);
-  const x = (k) => iz + banda * (k + 0.5), y = (v) => arr + (1 - v / 10) * (H - arr - aba);
-  const vs = ser.filter((v) => v != null), primero = ser.findIndex((v) => v != null), ult = ser.length - 1, cambio = ser[ult] - ser[primero];
-  const fecha = (iso) => fmtDia(iso, { day: "numeric", month: "short" });
-  const barras = ser.map((v, k) => {
-    if (v == null) return "";
-    const alto = Math.max(2, y(0) - y(v)), r = Math.min(4, grueso / 2, alto);
-    return `<path class="sem-barra${k === ult ? " actual" : ""}" style="fill:${colorNivel(v)}" data-tip="${escapar(`<b>${t("sem_semana")(fecha(semanas[k]))}</b><span>${t("riesgo")} ${fmtRiesgo(v)}/10 · ${nombreNivel(v)}</span>`)}"
-      d="M${x(k) - grueso / 2},${y(0)} v${-(alto - r)} q0,${-r} ${r},${-r} h${grueso - 2 * r} q${r},0 ${r},${r} v${alto - r} Z"/>
-      <text class="sem-valor" x="${x(k)}" y="${y(v) - 5}" text-anchor="middle">${fmtRiesgo(v)}</text>`;
-  }).join("");
-  const marcas = semanas.map((d, k) => `<text class="sem-eje" x="${x(k)}" y="${H - 6}" text-anchor="middle">${fecha(d)}</text>`).join("");
-  return `<svg class="sem-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${t("sem_t")}">
-    ${[0, 5, 10].map((m) => `<line class="sem-grilla" x1="${iz}" x2="${W - de}" y1="${y(m)}" y2="${y(m)}"/><text class="sem-eje" x="${iz - 5}" y="${y(m) + 3}" text-anchor="end">${m}</text>`).join("")}
-    ${barras}${marcas}</svg>
-    <p class="sem-pie"><b>${fmtRiesgo(ser[ult])}</b>/10 · ${nombreNivel(ser[ult])} · ${t("sem_desde")(fecha(semanas[primero]), cambio)}</p>`;
 }
 
 // ---------- Fuentes de datos por tipo (ventana) ----------

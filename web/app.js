@@ -7,7 +7,7 @@ const estado = {
   idioma: "es", capa: "riesgo", modo: "actual", sel: null, km: 2,
   iMesActual: 0, rangoMeses: [0, 0], rangoDias: [0, 6], paso3h: null,
   mesReproduciendo: null, diaReproduciendo: null, semanaReproduciendo: null, reproduciendo: null,
-  verRios: true, verAlertas: true, verReferencias: true, verHidro: true, verInundadas: false, verDensidad: false,
+  verRios: true, verAlertas: false, verReferencias: true, verHidro: true, verInundadas: false, verDensidad: false,
   verBarrios: false, verSuelo: false, verInfra: false, verRutas: false, riesgo3d: false, relieve3d: false, relieve: false, ranking: "r",
   datos: {}, riesgo: null, porCmu: new Map(), radios: [], cargasRadios: new Map(), tiempo: null,
 };
@@ -223,7 +223,7 @@ function listaReproduccion() {
 }
 // Refresca solo el bloque de la línea de tiempo (mientras corre ▶, sin redibujar todo el panel)
 function actualizarEvolucion() {
-  const viejo = document.querySelector("#tablero .tb-evol");
+  const viejo = document.querySelector(".lec-1 .tb-evol");
   if (!viejo) return;
   const tmp = document.createElement("div"); tmp.innerHTML = bloqueEvolucion();
   const nuevo = tmp.firstElementChild;
@@ -395,12 +395,11 @@ function pintarLeyenda() {
   const interruptores = claves ? `<p class="ley-claves">${claves}</p>` : "";
   let cuerpo;
   if (capa === "riesgo") {
-    // Como la lámina aprobada: una fila por nivel con su rango, y las estaciones de río con su cantidad
-    const est = estado.datos.estaciones.features.map((f) => f.properties.estado), cuenta = (e) => est.filter((x) => x === e).length;
+    // Como la lámina aprobada: una fila por nivel con su rango, y las estaciones de río por estado
     const fila = (muestra, nombre, dato) => `<div>${muestra}<span>${nombre}</span><b>${dato}</b></div>`;
     cuerpo = `<div class="ley-lista">${[1, 2, 3, 4, 5].map((n) => fila(`<i style="background:var(--r${n})"></i>`, t("niveles")[n - 1], ["0 – 3", "3 – 4,5", "4,5 – 6", "6 – 7", "7 – 10"][n - 1])).join("")}</div>
       ${estado.verHidro ? `<div class="ley-lista">${estado.modo === "actual"
-        ? fila('<i class="pto" style="background:var(--critico)"></i>', t("ley_rio_ev"), cuenta("evacuacion")) + fila('<i class="pto" style="background:var(--serio)"></i>', t("ley_rio_al"), cuenta("alerta")) + fila('<i class="pto" style="background:var(--rio-normal)"></i>', t("ley_rio_no"), est.filter((x) => x && x !== "evacuacion" && x !== "alerta").length)
+        ? fila('<i class="pto" style="background:var(--critico)"></i>', t("ley_rio_ev"), "") + fila('<i class="pto" style="background:var(--serio)"></i>', t("ley_rio_al"), "") + fila('<i class="pto" style="background:var(--rio-normal)"></i>', t("ley_rio_no"), "")
         : fila('<i class="pto" style="background:var(--serio)"></i>', t("ley_rios_prob"), "")}</div>` : ""}
       <div class="ley-km" id="ley-km"><i></i><span></span></div>`;
   } else if (estado.campo) {
@@ -584,7 +583,7 @@ async function iniciar() {
   const v = q.get("vista")?.split(",").map(Number);
   const vistaInicial = v?.length === 3 ? { center: [v[0], v[1]], zoom: v[2], pitch: 0, bearing: 0 } : VISTA_PAIS;
   mapa = new maplibregl.Map({ container: "mapa", style: estiloBase(), ...vistaInicial, maxPitch: 75, attributionControl: { compact: true } });
-  mapa.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+  mapa.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-left");
   mapa.on("style.load", () => { if (!mapa.getSource("municipios")) agregarCapas(); });
 
   document.querySelectorAll("#modo [data-modo]").forEach((b) => { b.onclick = () => elegirModo(b.dataset.modo); });

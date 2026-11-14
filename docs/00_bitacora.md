@@ -663,3 +663,10 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 
 ### 13-nov — Escala de riesgo como indicador de aguja
 - En la lámina 01 la regla de 0 a 10 pasó a ser un medidor semicircular: un tramo por nivel (cortes 3, 4,5, 6 y 7), aguja en el valor de hoy y el valor con su nivel debajo.
+
+### 13-nov — Lámina 01: orden del detalle, mapa base liso, zoom, alertas y curvas de nivel
+- Se quitó «Riesgo semana a semana». «Evolución en el período» y «El tiempo en el lugar» pasan arriba del detalle (`#lec-arriba`), rediseñados con el lenguaje de la lámina.
+- Mapa base liso (`mapaBaseLiso` en `mapa.js`): océano color papel, demás países de un solo tono, sin bosques ni parques.
+- Leyenda de ríos sin cantidades. Botones de zoom abajo a la izquierda (el cuadro de referencias los tapaba).
+- Alertas del SMN apagadas por defecto; la lámina 03 las enciende y al salir vuelven a como estaban.
+- Curvas de nivel: se ven desde zoom 3, van encima del riesgo, sin fondo marino, con la altura en metros escrita derecha sobre las líneas (antes el ángulo máximo descartaba casi todas las etiquetas) y 500 m de separación mínima con el país entero a la vista.

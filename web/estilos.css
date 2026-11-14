@@ -25,7 +25,7 @@
   --lluvia-4: #e8a33c; --lluvia-5: #d6453a;
   /* Mapa y maqueta 3D: sin cambios */
   --suelo-corte: #d9c9a8; --suelo-borde: #8a6f48; --maq-1: #f4f6f8; --maq-2: #d9dee4; --maq-3: #c9cfd6;
-  --mapa-fondo: #e7ecf0; --agua: #a9cfe9; --agua-texto: #2f6690; --calle: #ffffff; --velo: #ffffff;
+  --mapa-fondo: #f6f3ec; --mapa-tierra: #e4dfd1; --agua: #a9cfe9; --agua-texto: #2f6690; --calle: #ffffff; --velo: #ffffff;
   --mapa-texto: #0e1726; --mapa-halo-texto: rgba(255, 255, 255, 0.95);
   --mini-tierra: #dfe5eb; --mini-borde: rgba(14, 23, 38, 0.32); --tinta-calor: #1d2533;
   /* Sin sombras blandas: filetes; lo que flota (sugerencias, carteles) lleva una sombra dura desplazada */
@@ -51,7 +51,7 @@
     --ok: #3ccf6e; --atencion: #fab219; --critico: #ff6b6b; --rio-normal: #58a6e6;
     --ok-fondo: rgba(60, 207, 110, 0.12); --atencion-fondo: rgba(250, 178, 25, 0.14); --critico-fondo: rgba(255, 107, 107, 0.14);
     --suelo-corte: #5b4a33; --suelo-borde: #b39368; --maq-1: #2a3540; --maq-2: #172029; --maq-3: #0e151c;
-    --mapa-fondo: #0b1219; --agua: #16324a; --agua-texto: #8ab8de; --calle: #4a5765; --velo: #000000;
+    --mapa-fondo: #101716; --mapa-tierra: #1f2b29; --agua: #16324a; --agua-texto: #8ab8de; --calle: #4a5765; --velo: #000000;
     --mapa-texto: #f1f6fb; --mapa-halo-texto: rgba(5, 11, 16, 0.92);
     --mini-tierra: #172331; --mini-borde: rgba(255, 255, 255, 0.32); --tinta-calor: #0b1118;
     --sombra-2: 5px 5px 0 rgba(0, 0, 0, 0.5);
@@ -70,7 +70,7 @@
   --ok: #3ccf6e; --atencion: #fab219; --critico: #ff6b6b; --rio-normal: #58a6e6;
   --ok-fondo: rgba(60, 207, 110, 0.12); --atencion-fondo: rgba(250, 178, 25, 0.14); --critico-fondo: rgba(255, 107, 107, 0.14);
   --suelo-corte: #5b4a33; --suelo-borde: #b39368; --maq-1: #2a3540; --maq-2: #172029; --maq-3: #0e151c;
-  --mapa-fondo: #0b1219; --agua: #16324a; --agua-texto: #8ab8de; --calle: #4a5765; --velo: #000000;
+  --mapa-fondo: #101716; --mapa-tierra: #1f2b29; --agua: #16324a; --agua-texto: #8ab8de; --calle: #4a5765; --velo: #000000;
   --mapa-texto: #f1f6fb; --mapa-halo-texto: rgba(5, 11, 16, 0.92);
   --mini-tierra: #172331; --mini-borde: rgba(255, 255, 255, 0.32); --tinta-calor: #0b1118;
   --sombra-2: 5px 5px 0 rgba(0, 0, 0, 0.5);
@@ -1254,3 +1254,31 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
 }
 @media (max-width: 760px) { .sim-lec .titular { font-size: 24px; } .sim-lec .lec-pie { grid-template-columns: 1fr; } }
 .sim-lec .kpi-f::first-letter { text-transform: uppercase; }
+
+/* ---------- Arriba del detalle: evolución en el período y el tiempo en el lugar, con el lenguaje de la lámina ---------- */
+.lec-arriba { display: flex; flex-direction: column; gap: 20px; margin-top: 22px; padding-top: 16px; border-top: 1.5px solid var(--marco); }
+.lec-arriba:empty { display: none; }
+.lec-arriba .tb-evol { align-items: flex-end; gap: 14px; margin: 0; padding: 0; background: none; }
+.lec-arriba .tb-evol .lt-play { width: 32px; height: 32px; margin-bottom: 14px; border-radius: 0; border: 1px solid var(--cian); background: none; color: var(--cian); }
+.lec-arriba .tb-evol .lt-play:hover { background: var(--cian-suave); }
+.lec-arriba .tb-evol .lt-play .ico { width: 13px; height: 13px; }
+.lec-arriba .tb-evol-cuerpo { gap: 0; }
+.lec-arriba .tb-evol-cab, .lec-arriba .tb-bloque > h3 { margin: 0; font: 600 12px/1.3 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-1); }
+.lec-arriba .tb-evol-pista { height: 2px; margin: 34px 18px 26px 6px; background: var(--borde-fuerte); }
+.lec-arriba .tb-evol-relleno { top: -1px; bottom: -1px; }
+.lec-arriba .tb-evol-sem { top: -3px; width: 1px; height: 8px; margin-left: 0; }
+.lec-arriba .tb-evol-hito { top: -5px; }
+.lec-arriba .tb-evol-hito i { width: 10px; height: 10px; border-radius: 0; border: 1.5px solid var(--tinta-1); background: var(--superficie); }
+.lec-arriba .tb-evol-hito small { margin-top: 5px; font: 400 10px var(--f-mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--tinta-3); }
+.lec-arriba .tb-evol-cartel { bottom: 12px; font: 500 10px var(--f-mono); box-shadow: none; }
+.lec-arriba .tb-bloque { margin: 0; }
+.lec-arriba .tb-saltos { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); grid-template-columns: none; gap: 0; margin-top: 10px; border-top: 1px solid var(--borde-fuerte); border-bottom: 1px solid var(--borde-fuerte); }
+.lec-arriba .salto { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; padding: 12px 12px 11px; border: 0; border-radius: 0; background: none; font-size: 11.5px; color: var(--tinta-3); }
+.lec-arriba .salto:first-child { padding-left: 0; }
+.lec-arriba .salto + .salto { border-left: 1px solid var(--borde-fuerte); }
+.lec-arriba .salto:hover { background: var(--cian-suave); }
+.lec-arriba .salto > .ico { order: 2; box-sizing: content-box; width: 14px; height: 14px; padding: 4px; border: 1px solid var(--cian); color: var(--cian); }
+.lec-arriba .salto span { gap: 4px; line-height: 1.3; }
+.lec-arriba .salto b { font: 500 22px/1.05 var(--f-mono); letter-spacing: -0.04em; color: var(--tinta-1); white-space: nowrap; }
+/* Los botones de zoom van abajo a la izquierda, donde no los tapan las referencias ni las pestañas */
+.mapa-marco .maplibregl-ctrl-bottom-left { left: 6px; bottom: 6px; }

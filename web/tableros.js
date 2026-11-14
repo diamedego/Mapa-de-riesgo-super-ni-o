@@ -355,7 +355,7 @@ function enlacesCapas(actual) {
   const tmx = Math.max(...S.tmax.slice(h0, h6 + 1).filter((v) => v != null));
   const items = [["lluvia", `${fmt(r7)} mm`, t("prox_7_dias")], ["viento", `${fmt(raf)} km/h`, t("rafaga_max_7")], ["temp", `${fmt(tmx)} °C`, t("max_7_dias")]]
     .filter(([c]) => c !== actual);
-  return `<section class="tb-bloque"><h3>${tit("tiempo_en_lugar")}</h3><div class="tb-saltos">${items.map(([c, v, e]) =>
+  return `<section class="tb-bloque tb-tiempo-lugar"><h3>${tit("tiempo_en_lugar")}</h3><div class="tb-saltos">${items.map(([c, v, e]) =>
     `<button class="salto" data-capa="${c}">${icono(c)}<span><b>${v}</b>${e}</span></button>`).join("")}</div></section>`;
 }
 
@@ -752,6 +752,9 @@ async function pintarTablero() {
     if (l) elegirLugar("localidad", l);
   });
   cont.querySelectorAll(".salto").forEach((b) => { b.onclick = () => elegirCapa(b.dataset.capa); });
+  // La evolución en el período y el tiempo en el lugar van arriba de todo, antes del resto del detalle
+  const arriba = document.getElementById("lec-arriba");
+  if (arriba) arriba.replaceChildren(...[cont.querySelector(".tb-evol"), cont.querySelector(".tb-tiempo-lugar")].filter(Boolean));
 }
 
 // ---------- Análisis debajo del mapa: 3 gráficos en una fila que siguen los filtros (como en Power BI) ----------
