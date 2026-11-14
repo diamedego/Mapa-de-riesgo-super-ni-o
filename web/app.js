@@ -113,13 +113,12 @@ function pintarRadioLectura(s) {
   if (!s) return;
   const txt = (km) => `${fmt(km, km % 1 ? 1 : 0)} km`;
   if (!cont.querySelector("input")) {
-    cont.innerHTML = `<div class="lec-radio-cab"><span class="etq">${t("radio_km")}</span><b id="lec-radio-v"></b></div>
-      <input type="range" min="0.5" max="20" step="0.5" aria-label="${t("radio_km")}"><div class="lec-radio-ext"><span>0,5 km</span><span>20 km</span></div>`;
+    cont.innerHTML = `<span class="etq">${t("radio_corto")}</span><input type="range" min="0.5" max="20" step="0.5" aria-label="${t("radio_km")}"><b id="lec-radio-v"></b>`;
     const inp = cont.querySelector("input");
     inp.oninput = () => { document.getElementById("lec-radio-v").textContent = txt(+inp.value); };
     inp.onchange = () => { cambiarRadio(Number(inp.value)); if (!estado.sel) pintarRadioLectura({ km: estado.km }); };
   }
-  cont.querySelector(".etq").textContent = t("radio_km");
+  cont.querySelector(".etq").textContent = t("radio_corto");
   const inp = cont.querySelector("input");
   if (document.activeElement !== inp) inp.value = String(s.km);
   document.getElementById("lec-radio-v").textContent = txt(+inp.value);

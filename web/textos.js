@@ -174,7 +174,7 @@ const TEXTOS = {
     u_millones: "M", u_mil: "mil",
     // Tablero
     sel_pais: "Todo el país", sel_zona: "Zona elegida", sel_circulo: (k) => `Círculo de ${k} km`, sub_pais: "2.282 gobiernos locales",
-    provincia: "Provincia", punto_en_mapa: "Punto en el mapa", punto_en: (m) => `Punto en ${m}`, radio_km: "Radio del círculo",
+    provincia: "Provincia", punto_en_mapa: "Punto en el mapa", punto_en: (m) => `Punto en ${m}`, radio_km: "Radio del círculo", radio_corto: "Radio",
     quitar_seleccion: "Quitar la selección", ver_municipio: (m) => `Ver todo ${m}`,
     que_hacer: "Qué hacer", nota_oficial: "Orientativo, no es un producto oficial. Ante una emergencia, seguí a Defensa Civil, el SMN y el INA.",
     riesgo: "Riesgo", riesgo_inundacion: "Riesgo de inundación", peor_mes_corto: "peor mes", el_area_cap: "El área",
@@ -602,7 +602,7 @@ const TEXTOS = {
     meses_largos: { "01": "January", "02": "February", "03": "March", "04": "April", "05": "May", "06": "June", "07": "July", "08": "August", "09": "September", "10": "October", "11": "November", "12": "December" },
     u_millones: "M", u_mil: "k",
     sel_pais: "Whole country", sel_zona: "Selected area", sel_circulo: (k) => `${k} km circle`, sub_pais: "2,282 local governments",
-    provincia: "Province", punto_en_mapa: "Point on the map", punto_en: (m) => `Point in ${m}`, radio_km: "Circle radius",
+    provincia: "Province", punto_en_mapa: "Point on the map", punto_en: (m) => `Point in ${m}`, radio_km: "Circle radius", radio_corto: "Radius",
     quitar_seleccion: "Clear selection", ver_municipio: (m) => `See all of ${m}`,
     que_hacer: "What to do", nota_oficial: "Guidance only, not an official product. In an emergency, follow Civil Defense, SMN and INA.",
     riesgo: "Risk", riesgo_inundacion: "Flood risk", peor_mes_corto: "worst month", el_area_cap: "The area",

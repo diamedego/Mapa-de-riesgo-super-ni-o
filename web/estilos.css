@@ -1319,3 +1319,15 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
 .detalle header span { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Radio al lado de la escala de riesgo (en lugar del camino al pico) */
 .lec-pie .lec-radio { align-self: start; margin: 0; max-width: none; }
+/* Cabeza de la lectura: rótulo a la izquierda y radio compacto a la derecha, en la misma línea; escala y bajada lado a lado */
+.lec-fila-etq { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 22px; }
+.lec-fila-etq .lec-radio, .lec-fila-etq .lec-radio:not([hidden]) { display: flex; align-items: center; gap: 8px; width: auto; max-width: none; margin: 0; padding: 0; border: 0; }
+.lec-fila-etq .lec-radio .etq { font: 500 10px/1 var(--f-mono); letter-spacing: 0.09em; text-transform: uppercase; color: var(--tinta-3); white-space: nowrap; }
+.lec-fila-etq .lec-radio input { width: 110px; height: 14px; margin: 0; accent-color: var(--cian); }
+.lec-fila-etq .lec-radio b { min-width: 44px; font: 500 12px var(--f-mono); color: var(--tinta-1); text-align: right; white-space: nowrap; }
+.lec-fila-etq .lec-radio[hidden] { display: none; }
+.lec-pie { align-items: center; }
+.lec-pie > .bajada { margin: 0; font-size: 14px; line-height: 1.5; color: var(--tinta-2); }
+@media (max-width: 760px) { .lec-fila-etq { flex-wrap: wrap; } }
+.lec-fila-etq > .etq { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.lec-fila-etq .lec-radio input { width: 90px; }
