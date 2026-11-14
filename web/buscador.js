@@ -167,6 +167,9 @@ function separarLugar(texto) {
   const partes = texto.split(",").map((x) => x.trim()).filter(Boolean);
   const exacto = (q) => lugarExacto("localidad", q) ?? lugarExacto("partido", q);
   if (partes.length > 1) { const l = exacto(partes.at(-1)); if (l) return { nombre: partes.slice(0, -1).join(" "), lugar: l }; }
+  // «Masterbus en Zárate», «… de Zárate», «… cerca de Zárate»: el conector no es parte del nombre
+  const m = texto.match(/^(.+?)\s+(?:en|de|del|cerca de)\s+(.+)$/i);
+  if (m) { const l = exacto(m[2]); if (l) return { nombre: m[1], lugar: l }; }
   const pal = texto.replace(/,/g, " ").split(/\s+/).filter(Boolean);
   for (const n of [2, 1]) if (pal.length > n) { const l = exacto(pal.slice(-n).join(" ")); if (l) return { nombre: pal.slice(0, -n).join(" "), lugar: l }; }
   return { nombre: partes[0] ?? texto, lugar: null };
@@ -184,8 +187,13 @@ async function buscarPhoton(texto, { limite = 8 } = {}) {
   // Con un lugar en el texto se busca también solo el nombre, cerca de ese lugar (una empresa de Zárate puede figurar en Campana)
   const [todo, solo] = await Promise.all([consultaPhoton(texto, centro, limite * 2).catch(() => []),
     lugar && nombre ? consultaPhoton(nombre, centro, limite * 2, "0.6").catch(() => []) : []]);
+  // Error de tipeo con letras repetidas («Maasterbus»): si nada se parece al nombre, se prueba sin las letras de más
+  const simple = (x) => normalizar(x).replace(/(\p{L})\1+/gu, "$1");
+  const sinRepetir = nombre && simple(nombre) !== normalizar(nombre) ? simple(nombre) : null;
+  const parece = (f) => { const x = simple(f.properties.name ?? "").replace(/[\s\-.]/g, ""), q = simple(nombre ?? "").replace(/[\s\-.]/g, ""); return q && x.includes(q); };
+  if (sinRepetir && ![...todo, ...solo].some(parece)) solo.push(...await consultaPhoton(sinRepetir, centro, limite * 2, lugar ? "0.6" : "0.3").catch(() => []));
   // Si Photon no responde o no encuentra nada, Nominatim cerca del lugar (también con las palabras juntas: "Master Bus" → "MasterBus")
-  if (!todo.length && !solo.length && lugar && nombre) for (const v of [...new Set([nombre, nombre.replace(/\s+/g, "")])]) {
+  if (![...todo, ...solo].some(parece) && lugar && nombre) for (const v of [...new Set([nombre, nombre.replace(/\s+/g, ""), sinRepetir].filter(Boolean))]) {
     const m = 0.45, q = new URLSearchParams({ q: v, format: "geojson", countrycodes: "ar", limit: "5", addressdetails: "1", "accept-language": "es",
       viewbox: `${centro[0] - m},${centro[1] + m},${centro[0] + m},${centro[1] - m}`, bounded: "1" });
     const r = await fetch(`https://nominatim.openstreetmap.org/search?${q}`).then((x) => (x.ok ? x.json() : { features: [] })).catch(() => ({ features: [] }));
@@ -196,7 +204,7 @@ async function buscarPhoton(texto, { limite = 8 } = {}) {
   const cerca = (f) => !lugar || distanciaKm(centro, f.geometry.coordinates) <= 60;
   const fichas = normalizar(nombre).split(/[\s\-.,]+/).filter((f) => f.length > 1), junto = fichas.join("");
   // Primero lo que coincide con el nombre buscado (no el lugar que lo acompaña), después lo más cercano
-  const parecido = (n) => { const x = normalizar(n).replace(/[\s\-.]/g, ""); return !fichas.length ? 0 : x.includes(junto) ? 1 : fichas.filter((f) => x.includes(f)).length / fichas.length; };
+  const parecido = (n) => { const x = simple(n).replace(/[\s\-.]/g, ""), j = simple(junto); return !fichas.length ? 0 : x.includes(j) ? 1 : fichas.filter((f) => x.includes(simple(f))).length / fichas.length; };
   const vistos = new Set();
   return [...solo.filter(cerca), ...todo].map((f) => {
     const p = f.properties, cat = categoriaOSM(p);

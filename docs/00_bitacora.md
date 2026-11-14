@@ -692,3 +692,4 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 
 ### 14-nov — Radio del círculo arriba de la lectura
 - El control del radio del círculo pasó del tablero a lo primero de la lectura de la lámina 01 (solo con un punto elegido); al cambiarlo se recalculan los indicadores del círculo.
+- Buscador: «Maasterbus en zarate» no encontraba nada. Ahora separa el lugar también después de «en», «de», «del» o «cerca de», y si ningún resultado se parece al nombre prueba sin las letras repetidas por error de tipeo (también en el respaldo con Nominatim).
