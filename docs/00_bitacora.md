@@ -689,3 +689,6 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 
 ### 14-nov — Indicadores del punto elegido
 - Con un punto elegido, la lectura de la lámina 01 se calcula con los radios censales dentro del círculo (antes mostraba el municipio entero: en Zárate daba 0 personas en riesgo alto aunque un radio del círculo tenía 6,2). Titular = riesgo de los radios ponderado por población; «Personas en riesgo alto» = población de los radios con 6 o más; «Radios en riesgo alto» reemplaza a «Municipios»; ríos = estaciones a ≤ 15 km (o dentro del círculo); alertas = las que cubren el punto; camino al pico y mes pico = estaciones cercanas o, sin ellas, el riesgo del lugar mes a mes.
+
+### 14-nov — Radio del círculo arriba de la lectura
+- El control del radio del círculo pasó del tablero a lo primero de la lectura de la lámina 01 (solo con un punto elegido); al cambiarlo se recalculan los indicadores del círculo.

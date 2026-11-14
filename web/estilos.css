@@ -1298,3 +1298,11 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
 .esc-botones .btn-texto { font: 500 11px var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--cian); }
 .esc-nota { margin: 4px 0 0; font-size: 11px; line-height: 1.4; color: var(--tinta-3); }
 .esc + .ctrls { margin-top: 10px; }
+
+/* Radio del círculo, arriba de todo de la lectura */
+.lec-radio { display: grid; gap: 4px; padding: 0 0 12px; margin-bottom: 4px; border-bottom: 1.5px solid var(--marco); }
+.lec-radio-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.lec-radio-cab .etq { font: 500 10.5px/1.2 var(--f-mono); letter-spacing: 0.09em; text-transform: uppercase; color: var(--tinta-3); }
+.lec-radio-cab b { font: 500 15px var(--f-mono); color: var(--tinta-1); }
+.lec-radio input { width: 100%; margin: 0; accent-color: var(--cian); }
+.lec-radio-ext { display: flex; justify-content: space-between; font: 400 10px var(--f-mono); color: var(--tinta-3); }
