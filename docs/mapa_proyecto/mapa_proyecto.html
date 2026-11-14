@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Mapa del proyecto · estructura actual</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+@page { size: A4; margin: 16mm 15mm 16mm 15mm;
+  @bottom-right { content: "Mapa del proyecto · v1 · 14-nov-2026 · pág. " counter(page); font: 500 7pt "JetBrains Mono", monospace; color: #6b7570; letter-spacing: 0.04em; } }
+:root { --tinta: #18201f; --tinta-2: #46504d; --tinta-3: #6b7570; --linea: #cfd4cf; --linea-2: #9aa39e; --papel: #fbfaf6; --papel-2: #f3f0e7;
+  --pet: #0c5a69; --pet-2: #e3eef0; --ocre: #c48a2c; --ocre-2: #f7ecd8; --rojo: #b8402f; --rojo-2: #f6e3df; --verde: #2f7a4a; --verde-2: #e2efe6; --violeta: #6c5a99; --violeta-2: #ebe7f3; }
+* { box-sizing: border-box; }
+html { font: 400 9.3pt/1.45 "Instrument Sans", "Helvetica Neue", Arial, sans-serif; color: var(--tinta); background: #fff; }
+body { margin: 0; }
+p { margin: 0 0 5pt; }
+b { font-weight: 600; }
+code, .mono { font-family: "JetBrains Mono", monospace; font-size: 0.86em; }
+h1 { margin: 0; font: 600 20pt/1.1 "Instrument Sans", sans-serif; letter-spacing: -0.01em; }
+h2 { break-before: page; margin: 0 0 4mm; padding-bottom: 2.5mm; border-bottom: 1.5pt solid var(--tinta); font: 600 14pt/1.2 "Instrument Sans", sans-serif; display: flex; gap: 4mm; align-items: baseline; }
+h2 .n { font: 500 9pt "JetBrains Mono", monospace; color: var(--pet); letter-spacing: 0.08em; }
+h2.sigue { break-before: auto; margin-top: 8mm; }
+h2, h3, .capa-tit { break-after: avoid; }
+h3 { margin: 5mm 0 2mm; font: 600 10.5pt/1.25 "Instrument Sans", sans-serif; break-after: avoid; }
+.etq { font: 500 7pt/1.3 "JetBrains Mono", monospace; letter-spacing: 0.1em; text-transform: uppercase; color: var(--tinta-3); }
+.bajada { font-size: 10pt; color: var(--tinta-2); max-width: 165mm; }
+.nota { font-size: 8.2pt; color: var(--tinta-3); }
+
+/* Portada / cajetín */
+.cab { display: grid; grid-template-columns: 1fr auto; gap: 6mm; align-items: end; padding-bottom: 4mm; border-bottom: 1.5pt solid var(--tinta); }
+.cajetin { display: grid; grid-template-columns: auto auto; border: 1pt solid var(--tinta); font: 400 7.5pt "JetBrains Mono", monospace; }
+.cajetin div { padding: 1.4mm 2.6mm; border-bottom: 0.5pt solid var(--linea-2); }
+.cajetin div:nth-child(odd) { border-right: 0.5pt solid var(--linea-2); color: var(--tinta-3); text-transform: uppercase; letter-spacing: 0.08em; }
+.cajetin div:nth-last-child(-n+2) { border-bottom: 0; }
+
+/* Índice */
+.indice { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 8mm; margin: 5mm 0; padding: 0; list-style: none; counter-reset: c; }
+.indice li { display: flex; gap: 3mm; padding: 1.6mm 0; border-bottom: 0.5pt solid var(--linea); }
+.indice li span { font: 500 8pt "JetBrains Mono", monospace; color: var(--pet); width: 7mm; }
+
+/* Diagramas de flujo */
+.flujo { display: grid; gap: 2.5mm; margin: 4mm 0; }
+.fila { display: grid; gap: 2.5mm; }
+.caja { border: 0.9pt solid var(--tinta); background: #fff; padding: 2.2mm 2.6mm; break-inside: avoid; }
+.caja h4 { margin: 0 0 1.2mm; font: 600 8.8pt/1.25 "Instrument Sans", sans-serif; }
+.caja p, .caja li { font-size: 7.9pt; line-height: 1.38; color: var(--tinta-2); margin: 0; }
+.caja ul { margin: 0; padding-left: 3.6mm; }
+.caja .etq { display: block; margin-bottom: 1mm; }
+.caja.pet { border-color: var(--pet); background: var(--pet-2); } .caja.ocre { border-color: var(--ocre); background: var(--ocre-2); }
+.caja.verde { border-color: var(--verde); background: var(--verde-2); } .caja.violeta { border-color: var(--violeta); background: var(--violeta-2); }
+.caja.rojo { border-color: var(--rojo); background: var(--rojo-2); } .caja.gris { border-color: var(--linea-2); background: var(--papel-2); }
+.caja.punteada { border-style: dashed; }
+.flecha { text-align: center; font: 500 8pt "JetBrains Mono", monospace; color: var(--tinta-3); line-height: 1; }
+.flecha::before { content: "▼"; display: block; color: var(--tinta); font-size: 9pt; margin-bottom: 0.6mm; }
+.capa-tit { display: flex; align-items: center; gap: 2.5mm; margin-top: 1mm; }
+.capa-tit b { font: 600 7.4pt "JetBrains Mono", monospace; letter-spacing: 0.1em; text-transform: uppercase; }
+.capa-tit i { flex: 1; height: 0.5pt; background: var(--linea-2); }
+
+/* Ecuaciones */
+.ec { margin: 3mm 0; padding: 3mm 4mm; border-left: 2.2pt solid var(--pet); background: var(--papel); break-inside: avoid; }
+.ec .f { font: 500 10.2pt/1.6 "JetBrains Mono", monospace; color: var(--tinta); white-space: pre-wrap; }
+.ec .f em { font-style: normal; color: var(--pet); font-weight: 600; }
+.ec .d { margin-top: 1.6mm; font-size: 8.2pt; color: var(--tinta-2); }
+.ec .d dt { float: left; clear: left; width: 30mm; font: 500 7.8pt "JetBrains Mono", monospace; color: var(--tinta); }
+.ec .d dd { margin: 0 0 0.8mm 31mm; }
+.ec.ocre { border-color: var(--ocre); } .ec.ocre .f em { color: #8a5d14; }
+
+/* Árbol del índice */
+.arbol { display: grid; grid-template-columns: 1fr; gap: 0; margin: 4mm 0; }
+.raiz { justify-self: center; text-align: center; padding: 2.5mm 6mm; border: 1.2pt solid var(--tinta); background: var(--tinta); color: #fff; }
+.raiz b { font: 600 11pt "Instrument Sans", sans-serif; } .raiz span { display: block; font: 500 8pt "JetBrains Mono", monospace; color: #cfe0e2; }
+.ramas { display: grid; grid-template-columns: 1.7fr 1fr 1fr; gap: 3mm; position: relative; padding-top: 5mm; margin-top: 0; }
+.ramas::before { content: ""; position: absolute; top: 0; left: 50%; height: 2.5mm; border-left: 0.9pt solid var(--tinta); }
+.ramas::after { content: ""; position: absolute; top: 2.5mm; left: 16%; right: 16%; border-top: 0.9pt solid var(--tinta); }
+.ramas > .caja { position: relative; }
+.ramas > .caja::before { content: ""; position: absolute; top: -2.6mm; left: 50%; height: 2.5mm; border-left: 0.9pt solid var(--tinta); }
+.sub3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.8mm; margin-top: 2mm; }
+.sub3 .caja { padding: 1.6mm 2mm; background: #fff; }
+
+/* Reloj del día (automatización) */
+.dia { position: relative; height: 34mm; margin: 6mm 0 3mm; border-bottom: 0.9pt solid var(--tinta); }
+.dia .h { position: absolute; bottom: -4.2mm; transform: translateX(-50%); font: 400 6.8pt "JetBrains Mono", monospace; color: var(--tinta-3); }
+.dia .t { position: absolute; bottom: 0; width: 1.6mm; transform: translateX(-50%); }
+.dia .t span { position: absolute; bottom: calc(100% + 1mm); left: 50%; transform: translateX(-50%) rotate(-38deg); transform-origin: left bottom; white-space: nowrap; font: 500 6.8pt "JetBrains Mono", monospace; color: var(--tinta-2); }
+
+/* Matriz de variables */
+.matriz { width: 100%; border-collapse: collapse; margin: 3mm 0; font-size: 7.9pt; }
+.matriz th { font: 500 6.8pt/1.25 "JetBrains Mono", monospace; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tinta-3); text-align: left; padding: 1.5mm 1.8mm; border-bottom: 0.9pt solid var(--tinta); vertical-align: bottom; }
+.matriz td { padding: 1.7mm 1.8mm; border-bottom: 0.5pt solid var(--linea); vertical-align: top; color: var(--tinta-2); }
+.matriz td:first-child { color: var(--tinta); font-weight: 600; width: 30mm; }
+.matriz tr { break-inside: avoid; }
+.pto { display: inline-block; width: 2.6mm; height: 2.6mm; border-radius: 50%; margin-right: 1.4mm; vertical-align: -0.3mm; }
+.si { background: var(--verde); } .parcial { background: var(--ocre); } .no { background: transparent; border: 0.9pt solid var(--rojo); }
+
+.dos { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+.tres { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; }
+.cuatro { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.5mm; }
+.cinco { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2mm; }
+.lista-num { margin: 2mm 0; padding-left: 5mm; } .lista-num li { margin-bottom: 1.2mm; }
+.aviso { margin: 3mm 0; padding: 2.5mm 3.5mm; border: 0.9pt solid var(--rojo); background: var(--rojo-2); font-size: 8.5pt; break-inside: avoid; }
+.aviso b { color: var(--rojo); }
+.barra-niv { display: flex; height: 5mm; margin: 2mm 0 1mm; }
+.barra-niv i { display: block; height: 100%; border-right: 1pt solid #fff; }
+.marcas-niv { position: relative; height: 4mm; font: 400 6.8pt "JetBrains Mono", monospace; color: var(--tinta-3); }
+.marcas-niv span { position: absolute; transform: translateX(-50%); }
+.kpi-fila { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: 0.9pt solid var(--tinta); border-bottom: 0.9pt solid var(--tinta); margin: 3mm 0; }
+.kpi-fila div { padding: 2mm 2.5mm; border-left: 0.5pt solid var(--linea); }
+.kpi-fila div:first-child { border-left: 0; }
+.kpi-fila b { display: block; font: 500 14pt/1.1 "JetBrains Mono", monospace; letter-spacing: -0.03em; }
+.kpi-fila span { font-size: 7.6pt; color: var(--tinta-3); }
+.barras { margin: 2mm 0; }
+.barras .b { display: grid; grid-template-columns: 34mm 1fr 14mm; gap: 2mm; align-items: center; font-size: 7.8pt; margin-bottom: 1.2mm; }
+.barras .b i { display: block; height: 3.2mm; background: var(--pet); }
+.barras .b em { font: 500 7.6pt "JetBrains Mono", monospace; font-style: normal; text-align: right; }
+.barras .pista { background: var(--papel-2); }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ PORTADA -->
+<div class="cab">
+  <div>
+    <div class="etq">Argentina frente a El Niño 2026-27 · documento interno</div>
+    <h1>Mapa del proyecto: cómo está armado hoy</h1>
+    <p class="bajada" style="margin-top:2mm">Estructura completa antes del rediseño en dos secciones (situación y pronóstico / simulación de escenarios):
+      de dónde salen los datos, cómo se procesan, qué ecuaciones arman el riesgo de inundación y cómo llega todo a la web.</p>
+  </div>
+  <div class="cajetin">
+    <div>Versión</div><div>v1</div>
+    <div>Fecha</div><div>14-11-2026</div>
+    <div>Respaldo</div><div>respaldo-2026-11-14</div>
+    <div>Commit</div><div>0fd256e</div>
+  </div>
+</div>
+
+<ul class="indice">
+  <li><span>01</span>Vista general en una página</li>
+  <li><span>07</span>Simulador hidráulico 2D (por lugar y hora)</li>
+  <li><span>02</span>Fuentes de datos por tipo</li>
+  <li><span>08</span>Validación y confianza</li>
+  <li><span>03</span>Automatización: un día del sistema</li>
+  <li><span>09</span>La web: láminas, módulos y archivos</li>
+  <li><span>04</span>Índice de riesgo de inundación (INFORM)</li>
+  <li><span>10</span>Modelos documentados que no están en uso</li>
+  <li><span>05</span>Ríos: de caudal a probabilidad de evacuación</li>
+  <li><span>11</span>Hacia la nueva estructura: variables y datos históricos</li>
+  <li><span>06</span>Retroalimentación: cuánto pesa el pronóstico</li>
+  <li><span>12</span>Puntos débiles conocidos</li>
+</ul>
+
+<div class="kpi-fila">
+  <div><b>2 282</b><span>gobiernos locales (unidad del índice)</span></div>
+  <div><b>66 515</b><span>radios censales 2022 (detalle)</span></div>
+  <div><b>43 / 91</b><span>estaciones de río que validan (r ≥ 0,7)</span></div>
+  <div><b>2</b><span>modelos: índice nacional y simulador por lugar</span></div>
+</div>
+
+<p class="bajada">El proyecto tiene <b>dos motores de cálculo independientes</b> que conviene no confundir:</p>
+<div class="dos">
+  <div class="caja pet"><span class="etq">Motor 1 · nacional · mensual</span><h4>Índice de riesgo por municipio</h4>
+    <p>Python en GitHub Actions. Para cada uno de los 2 282 gobiernos locales y cada mes de oct-2026 a abr-2027 da un riesgo de 0 a 10
+      con la estructura INFORM (amenaza × exposición × vulnerabilidad). Es lo que pinta el mapa de la lámina 01.</p></div>
+  <div class="caja ocre"><span class="etq">Motor 2 · local · horario</span><h4>Simulador hidráulico 2D</h4>
+    <p>JavaScript en el navegador (Web Worker). Para un círculo elegido (≈1 a 10 km) mueve el agua celda por celda, hora por hora, con
+      lluvia real, pronosticada o de prueba. Es la maqueta 3D de la lámina 02.</p></div>
+</div>
+<p class="nota" style="margin-top:2mm">Comparten datos (lluvia de Open-Meteo, estaciones del INA, radios censales) pero no ecuaciones: el índice no usa el
+  simulador y el simulador no usa el índice.</p>
+
+<!-- ============================================================ 01 VISTA GENERAL -->
+<h2><span class="n">01</span>Vista general en una página</h2>
+<p class="bajada">De arriba hacia abajo: fuentes externas → descarga → datos guardados en capas → modelos → archivos para la web → sitio.
+  Las cajas punteadas se calculan una sola vez en la Mac (necesitan datos pesados); el resto corre solo en GitHub Actions.</p>
+
+<div class="flujo">
+  <div class="capa-tit"><b>1 · Fuentes externas</b><i></i></div>
+  <div class="cinco">
+    <div class="caja violeta"><span class="etq">Pronóstico</span><p>ECMWF SEAS5 (6 meses) · ECMWF IFS 16 días · GloFAS caudal · Open-Meteo grilla del tiempo</p></div>
+    <div class="caja violeta"><span class="etq">Observado hoy</span><p>SMN alertas (CAP) · INA alturas de ríos</p></div>
+    <div class="caja violeta"><span class="etq">Población</span><p>INDEC gobiernos locales y radios · Censo 2022 · RENABAP · IGN · OSM</p></div>
+    <div class="caja violeta"><span class="etq">Terreno y agua</span><p>MERIT Hydro · Copernicus DEM · JRC · Dynamic World · MapBiomas · OpenLandMap · SoilGrids · FABDEM</p></div>
+    <div class="caja violeta"><span class="etq">Histórico</span><p>ERA5 · archivo Open-Meteo 2005-25 · INA desde 2015 · DesInventar · BA Data 147</p></div>
+  </div>
+  <div class="flecha">ingesta/ · earth_engine/ (un script por fuente; comun.py: reintentos, WFS paginado, manifest.csv)</div>
+  <div class="capa-tit"><b>2 · Datos guardados</b><i></i></div>
+  <div class="cuatro">
+    <div class="caja gris"><span class="etq">data/raw · bronze</span><p>Descargas tal cual, con fecha. No se versiona (pesado).</p></div>
+    <div class="caja gris"><span class="etq">data/archivo</span><p>Fotos diarias de cada corrida (pronósticos, alturas, índice) para verificar después.</p></div>
+    <div class="caja gris punteada"><span class="etq">data/referencia</span><p>Rasgos fijos por municipio y radio (transformacion/rasgos.py), curvas de los ríos. Versionado, liviano.</p></div>
+    <div class="caja gris"><span class="etq">data/gold</span><p>Resultados: índice mensual, ríos, verificación. Versionado.</p></div>
+  </div>
+  <div class="flecha">modelos/</div>
+  <div class="capa-tit"><b>3 · Modelos</b><i></i></div>
+  <div class="cuatro">
+    <div class="caja pet punteada"><h4>rios.py (calibración)</h4><p>Curva caudal→altura por estación; validación con el Niño 2023-24.</p></div>
+    <div class="caja pet"><h4>rios.py pronostico</h4><p>Probabilidad diaria y mensual de alerta y evacuación.</p></div>
+    <div class="caja pet"><h4>verificacion.py</h4><p>Compara pronóstico con lo ocurrido → peso w del pronóstico.</p></div>
+    <div class="caja pet"><h4>indice_riesgo.py</h4><p>Riesgo INFORM por municipio y mes + Monte Carlo de robustez.</p></div>
+  </div>
+  <div class="flecha">web/actualizar_datos_web.py · exportar_alertas.py · tiempo_grilla.py · preparar_*.py (fijos)</div>
+  <div class="capa-tit"><b>4 · Archivos de la web (web/datos)</b><i></i></div>
+  <div class="cuatro">
+    <div class="caja gris"><span class="etq">Diarios</span><p>riesgo.json · resumen.json · estaciones.geojson · riesgo_semanal.json · lluvia_estacional.json</p></div>
+    <div class="caja gris"><span class="etq">Cada 3 h / 12 h</span><p>alertas.geojson · tiempo.json</p></div>
+    <div class="caja gris punteada"><span class="etq">Fijos</span><p>municipios_geo · provincias · radios · buscador · callejero · suelo · terreno · industrias · infraestructura</p></div>
+    <div class="caja gris punteada"><span class="etq">Validación</span><p>validacion.json (herramientas/validacion/validar.py)</p></div>
+  </div>
+  <div class="flecha">push a main → Cloudflare Workers publica solo</div>
+  <div class="capa-tit"><b>5 · Sitio</b><i></i></div>
+  <div class="cuatro">
+    <div class="caja ocre"><h4>01 Panorama y mapa</h4><p>Índice por municipio, tiempo, alertas, ríos, buscador.</p></div>
+    <div class="caja ocre"><h4>02 Simulador 3D</h4><p>Modelo hidráulico en el navegador + maqueta three.js.</p></div>
+    <div class="caja ocre"><h4>03 Alertas y ríos</h4><p>Alertas SMN vigentes y estado de cada estación del INA.</p></div>
+    <div class="caja ocre"><h4>04 Análisis y validación</h4><p>Gráficos tipo Power BI, validación contra satélite, fuentes.</p></div>
+  </div>
+</div>
+<p class="nota">En paralelo, <code>sql/</code> replica la capa silver→gold en SQL (medallón): <code>correr_duckdb.py</code> local (validado igual a Python) y
+  <code>correr_databricks.py</code> (pendiente el login). La web no depende de esa réplica: es una muestra de portfolio.</p>
+
+<!-- ============================================================ 02 FUENTES -->
+<h2><span class="n">02</span>Fuentes de datos por tipo</h2>
+<p class="bajada">Todas gratuitas. Para cada una: qué aporta, con qué detalle y cada cuánto se renueva. Cobertura medida sobre los 2 282 gobiernos locales.</p>
+
+<h3>Lo que cambia (pronósticos y observaciones)</h3>
+<div class="dos">
+  <div class="caja violeta"><span class="etq">ECMWF SEAS5 vía Open-Meteo · mensual (día 6)</span><h4>Pronóstico estacional de 6 meses</h4>
+    <p>Lluvia media mensual y su anomalía, humedad del suelo y escorrentía. Celda ≈ 36 km (municipios vecinos comparten valor).
+      Cobertura 100 %. Alimenta el factor de lluvia del índice y el escenario largo del simulador.</p></div>
+  <div class="caja violeta"><span class="etq">ECMWF IFS vía Open-Meteo · diario</span><h4>Lluvia diaria a 16 días por municipio</h4>
+    <p>Se archiva cada corrida con su fecha para compararla después con lo que llovió (verificación).</p></div>
+  <div class="caja violeta"><span class="etq">GloFAS v4 vía Open-Meteo Flood · semanal (lunes)</span><h4>Caudal de ríos, ensamble a 210 días</h4>
+    <p>Cuantiles (mín, p25, mediana, p75, máx) en la celda del río de cada estación INA con nivel de alerta (96 estaciones).
+      La celda se elige entre la estación y sus 8 vecinas: la de mayor caudal medio.</p></div>
+  <div class="caja violeta"><span class="etq">Open-Meteo · 05:20 y 17:20</span><h4>Grilla del tiempo para el mapa</h4>
+    <p>Un punto cada 0,5° (≈ 50 km): lluvia, viento, ráfaga, temperatura, a 48 h cada 3 h y a 16 días. Solo para mostrar: no entra en el índice.</p></div>
+  <div class="caja verde"><span class="etq">SMN · cada 3 h</span><h4>Alertas meteorológicas (CAP)</h4>
+    <p>Amarilla, naranja y roja con su polígono. Se archivan para tener histórico. Solo para mostrar: no entran en el índice.</p></div>
+  <div class="caja verde"><span class="etq">INA Sistema Alerta 5 · diario</span><h4>Altura de ríos con niveles de alerta y evacuación</h4>
+    <p>175 estaciones, 1,25 millones de mediciones desde 2015 (incluye los Niños 2015-16 y 2023-24). Cobertura 21 % de municipios:
+      Litoral y AMBA; 0 % en NOA, Cuyo y Patagonia.</p></div>
+</div>
+
+<h3>Lo fijo (territorio, población, terreno)</h3>
+<div class="tres">
+  <div class="caja gris"><span class="etq">INDEC</span><h4>Límites y Censo 2022</h4><p>2 282 gobiernos locales y 66 515 radios. Población, cloacas, NBI, materiales de vivienda (17 variables por radio).</p></div>
+  <div class="caja gris"><span class="etq">RENABAP · IGN · OSM</span><h4>Barrios e infraestructura</h4><p>6 467 barrios populares; salud, educación, puentes, canales, alcantarillas, bombeo (completitud variable).</p></div>
+  <div class="caja gris"><span class="etq">MERIT Hydro · Copernicus DEM</span><h4>Terreno</h4><p>HAND (altura sobre el cauce), % de superficie a &lt; 2 m y &lt; 5 m del cauce, pendiente media y p90.</p></div>
+  <div class="caja gris"><span class="etq">JRC Global Surface Water</span><h4>Agua histórica 1984-2021</h4><p>% del tiempo con agua y % de superficie que estuvo con agua alguna vez (30 m).</p></div>
+  <div class="caja gris"><span class="etq">Dynamic World (Sentinel-2)</span><h4>Agua en los Niños</h4><p>Agua observada nov-abr 2015-16 y 2023-24 frente a la sequía 2022-23, sin agua permanente (10 m).</p></div>
+  <div class="caja gris"><span class="etq">MapBiomas · OpenLandMap · SoilGrids</span><h4>Suelo y uso</h4><p>Urbano, agua, humedal y cultivos 1985-2024; % de arcilla; textura USDA para la infiltración del simulador.</p></div>
+</div>
+
+<h3>Lo histórico (para calibrar, validar y, a futuro, armar escenarios)</h3>
+<div class="tres">
+  <div class="caja ocre"><span class="etq">ERA5 / ERA5-Land</span><p>Lluvia nov-feb por municipio en 2015-16, 2023-24 y 2022-23, y normal 1991-2020. Lluvia horaria para la validación del simulador.</p></div>
+  <div class="caja ocre"><span class="etq">Archivo Open-Meteo 2005-2025</span><p>Lluvia y evaporación diarias del punto: el simulador saca de ahí la climatología (probabilidad de día de lluvia y reparto).</p></div>
+  <div class="caja ocre"><span class="etq">GloFAS reanálisis · INA</span><p>Caudal medio por temporada en las estaciones; alturas reales 2015-2026 (entrenan y validan la curva de cada río).</p></div>
+</div>
+<p class="nota" style="margin-top:3mm">Sin fuente pública nacional: red pluvial fuera de CABA, red cloacal, napas, sudestada (SHN, pendiente) y estaciones con alerta en NOA, Cuyo y Patagonia.
+  Para eso se usan aproximaciones (relieve, Censo, humedad del suelo de SEAS5) o supuestos explícitos (desagües de 10 mm/h).</p>
+
+<!-- ============================================================ 03 AUTOMATIZACIÓN -->
+<h2><span class="n">03</span>Automatización: un día del sistema</h2>
+<p class="bajada">Un solo workflow (<code>.github/workflows/actualizar_datos.yml</code>) con seis horarios. Cada corrida guarda los datos en el repo y el
+  push dispara la publicación del sitio en Cloudflare (≈ 11 publicaciones por día; el plan gratis permite 500 por mes).</p>
+
+<div class="dia" id="dia"></div>
+<p class="nota" style="margin-top:7mm">Hora de Argentina. Además: <b>GloFAS</b> los lunes 08:00 y <b>SEAS5</b> el día 6 de cada mes 09:00 (sale el 5).</p>
+
+<h3>Qué encadena cada corrida que recalcula el riesgo (todos los días 07:40, y también tras GloFAS y SEAS5)</h3>
+<div class="flujo" style="grid-template-columns: repeat(5, 1fr); display:grid; gap:2mm; align-items:stretch">
+  <div class="caja verde"><span class="etq">1</span><h4>Lluvia 16 días + alturas INA</h4><p>Corrida ECMWF del día y últimos 10 días de cada estación.</p></div>
+  <div class="caja verde"><span class="etq">2</span><h4>rios.py pronostico</h4><p>Curva + corrida GloFAS más nueva + sesgo reciente.</p></div>
+  <div class="caja verde"><span class="etq">3</span><h4>verificacion.py</h4><p>Pronóstico vs. ocurrido → peso w.</p></div>
+  <div class="caja verde"><span class="etq">4</span><h4>indice_riesgo.py</h4><p>Riesgo por municipio y mes; foto con fecha.</p></div>
+  <div class="caja verde"><span class="etq">5</span><h4>actualizar_datos_web.py</h4><p>JSON y GeoJSON para la web.</p></div>
+</div>
+<p class="nota">Lo que corre en la Mac y no se automatiza: rasgos fijos (<code>transformacion/rasgos.py</code>), calibración de los ríos
+  (<code>rios.py</code> sin argumento), Earth Engine, geometrías y mapa base propio de la web, y la validación del simulador.</p>
+
+<!-- ============================================================ 04 ÍNDICE -->
+<h2><span class="n">04</span>Índice de riesgo de inundación (INFORM)</h2>
+<p class="bajada"><code>modelos/indice_riesgo.py</code>. Estructura del índice INFORM (Comisión Europea / ONU): el riesgo existe solo si hay a la vez una amenaza,
+  gente expuesta y vulnerabilidad. Todo en escala 0 a 10, por gobierno local y por mes (oct-2026 → abr-2027).</p>
+
+<div class="arbol">
+  <div class="raiz"><b>Riesgo = ∛(H × E × V)</b><span>media geométrica · 0 a 10</span></div>
+  <div class="ramas">
+    <div class="caja pet"><span class="etq">H · Amenaza (cambia cada mes)</span><h4>Tres amenazas combinadas</h4>
+      <div class="sub3">
+        <div class="caja"><h4>H agua</h4><p>Anegamiento y agua en superficie</p></div>
+        <div class="caja"><h4>H río</h4><p>Crecida de ríos grandes (INA + GloFAS)</p></div>
+        <div class="caja"><h4>H quebrada</h4><p>Crecidas repentinas en laderas</p></div>
+      </div></div>
+    <div class="caja ocre"><span class="etq">E · Exposición (fija)</span><h4>Gente en terreno bajo</h4><p>Población en radios bajos y su proporción sobre el total.</p></div>
+    <div class="caja verde"><span class="etq">V · Vulnerabilidad (fija)</span><h4>Capacidad de resistir</h4><p>Cloacas, NBI, vivienda deficiente, barrios populares.</p></div>
+  </div>
+</div>
+
+<div class="ec">
+  <div class="f"><em>R</em> = ∛( H · E · V )                                    <span class="mono" style="color:#6b7570">cada término en [0, 10]</span>
+<em>H</em> = 10 − (10 − H<sub>agua</sub>)(10 − H<sub>río</sub>)(10 − H<sub>quebrada</sub>) / 10²</div>
+  <dl class="d"><dt>media geométrica</dt><dd>si una de las tres es 0, el riesgo es 0 (no hay riesgo sin gente o sin amenaza).</dd>
+    <dt>combinación de H</dt><dd>«multi-amenaza» de INFORM: se comporta como una probabilidad de que ocurra al menos una; nunca supera 10 y
+      una amenaza alta no se diluye por las otras bajas.</dd></dl>
+</div>
+
+<h3>Rango percentil: la regla para mezclar indicadores</h3>
+<div class="ec ocre"><div class="f"><em>rango</em>(x) = posición de x entre los 2 282 municipios, de 0 a 1    (pandas rank(pct=True))</div>
+  <div class="d">Se usa en casi todos los indicadores. Ventaja: no importa la unidad (%, personas, km) ni los valores extremos. Desventaja: es relativo
+    — un municipio queda «alto» porque está peor que los demás, no por superar un umbral físico.</div></div>
+
+<h3>Amenaza 1 · agua en superficie (anegamiento)</h3>
+<div class="ec">
+  <div class="f"><em>P</em>   = [ rango(% área con agua alguna vez · JRC)
+        + rango(% agua en los Niños 2015-16 y 2023-24 · Dynamic World)
+        + rango(% área a &lt; 2 m del cauce · HAND) ] / 3
+<em>r</em>   = lluvia pronosticada del mes / lluvia normal          (SEAS5; recortado a 0,2 – 3)
+<em>r'</em>  = 1 + w · (r − 1)                                   (w: peso del pronóstico, sección 06)
+<em>H<sub>agua</sub></em> = 10 · P · clip(r' / 2, 0, 1)</div>
+  <dl class="d"><dt>P (propensión)</dt><dd>qué tan propenso es el municipio a tener agua, según lo que ya pasó y su terreno. Fija.</dd>
+    <dt>clip(r'/2, 0, 1)</dt><dd>con lluvia normal (r' = 1) la amenaza es la mitad de la propensión; con el doble de lo normal, la propensión completa.</dd>
+    <dt>mar-abr</dt><dd>sin pronóstico SEAS5: r = 1.</dd></dl>
+</div>
+
+<h3>Amenaza 2 · crecida de ríos grandes</h3>
+<div class="ec">
+  <div class="f"><em>h</em>    = 10 · max( P(evacuación), 0,5 · P(alerta) )     de la estación INA confiable más cercana
+<em>peso</em> = 1 hasta 15 km · baja en línea recta · 0 a 30 km
+<em>H<sub>río</sub></em> = h · peso                                  sin estación confiable a ≤ 30 km → 0 («sin información»)</div>
+  <dl class="d"><dt>P(·)</dt><dd>probabilidad mensual de superar el nivel oficial, del modelo de ríos (sección 05). Solo estaciones con r de validación ≥ 0,7.</dd></dl>
+</div>
+
+<h3>Amenaza 3 · crecidas repentinas en quebradas</h3>
+<div class="ec">
+  <div class="f"><em>s</em>          = clip( (pendiente p90 − 5°) / 20°, 0, 1 )
+<em>H<sub>quebrada</sub></em> = 10 · s · clip(r' / 2, 0, 1) · (0,5 + 0,5 · rango(% arcilla))</div>
+  <dl class="d"><dt>pendiente p90</dt><dd>el 10 % más empinado del municipio (detecta laderas aunque el promedio sea llano). Desde 25° cuenta entera.</dd>
+    <dt>arcilla</dt><dd>más arcilla, menos infiltración: duplica la amenaza entre el municipio con menos y el con más arcilla.</dd></dl>
+</div>
+
+<h3>Exposición y vulnerabilidad (fijas, del Censo 2022)</h3>
+<div class="dos">
+  <div class="ec ocre"><div class="f"><em>E</em> = 10 · [ rango(log(1 + pob. en terreno bajo))
+      + rango(pob. en terreno bajo / pob. total) ] / 2</div>
+    <div class="d">Terreno bajo = radio censal con más del 50 % de su superficie a menos de 2 m sobre el cauce (HAND).</div></div>
+  <div class="ec ocre"><div class="f"><em>V</em> = 10 · [ rango(% sin cloaca) + rango(% NBI)
+      + rango(% materiales deficientes)
+      + rango(barrios populares / 10 000 hab.) ] / 4</div>
+    <div class="d">Promedios de los radios ponderados por población.</div></div>
+</div>
+
+<h3>Del número al color y a las personas</h3>
+<div class="barra-niv"><i style="width:30%;background:#1a9850"></i><i style="width:15%;background:#91cf60"></i><i style="width:15%;background:#fee08b"></i><i style="width:10%;background:#fc8d59"></i><i style="width:30%;background:#d73027"></i></div>
+<div class="marcas-niv"><span style="left:0">0</span><span style="left:15%">muy bajo</span><span style="left:30%">3</span><span style="left:37.5%">bajo</span><span style="left:45%">4,5</span><span style="left:52.5%">medio</span><span style="left:60%">6</span><span style="left:65%">alto</span><span style="left:70%">7</span><span style="left:85%">muy alto</span><span style="left:100%">10</span></div>
+<div class="ec" style="margin-top:5mm"><div class="f"><em>personas en riesgo</em> = población en terreno bajo × R / 10</div>
+  <div class="d">Dos rankings: por personas (dónde hay más gente afectada) y por riesgo relativo (qué municipio está peor).
+    El mapa pinta el <b>peor mes</b> del período elegido.</div></div>
+
+<h3>Robustez: Monte Carlo de 1 000 simulaciones</h3>
+<div class="ec"><div class="f">pesos de E y de V   ~ Dirichlet(1, …, 1)        (cualquier combinación de pesos es igual de posible)
+exponentes (a, b, c) ~ Dirichlet(3, 3, 3)        (alrededor de 1/3 cada uno)
+R* = H<sup>a</sup> · E<sup>b</sup> · V<sup>c</sup>   →   % de simulaciones en que el municipio queda en el 10 % superior</div>
+  <div class="d">Se calcula sobre el mes pico. Indica si el ranking depende de decisiones arbitrarias de pesos: un municipio que queda arriba en el 95 %
+    de las simulaciones es un resultado firme; uno que queda en el 40 %, no.</div></div>
+
+<!-- ============================================================ 05 RÍOS -->
+<h2><span class="n">05</span>Ríos: de caudal a probabilidad de evacuación</h2>
+<p class="bajada"><code>modelos/rios.py</code>. GloFAS pronostica caudal (m³/s); el INA publica altura (m) y niveles oficiales. El modelo une las dos cosas estación por estación.</p>
+
+<div class="flujo" style="display:grid;grid-template-columns:repeat(4,1fr);gap:2.5mm">
+  <div class="caja pet"><span class="etq">1 · Calibración (Mac)</span><h4>Curva caudal → altura</h4>
+    <p>Regresión isotónica (siempre creciente) de la altura INA contra log(1 + caudal GloFAS), probando desfases de 0 a 10 días.
+      Entrena con sep-2015→jun-2016 (Niño con crecida) y sep-2021→jun-2022 (bajante histórica).</p></div>
+  <div class="caja pet"><span class="etq">2 · Validación</span><h4>Niño 2023-24 fuera de muestra</h4>
+    <p>Correlación, error medio y días sobre el nivel de alerta (aciertos y falsas alarmas). Solo pasan las estaciones con r ≥ 0,7.</p></div>
+  <div class="caja pet"><span class="etq">3 · Sesgo reciente</span><h4>Corrección diaria</h4>
+    <p>Diferencia media entre altura observada y la curva en los días pasados de la corrida (≥ 10 días en común); si no, el sesgo de calibración.</p></div>
+  <div class="caja pet"><span class="etq">4 · Pronóstico</span><h4>Probabilidad de superar niveles</h4>
+    <p>Los 5 cuantiles del ensamble se pasan a altura; la probabilidad se interpola entre cuantiles. Por mes: la máxima diaria.</p></div>
+</div>
+
+<div class="ec"><div class="f"><em>altura</em>(q) = curva_isotónica( log(1 + q) ) + sesgo          con q desplazado «desfase» días
+cuantiles  (mín, p25, mediana, p75, máx)  →  probabilidades (0; 0,25; 0,5; 0,75; 1)
+<em>P(altura &gt; nivel)</em> = 1 − interp( nivel ; alturas de los cuantiles ; probabilidades )
+<em>P mensual</em> = max sobre los días del mes   (≈ probabilidad de superarlo al menos un día)</div></div>
+
+<h3>Cómo valida</h3>
+<div class="barras">
+  <div class="b"><span>Estaciones evaluadas</span><span class="pista"><i style="width:100%"></i></span><em>91</em></div>
+  <div class="b"><span>Confiables (r ≥ 0,7)</span><span class="pista"><i style="width:47%"></i></span><em>43</em></div>
+  <div class="b"><span>Días sobre alerta observados</span><span class="pista"><i style="width:100%;background:#9aa39e"></i></span><em>2 037</em></div>
+  <div class="b"><span>…detectados</span><span class="pista"><i style="width:47%"></i></span><em>963</em></div>
+  <div class="b"><span>Falsas alarmas (días)</span><span class="pista"><i style="width:21%;background:#b8402f"></i></span><em>424</em></div>
+</div>
+<p class="nota">r de validación mediano 0,59 (todas); error medio mediano 0,70 m en las confiables. Verificación continua del pronóstico:
+  error medio 0,96 m y sesgo −0,35 m en 5 224 pares estación-día (el modelo pronostica más bajo que lo medido).</p>
+
+<!-- ============================================================ 06 RETROALIMENTACIÓN -->
+<h2><span class="n">06</span>Retroalimentación: cuánto pesa el pronóstico</h2>
+<p class="bajada"><code>modelos/verificacion.py</code> compara cada corrida archivada de lluvia a 16 días con la lluvia que efectivamente cayó (tomada de corridas posteriores).</p>
+<div class="dos">
+  <div class="ec"><div class="f"><em>w</em> = clip( correlación a 8-15 días, 0, 1 )
+r' = 1 + w · (r − 1)</div>
+    <div class="d">Con menos de 7 días verificados, w = 1. Hoy, con 43 días verificados, <b>w = 0,10</b>: la anomalía de SEAS5 se achica al 10 %.</div></div>
+  <div>
+    <div class="barras">
+      <div class="b"><span>Correlación 0-3 días</span><span class="pista"><i style="width:71%"></i></span><em>0,71</em></div>
+      <div class="b"><span>Correlación 4-7 días</span><span class="pista"><i style="width:45%"></i></span><em>0,45</em></div>
+      <div class="b"><span>Correlación 8-15 días</span><span class="pista"><i style="width:10%"></i></span><em>0,10</em></div>
+      <div class="b"><span>Detecta ≥ 20 mm a 0-3 días</span><span class="pista"><i style="width:56%;background:#c48a2c"></i></span><em>56 %</em></div>
+    </div>
+  </div>
+</div>
+<div class="aviso"><b>Ojo para el rediseño:</b> el peso del pronóstico <i>estacional</i> (SEAS5, meses) se fija con el acierto del pronóstico <i>diario</i> a 8-15 días
+  (otro producto, otra escala). Por eso hoy el índice casi no responde al pronóstico de lluvia: está dominado por la propensión fija.</div>
+
+<!-- ============================================================ 07 SIMULADOR -->
+<h2><span class="n">07</span>Simulador hidráulico 2D (por lugar y hora)</h2>
+<p class="bajada"><code>web/simulador.js</code> (datos, dibujo, maqueta), <code>web/modelo_inundacion.js</code> (lluvia, suelo, grilla) y <code>web/hidraulica.js</code>
+  (cálculo, en un Web Worker). Todo corre en el navegador al elegir un punto y un radio.</p>
+
+<div class="flujo">
+  <div class="capa-tit"><b>Entradas</b><i></i></div>
+  <div class="cinco">
+    <div class="caja violeta"><span class="etq">Lluvia y ET0</span><p>Open-Meteo horario: 14 días pasados (real) + 16 días (pronóstico) + más allá, escenario estacional. Más la tormenta de prueba.</p></div>
+    <div class="caja gris"><span class="etq">Relieve</span><p>FABDEM (20 ciudades, sin edificios ni árboles) o AWS Terrain (SRTM ≈ 30 m), promediado a celdas de 20 a 60 m.</p></div>
+    <div class="caja gris"><span class="etq">Agua y cauces</span><p>Mapa base OSM: ríos y mar (nivel fijo), lagunas (guardan), arroyos y canales grabados 0,5 a 1 m.</p></div>
+    <div class="caja gris"><span class="etq">Suelo y cobertura</span><p>Textura SoilGrids → Green-Ampt; edificios, calles y usos urbanos → impermeable y Manning.</p></div>
+    <div class="caja verde"><span class="etq">Río y suelo hoy</span><p>Estación INA a ≤ 15 km: altura de hoy vs. evacuación. Humedad inicial del suelo de Open-Meteo.</p></div>
+  </div>
+  <div class="flecha">grillaModelo() · cada hora: 12 tramos de 5 min</div>
+  <div class="capa-tit"><b>Cálculo por celda</b><i></i></div>
+  <div class="dos">
+    <div class="caja ocre"><h4>Balance vertical (cada tramo)</h4><p>lluvia − infiltración (Green-Ampt) − desagües pluviales − evaporación; el suelo guarda agua en una capa de 30 cm y drena hacia abajo.</p></div>
+    <div class="caja ocre"><h4>Movimiento horizontal (paso adaptativo)</h4><p>Ecuación inercial local de aguas poco profundas (familia LISFLOOD-FP / onda difusa de HEC-RAS 2D), fricción de Manning, Courant.</p></div>
+  </div>
+  <div class="flecha">una foto por hora (profundidad por celda)</div>
+  <div class="capa-tit"><b>Salidas</b><i></i></div>
+  <div class="cinco">
+    <div class="caja pet"><p><b>% del círculo con agua</b> ≥ 10 cm y km²</p></div>
+    <div class="caja pet"><p><b>Personas con agua</b> (radios censales × fracción de celdas)</p></div>
+    <div class="caja pet"><p><b>Calles cortadas</b> (≥ 30 cm, km) y <b>personas aisladas</b></p></div>
+    <div class="caja pet"><p><b>Centros de salud</b> sin acceso</p></div>
+    <div class="caja pet"><p><b>Confianza</b> de la hora (sección 08)</p></div>
+  </div>
+</div>
+
+<h3>Ecuaciones</h3>
+<div class="ec"><div class="f"><em>q</em><sup>t+Δt</sup> = [ q<sup>t</sup> − g · h<sub>f</sub> · Δt · (η<sub>b</sub> − η<sub>a</sub>) / Δx ] / [ 1 + g · Δt · n² · |q<sup>t</sup>| / h<sub>f</sub><sup>7/3</sup> ]
+<em>h</em><sup>t+Δt</sup> = h<sup>t</sup> + Δt · (Σ q que entra − Σ q que sale) / Δx
+<em>Δt</em> = min( 30 s , 0,7 · Δx / √( g · (h<sub>máx</sub> + 0,3) ) )</div>
+  <dl class="d"><dt>q</dt><dd>caudal por metro de ancho en cada cara entre dos celdas (m²/s).</dd>
+    <dt>η, h<sub>f</sub></dt><dd>nivel del agua en cada celda y profundidad que fluye por la cara.</dd>
+    <dt>n</dt><dd>Manning: 0,035 pasto · ≈ 0,08 urbano · ≈ 0,10 monte (n = 0,035 + 0,045·imp + 0,065·monte).</dd>
+    <dt>bordes</dt><dd>salida libre con Manning a 0,1 % de pendiente.</dd></dl></div>
+
+<div class="dos">
+  <div class="ec ocre"><div class="f"><em>f<sub>cap</sub></em> = K<sub>s</sub> · (1 + ψ · Δθ / F) · Δt
+<em>inf</em> = min( agua·(1−imp), f<sub>cap</sub>·(1−imp), Δθ·300 mm )</div>
+    <div class="d">Green-Ampt (Rawls y otros, 1983). K<sub>s</sub>, ψ y θ<sub>s</sub> por textura (de 0,3 mm/h en arcilla a 118 mm/h en arena). F: lo infiltrado en el evento (se reinicia tras 24 h secas).</div></div>
+  <div class="ec ocre"><div class="f"><em>desagüe</em> = min( agua, 10 mm/h · imp · Δt )
+<em>evaporación</em> = min( agua, ET0 )
+<em>drenaje</em> = 0,1 · K<sub>s</sub> · (θ/θ<sub>s</sub>)⁴ · Δt</div>
+    <div class="d">Los 10 mm/h de desagüe pluvial son un <b>supuesto</b>: no hay datos de la red fuera de CABA.</div></div>
+</div>
+
+<h3>Lagunas y río</h3>
+<div class="dos">
+  <div class="caja gris"><h4>Lagunas</h4><p>Cada grupo de celdas conectadas es una laguna con un único nivel. Arranca a la altura de su orilla más baja (−5 cm): <b>llena</b>.
+    Sube con la lluvia y lo que le entra; baja con la evaporación. Las pegadas al río son parte del río.</p></div>
+  <div class="caja gris"><h4>Río y mar</h4><p>Nivel fijo = base + crecida. Con estación INA a ≤ 15 km, la crecida se ata al nivel de evacuación: en evacuación el agua llega a la
+    orilla del cuantil 40 %; cada metro de más o de menos se suma o resta. La barra del río va de −1 a +6 m.</p></div>
+</div>
+
+<h3>Lluvia hora por hora</h3>
+<div class="flujo" style="display:grid;grid-template-columns:repeat(4,1fr);gap:2.5mm">
+  <div class="caja gris"><span class="etq">Pasado · 14 días</span><p>Análisis Open-Meteo (dato real): suelo y lagunas llegan a hoy como están.</p></div>
+  <div class="caja violeta"><span class="etq">Pronóstico · 16 días</span><p>Mejor modelo de Open-Meteo para el punto.</p></div>
+  <div class="caja violeta punteada"><span class="etq">Escenario estacional</span><p>Total mensual SEAS5 del municipio repartido en los días de lluvia típicos (21 años) y en tormentas de 6 h a la tarde.</p></div>
+  <div class="caja ocre"><span class="etq">Tormenta de prueba</span><p>X mm en 1 a 24 h desde ahora (3 h: 40-40-20 %). Presets 50, 150 y 392 mm (La Plata 2013).</p></div>
+</div>
+<p class="nota">La animación de desagües de la maqueta 3D (película de agua y líneas blancas) es <b>solo visual</b>: usa un modelo propio más simple. Charcos y cifras salen del modelo hidráulico.</p>
+
+<!-- ============================================================ 08 VALIDACIÓN -->
+<h2><span class="n">08</span>Validación y confianza</h2>
+<p class="bajada"><code>herramientas/validacion/</code> y <code>docs/04_validacion_simulador.md</code>. El simulador se corrió temporadas completas con la lluvia real y se comparó con el agua que vio el satélite.</p>
+<div class="dos">
+  <div>
+    <h3 style="margin-top:0">Diseño</h3>
+    <ul class="lista-num">
+      <li><b>Lugares:</b> 20 ciudades con FABDEM, círculo de 5 km.</li>
+      <li><b>Temporadas:</b> Niños 2015-16 y 2023-24 (nov-abr) y sequía 2022-23.</li>
+      <li><b>Simulado:</b> lluvia ERA5 horaria, ET0 y humedad del mismo archivo, río con altura real del INA.</li>
+      <li><b>Observado:</b> Dynamic World, agua en al menos un mes, sin agua permanente.</li>
+      <li><b>Métrica:</b> CSI = aciertos / (aciertos + falsas alarmas + faltantes).</li>
+      <li><b>Referencia a ganar:</b> «donde el satélite ya vio agua» (JRC).</li>
+    </ul>
+  </div>
+  <div>
+    <h3 style="margin-top:0">Resultado (9 casos con agua suficiente)</h3>
+    <div class="barras">
+      <div class="b"><span>CSI primera versión</span><span class="pista"><i style="width:40%;background:#9aa39e"></i></span><em>0,20</em></div>
+      <div class="b"><span>CSI versión actual</span><span class="pista"><i style="width:72%"></i></span><em>0,36</em></div>
+      <div class="b"><span>CSI referencia JRC</span><span class="pista"><i style="width:70%;background:#c48a2c"></i></span><em>0,35</em></div>
+      <div class="b"><span>Celdas con agua detectadas</span><span class="pista"><i style="width:57%"></i></span><em>57 %</em></div>
+      <div class="b"><span>Falsas alarmas</span><span class="pista"><i style="width:42%;background:#b8402f"></i></span><em>42 %</em></div>
+    </div>
+    <p class="nota">Le gana a la referencia en 5 de 9 casos. En los otros 31 casos (sobre todo el conurbano) el satélite casi no ve agua y no se puede medir.</p>
+  </div>
+</div>
+
+<h3>Confianza que muestra el simulador (la menor de tres)</h3>
+<div class="tres">
+  <div class="caja gris"><h4>Lluvia</h4><p>Alta: dato real o pronóstico a ≤ 3 días · media: 3 a 7 días · baja: más lejos o escenario estacional.</p></div>
+  <div class="caja gris"><h4>Relieve</h4><p>Alta: FABDEM · media: relieve satelital con edificios y árboles.</p></div>
+  <div class="caja gris"><h4>Modelo</h4><p>Alta: CSI ≥ 0,5 en esa ciudad · media: ≥ 0,3 · baja: menos, o ciudad sin validar.</p></div>
+</div>
+
+<!-- ============================================================ 09 WEB -->
+<h2><span class="n">09</span>La web: láminas, módulos y archivos</h2>
+<p class="bajada">Sitio estático (MapLibre, three.js solo para la maqueta, sin otros frameworks). Bilingüe ES/EN. Pública en Cloudflare Workers y versión privada en claude.ai
+  (<code>construir_artifact.py</code>, sin teselas externas: sin simulador).</p>
+
+<div class="cuatro">
+  <div class="caja ocre"><span class="etq">Lámina 01</span><h4>Panorama y mapa</h4><ul>
+    <li>Mapa del índice (peor mes del período) o del tiempo (lluvia, viento, temperatura).</li><li>Modo «Ahora» / «Pronóstico» con fechas.</li>
+    <li>8 indicadores, aguja 0-10, camino al pico.</li><li>Evolución en el período y tiempo en el lugar.</li>
+    <li>Tablero del lugar: situación, qué hacer, qué lo explica, ríos cerca.</li><li>Capas: hidrografía, alertas, zonas inundadas, densidad, barrios, suelo, infraestructura, rutas, relieve.</li></ul></div>
+  <div class="caja ocre"><span class="etq">Lámina 02</span><h4>Simulador 3D</h4><ul>
+    <li>Maqueta three.js (terrón) con satélite y agua.</li><li>Tormenta de prueba: mm y duración.</li><li>Línea de tiempo horaria con ▶.</li>
+    <li>Período hasta el fin del pronóstico estacional.</li><li>Barra del río (−1 a +6 m).</li><li>Corte del terreno y ×5.</li><li>Indicadores, confianza y validación.</li></ul></div>
+  <div class="caja ocre"><span class="etq">Lámina 03</span><h4>Alertas y ríos</h4><ul>
+    <li>Alertas SMN vigentes por nivel.</li><li>Estaciones INA: normal, alerta, evacuación, cambio en 24 h.</li><li>Probabilidad mensual en las estaciones que validan.</li></ul></div>
+  <div class="caja ocre"><span class="etq">Lámina 04</span><h4>Análisis y validación</h4><ul>
+    <li>3 gráficos que siguen los filtros (estilo Power BI).</li><li>Validación del simulador contra satélite.</li><li>Fuentes por tipo con su fecha de actualización.</li></ul></div>
+</div>
+
+<h3>Módulos (orden de carga)</h3>
+<div class="flujo" style="display:grid;grid-template-columns:repeat(7,1fr);gap:1.6mm">
+  <div class="caja gris"><h4>textos</h4><p>ES/EN</p></div>
+  <div class="caja gris"><h4>utiles</h4><p>formatos, cortes, colores</p></div>
+  <div class="caja gris"><h4>graficos</h4><p>SVG propios</p></div>
+  <div class="caja gris"><h4>tiempo</h4><p>campos, viento animado</p></div>
+  <div class="caja gris"><h4>mapa</h4><p>MapLibre, capas, relieve</p></div>
+  <div class="caja gris"><h4>buscador</h4><p>lugares, calles, Photon, Georef, Nominatim</p></div>
+  <div class="caja gris"><h4>tableros</h4><p>panel por capa, análisis</p></div>
+  <div class="caja gris"><h4>modelo_inundacion</h4><p>lluvia, suelo, grilla</p></div>
+  <div class="caja gris"><h4>hidraulica</h4><p>Web Worker</p></div>
+  <div class="caja gris"><h4>simulador</h4><p>maqueta, controles</p></div>
+  <div class="caja gris"><h4>laminas</h4><p>solapas, 03, 04</p></div>
+  <div class="caja gris"><h4>guia</h4><p>fuentes, recorrido</p></div>
+  <div class="caja gris"><h4>app</h4><p>estado, indicadores, modo</p></div>
+  <div class="caja gris"><h4>estilos.css</h4><p>tokens claro/oscuro</p></div>
+</div>
+
+<h3>Buscador (en orden de intento)</h3>
+<div class="flujo" style="display:grid;grid-template-columns:repeat(5,1fr);gap:2mm">
+  <div class="caja gris"><span class="etq">1</span><p>Lugares propios (provincia, partido, localidad) y coordenadas pegadas.</p></div>
+  <div class="caja gris"><span class="etq">2</span><p>Georef (servicio oficial de direcciones).</p></div>
+  <div class="caja gris"><span class="etq">3</span><p>Photon (empresas, clubes, hospitales), ordenado por parecido con el nombre.</p></div>
+  <div class="caja gris"><span class="etq">4</span><p>Nominatim (rutas, kilómetros, colectoras; respaldo de Photon).</p></div>
+  <div class="caja gris"><span class="etq">5</span><p>Callejero propio del INDEC (cuadras).</p></div>
+</div>
+
+<!-- ============================================================ 10 NO USADOS -->
+<h2><span class="n">10</span>Modelos documentados que no están en uso</h2>
+<div class="tres">
+  <div class="caja gris punteada"><span class="etq">modelos/amenaza_agua.py</span><h4>Aprendizaje automático de la amenaza</h4>
+    <p>Gradient boosting y regresión regularizada para predecir el % de superficie con agua en un Niño (entrena 2015-16, valida 2023-24).
+      <b>No le ganó a la propensión histórica</b>: por eso el índice usa la propensión.</p></div>
+  <div class="caja gris punteada"><span class="etq">modelos/anegamientos_caba.py</span><h4>Reclamos pluviales en CABA</h4>
+    <p>Binomial negativa de reclamos al 147 por barrio contra lluvia del día, del anterior y de 3 días. Valida 2023-26. Solo CABA.</p></div>
+  <div class="caja gris punteada"><span class="etq">modelos/dengue.py</span><h4>Dengue</h4>
+    <p>Pospuesto: el foco actual es solo inundación.</p></div>
+</div>
+
+<!-- ============================================================ 11 NUEVA ESTRUCTURA -->
+<h2><span class="n">11</span>Hacia la nueva estructura: variables y datos históricos</h2>
+<p class="bajada">Las variables que pediste para la sección de escenarios, y dónde están hoy: si entran en el índice, si se pueden mover en el simulador y si hay datos
+  históricos (en lo posible de años Niño) para fijar sus mínimos y máximos.</p>
+<p class="nota"><span class="pto si"></span>sí · <span class="pto parcial"></span>parcial o con supuesto · <span class="pto no"></span>no está</p>
+
+<table class="matriz">
+  <thead><tr><th>Variable</th><th>En el índice (motor 1)</th><th>En el simulador (motor 2)</th><th>Histórico disponible hoy</th></tr></thead>
+  <tbody>
+    <tr><td>Lluvia (cantidad y duración)</td>
+      <td><span class="pto parcial"></span>Solo como cociente mensual r = pronóstico / normal (SEAS5), y achicado por w = 0,10.</td>
+      <td><span class="pto si"></span>Tormenta de prueba: 0-300 mm en 1, 3, 6, 12 o 24 h. Presets 50, 150 y 392 mm.</td>
+      <td><span class="pto si"></span>ERA5 horario y archivo Open-Meteo diario 2005-2025 por punto; nov-feb de los Niños 2015-16 y 2023-24 por municipio.
+        Faltan máximos por duración (1, 3, 6, 24 h) calculados por zona.</td></tr>
+    <tr><td>Viento</td>
+      <td><span class="pto no"></span>No entra.</td>
+      <td><span class="pto no"></span>No entra (no hay oleaje ni sudestada en el modelo).</td>
+      <td><span class="pto parcial"></span>Solo pronóstico en la grilla del mapa. Sudestada (SHN) pendiente. ERA5 tiene viento histórico pero no se descargó.</td></tr>
+    <tr><td>Humedad del suelo</td>
+      <td><span class="pto no"></span>SEAS5 la trae, pero no se usa.</td>
+      <td><span class="pto si"></span>Arranca con la de Open-Meteo de hoy y evoluciona con Green-Ampt. No se puede mover a mano.</td>
+      <td><span class="pto parcial"></span>Open-Meteo/ERA5 la tienen para cualquier fecha pasada; no está descargada por temporada.</td></tr>
+    <tr><td>Lagunas y lagos (cuán llenos)</td>
+      <td><span class="pto parcial"></span>Indirecto: agua observada en los Niños (Dynamic World) dentro de la propensión.</td>
+      <td><span class="pto parcial"></span>Arrancan siempre llenas hasta la orilla. No se puede mover.</td>
+      <td><span class="pto si"></span>Dynamic World (Niños vs. sequía), MapBiomas agua 1985-2024, JRC 1984-2021.</td></tr>
+    <tr><td>Subida del río</td>
+      <td><span class="pto si"></span>Probabilidad de alerta y evacuación (GloFAS + curva INA), a ≤ 30 km.</td>
+      <td><span class="pto si"></span>Barra de −1 a +6 m sobre la altura de hoy (estación a ≤ 15 km).</td>
+      <td><span class="pto si"></span>INA desde 2015 con los Niños 2015-16 y 2023-24; GloFAS reanálisis por temporada.</td></tr>
+    <tr><td>Desagües pluviales</td>
+      <td><span class="pto no"></span>Indirecto: % sin cloaca en la vulnerabilidad.</td>
+      <td><span class="pto parcial"></span>Supuesto fijo de 10 mm/h en superficie impermeable.</td>
+      <td><span class="pto no"></span>Sin datos fuera de CABA (reclamos 147 y sumideros solo CABA).</td></tr>
+    <tr><td>Terreno, suelo y cobertura</td>
+      <td><span class="pto si"></span>HAND, pendiente p90, arcilla (fijos).</td>
+      <td><span class="pto si"></span>Relieve, textura y cobertura (fijos por lugar).</td>
+      <td><span class="pto si"></span>Fijos: no son variables de escenario.</td></tr>
+  </tbody>
+</table>
+
+<h3>Lectura rápida</h3>
+<div class="tres">
+  <div class="caja verde"><h4>Ya sirve para la sección 1</h4><p>Índice mensual, tiempo a 16 días, alertas, ríos y el simulador con lluvia real + pronóstico. Es lo que hoy está en las láminas 01 y 03.</p></div>
+  <div class="caja ocre"><h4>Base para la sección 2</h4><p>El simulador ya tiene barras de lluvia, duración y río. Faltan barras de humedad del suelo y nivel de lagunas, y fijar sus límites con los máximos y mínimos históricos de cada zona.</p></div>
+  <div class="caja rojo"><h4>Lo que habría que agregar</h4><p>Descarga de extremos históricos por zona (lluvia por duración, humedad, altura de río, agua en lagunas) en años Niño y, si no hay, en otros extremos. Viento solo tiene sentido con un modelo de sudestada.</p></div>
+</div>
+
+<!-- ============================================================ 12 PUNTOS DÉBILES -->
+<h2 class="sigue"><span class="n">12</span>Puntos débiles conocidos</h2>
+<div class="dos">
+  <div class="caja rojo"><h4>Índice</h4><ul>
+    <li>Peso del pronóstico estacional fijado con el acierto del pronóstico diario (w = 0,10): el índice casi no responde a la lluvia pronosticada.</li>
+    <li>Todo en rangos percentiles: «alto» es relativo a los demás municipios, no un umbral físico.</li>
+    <li>H río = 0 en el 90 % de los municipios (sin estación confiable a ≤ 30 km): es «sin información», no «sin amenaza».</li>
+    <li>SEAS5 a ≈ 36 km: municipios vecinos comparten el mismo factor de lluvia.</li></ul></div>
+  <div class="caja rojo"><h4>Simulador</h4><ul>
+    <li>Desagües pluviales supuestos (10 mm/h); sin bombeos ni defensas.</li>
+    <li>Lagunas siempre llenas al arrancar; el río con el nivel de una sola estación para todo el círculo.</li>
+    <li>CSI 0,36 apenas igual a la referencia trivial; el cuantil 40 % de orilla se eligió con los mismos datos (riesgo de sobreajuste).</li>
+    <li>Relieve con edificios y árboles fuera de las 20 ciudades FABDEM.</li></ul></div>
+</div>
+
+<script>
+// Línea del día: horarios del workflow en hora argentina (UTC − 3)
+const tareas = [["00:15 alertas", 0.25], ["03:15 alertas", 3.25], ["05:20 grilla del tiempo", 5.33], ["06:15 alertas", 6.25], ["07:40 lluvia 16 d + INA + riesgo + web", 7.67],
+  ["09:15 alertas", 9.25], ["12:15 alertas", 12.25], ["15:15 alertas", 15.25], ["17:20 grilla del tiempo", 17.33], ["18:15 alertas", 18.25], ["21:15 alertas", 21.25]];
+const dia = document.getElementById("dia");
+for (let h = 0; h <= 24; h += 3) dia.insertAdjacentHTML("beforeend", `<span class="h" style="left:${(h / 24) * 100}%">${String(h).padStart(2, "0")}h</span>`);
+for (const [n, h] of tareas) {
+  const fuerte = /riesgo|grilla/.test(n), alto = /riesgo/.test(n) ? 14 : /grilla/.test(n) ? 9 : 5;
+  dia.insertAdjacentHTML("beforeend", `<div class="t" style="left:${(h / 24) * 100}%;height:${alto}mm;background:${/riesgo/.test(n) ? "#0c5a69" : fuerte ? "#c48a2c" : "#9aa39e"}"><span>${n}</span></div>`);
+}
+</script>
+</body>
+</html>

@@ -42,6 +42,10 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
   `datos/tiempo.json`, `alertas.geojson`, `estaciones.geojson`, `riesgo.json` y `resumen.json`, que cambian todos los días).
   Al republicar subir también `datos/callejero/*` (`web/preparar_callejero.py`) y `datos/base/*` (`web/preparar_mapa_base.py`:
   calles y agua propias, no se commitea; en dos publicaciones porque supera 64 MB) si se regeneraron.
+- Reestructura pedida 14-nov (respaldo: etiqueta `respaldo-2026-11-14`): dos secciones, (1) situación de hoy + pronóstico en línea de
+  tiempo y (2) simulación de escenarios con barras entre mínimos y máximos históricos de cada zona en años Niño (si no hay, otros
+  extremos): lluvia y duración, viento, humedad del suelo, lagunas, río. Mapa de la estructura actual: `docs/mapa_proyecto/mapa_proyecto.html`
+  (PDF en `Mapa del proyecto - versiones/`). Esperando que lo revise antes de cambiar nada.
 - Rediseño «láminas» (13-nov): 01 y 02 iguales a la maqueta aprobada (`Propuestas de diseño`, fotos 6, 7 y 10); falta ajustar 03 y 04 a sus maquetas si lo pide, probar en el celular y republicar la versión privada de claude.ai.
 - Pedido 10-nov (`docs/02_plan_cambios_nov.md`): tandas 1 a 6 publicadas (colores, capas, filtros, período, Situación con tortas y
   recomendaciones, análisis tipo Power BI, encabezado con fuentes por tipo y recorrido guiado en `web/guia.js`) y tandas 7-8
