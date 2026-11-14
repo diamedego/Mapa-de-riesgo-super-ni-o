@@ -81,11 +81,19 @@ function pintarCabezaLectura(A, rV, pobAlto, evac) {
   const pers = pobAlto >= 1e6 ? t("personas_txt")(fmt(pobAlto / 1e6, 1), true) : t("personas_txt")(fmt(Math.round(pobAlto)), false);
   document.getElementById("lec-bajada").textContent = mp ? (evac ? t("lec_bajada")(capitalizar(pers), evac, mesLargo(mp)) : t("lec_bajada_sin")(capitalizar(pers), mesLargo(mp))) : "";
   document.getElementById("escala-sub").textContent = t("escala_sub")(pais ? t("el_pais") : A.nombre);
-  // Regla de 0 a 10 con los cortes del índice y una aguja en el valor de hoy
-  const cortes = [0, ...CORTES, 10], nombres = t("niveles_cortos");
-  document.getElementById("lec-escala").innerHTML = `<div class="regla"><div class="regla-aguja" style="left:${limitar(rV, 0, 10) * 10}%">${fmtRiesgo(rV)}</div>
-    <div class="regla-barra">${cortes.slice(1).map((c, i) => `<i style="flex:${c - cortes[i]};background:var(--r${i + 1})"></i>`).join("")}</div>
-    <div class="regla-marcas">${cortes.map((c) => `<span style="left:${c * 10}%">${fmt(c, c % 1 ? 1 : 0)}</span>`).join("")}${cortes.slice(1).map((c, i) => `<em style="left:${(c + cortes[i]) * 5}%">${nombres[i]}</em>`).join("")}</div></div>`;
+  // Indicador de aguja de 0 a 10: un tramo por nivel del índice y la aguja en el valor de hoy
+  const cortes = [0, ...CORTES, 10], nombres = t("niveles_cortos"), cx = 115, cy = 108, R = 82, v = limitar(rV, 0, 10);
+  const pt = (val, r) => { const a = Math.PI * (1 - val / 10); return [(cx + r * Math.cos(a)).toFixed(1), (cy - r * Math.sin(a)).toFixed(1)]; };
+  let ag = "";
+  cortes.slice(1).forEach((c, i) => {
+    const a = pt(cortes[i] + (i ? 0.07 : 0), R), b = pt(c - (c < 10 ? 0.07 : 0), R);
+    ag += `<path d="M${a[0]} ${a[1]}A${R} ${R} 0 0 1 ${b[0]} ${b[1]}" fill="none" stroke-width="15" style="stroke:var(--r${i + 1})"><title>${nombres[i]}: ${fmt(cortes[i], cortes[i] % 1 ? 1 : 0)}–${fmt(c, c % 1 ? 1 : 0)}</title></path>`;
+  });
+  cortes.forEach((c) => { const q = pt(c, R + 17); ag += `<text x="${q[0]}" y="${c === 0 || c === 10 ? cy + 16 : q[1]}" text-anchor="middle" dominant-baseline="middle">${fmt(c, c % 1 ? 1 : 0)}</text>`; });
+  const punta = pt(v, R - 13);
+  ag += `<line x1="${cx}" y1="${cy}" x2="${punta[0]}" y2="${punta[1]}" stroke-width="2.5" stroke-linecap="round" style="stroke:var(--tinta-1)"/><circle cx="${cx}" cy="${cy}" r="5.5" style="fill:var(--tinta-1)"/>`;
+  ag += `<text class="v" x="${cx}" y="${cy + 34}" text-anchor="middle">${fmtRiesgo(rV)} · ${escapar(nombreNivel(rV))}</text>`;
+  document.getElementById("lec-escala").innerHTML = `<svg class="aguja" viewBox="0 0 230 150" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${fmtRiesgo(rV)} / 10 · ${escapar(nombreNivel(rV))}">${ag}</svg>`;
   // Camino al pico: estaciones con 50 % o más de probabilidad de evacuación, mes a mes
   const res = estado.datos.resumen, meses = res?.meses ?? [];
   const vals = meses.map((m) => res.por_mes?.[m]?.estaciones_prob_evacuacion_50 ?? 0);

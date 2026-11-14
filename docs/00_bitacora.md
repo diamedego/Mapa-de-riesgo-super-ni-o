@@ -660,3 +660,6 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 ### 13-nov — Indicadores: barra de color y cuadro del ícono
 - La barra de color de cada indicador ya no pisa la etiqueta (la etiqueta se corre 10 px).
 - El cuadro del ícono se pinta con el color del indicador al 20 % de opacidad (80 % transparente) y borde del mismo color.
+
+### 13-nov — Escala de riesgo como indicador de aguja
+- En la lámina 01 la regla de 0 a 10 pasó a ser un medidor semicircular: un tramo por nivel (cortes 3, 4,5, 6 y 7), aguja en el valor de hoy y el valor con su nivel debajo.
