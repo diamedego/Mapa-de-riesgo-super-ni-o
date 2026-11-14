@@ -212,7 +212,7 @@ function dibujarDetalle() {
   const caja = document.getElementById("detalle"), cv = document.getElementById("detalle-lienzo");
   if (!caja || typeof mapa === "undefined" || !estado.riesgo) return;
   // Sin selección: el Litoral (recuadro A). Con un punto, una localidad, un partido o una provincia: lo elegido
-  const sel = estado.sel, ver = estado.capa === "riesgo" && innerWidth > 1100 && (sel || verPlanoNacional());
+  const sel = estado.sel, ver = estado.capa === "riesgo" && (sel || verPlanoNacional());   // también en el celular (debajo del mapa)
   caja.hidden = !ver;
   if (!ver) return;
   let cajaD = CAJA_A, titulo = t("detalle_litoral");
