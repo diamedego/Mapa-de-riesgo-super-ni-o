@@ -1363,3 +1363,13 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
 .esc-peor { margin: 0; font-size: 11.5px; line-height: 1.35; color: var(--tinta-3); }
 .esc-peor.listo { color: var(--critico); font-weight: 600; }
 .esc-peor:empty { display: none; }
+
+/* Cuadro informativo de todos los Niños (pie del simulador) */
+.tabla-ninos { overflow-x: auto; }
+.tabla-ninos table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.tabla-ninos th { padding: 5px 6px; text-align: left; font: 500 9.5px var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--tinta-3); border-bottom: 1px solid var(--marco); }
+.tabla-ninos td { padding: 5px 6px; border-bottom: 1px solid var(--borde); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tabla-ninos tr.incompleto td { color: var(--tinta-3); }
+.tabla-ninos tr.peor td { color: var(--critico); font-weight: 600; }
+.tabla-ninos .barrita { display: inline-block; width: 50px; height: 6px; margin-right: 6px; background: var(--superficie-3); vertical-align: middle; }
+.tabla-ninos .barrita i { display: block; height: 100%; background: var(--cian); }

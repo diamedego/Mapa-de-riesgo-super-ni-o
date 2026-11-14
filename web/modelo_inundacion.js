@@ -123,7 +123,7 @@ const NINOS = [
   [1991, "fuerte"], [1994, "moderado"], [1997, "muy_fuerte"], [2002, "moderado"], [2004, "debil"], [2006, "debil"], [2009, "moderado"], [2014, "debil"],
   [2015, "muy_fuerte"], [2018, "debil"], [2023, "fuerte"],
 ];
-const DUR_MAX = 72;
+const DUR_MAX = 72, DESDE_COMPLETO = 1997;   // desde 1997-98 hay todo: lluvia con satélites (ERA5 desde 1979) y caudal de ríos (GloFAS)
 const ARCHIVO = "https://archive-api.open-meteo.com/v1/archive", ZONA = "&timezone=America%2FArgentina%2FBuenos_Aires";
 const sumarDiasISO = (iso, n) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 // Lluvia hora por hora de unos días (con un reintento: el archivo limita las consultas por minuto)
@@ -151,10 +151,18 @@ const cacheHistorico = new Map();
 function historicoNino(punto) {
   const [lon, lat] = punto.map((v) => v.toFixed(2)), clave = `${lon},${lat}`;
   if (!cacheHistorico.has(clave)) cacheHistorico.set(clave, (async () => {
-    const d = await fetch(`${ARCHIVO}?latitude=${lat}&longitude=${lon}&start_date=1951-10-01&end_date=2024-04-30&daily=precipitation_sum,soil_moisture_0_to_7cm_mean,et0_fao_evapotranspiration_sum${ZONA}`)
-      .then((r) => (r.ok ? r.json() : null)).catch(() => null)
-      .then(async (x) => x ?? (await new Promise((ok) => setTimeout(ok, 2000)), await fetch(`${ARCHIVO}?latitude=${lat}&longitude=${lon}&start_date=1951-10-01&end_date=2024-04-30&daily=precipitation_sum,soil_moisture_0_to_7cm_mean,et0_fao_evapotranspiration_sum${ZONA}`)
-        .then((r) => (r.ok ? r.json() : null)).catch(() => null)));   // un reintento (límite por minuto)
+    // Dos consultas livianas: la lluvia diaria de 1951 a 2024 (para todos los Niños) y la humedad del suelo y la evaporación solo
+    // desde 1997 (los Niños con datos completos, los únicos que entran en los cálculos)
+    const pedirDiario = (desde, vars) => {
+      const u = `${ARCHIVO}?latitude=${lat}&longitude=${lon}&start_date=${desde}&end_date=2024-04-30&daily=${vars}${ZONA}`;
+      return fetch(u).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+        .then(async (x) => x ?? (await new Promise((ok) => setTimeout(ok, 2000)), await fetch(u).then((r) => (r.ok ? r.json() : null)).catch(() => null)));   // un reintento
+    };
+    const [d, d2] = await Promise.all([pedirDiario("1951-10-01", "precipitation_sum"), pedirDiario(`${DESDE_COMPLETO}-10-01`, "soil_moisture_0_to_7cm_mean,et0_fao_evapotranspiration_sum")]);
+    if (d?.daily && d2?.daily) {   // humedad y evaporación en la misma línea de tiempo (vacías antes de 1997)
+      const off = d.daily.time.indexOf(d2.daily.time[0]);
+      for (const k of ["soil_moisture_0_to_7cm_mean", "et0_fao_evapotranspiration_sum"]) d.daily[k] = d.daily.time.map((_, i) => (i >= off ? d2.daily[k][i - off] : null));
+    } else if (d?.daily) for (const k of ["soil_moisture_0_to_7cm_mean", "et0_fao_evapotranspiration_sum"]) d.daily[k] = d.daily.time.map(() => null);
     const D = d?.daily;
     if (!D?.time?.length) { cacheHistorico.delete(clave); return null; }
     const idx = new Map(D.time.map((t, i) => [t, i])), ninos = [], hum = [];
@@ -165,14 +173,14 @@ function historicoNino(punto) {
       const p = D.precipitation_sum.slice(a, b + 1).map((v) => v ?? 0);
       let mejor = -1, k0 = 0;
       for (let k = 0; k + 2 < p.length; k++) { const s3 = p[k] + p[k + 1] + p[k + 2]; if (s3 > mejor) { mejor = s3; k0 = k; } }
-      for (let i = a; i <= b; i++) { const v = D.soil_moisture_0_to_7cm_mean[i]; if (v != null) hum.push(v); const e = D.et0_fao_evapotranspiration_sum[i]; if (e != null) { sEt += e; nEt++; } }
-      ninos.push({ temporada: `${anio}-${String(anio + 1).slice(2)}`, anio, intensidad,
+      if (anio >= DESDE_COMPLETO) for (let i = a; i <= b; i++) { const v = D.soil_moisture_0_to_7cm_mean[i]; if (v != null) hum.push(v); const e = D.et0_fao_evapotranspiration_sum[i]; if (e != null) { sEt += e; nEt++; } }
+      ninos.push({ temporada: `${anio}-${String(anio + 1).slice(2)}`, anio, intensidad, completo: anio >= DESDE_COMPLETO,
         evento: mejor > 0 ? { total: mejor, dias: [D.time[a + k0], D.time[a + k0 + 2]], thetaDia: D.soil_moisture_0_to_7cm_mean[a + k0 - 1] ?? null } : null });
     }
     // Máximos provisorios de la barra de lluvia con el dato diario (1 día para ≤ 24 h, 2 para ≤ 48 h, 3 para más); se afinan
     // con la lluvia horaria apenas llega
     const lluvia = Array.from({ length: DUR_MAX + 1 }, () => ({ max: 0, temporada: null }));
-    for (const n of ninos) {
+    for (const n of ninos.filter((x) => x.completo)) {
       const a = idx.get(`${n.anio}-10-01`), b = idx.get(`${n.anio + 1}-04-30`), p = D.precipitation_sum.slice(a, b + 1).map((v) => v ?? 0);
       for (const k of [1, 2, 3]) {
         let m = 0;
@@ -185,8 +193,8 @@ function historicoNino(punto) {
     R.horarias = (async () => {
       // Las tormentas de todos los Niños hora por hora (de a 9 consultas) y los 5 días más lluviosos (máximos de pocas horas)
       const dias = [];
-      for (const n of ninos) { const a = idx.get(`${n.anio}-10-01`), b = idx.get(`${n.anio + 1}-04-30`); for (let i = a; i <= b; i++) dias.push([D.precipitation_sum[i] ?? 0, D.time[i]]); }
-      const conEv = ninos.filter((n) => n.evento), top1 = dias.sort((x, y) => y[0] - x[0]).slice(0, 5).map(([, t]) => [t, t]);
+      for (const n of ninos.filter((x) => x.completo)) { const a = idx.get(`${n.anio}-10-01`), b = idx.get(`${n.anio + 1}-04-30`); for (let i = a; i <= b; i++) dias.push([D.precipitation_sum[i] ?? 0, D.time[i]]); }
+      const conEv = ninos.filter((n) => n.evento && n.completo), top1 = dias.sort((x, y) => y[0] - x[0]).slice(0, 5).map(([, t]) => [t, t]);
       const tramos = [...conEv.map((n) => n.evento.dias), ...top1].map(([x, y]) => [sumarDiasISO(x, -1), sumarDiasISO(y, 1)]), horarias = [];
       for (let i = 0; i < tramos.length; i += 9) horarias.push(...await Promise.all(tramos.slice(i, i + 9).map(([x, y]) => lluviaHoraria(lat, lon, x, y))));
       conEv.forEach((n, k) => { if (horarias[k]) n.evento.horaria = tormentaHoraria(horarias[k]); });

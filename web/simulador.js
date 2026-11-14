@@ -59,7 +59,10 @@ function estacionCercana(d) {
     .filter((e) => e.km <= 15 && e.h != null && (e.nivel_evacuacion != null || e.nivel_alerta != null))
     .map((e) => ({ ...e, ref: e.nivel_evacuacion ?? e.nivel_alerta + 0.5 })).sort((a, b) => a.km - b.km)[0] ?? null;
 }
-let cargaRiosExtremos = null, cargaRiosNinos = null;
+let cargaRiosExtremos = null, cargaRiosNinos = null, cargaRiosResumen = null;
+const riosResumen = () => (cargaRiosResumen ??= fetch("datos/rios_ninos_resumen.json").then((r) => (r.ok ? r.json() : {})).catch(() => ({})));
+// Crecida del río en toda la temporada de un Niño (máximo, fecha y días sobre evacuación): INA medido o GloFAS + curva
+const rioTemporada = (tp) => (SIM.hist?.est ? SIM.hist.rioTemp?.[tp] ?? null : null);
 const riosExtremos = () => (cargaRiosExtremos ??= fetch("datos/rios_extremos.json").then((r) => (r.ok ? r.json() : {})).catch(() => ({})));
 const riosNinos = () => (cargaRiosNinos ??= fetch("datos/rios_ninos.json").then((r) => (r.ok ? r.json() : {})).catch(() => ({})));
 // Altura del río medida el día que empezó la tormenta de ese Niño (solo hay alturas del INA en 2015-16 y 2023-24)
@@ -69,11 +72,11 @@ const rioDelEvento = (ev) => (SIM.hist?.est && ev ? SIM.hist.riosNinos?.[String(
 async function iniciarEscenario() {
   const d = SIM.datos;
   avisoProgreso(t("sim_hist_cargando"));
-  const [H, X, RN, hoy, suelo] = await Promise.all([historicoNino(d.s.punto), riosExtremos(), riosNinos(), humedadHoy(d.s.punto),
+  const [H, X, RN, RR, hoy, suelo] = await Promise.all([historicoNino(d.s.punto), riosExtremos(), riosNinos(), riosResumen(), humedadHoy(d.s.punto),
     sueloEn(d.s.punto).catch(() => null).then((x) => x ?? { ...TEXTURAS.franco, nombre: "franco", supuesto: true })]);
   if (SIM.datos !== d) return;
   const est = estacionCercana(d);
-  SIM.hist = { H, est, rio: est ? X[String(est.estacion_id)] ?? null : null, riosNinos: RN, humedadHoy: hoy, suelo, peor: null };
+  SIM.hist = { H, est, rio: est ? X[String(est.estacion_id)] ?? null : null, riosNinos: RN, rioTemp: est ? RR[String(est.estacion_id)] ?? null : null, humedadHoy: hoy, suelo, peor: null };
   SIM.esc = { horas: 3, mm: 0, theta: 0.3, lagos: 0, rio: est?.h ?? 0, crecida: 0, desague: 10, nino: null, perfil: null, forma: null };
   aplicarCondicionesHoy(false);
   // Sin lluvia: la maqueta queda seca, tal como se ve en la imagen satelital (no hay agua de hoy medida por satélite para el
@@ -98,7 +101,7 @@ async function aplicarNino(temporada) {
   const ev = await eventoHorario(SIM.hist.H, n);
   avisoProgreso("");
   if (!ev) return;
-  const E = SIM.esc, rio = rioDelEvento(ev);
+  const E = SIM.esc, rio = rioTemporada(temporada)?.max ?? rioDelEvento(ev);   // lo peor de ese Niño: la crecida máxima de la temporada
   Object.assign(E, { nino: temporada, forma: temporada, horas: ev.dur, perfil: ev.lluvia.map((v) => v / ev.total), lagos: 0,
     theta: ev.theta ?? E.theta, ...(rio != null ? { rio } : {}) });
   E.mm = Math.round(ev.total);
@@ -141,7 +144,7 @@ const cnTextura = (nombre = "") => (/^arcill/.test(nombre) ? 84 : /arcill/.test(
 //    cuánto cayó y en cuánto tiempo;
 //  · desniveles: esa agua se junta en los bajos (se divide por su fracción del círculo) y se va más rápido con pendiente;
 //  · río: si ese día (o hoy, sin medición) estaba por encima del nivel de evacuación, lo que lo supera se suma en los bajos.
-function indiceNino(ev) {
+function indiceNino(ev, temporada) {
   const L = rasgosLugar(), E = SIM.esc, suelo = SIM.modelo?.suelo ?? SIM.hist.suelo;
   if (!ev || !L) return null;
   const cn2 = cnTextura(suelo?.nombre), cn1 = (4.2 * cn2) / (10 - 0.058 * cn2), cn3 = (23 * cn2) / (10 + 0.13 * cn2);
@@ -150,14 +153,14 @@ function indiceNino(ev) {
   const S = 25400 / cn - 254, P = ev.total, qPerm = P > 0.2 * S ? (P - 0.2 * S) ** 2 / (P + 0.8 * S) : 0;
   const qImp = ev.lluvia.reduce((a, v) => a + Math.max(0, v - E.desague), 0);
   const escurre = (1 - L.imp) * qPerm + L.imp * qImp;
-  const est = SIM.hist.est, rio = est ? (rioDelEvento(ev) ?? est.h) - est.ref : 0;
+  const est = SIM.hist.est, hRio = est ? rioTemporada(temporada)?.max ?? rioDelEvento(ev) : null, rio = hRio != null ? hRio - est.ref : 0;   // sin dato del río: no suma
   return { mm: escurre / Math.max(0.05, L.fBajo) / (1 + L.pend) + Math.max(0, rio) * 1000, escurre, cn };
 }
 function calcularPeor() {
   const H = SIM.hist?.H;
   if (!H?.ninos.length || !SIM.datos) return null;
   let peor = null;
-  for (const n of H.ninos) { const ix = n.evento?.horaria ? indiceNino(n.evento.horaria) : null; if (ix && (!peor || ix.mm > peor[1])) peor = [n.temporada, ix.mm]; }
+  for (const n of H.ninos.filter((x) => x.completo)) { const ix = n.evento?.horaria ? indiceNino(n.evento.horaria, n.temporada) : null; if (ix && (!peor || ix.mm > peor[1])) peor = [n.temporada, ix.mm]; }
   return (SIM.hist.peor = peor);
 }
 
@@ -166,8 +169,9 @@ function opcionesNino() {
   const H = SIM.hist?.H, E = SIM.esc, peor = SIM.hist?.peor?.[0];
   if (!H?.ninos.length) return "";
   const fecha = (iso) => new Date(`${iso}T12:00:00-03:00`).toLocaleDateString(loc(), { day: "numeric", month: "short", year: "numeric" });
-  return `<option value="">${t(E.forma && !E.nino ? "sim_nino_forma" : "sim_nino_propio")(E.forma ?? "")}</option>` + [...H.ninos].reverse().map((n) => {
-    const ev = n.evento, txt = ev ? `${n.temporada} · ${t(`int_${n.intensidad}`)} · ${t("sim_mm_en_3d")(fmt(ev.total))} · ${fecha(ev.dias[0])}` : `${n.temporada} · ${t("sin_dato")}`;
+  return `<option value="">${t(E.forma && !E.nino ? "sim_nino_forma" : "sim_nino_propio")(E.forma ?? "")}</option>` + H.ninos.filter((x) => x.completo).reverse().map((n) => {
+    const ev = n.evento, rt = rioTemporada(n.temporada), rio = SIM.hist.est ? ` · ${rt ? t("sim_rio_dias")(rt.dias) : t("sim_rio_sin_dato_c")}` : "";
+    const txt = ev ? `${n.temporada} · ${t(`int_${n.intensidad}`)} · ${t("sim_mm_en_3d")(fmt(ev.total))} · ${fecha(ev.dias[0])}${rio}` : `${n.temporada} · ${t("sin_dato")}`;
     return `<option value="${n.temporada}"${E.nino === n.temporada ? " selected" : ""}${ev ? "" : " disabled"}${n.temporada === peor ? ' class="peor"' : ""}>${n.temporada === peor ? "▲ " : ""}${txt}</option>`;
   }).join("");
 }
@@ -197,7 +201,8 @@ function limitesEscenario() {
   if (e && R) {
     const r = R.nino ?? R.todo, delEv = ev ? rioDelEvento(ev) : null;
     rio = { min: Math.min(r.min, e.h), max: Math.max(r.max, e.h), estacion: e,
-      fuente: ev ? (delEv != null ? t("sim_r_rio_dia")(ev.ini.slice(0, 10).split("-").reverse().join("-")) : t("sim_rio_sin_medicion"))
+      fuente: ev ? (rioTemporada(E.nino) ? t("sim_r_rio_max")(rioTemporada(E.nino).fecha.split("-").reverse().join("-"), rioTemporada(E.nino).fuente)
+        : delEv != null ? t("sim_r_rio_dia")(ev.ini.slice(0, 10).split("-").reverse().join("-")) : t("sim_rio_sin_medicion"))
         : R.nino ? t("sim_r_nino")(R.nino.temporada_max) : t("sim_r_registro")(R.todo.desde.slice(0, 4)) };
   } else rio = { min: -1, max: 6, fuente: t("sim_r_supuesto"), estacion: null };
   return { lluvia, humedad, rio, horas: { fuente: ev ? t("sim_r_evento")(E.nino) : E.forma ? t("sim_nino_forma")(E.forma) : "" },
@@ -242,6 +247,24 @@ function pintarEscenario() {
   document.getElementById("esc-hoy").onclick = () => aplicarCondicionesHoy();
   document.getElementById("esc-peor").onclick = aplicarPeorNino;
   pintarPeorLinea();
+  pintarTablaNinos();
+}
+
+// Cuadro informativo al pie del simulador: los 27 Niños desde 1951, con su peor tormenta y el río; solo los de datos completos
+// (desde 1997-98) se usan en el selector y en el cálculo del peor
+function pintarTablaNinos() {
+  const cont = document.getElementById("sim-ninos"), H = SIM.hist?.H;
+  if (!cont) return;
+  if (!H?.ninos.length) { cont.innerHTML = ""; return; }
+  const max = Math.max(...H.ninos.map((n) => n.evento?.total ?? 0)), peor = SIM.hist.peor?.[0];
+  const datos = (n) => (n.completo ? t("sim_tabla_completo") : n.anio >= 1979 ? t("sim_tabla_sin_rio") : t("sim_tabla_sin_sat"));
+  cont.innerHTML = `<h3 class="sim-h3">${t("sim_tabla_t")}</h3><p class="sim-periodo-nota">${t("sim_tabla_sub")}</p>
+    <div class="tabla-ninos"><table><thead><tr><th>${t("sim_f_nino")}</th><th>${t("sim_tabla_int")}</th><th>${t("sim_tabla_lluvia")}</th><th>${t("sim_tabla_rio")}</th><th>${t("sim_tabla_datos")}</th></tr></thead><tbody>
+    ${[...H.ninos].reverse().map((n) => { const ev = n.evento, rt = rioTemporada(n.temporada);
+      return `<tr class="${n.completo ? "" : "incompleto"}${n.temporada === peor ? " peor" : ""}"><td>${n.temporada === peor ? "▲ " : ""}${n.temporada}</td><td>${t(`int_${n.intensidad}`)}</td>
+        <td><span class="barrita"><i style="width:${ev ? (100 * ev.total / max).toFixed(0) : 0}%"></i></span>${ev ? `${fmt(ev.total)} mm` : "–"}</td>
+        <td>${!SIM.hist.est ? "–" : rt ? `${fmt(rt.max, 2)} m · ${t("sim_dias_evac")(rt.dias)}` : t("sim_rio_sin_dato_c")}</td><td>${datos(n)}</td></tr>`; }).join("")}
+    </tbody></table></div>`;
 }
 
 // Resultado de la validación contra el satélite (herramientas/validacion/validar.py); null si todavía no existe
@@ -1808,6 +1831,7 @@ function pintarPanelSimulador(d) {
       <button type="button" class="btn-primario" id="sim-periodo-ir" disabled>${t("sim_per_ir")}</button>
       <p class="sim-periodo-nota">${t("sim_per_nota")}</p>
     </div>
+    <div class="sim-ninos" id="sim-ninos"></div>
     <details class="sim-metodo"><summary>${t("sim_como")}</summary><p>${t("sim_metodo")}</p><p id="sim-supuestos"></p></details>
     </div>`;
   const barra = document.getElementById("sim-barra");
