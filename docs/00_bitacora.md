@@ -652,3 +652,7 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 - Lámina 02: panel derecho con «¿Hasta dónde llega el agua?», lluvia a simular (− / +), «Cae en», ▶, 6 indicadores y validación
   (acierto CSI frente a JRC y modelo vs. satélite). El modelo, la maqueta 3D y el resto de los controles quedan igual, debajo.
 - Verificado por DOM en 1440, 1280 y 390 px, ES/EN, tema oscuro, capas, pronóstico, buscador y láminas 03-04.
+
+## 13-nov-2026 — Maqueta 3D como terrón arrancado
+- Debajo del círculo satelital, un terrón de tierra irregular que se afina hasta una punta (anillos con ruido en radio y profundidad,
+  vetas de color), en lugar de la pared recta y la base plana. Cámara un poco más baja para verlo de costado. El modelo no cambia.

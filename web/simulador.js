@@ -860,25 +860,28 @@ async function crearMaqueta() {
     }
     borde.push({ x: Math.cos(an) * R * m, z: Math.sin(an) * R * m, i });
   }
-  const pared = new THREE.BufferGeometry(), capas = [[0, [150, 120, 85]], [0.3, [122, 94, 64]], [0.65, [98, 76, 53]], [1, [78, 60, 44]]];
-  const pi = [];
-  for (let k = 0; k < N; k++) for (let j = 0; j < 3; j++) { const a = k * 4 + j, b = a + 4; pi.push(a, a + 1, b, b, a + 1, b + 1); }
-  pared.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array((N + 1) * 4 * 3), 3));
-  pared.setAttribute("color", new THREE.Float32BufferAttribute(borde.flatMap(() => capas.flatMap(([, c]) => c.map((v) => v / 255))), 3));
+  // Terrón: el círculo parece arrancado de la tierra. Debajo del borde, un cono de tierra irregular que se afina hasta
+  // una punta (anillos con ruido en el radio y en la profundidad, caras planas para que se vea rugoso). Es decorativo.
+  const J = TERRON_ANILLOS, terron = terronForma(N, J, R * m), pared = new THREE.BufferGeometry(), pi = [];
+  for (let k = 0; k < N; k++) for (let j = 0; j < J; j++) { const a = k * (J + 1) + j, b = a + J + 1; pi.push(a, a + 1, b, b, a + 1, b + 1); }
+  pared.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array((N + 1) * (J + 1) * 3), 3));
+  pared.setAttribute("color", new THREE.Float32BufferAttribute(terron.color, 3));
   pared.setIndex(pi);
   const matPared = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
-  escena.add(new THREE.Mesh(pared, matPared));
+  const mallaPared = new THREE.Mesh(pared, matPared);
+  mallaPared.frustumCulled = false;   // la forma cambia con cada hora: que no quede afuera por una esfera vieja
+  escena.add(mallaPared);
   const matBase = new THREE.MeshLambertMaterial({ color: 0x4f3e2c, side: THREE.DoubleSide });
   const base = new THREE.Mesh(new THREE.CircleGeometry(R * m, 128), matBase);
-  base.rotation.x = Math.PI / 2; escena.add(base);
-  const sombra = new THREE.Mesh(new THREE.CircleGeometry(R * m * 1.07, 96), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.12 }));
+  base.rotation.x = Math.PI / 2; base.visible = false; escena.add(base);
+  const sombra = new THREE.Mesh(new THREE.CircleGeometry(R * m * 0.75, 96), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.07 }));
   sombra.rotation.x = -Math.PI / 2; escena.add(sombra);
   escena.add(new THREE.AmbientLight(0xffffff, 0.62));
   const sol = new THREE.DirectionalLight(0xffffff, 0.75); sol.position.set(-1, 1.4, -0.6); escena.add(sol);
   const cam = new THREE.PerspectiveCamera(32, 1, 10, 1e7);
-  const M = { capa, ren, escena, cam, geo, pared, base, sombra, tex, textura, sat, celdas, borde, R: R * m,
+  const M = { capa, ren, escena, cam, geo, pared, base, sombra, tex, textura, sat, celdas, borde, terron, R: R * m,
     x0, y0, bw, bh, S, cx, cy, materiales: [matTerreno, matPared, matBase], plano: new THREE.Plane(new THREE.Vector3(0, 0, -1), 0), tapa: new THREE.Group(),
-    azimut: 0.9, elevacion: 0.42, distancia: 0.7, dibujar: 0, mmCharcos: null };
+    azimut: 0.9, elevacion: 0.34, distancia: 0.7, dibujar: 0, mmCharcos: null };
   escena.add(M.tapa);
   M.part = crearParticulas();
   if (!SIM.industrias) SIM.industrias = await fetch("datos/industrias.geojson").then((r) => r.json()).then((g) => g.features.filter((f) => distanciaKm(d.s.punto, f.geometry.coordinates) <= d.s.km)).catch(() => []);
@@ -983,6 +986,35 @@ function moverLineas(P) {
   }
 }
 
+// Forma del terrón (fija para cada lugar): factor de radio, corrimientos y profundidad de cada vértice, y su color de tierra
+const TERRON_ANILLOS = 16;
+function terronForma(N, J, Rm) {
+  let semilla = 7;
+  const azar = () => ((semilla = (semilla * 16807) % 2147483647) / 2147483647);
+  const ondas = (n) => Array.from({ length: n }, (_, i) => ({ f: 2 + i * 2 + Math.floor(azar() * 3), fase: azar() * 6.283, a: 1 / (1 + i * 0.8) }));
+  const oR = ondas(6), oY = ondas(5), oC = ondas(4);
+  const ruido = (o, a, t) => o.reduce((s, w) => s + w.a * Math.sin(w.f * a + w.fase + t * (2 + w.f * 0.7)), 0) / o.reduce((s, w) => s + w.a, 0);
+  const prof = Rm * 0.75, punta = [(azar() - 0.5) * Rm * 0.18, (azar() - 0.5) * Rm * 0.18];
+  const n = (N + 1) * (J + 1), rf = new Float32Array(n), dx = new Float32Array(n), dy = new Float32Array(n), dz = new Float32Array(n), color = new Float32Array(n * 3);
+  for (let k = 0; k <= N; k++) {
+    const a = ((k % N) / N) * Math.PI * 2;
+    for (let j = 0; j <= J; j++) {
+      const v = k * (J + 1) + j, t = j <= 1 ? 0 : (j - 1) / (J - 1), grano = azar();
+      // Anillo 0: borde del terreno; anillo 1: capa de suelo vertical; después el cono se cierra hacia la punta
+      const perfil = j <= 1 ? 1 : Math.pow(1 - t, 0.75) * (1 + 0.16 * ruido(oR, a, t) * Math.sin(Math.PI * Math.min(1, t * 1.6)) + (grano - 0.5) * 0.05 * (1 - t));
+      rf[v] = Math.max(0.015, perfil);
+      dx[v] = punta[0] * Math.pow(t, 2); dz[v] = punta[1] * Math.pow(t, 2);
+      dy[v] = j === 0 ? 0 : j === 1 ? prof * 0.035 : prof * (0.035 + 0.965 * Math.pow(t, 0.9) * (1 + 0.22 * ruido(oY, a, 0.3) * t) + (grano - 0.5) * 0.02);
+      // Color: suelo oscuro arriba (con raíces), tierra más clara y veteada abajo
+      const veta = 0.5 + 0.5 * ruido(oC, a, t * 3), c = j <= 1 ? [62, 46, 31] : [
+        118 + 38 * veta - 26 * t, 92 + 28 * veta - 22 * t, 62 + 20 * veta - 16 * t];
+      const luz = 0.86 + grano * 0.28;
+      for (let q = 0; q < 3; q++) color[v * 3 + q] = Math.min(255, c[q] * luz) / 255;
+    }
+  }
+  return { rf, dx, dy, dz, color, prof };
+}
+
 // ---------- Dibujo de la maqueta ----------
 // Alturas (terreno + bajos llenos, ×5 si está prendido)
 function alturasMaqueta() {
@@ -998,13 +1030,16 @@ function alturasMaqueta() {
   const P = M.geo.attributes.position;
   M.celdas.forEach((i, k) => P.setY(k, altura(i)));
   P.needsUpdate = true; M.geo.computeVertexNormals();
-  const Q = M.pared.attributes.position;
+  const Q = M.pared.attributes.position, T = M.terron, J = TERRON_ANILLOS;
   M.borde.forEach((b, k) => {
     const arriba = altura(b.i);
-    [0, 0.3, 0.65, 1].forEach((f, j) => Q.setXYZ(k * 4 + j, b.x, arriba + (fondo - arriba) * f, b.z));
+    for (let j = 0; j <= J; j++) {
+      const v = k * (J + 1) + j, rf = T.rf[v];
+      Q.setXYZ(v, b.x * rf + T.dx[v], j === 0 ? arriba : fondo - T.dy[v], b.z * rf + T.dz[v]);
+    }
   });
-  Q.needsUpdate = true; M.pared.computeVertexNormals();
-  M.base.position.y = fondo; M.sombra.position.y = fondo - 1;
+  Q.needsUpdate = true; M.pared.computeVertexNormals(); M.pared.computeBoundingSphere();
+  M.base.position.y = fondo; M.sombra.position.y = fondo - T.prof * 1.25;
   M.fondo = fondo; M.alto = (d.hMax - piso) * ex;
 }
 
@@ -1089,10 +1124,10 @@ function pedirCuadroMaqueta() {
     const r = M.R, aspecto = M.cam.aspect;
     // Distancia para que entre el círculo entero (en pantallas angostas, por el ancho)
     const fovV = (M.cam.fov * Math.PI) / 180, fovH = 2 * Math.atan(Math.tan(fovV / 2) * aspecto);
-    const dist = (r * 1.25 / Math.sin(Math.min(fovV, fovH) / 2)) * M.distancia;
+    const dist = (r * 1.38 / Math.sin(Math.min(fovV, fovH) / 2)) * M.distancia, bajar = SIM.corte3d ? 0 : (M.terron?.prof ?? 0) * 0.32;
     const ce = Math.cos(M.elevacion);
-    M.cam.position.set(Math.sin(M.azimut) * ce * dist, Math.sin(M.elevacion) * dist + (M.fondo ?? 0) * 0.3, Math.cos(M.azimut) * ce * dist);
-    M.cam.lookAt(0, ((M.fondo ?? 0) + (M.alto ?? 0)) * 0.3, 0);
+    M.cam.position.set(Math.sin(M.azimut) * ce * dist, Math.sin(M.elevacion) * dist + (M.fondo ?? 0) * 0.3 - bajar, Math.cos(M.azimut) * ce * dist);
+    M.cam.lookAt(0, ((M.fondo ?? 0) + (M.alto ?? 0)) * 0.3 - bajar, 0);
     M.ren.render(M.escena, M.cam);
   });
 }
