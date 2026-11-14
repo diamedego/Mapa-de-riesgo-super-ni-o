@@ -656,3 +656,7 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 ## 13-nov-2026 — Maqueta 3D como terrón arrancado
 - Debajo del círculo satelital, un terrón de tierra irregular que se afina hasta una punta (anillos con ruido en radio y profundidad,
   vetas de color), en lugar de la pared recta y la base plana. Cámara un poco más baja para verlo de costado. El modelo no cambia.
+
+### 13-nov — Indicadores: barra de color y cuadro del ícono
+- La barra de color de cada indicador ya no pisa la etiqueta (la etiqueta se corre 10 px).
+- El cuadro del ícono se pinta con el color del indicador al 20 % de opacidad (80 % transparente) y borde del mismo color.
