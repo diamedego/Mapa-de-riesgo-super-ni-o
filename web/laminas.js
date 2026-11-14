@@ -127,6 +127,7 @@ function refrescarLaminas() {
   const cal = String(estado.datos.resumen?.calculado ?? "");
   document.getElementById("caj-fecha").textContent = /^\d{4}-\d{2}-\d{2}/.test(cal) ? `${cal.slice(8, 10)}-${cal.slice(5, 7)}-${cal.slice(2, 4)}` : "–";
   if (laminaActual === 4) pintarValidacionLamina();
+  if (laminaActual === 2 && SIM.datos) { pintarPanelSimulador(SIM.datos); if (SIM.modelo?.frames.length) { mostrarHora(); pintarPieSim(); } }   // textos del simulador en el idioma nuevo
 }
 
 function iniciarLaminas() {

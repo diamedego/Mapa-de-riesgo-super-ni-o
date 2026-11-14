@@ -9,8 +9,9 @@ CREATE SCHEMA IF NOT EXISTS gold;
 
 -- -------------------------------------------------------------------------------------
 -- 1. Componentes que no cambian mes a mes.
---    Cada indicador se convierte en su percentil entre los 2 282 gobiernos locales
---    (0 = el menor, 1 = el mayor; empates → percentil promedio; sin dato → 0).
+--    Cada indicador se lleva a 0-1 con UMBRALES FÍSICOS FIJOS en sus propias unidades
+--    (u = (valor − cero) / (lleno − cero), recortado a 0-1; sin dato → 0), los mismos que
+--    UMBRALES en modelos/indice_riesgo.py. No se compara con los demás municipios.
 -- -------------------------------------------------------------------------------------
 CREATE OR REPLACE TABLE gold.componentes_fijos AS
 WITH base AS (
@@ -26,7 +27,7 @@ indicadores AS (                                   -- formato largo: un indicado
   UNION ALL SELECT cmu, 'amenaza_agua_ninos',      agua_ninos_pct                         FROM base
   UNION ALL SELECT cmu, 'amenaza_terreno_bajo',    pct_area_hand_2m                       FROM base
   UNION ALL SELECT cmu, 'quebrada_arcilla',        arcilla_pct                            FROM base
-  UNION ALL SELECT cmu, 'expo_personas_bajo',      LN(1 + COALESCE(pob_terreno_bajo, 0))  FROM base
+  UNION ALL SELECT cmu, 'expo_personas_bajo',      LOG10(1 + COALESCE(pob_terreno_bajo, 0)) FROM base
   UNION ALL SELECT cmu, 'expo_proporcion_bajo',    COALESCE(pob_terreno_bajo / NULLIF(poblacion, 0), 0) FROM base
   UNION ALL SELECT cmu, 'vuln_sin_cloaca',         100 - pct_cloaca                       FROM base
   UNION ALL SELECT cmu, 'vuln_nbi',                pct_nbi                                FROM base
@@ -35,16 +36,19 @@ indicadores AS (                                   -- formato largo: un indicado
     CASE WHEN poblacion IS NULL THEN NULL
          ELSE barrios_populares / GREATEST(poblacion, 1) * 10000 END                      FROM base
 ),
-percentiles AS (
+umbrales (indicador, cero, lleno) AS (
+  VALUES ('amenaza_agua_historica', 0, 10), ('amenaza_agua_ninos', 0, 5), ('amenaza_terreno_bajo', 0, 100),
+         ('quebrada_arcilla', 10, 40), ('expo_personas_bajo', 0, 5), ('expo_proporcion_bajo', 0, 1),
+         ('vuln_sin_cloaca', 0, 100), ('vuln_nbi', 0, 25), ('vuln_materiales', 0, 100), ('vuln_barrios_populares', 0, 10)
+),
+escalados AS (
   SELECT
-    cmu,
-    indicador,
-    CASE WHEN valor IS NULL THEN 0.0
-         ELSE (RANK() OVER w + CUME_DIST() OVER w * COUNT(valor) OVER (PARTITION BY indicador))
-              / (2.0 * COUNT(valor) OVER (PARTITION BY indicador))
-    END AS p
-  FROM indicadores
-  WINDOW w AS (PARTITION BY indicador, (valor IS NULL) ORDER BY valor)
+    i.cmu,
+    i.indicador,
+    CASE WHEN i.valor IS NULL THEN 0.0
+         ELSE LEAST(GREATEST((i.valor - u.cero) / (u.lleno - u.cero), 0), 1) END AS p
+  FROM indicadores i
+  JOIN umbrales u ON u.indicador = i.indicador
 ),
 ancho AS (                                         -- vuelta a una fila por gobierno local
   SELECT
@@ -59,7 +63,7 @@ ancho AS (                                         -- vuelta a una fila por gobi
     MAX(CASE WHEN indicador = 'vuln_nbi'               THEN p END) AS p_nbi,
     MAX(CASE WHEN indicador = 'vuln_materiales'        THEN p END) AS p_materiales,
     MAX(CASE WHEN indicador = 'vuln_barrios_populares' THEN p END) AS p_barrios_populares
-  FROM percentiles
+  FROM escalados
   GROUP BY cmu
 )
 SELECT
@@ -67,7 +71,7 @@ SELECT
   (a.p_agua_historica + a.p_agua_ninos + a.p_terreno_bajo) / 3              AS propension_agua,
   CASE WHEN b.pendiente_p90_grados IS NULL THEN NULL
        ELSE LEAST(GREATEST((b.pendiente_p90_grados - 5) / 20, 0), 1) END     AS s_quebrada,
-  a.p_arcilla                                                                AS arcilla_relativa,
+  a.p_arcilla                                                                AS arcilla_escalada,
   10 * (a.p_personas_bajo + a.p_proporcion_bajo) / 2                         AS exposicion,
   10 * (a.p_sin_cloaca + a.p_nbi + a.p_materiales + a.p_barrios_populares) / 4 AS vulnerabilidad
 FROM base b
@@ -103,7 +107,7 @@ amenazas AS (
     LEAST(GREATEST(10 * propension_agua * LEAST(GREATEST(r_lluvia / 2, 0), 1), 0), 10) AS h_agua,
     LEAST(GREATEST(h_rio_crudo, 0), 10)                                               AS h_rio,
     LEAST(GREATEST(10 * s_quebrada * LEAST(GREATEST(r_lluvia / 2, 0), 1)
-                      * (0.5 + 0.5 * arcilla_relativa), 0), 10)                        AS h_quebrada
+                      * (0.5 + 0.5 * arcilla_escalada), 0), 10)                        AS h_quebrada
   FROM componentes_mes
 ),
 riesgo AS (

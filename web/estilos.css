@@ -1282,3 +1282,19 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
 .lec-arriba .salto b { font: 500 22px/1.05 var(--f-mono); letter-spacing: -0.04em; color: var(--tinta-1); white-space: nowrap; }
 /* Los botones de zoom van abajo a la izquierda, donde no los tapan las referencias ni las pestañas */
 .mapa-marco .maplibregl-ctrl-bottom-left { left: 6px; bottom: 6px; }
+
+/* ---------- Lámina 02: barras del escenario (cada una entre el mínimo y el máximo registrado en los Niños) ---------- */
+.sim-lec .esc-tit { margin-top: 16px; padding-bottom: 6px; border-bottom: 1.5px solid var(--marco); }
+.esc { display: grid; gap: 0; }
+.esc > .ctrl { padding: 10px 0; border-bottom: 1px solid var(--borde-fuerte); }
+.esc-fila { display: grid; gap: 4px; padding: 10px 0 9px; border-bottom: 1px solid var(--borde-fuerte); }
+.esc-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.esc-v { font: 500 15px/1.2 var(--f-mono); letter-spacing: -0.02em; color: var(--tinta-1); text-align: right; white-space: nowrap; }
+.esc-v small { margin-left: 4px; font-size: 11px; color: var(--tinta-3); letter-spacing: 0; }
+.esc-fila input[type="range"] { width: 100%; margin: 2px 0; accent-color: var(--cian); }
+.esc-pie { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; font: 400 10px/1.3 var(--f-mono); color: var(--tinta-3); }
+.esc-pie .esc-fuente { text-align: center; color: var(--ocre); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.esc-botones { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 10px 0 2px; }
+.esc-botones .btn-texto { font: 500 11px var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--cian); }
+.esc-nota { margin: 4px 0 0; font-size: 11px; line-height: 1.4; color: var(--tinta-3); }
+.esc + .ctrls { margin-top: 10px; }

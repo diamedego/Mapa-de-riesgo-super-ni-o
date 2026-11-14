@@ -22,16 +22,112 @@ const COLOR_AGUA = [[0.02, [110, 198, 252, 0.58]], [0.05, [78, 178, 248, 0.66]],
 const COLOR_ALTURA = [[0, [38, 120, 120, 0.6]], [0.25, [92, 160, 110, 0.6]], [0.5, [180, 196, 120, 0.6]], [0.75, [205, 170, 110, 0.6]], [1, [170, 120, 80, 0.6]]];
 const CAPAS_SIM = ["flujo", "corte"];
 
-// Tormenta de prueba (barra de mm y duración): se suma a la lluvia real y pronosticada y se calcula de nuevo desde las últimas dos semanas
-function correrTormenta(cambio) {
-  Object.assign(SIM.tormenta, cambio);
-  const T = SIM.tormenta, mm = document.getElementById("sim-mm");
-  if (mm) mm.value = T.mm;
-  const mmV = document.getElementById("sim-mm-valor"); if (mmV) mmV.textContent = `${fmt(T.mm)} mm`;
-  document.querySelectorAll("#sim-dur .chip").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.h === T.horas)));
-  const hoy = limitesPeriodo().hoy;
-  if (T.mm > 0) simularPeriodo(sumarDias(hoy, 1 + Math.ceil(T.horas / 24)), { ...T }, true);
-  else simularPeriodo(sumarDias(hoy, 2), 0, true);
+// ---------- Escenario: los factores que cambian cuánto se inunda con una lluvia ----------
+// Lluvia y duración, humedad del suelo, nivel de las lagunas, altura del río (o del mar) y capacidad de los desagües. Cada barra
+// va del mínimo al máximo registrado en los Niños en este lugar (si no hay registro de un Niño, el de todo el registro; si no
+// hay ningún registro, un rango supuesto, avisado). El viento no está: no cambia cuánta agua se junta con la lluvia; solo
+// importaría como sudestada, que ya es la altura del río o del mar.
+function cambiarEscenario(cambio, correr = true) {
+  Object.assign(SIM.esc, cambio);
+  const L = limitesEscenario();
+  if (L) SIM.esc.mm = limitar(SIM.esc.mm, 0, L.lluvia.max);   // al cambiar la duración, la lluvia no puede pasar el máximo de esa duración
+  pintarEscenario();
+  if (correr) simularEscenario();
+}
+
+// Estación del INA a menos de 15 km con niveles oficiales (la misma regla que el período con pronóstico)
+function estacionCercana(d) {
+  return estado.datos.estaciones.features.map((f) => ({ ...f.properties, km: distanciaKm(d.s.punto, f.geometry.coordinates) }))
+    .filter((e) => e.km <= 15 && e.h != null && (e.nivel_evacuacion != null || e.nivel_alerta != null))
+    .map((e) => ({ ...e, ref: e.nivel_evacuacion ?? e.nivel_alerta + 0.5 })).sort((a, b) => a.km - b.km)[0] ?? null;
+}
+let cargaRiosExtremos = null;
+const riosExtremos = () => (cargaRiosExtremos ??= fetch("datos/rios_extremos.json").then((r) => (r.ok ? r.json() : {})).catch(() => ({})));
+
+// Al abrir: busca los extremos de los Niños en el lugar y arranca con las condiciones de hoy y la peor lluvia de 3 h registrada
+async function iniciarEscenario() {
+  const d = SIM.datos;
+  avisoProgreso(t("sim_hist_cargando"));
+  const [H, X, hoy] = await Promise.all([historicoNino(d.s.punto), riosExtremos(), humedadHoy(d.s.punto)]);
+  if (SIM.datos !== d) return;
+  const est = estacionCercana(d);
+  SIM.hist = { H, est, rio: est ? X[String(est.estacion_id)] ?? null : null, humedadHoy: hoy };
+  SIM.esc = { horas: 3, mm: 0, theta: 0.3, lagos: 0, rio: est?.h ?? 0, crecida: 0, desague: 10 };
+  aplicarCondicionesHoy(false);
+  SIM.esc.mm = Math.round(limitesEscenario().lluvia.max);
+  pintarEscenario();
+  simularEscenario();
+}
+function aplicarCondicionesHoy(correr = true) {
+  const E = SIM.esc, L = limitesEscenario();
+  E.theta = limitar(SIM.hist.humedadHoy ?? (L.humedad.min + L.humedad.max) / 2, L.humedad.min, L.humedad.max);
+  E.rio = SIM.hist.est ? limitar(SIM.hist.est.h, L.rio.min, L.rio.max) : 0;
+  E.crecida = 0; E.lagos = 0;
+  if (correr) cambiarEscenario({});
+}
+function aplicarPeorNino() {
+  const L = limitesEscenario();
+  cambiarEscenario({ mm: Math.round(L.lluvia.max), theta: L.humedad.max, lagos: 0, ...(L.rio.estacion ? { rio: L.rio.max } : { crecida: L.rio.max }) });
+}
+
+// Límites de cada barra y de dónde salen
+function limitesEscenario() {
+  const Hh = SIM.hist, E = SIM.esc;
+  if (!Hh || !E) return null;
+  const H = Hh.H, ts = SIM.modelo?.suelo?.thetaS ?? 0.46;
+  const ll = H?.lluvia?.[E.horas];
+  const lluvia = ll?.max > 0 ? { max: Math.max(5, Math.ceil(ll.max)), fuente: t("sim_r_nino")(ll.temporada) } : { max: 300, fuente: t("sim_r_supuesto") };
+  const hu = H?.humedad;
+  const humedad = hu ? { min: Math.min(hu.min, ts - 0.02), max: Math.min(hu.max, ts), fuente: t("sim_r_nino_todas")(H.temporadas) }
+    : { min: 0.1, max: ts, fuente: t("sim_r_supuesto") };
+  const R = Hh.rio, e = Hh.est;
+  let rio;
+  if (e && R) {
+    const r = R.nino ?? R.todo;
+    rio = { min: Math.min(r.min, e.h), max: Math.max(r.max, e.h), fuente: R.nino ? t("sim_r_nino")(R.nino.temporada_max) : t("sim_r_registro")(R.todo.desde.slice(0, 4)), estacion: e };
+  } else rio = { min: -1, max: 6, fuente: t("sim_r_supuesto"), estacion: null };
+  return { lluvia, humedad, rio, lagos: { min: -1.5, max: 0, fuente: t("sim_r_supuesto") }, desague: { min: 0, max: 30, fuente: t("sim_r_supuesto") } };
+}
+
+// Barras del escenario (en la cabeza de la lámina 02)
+function pintarEscenario() {
+  const cont = document.getElementById("sim-esc"), L = limitesEscenario(), E = SIM.esc;
+  if (!cont) return;
+  if (!L) { cont.innerHTML = `<p class="sim-hint">${t("sim_hist_cargando")}</p>`; return; }
+  // Cada valor dentro de su barra (por ejemplo, al saber la porosidad del suelo del lugar o al cambiar la duración)
+  E.mm = limitar(E.mm, 0, L.lluvia.max); E.theta = limitar(E.theta, L.humedad.min, L.humedad.max); E.lagos = limitar(E.lagos, L.lagos.min, L.lagos.max);
+  E.rio = limitar(E.rio, L.rio.min, L.rio.max); E.crecida = limitar(E.crecida, L.rio.min, L.rio.max); E.desague = limitar(E.desague, L.desague.min, L.desague.max);
+  const g = SIM.modelo?.g, hayLagos = !g || g.nLagos > 0, hayRio = !g || g.tipo2.some((v) => v === 3) || !!L.rio.estacion;
+  const sat = (v) => Math.round((100 * v) / (SIM.modelo?.suelo?.thetaS ?? 0.46));
+  const fila = (k, etq, v, min, max, paso, texto, extremos, fuente) => `<div class="esc-fila" data-k="${k}">
+      <div class="esc-cab"><span class="etq">${etq}</span><b class="esc-v">${texto}</b></div>
+      <input type="range" min="${min}" max="${max}" step="${paso}" value="${v}" aria-label="${etq}">
+      <div class="esc-pie"><span>${extremos[0]}</span><span class="esc-fuente">${fuente}</span><span>${extremos[1]}</span></div></div>`;
+  const rioTxt = L.rio.estacion ? `${fmt(E.rio, 2)} m` : `${E.crecida > 0 ? "+" : ""}${fmt(E.crecida, 2)} m`;
+  cont.innerHTML = `
+    <div class="ctrl"><span class="etq">${t("sim_cae_en")}</span><div class="seg" id="sim-dur" role="group" aria-label="${t("sim_dur")}">${DURACIONES.map((h) => `<button type="button" class="chip" data-h="${h}" aria-pressed="${E.horas === h}">${h} h</button>`).join("")}</div></div>
+    ${fila("mm", t("sim_f_lluvia"), E.mm, 0, L.lluvia.max, 1, `${fmt(E.mm)} mm`, ["0", `${fmt(L.lluvia.max)} mm`], L.lluvia.fuente)}
+    ${fila("theta", t("sim_f_humedad"), E.theta, L.humedad.min.toFixed(3), L.humedad.max.toFixed(3), 0.005, t("sim_v_humedad")(sat(E.theta)), [t("sim_r_seco"), t("sim_r_saturado")], L.humedad.fuente)}
+    ${hayLagos ? fila("lagos", t("sim_f_lagunas"), E.lagos, L.lagos.min, L.lagos.max, 0.1, E.lagos === 0 ? t("sim_r_llenas") : t("sim_v_lagos")(fmt(-E.lagos, 1)), [t("sim_r_bajas"), t("sim_r_llenas")], L.lagos.fuente) : ""}
+    ${hayRio ? (L.rio.estacion
+      ? fila("rio", t("sim_f_rio_en")(L.rio.estacion.estacion), E.rio, L.rio.min, L.rio.max, 0.05, `${rioTxt} <small>${t("sim_v_evac")(fmt(L.rio.estacion.ref, 2))}</small>`, [`${fmt(L.rio.min, 2)} m`, `${fmt(L.rio.max, 2)} m`], L.rio.fuente)
+      : fila("crecida", t("sim_f_rio"), E.crecida, L.rio.min, L.rio.max, 0.25, rioTxt, [`${fmt(L.rio.min)} m`, `+${fmt(L.rio.max)} m`], L.rio.fuente)) : ""}
+    ${fila("desague", t("sim_f_desague"), E.desague, L.desague.min, L.desague.max, 1, `${fmt(E.desague)} mm/h`, [t("sim_r_tapados"), "30 mm/h"], L.desague.fuente)}
+    <div class="esc-botones"><button type="button" class="btn-texto" id="esc-hoy">${t("sim_b_hoy")}</button><button type="button" class="btn-texto" id="esc-peor">${t("sim_b_peor")}</button></div>
+    <p class="esc-nota">${t("sim_esc_nota")(SIM.hist.H?.temporadas ?? 0)}</p>`;
+  cont.querySelectorAll("#sim-dur .chip").forEach((b) => { b.onclick = () => cambiarEscenario({ horas: +b.dataset.h }); });
+  cont.querySelectorAll(".esc-fila").forEach((f) => {
+    const k = f.dataset.k, inp = f.querySelector("input");
+    inp.oninput = () => {   // al mover: solo el número; al soltar: se calcula de nuevo
+      SIM.esc[k] = Number(inp.value);
+      const v = f.querySelector(".esc-v"), E2 = SIM.esc;
+      v.innerHTML = k === "mm" ? `${fmt(E2.mm)} mm` : k === "theta" ? t("sim_v_humedad")(sat(E2.theta)) : k === "lagos" ? (E2.lagos === 0 ? t("sim_r_llenas") : t("sim_v_lagos")(fmt(-E2.lagos, 1)))
+        : k === "rio" ? `${fmt(E2.rio, 2)} m <small>${t("sim_v_evac")(fmt(L.rio.estacion.ref, 2))}</small>` : k === "crecida" ? `${E2.crecida > 0 ? "+" : ""}${fmt(E2.crecida, 2)} m` : `${fmt(E2.desague)} mm/h`;
+    };
+    inp.onchange = () => cambiarEscenario({});
+  });
+  document.getElementById("esc-hoy").onclick = () => aplicarCondicionesHoy();
+  document.getElementById("esc-peor").onclick = aplicarPeorNino;
 }
 
 // Resultado de la validación contra el satélite (herramientas/validacion/validar.py); null si todavía no existe
@@ -41,7 +137,7 @@ const validacion = () => (cargaValidacion ??= fetch("datos/validacion.json").the
 function abrirSimulador() {
   const s = estado.sel;
   if (s?.tipo !== "punto") return;
-  SIM.tormenta = { mm: 80, horas: 3 };   // al abrir se ve una tormenta fuerte de prueba (80 mm en 3 h) para que haya agua acumulada; con 0 mm queda solo la lluvia real y pronosticada
+  SIM.tormenta = { mm: 0, horas: 3 }; SIM.esc = null; SIM.hist = null;   // el escenario se arma al terminar de preparar el lugar (iniciarEscenario)
   validacion().then((V) => { SIM.validacion = V; pintarValidez(); });
   const caja = document.getElementById("sim");
   caja.hidden = false;
@@ -265,7 +361,7 @@ async function prepararSimulacion(s) {
   agregarAguaAlMapa(D);
   pintarPanelSimulador(SIM.datos);
   elegirVistaSimulador("maqueta");   // solo maqueta 3D (el mapa 2D queda debajo y es el respaldo si el navegador no puede con WebGL)
-  correrTormenta({});   // al abrir: la tormenta de prueba sobre la lluvia real de las últimas dos semanas
+  iniciarEscenario();   // al abrir: escenario con las condiciones de hoy y la peor lluvia de 3 h registrada en un Niño
 }
 
 // Ríos, lagunas y embalses del mapa base, rasterizados a la grilla del relieve
@@ -327,22 +423,7 @@ async function simularPeriodo(hastaISO, tormenta = 0, corto = false) {
   M.hoy = Math.max(0, met.tipo.indexOf(1));
   if (tormentaMm) repartoTormenta(tor.horas).forEach((f, j) => { if (M.hoy + j < n) met.lluvia[M.hoy + j] += tormentaMm * f; });   // tormenta de prueba: desde ahora, en 1 a 24 h
   const g = grillaModelo(d, n, corto ? 100 : null);   // tormenta de prueba: celdas de ~60 m (el agua se dibuja igual sobre el relieve fino)
-  g.celdaFina = new Int32Array(d.D.W * d.D.H);
-  for (let i = 0; i < g.celdaFina.length; i++) g.celdaFina[i] = g.celdaDe(i);
-  g.nDentro = g.dentroC.reduce((a, b) => a + b, 0);
-  g.nRuta = 0;
-  for (let c = 0; c < g.N; c++) if (g.ruta[c] === 1 && g.dentroC[c]) g.nRuta++;
-  M.met = met; M.g = g;
-  // Centros de salud del círculo (OpenStreetMap), con su celda del modelo
-  const D = d.D, celdaPunto = ([lo, la]) => { const x = Math.floor((xDeLon(lo, D.z) - D.tx0) * 256), y = Math.floor((yDeLat(la, D.z) - D.ty0) * 256);
-    return x >= 0 && y >= 0 && x < D.W && y < D.H ? g.celdaDe(y * D.W + x) : -1; };
-  M.salud = ((await infraCriticaLista()) ?? []).filter((x) => x.g === "salud" && distanciaKm(d.s.punto, x.p) <= d.s.km)
-    .map((x) => ({ n: x.n, c: celdaPunto(x.p) })).filter((x) => x.c >= 0);
-  if (SIM.modelo !== M) return;
-  M.suelo = (await sueloEn(d.s.punto).catch(() => null)) ?? { ...TEXTURAS.franco, nombre: "franco", supuesto: true };
-  M.estacion = estado.datos.estaciones.features.map((f) => ({ ...f.properties, km: distanciaKm(d.s.punto, f.geometry.coordinates) }))
-    .filter((e) => e.km <= 15 && e.h != null && (e.nivel_evacuacion != null || e.nivel_alerta != null))
-    .map((e) => ({ ...e, ref: e.nivel_evacuacion ?? e.nivel_alerta + 0.5 })).sort((a, b) => a.km - b.km)[0] ?? null;
+  await prepararCorrida(M, d, g, met);
   if (SIM.modelo !== M) return;
   const w = (M.worker = new Worker("hidraulica.js"));
   w.onmessage = (e) => recibirHora(M, e.data);
@@ -355,6 +436,53 @@ async function simularPeriodo(hastaISO, tormenta = 0, corto = false) {
   pintarLineaSim();
 }
 
+// Corrida del escenario: 2 horas secas, la tormenta elegida y 36 horas más para que el agua escurra y se junte. Arranca con la
+// humedad del suelo, las lagunas y el río de las barras (no con la lluvia real de los días anteriores).
+async function simularEscenario() {
+  const d = SIM.datos, E = SIM.esc;
+  if (!d || !E) return;
+  detenerAnimaciones();
+  SIM.modelo?.worker?.terminate();
+  const tor = { mm: E.mm, horas: E.horas }, suelo0 = SIM.modelo?.suelo;
+  SIM.tormenta = { ...tor }; SIM.desague = E.desague;
+  const M = (SIM.modelo = { frames: [], lagos: [], stats: [], hora: 0, corriendo: true, siguiendo: true, hasta: null, tormenta: tor, corto: true, escenario: true, suelo: suelo0 });
+  bloquearControles(true);
+  avisoProgreso(t("sim_calculando_esc"));
+  const n = 2 + E.horas + 36, t0 = Math.floor(Date.now() / 3600e3) * 3600e3, et0 = SIM.hist?.H?.et0h ?? 0.15;
+  const met = { horas: Array.from({ length: n }, (_, k) => t0 + k * 3600e3), lluvia: new Array(n).fill(0), et0: new Array(n).fill(et0), tipo: new Array(n).fill(2), theta0: E.theta };
+  repartoTormenta(E.horas).forEach((f, j) => { met.lluvia[2 + j] = E.mm * f; });
+  M.hoy = 0;
+  const g = grillaModelo(d, n, 100);   // celdas de ~60 m como la tormenta de prueba (el agua se dibuja igual sobre el relieve fino)
+  await prepararCorrida(M, d, g, met);
+  if (SIM.modelo !== M) return;
+  pintarEscenario();   // con el suelo y la grilla del lugar ya se sabe dónde se satura y si hay lagunas o río en el círculo
+  const w = (M.worker = new Worker("hidraulica.js"));
+  w.onmessage = (e) => recibirHora(M, e.data);
+  w.onerror = (e) => { avisoProgreso(t("sim_error")); console.error(e); };
+  const est = M.estacion && SIM.hist?.est ? M.estacion : null;
+  w.postMessage({ tipo: "iniciar", nx: g.nx, ny: g.ny, dx: g.dx, z: g.z, tipo2: g.tipo2, lago: g.lago, nMan: g.nMan, imp: g.imp,
+    suelo: M.suelo, theta0: E.theta, desague: E.desague, crecida: est ? 0 : E.crecida, lagoOffset: E.lagos,
+    lluvia: Float32Array.from(met.lluvia), et0: Float32Array.from(met.et0),
+    ...(est ? { relEvac: new Float32Array(n).fill(E.rio - est.ref) } : {}) });
+  pintarLineaSim();
+}
+
+// Lo que comparten el escenario y el período con pronóstico: grilla, centros de salud, suelo del lugar y estación del río
+async function prepararCorrida(M, d, g, met) {
+  g.celdaFina = new Int32Array(d.D.W * d.D.H);
+  for (let i = 0; i < g.celdaFina.length; i++) g.celdaFina[i] = g.celdaDe(i);
+  g.nDentro = g.dentroC.reduce((a, b) => a + b, 0);
+  g.nRuta = 0;
+  for (let c = 0; c < g.N; c++) if (g.ruta[c] === 1 && g.dentroC[c]) g.nRuta++;
+  M.met = met; M.g = g;
+  const D = d.D, celdaPunto = ([lo, la]) => { const x = Math.floor((xDeLon(lo, D.z) - D.tx0) * 256), y = Math.floor((yDeLat(la, D.z) - D.ty0) * 256);
+    return x >= 0 && y >= 0 && x < D.W && y < D.H ? g.celdaDe(y * D.W + x) : -1; };
+  M.salud = ((await infraCriticaLista()) ?? []).filter((x) => x.g === "salud" && distanciaKm(d.s.punto, x.p) <= d.s.km)
+    .map((x) => ({ n: x.n, c: celdaPunto(x.p) })).filter((x) => x.c >= 0);
+  M.suelo ??= (await sueloEn(d.s.punto).catch(() => null)) ?? { ...TEXTURAS.franco, nombre: "franco", supuesto: true };
+  M.estacion = estacionCercana(d);
+}
+
 function recibirHora(M, m) {
   if (SIM.modelo !== M) return;
   if (m.tipo === "hora") {
@@ -362,7 +490,7 @@ function recibirHora(M, m) {
     for (let i = 0; i < f.length; i++) f[i] = Math.min(65535, Math.round(m.h[i] * 1000));
     M.frames.push(f); M.lagos.push(Float32Array.from(m.lagos)); M.stats.push(estadisticaHora(M, m.h));
     const dia = Math.floor(m.k / 24) + 1, total = Math.ceil(m.horas / 24);
-    avisoProgreso(t("sim_calculando")(dia, total, t(`sim_tipo_${TIPO_DATO[M.met.tipo[m.k]]}`)));
+    avisoProgreso(M.escenario ? t("sim_calculando_esc_h")(m.k + 1, m.horas) : t("sim_calculando")(dia, total, t(`sim_tipo_${TIPO_DATO[M.met.tipo[m.k]]}`)));
     if (m.k % 6 === 0) pintarLineaSim();   // mientras calcula no se anima nada: se muestra el resultado al terminar
   } else if (m.tipo === "fin") {
     M.corriendo = false; M.cuenta = m.cuenta;
@@ -471,7 +599,7 @@ function accesoHora(M) {
 const NIVELES_CONF = ["", "baja", "media", "alta"];
 function confianzaHora(M, k, d) {
   const tp = M.met.tipo[k], adelante = k - M.hoy;
-  const lluvia = tp === 0 ? 3 : tp === 2 ? 1 : adelante <= 72 ? 3 : adelante <= 168 ? 2 : 1;
+  const lluvia = M.escenario ? 3 : tp === 0 ? 3 : tp === 2 ? 1 : adelante <= 72 ? 3 : adelante <= 168 ? 2 : 1;   // escenario: la lluvia es la elegida, no un pronóstico
   const terreno = d.D.fuente === "fabdem" ? 3 : 2, v = validacionCiudad(d);
   const modelo = v?.csi != null ? (v.csi >= 0.5 ? 3 : v.csi >= 0.3 ? 2 : 1) : 1;   // sin validación en esta ciudad: confianza baja, no media
   return { nivel: Math.min(lluvia, terreno, modelo), lluvia, terreno, modelo, v };
@@ -1429,9 +1557,6 @@ function tooltipSimulador(e) {
 }
 
 // ---------- Panel de control y resultados ----------
-function presetsSimulador() {   // tormentas de prueba: caen ahora, en 3 horas, sobre el suelo como está hoy
-  return [[t("sim_50"), 50], [t("sim_150"), 150], [t("sim_laplata"), 392]];
-}
 
 // ---------- Lluvia pronosticada en un período ----------
 // Días dentro del pronóstico diario (16 días, por punto): suma del pronóstico. Días más lejanos: lluvia media mensual del
@@ -1510,15 +1635,14 @@ function pintarFiltrosSimulador() {
 
 function pintarPanelSimulador(d) {
   const panel = document.getElementById("sim-panel");
-  const ps = presetsSimulador();
   const kpiSim = (etq, sub) => `<div class="kpi"><span class="kpi-l">${etq}</span><span class="kpi-v tb-dato-valor">–</span><span class="kpi-f tb-dato-extra">${sub}</span></div>`;
   panel.innerHTML = `
     <div class="sim-lec">
       <div><span class="etq" id="sim-etq"></span><h2 class="titular" id="sim-titular">${t("sim_tit_q")} <span>–</span></h2></div>
       <div><p class="bajada">${t("sim_bajada_lam")}</p>
+        <h3 class="tit esc-tit">${t("sim_esc_t")}</h3>
+        <div class="esc" id="sim-esc"><p class="sim-hint">${t("sim_hist_cargando")}</p></div>
         <div class="ctrls">
-          <div class="ctrl"><span class="etq">${t("sim_mm_etq_c")}</span><div class="seg" id="sim-mm-paso"><button type="button" data-paso="-10" aria-label="−10 mm">−</button><b id="sim-mm-valor">${fmt(SIM.tormenta.mm)} mm</b><button type="button" data-paso="10" aria-label="+10 mm">+</button></div></div>
-          <div class="ctrl"><span class="etq">${t("sim_cae_en")}</span><div class="seg" id="sim-dur" role="group" aria-label="${t("sim_dur")}">${[1, 3, 6, 12, 24].map((h) => `<button type="button" class="chip" data-h="${h}" aria-pressed="${SIM.tormenta.horas === h}">${h} h</button>`).join("")}</div></div>
           <div class="ctrl"><span class="etq">${t("sim_lluvia_etq")}</span><div class="seg"><button type="button" id="sim-reiniciar" aria-label="${t("sim_reiniciar")}" data-ayuda="${t("sim_reiniciar")}">${icono("repetir")}</button><button type="button" id="sim-play" aria-label="${t("sim_reproducir")}">${icono("play")}</button></div></div>
         </div>
         <p class="sim-hint" id="sim-hint" hidden>${t("sim_hint")}</p></div>
@@ -1551,13 +1675,6 @@ function pintarPanelSimulador(d) {
       <button type="button" class="btn-primario" id="sim-periodo-ir" disabled>${t("sim_per_ir")}</button>
       <p class="sim-periodo-nota">${t("sim_per_nota")}</p>
     </div>
-    <div class="sim-rio" id="sim-rio" hidden>
-      <h3 class="sim-h3">${t("sim_rio")}</h3>
-      <div class="sim-control"><input type="range" id="sim-crecida" min="-1" max="6" step="0.25" value="${SIM.crecida}" aria-label="${t("sim_rio")}"><b id="sim-crecida-v"></b></div>
-      <p class="sim-periodo-nota">${t("sim_rio_nota")}</p>
-    </div>
-    <h3 class="sim-h3">${t("sim_tormentas")}</h3>
-    <div class="sim-presets">${ps.map(([e, v], i) => `<button type="button" class="chip" data-i="${i}"${d ? "" : " disabled"}>${e} · ${fmt(v)} mm</button>`).join("")}</div>
     <details class="sim-metodo"><summary>${t("sim_como")}</summary><p>${t("sim_metodo")}</p><p id="sim-supuestos"></p></details>
     </div>`;
   const barra = document.getElementById("sim-barra");
@@ -1565,18 +1682,7 @@ function pintarPanelSimulador(d) {
   document.getElementById("sim-play").onclick = () => reproducirSimulador();
   document.getElementById("sim-reiniciar").onclick = reiniciarSimulador;
   panel.querySelectorAll("#sim-vel .chip").forEach((b) => { b.onclick = () => { SIM.velocidad = +b.dataset.v; panel.querySelectorAll("#sim-vel .chip").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); }; });
-  panel.querySelectorAll("#sim-mm-paso [data-paso]").forEach((b) => { b.onclick = () => { if (!SIM.datos) return; correrTormenta({ mm: limitar(SIM.tormenta.mm + Number(b.dataset.paso), 0, 300) }); }; });
-  panel.querySelectorAll("#sim-dur .chip").forEach((b) => { b.onclick = () => correrTormenta({ horas: +b.dataset.h }); });
-  panel.querySelectorAll(".sim-presets .chip[data-i]").forEach((b) => { b.onclick = () => correrTormenta({ mm: ps[+b.dataset.i][1] }); });
-  const cre = document.getElementById("sim-crecida"), creV = document.getElementById("sim-crecida-v");
-  const pintarCre = () => {
-    creV.textContent = `${SIM.crecida > 0 ? "+" : ""}${fmt(SIM.crecida, 2)} m`;
-    const e = SIM.modelo?.estacion, nota = document.querySelector("#sim-rio .sim-periodo-nota");
-    if (nota) nota.textContent = e ? t("sim_rio_ina")(e.estacion, fmt(e.h, 2), fmt(e.ref, 2)) : t("sim_rio_nota");
-  };
-  cre.oninput = () => { SIM.crecida = Number(cre.value); pintarCre(); };
-  cre.onchange = () => { if (SIM.modelo?.hasta) simularPeriodo(SIM.modelo.hasta, SIM.modelo.tormenta, SIM.modelo.corto); };
-  pintarCre();
+  pintarEscenario();
   pintarFiltrosSimulador();
   prepararPeriodo();
   pintarValidez();
@@ -1686,13 +1792,15 @@ function actualizarNumeros() {
   const fecha = new Date(met.horas[k]);
   document.getElementById("sim-fecha").textContent = fecha.toLocaleString(estado.idioma === "en" ? "en-GB" : "es-AR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const etq = document.getElementById("sim-tipo");
-  etq.textContent = t(`sim_tipo_${tp}`); etq.style.background = COLOR_TIPO[met.tipo[k]];
+  etq.textContent = t(Mo.escenario ? "sim_tipo_elegido" : `sim_tipo_${tp}`); etq.style.background = COLOR_TIPO[met.tipo[k]];
+  if (Mo.escenario) document.getElementById("sim-fecha").textContent = t("sim_hora_esc")(k - 2, Mo.tormenta.horas);
   // Solo desde ahora: lo que ya pasó no se muestra (el modelo lo usa en silencio para saber qué tan mojado está el suelo)
   let pron = 0, esc = 0, test = 0;
   const reparto = repartoTormenta((Mo.tormenta?.horas) || 3);
   for (let j = Mo.hoy; j <= k; j++) { const v = met.lluvia[j]; if (met.tipo[j] === 2) esc += v; else pron += v; }
   if (Mo.tormenta?.mm) for (let j = 0; j < reparto.length && Mo.hoy + j <= k; j++) test += Mo.tormenta.mm * reparto[j];
-  document.getElementById("sim-acum").innerHTML = t("sim_acum_ahora")(fmt(Math.max(0, pron - test)), fmt(test), fmt(esc));
+  document.getElementById("sim-acum").innerHTML = Mo.escenario ? t("sim_acum_esc")(fmt(test), fmt(Mo.tormenta.mm))
+    : t("sim_acum_ahora")(fmt(Math.max(0, pron - test)), fmt(test), fmt(esc));
   const barra = document.getElementById("sim-barra");
   barra.min = String(Mo.hoy); barra.max = String(met.horas.length - 1); barra.value = String(k);
   const vals = document.querySelectorAll(".sim-datos .tb-dato-valor"), ext = document.querySelectorAll(".sim-datos .tb-dato-extra");
@@ -1711,10 +1819,8 @@ function actualizarNumeros() {
   pc.className = `pill sem-${cf.nivel === 3 ? "ok" : cf.nivel === 2 ? "atencion" : "critico"}`;
   pc.textContent = t("sim_conf")(NIVELES_CONF[cf.nivel]);
   pc.dataset.ayuda = t("sim_conf_ayuda")(t(`conf_${NIVELES_CONF[cf.lluvia]}`), t(`conf_${NIVELES_CONF[cf.terreno]}`), t(`conf_${NIVELES_CONF[cf.modelo]}`) + ` · ${textoModelo(cf.v)}`,
-    t(`sim_conf_lluvia_${tp}`)(Math.max(0, Math.round((k - Mo.hoy) / 24))), d.D.fuente === "fabdem");
+    t(Mo.escenario ? "sim_conf_lluvia_elegido" : `sim_conf_lluvia_${tp}`)(Math.max(0, Math.round((k - Mo.hoy) / 24))), d.D.fuente === "fabdem");
   pintarAntecedentesSim(Mo, d);
-  const rio = document.getElementById("sim-rio");
-  if (rio) { rio.hidden = !Mo.g.tipo2.some((v) => v === 3); document.getElementById("sim-crecida")?.dispatchEvent(new Event("input")); }
   const sup = document.getElementById("sim-supuestos");
   if (sup) sup.textContent = `${t(d.D.fuente === "fabdem" ? "sim_terreno_fabdem" : "sim_terreno_aws")} ` + t("sim_supuestos")(Mo.suelo.nombre, Mo.suelo.supuesto, SIM.desague, fmt(Mo.g.dx), Mo.cuenta ? fmt(100 * Mo.cuenta.infiltrada / Math.max(1, Mo.cuenta.lluvia)) : "…")
     + ` ${usoDelSuelo(Mo.g)}`;

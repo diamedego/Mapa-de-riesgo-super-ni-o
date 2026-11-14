@@ -2,21 +2,25 @@
 
 Riesgo = (Amenaza × Exposición × Vulnerabilidad)^(1/3), cada componente en escala 0-10.
 
+ESCALA FÍSICA, NO RELATIVA: cada indicador se lleva a 0-1 con umbrales fijos en sus propias unidades (% de superficie,
+% de hogares, personas), u(x) = clip((x − cero) / (lleno − cero), 0, 1) (ver UMBRALES). Un municipio queda «alto» por lo
+que tiene, no por estar peor que los demás: si todos mejoran, todos bajan.
+
 AMENAZA (por mes; combinación "multi-amenaza" de INFORM: H = 10 − Π(10 − Hi) / 10^(n−1)):
-- Agua en superficie / anegamiento: propensión histórica P (promedio de rangos de: superficie que estuvo
-  con agua alguna vez [JRC 1984-2021], agua observada en los Niños 2015-16 y 2023-24 [Dynamic World],
-  % de superficie a < 2 m del cauce [HAND]) × factor de lluvia del mes f = clip(r/2, 0, 1), donde
+- Agua en superficie / anegamiento: propensión P = promedio de u(superficie que estuvo con agua alguna vez [JRC
+  1984-2021]), u(agua observada en los Niños 2015-16 y 2023-24 [Dynamic World]) y u(% de superficie a < 2 m del
+  cauce [HAND]) × factor de lluvia del mes f = clip(r/2, 0, 1), donde
   r = lluvia pronosticada / normal (SEAS5). Con lluvia normal (r = 1) la amenaza es la mitad de la
   propensión; con el doble de lluvia, la propensión completa. (Un modelo de ML no superó a la
   propensión histórica en la validación 2015-16 → 2023-24; ver bitácora.)
 - Crecida de ríos grandes: 10 × max(P(evacuación), 0,5 × P(alerta)) de la estación INA confiable
   (r de validación ≥ 0,7) más cercana, si está a ≤ 30 km. Sin estación cercana: 0.
-- Crecidas repentinas en quebradas: 10 × s × f × (0,5 + 0,5 × arcilla), con s = clip((pendiente p90 − 5°)/20°, 0, 1).
+- Crecidas repentinas en quebradas: 10 × s × f × (0,5 + 0,5 × u(arcilla)), con s = clip((pendiente p90 − 5°)/20°, 0, 1).
   Meses sin pronóstico SEAS5 (mar-abr): r = 1.
-EXPOSICIÓN: 10 × promedio de rangos de (población en terreno bajo) y (proporción de la población en
-terreno bajo). Terreno bajo = radio censal con > 50 % de su superficie a < 2 m del cauce.
-VULNERABILIDAD: 10 × promedio de rangos de: % hogares sin cloaca, % NBI, % materiales deficientes,
-barrios populares cada 10 000 habitantes.
+EXPOSICIÓN: 10 × promedio de u(log10 de la población en terreno bajo) y u(proporción de la población en terreno
+bajo). Terreno bajo = radio censal con > 50 % de su superficie a < 2 m del cauce.
+VULNERABILIDAD: 10 × promedio de u(% hogares sin cloaca), u(% NBI), u(% materiales deficientes) y
+u(barrios populares cada 10 000 habitantes).
 
 Dos rankings: personas en riesgo (población en terreno bajo × riesgo/10) y riesgo relativo.
 Sensibilidad: 1 000 simulaciones con pesos aleatorios (Dirichlet) para los indicadores de E y V y para
@@ -41,8 +45,25 @@ N_SIM = 1000
 SEMILLA = 42
 
 
-def rango(s: pd.Series) -> pd.Series:
-    return s.rank(pct=True).fillna(0)
+# Umbrales físicos fijos (cero → 0, lleno → 1, lineal entre ambos). Los porcentajes de hogares y de superficie usan su
+# rango natural salvo donde un valor menor ya es extremo en la Argentina:
+UMBRALES = {
+    "agua_alguna_vez_pct": (0, 10),     # 10 % del territorio con agua alguna vez en 1984-2021 (fuera de cauces chicos) ya es una llanura inundable
+    "agua_ninos_pct": (0, 5),           # 5 % del territorio con agua nueva en una temporada Niño: inundación regional (Litoral 2015-16: 10-47 %)
+    "hand_2m_pct": (0, 100),            # todo el territorio a menos de 2 m sobre el cauce
+    "arcilla_pct": (10, 40),            # suelo franco-arenoso (10 %) a arcilloso (40 %)
+    "log10_pob_bajo": (0, 5),           # 100 000 personas viviendo en terreno bajo
+    "prop_bajo": (0, 1),                # toda la población en terreno bajo
+    "sin_cloaca_pct": (0, 100),
+    "nbi_pct": (0, 25),                 # 25 % de hogares con NBI (el país: 6,5 %; los peores municipios: 30-50 %)
+    "materiales_pct": (0, 100),
+    "barrios_cada_10k": (0, 10),        # 10 barrios populares cada 10 000 habitantes
+}
+
+
+def u(s: pd.Series, clave: str) -> pd.Series:
+    cero, lleno = UMBRALES[clave]
+    return ((s - cero) / (lleno - cero)).clip(0, 1).fillna(0)
 
 
 def ultimo(patrones: list[Path]) -> Path:
@@ -88,16 +109,18 @@ def main() -> None:
 
     # Propensión al agua y rasgos de quebradas (fijos)
     agua_ninos = g[["agua_nino_2015_16_pct", "agua_nino_2023_24_pct"]].mean(axis=1)
-    g["P_agua"] = (rango(g["pct_area_agua_alguna_vez"]) + rango(agua_ninos) + rango(g["pct_area_hand_2m"])) / 3
+    g["P_agua"] = (u(g["pct_area_agua_alguna_vez"], "agua_alguna_vez_pct") + u(agua_ninos, "agua_ninos_pct")
+                   + u(g["pct_area_hand_2m"], "hand_2m_pct")) / 3
     g["s_quebrada"] = ((g["pendiente_p90_grados"] - 5) / 20).clip(0, 1)
-    g["arcilla_rel"] = rango(g["arcilla_pct"])
+    g["arcilla_rel"] = u(g["arcilla_pct"], "arcilla_pct")
 
     # Exposición y vulnerabilidad (fijas)
     prop_bajo = (g["pob_terreno_bajo"] / g["poblacion"]).fillna(0)
-    ind_E = pd.DataFrame({"pob_bajo": rango(np.log1p(g["pob_terreno_bajo"].fillna(0))), "prop_bajo": rango(prop_bajo)})
-    ind_V = pd.DataFrame({"sin_cloaca": rango(100 - g["pct_cloaca"]), "nbi": rango(g["pct_nbi"]),
-                          "materiales": rango(g["pct_materiales_deficientes"]),
-                          "barrios_pop": rango(g["barrios_populares"] / g["poblacion"].clip(lower=1) * 1e4)})
+    ind_E = pd.DataFrame({"pob_bajo": u(np.log10(1 + g["pob_terreno_bajo"].fillna(0)), "log10_pob_bajo"),
+                          "prop_bajo": u(prop_bajo, "prop_bajo")})
+    ind_V = pd.DataFrame({"sin_cloaca": u(100 - g["pct_cloaca"], "sin_cloaca_pct"), "nbi": u(g["pct_nbi"], "nbi_pct"),
+                          "materiales": u(g["pct_materiales_deficientes"], "materiales_pct"),
+                          "barrios_pop": u(g["barrios_populares"] / g["poblacion"].clip(lower=1) * 1e4, "barrios_cada_10k")})
     g["E"] = 10 * ind_E.mean(axis=1)
     g["V"] = 10 * ind_V.mean(axis=1)
 

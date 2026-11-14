@@ -111,6 +111,52 @@ async function climatologia(punto) {
   return { pDia, reparto, media, et0 };
 }
 
+// ---------- Extremos de los Niños en el punto (límites de las barras del escenario) ----------
+// Temporadas Niño fuertes y moderadas (oct → abr): 1982-83, 1986-87, 1991-92, 1997-98, 2002-03, 2009-10, 2015-16 y 2023-24.
+// Archivo horario de Open-Meteo (ERA5 y, desde 2017, modelos de mayor resolución): lluvia máxima en 1 a 72 horas seguidas,
+// humedad del suelo (0-7 cm) mínima y máxima, y evaporación media por hora. ERA5 (celdas de ~25 km) suaviza las tormentas
+// locales: los máximos reales en una ciudad pueden ser mayores.
+const TEMPORADAS_NINO = [1982, 1986, 1991, 1997, 2002, 2009, 2015, 2023];
+const DURACIONES = [1, 3, 6, 12, 24, 72];
+const cacheHistorico = new Map();
+function historicoNino(punto) {
+  const [lon, lat] = punto.map((v) => v.toFixed(2)), clave = `${lon},${lat}`;
+  if (!cacheHistorico.has(clave)) cacheHistorico.set(clave, (async () => {
+    const pedir = (a) => fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${a}-10-01&end_date=${a + 1}-04-30`
+      + "&hourly=precipitation,soil_moisture_0_to_7cm,et0_fao_evapotranspiration&timezone=America%2FArgentina%2FBuenos_Aires")
+      .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const res = await Promise.all(TEMPORADAS_NINO.map(pedir));
+    const lluvia = Object.fromEntries(DURACIONES.map((w) => [w, { max: 0, temporada: null }]));
+    let hMin = Infinity, hMax = -Infinity, sEt = 0, nEt = 0, n = 0;
+    res.forEach((d, k) => {
+      const h = d?.hourly;
+      if (!h?.precipitation?.length) return;
+      n++;
+      const temporada = `${TEMPORADAS_NINO[k]}-${String(TEMPORADAS_NINO[k] + 1).slice(2)}`, p = h.precipitation.map((v) => v ?? 0);
+      for (const w of DURACIONES) {   // máximo de la suma en w horas seguidas (ventana móvil)
+        let s = 0, m = 0;
+        for (let i = 0; i < p.length; i++) { s += p[i] - (i >= w ? p[i - w] : 0); if (s > m) m = s; }
+        if (m > lluvia[w].max) lluvia[w] = { max: m, temporada };
+      }
+      for (const v of h.soil_moisture_0_to_7cm ?? []) if (v != null) { if (v < hMin) hMin = v; if (v > hMax) hMax = v; }
+      for (const v of h.et0_fao_evapotranspiration ?? []) if (v != null) { sEt += v; nEt++; }
+    });
+    if (!n) { cacheHistorico.delete(clave); return null; }
+    return { temporadas: n, lluvia, humedad: Number.isFinite(hMin) ? { min: hMin, max: hMax } : null, et0h: nEt ? sEt / nEt : 0.15 };
+  })());
+  return cacheHistorico.get(clave);
+}
+// Humedad del suelo de ahora en el punto (Open-Meteo, 3-9 cm), para el botón «Condiciones de hoy»
+async function humedadHoy(punto) {
+  const [lon, lat] = punto.map((v) => v.toFixed(3));
+  const d = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=soil_moisture_3_to_9cm&past_days=1&forecast_days=1&timezone=America%2FArgentina%2FBuenos_Aires`)
+    .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  const v = d?.hourly?.soil_moisture_3_to_9cm, t0 = Date.now();
+  if (!v) return null;
+  const k = d.hourly.time.findIndex((x) => Date.parse(`${x}:00-03:00`) > t0);
+  return v.slice(0, k < 0 ? v.length : k).filter((x) => x != null).at(-1) ?? null;
+}
+
 // ---------- Grilla del modelo ----------
 // Celdas de 20 a 60 m según el tamaño del área y la duración (más días → celdas más grandes, para que el cálculo dure poco).
 function grillaModelo(d, horas, nMaxForzado = null) {

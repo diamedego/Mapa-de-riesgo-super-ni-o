@@ -3,20 +3,20 @@
   "filas_python": 15974,
   "filas_cruzadas": 15974,
   "diferencia_maxima": {
-    "amenaza": 4.9994723100077465e-05,
-    "h_agua": 4.9994723100077465e-05,
-    "h_rio": 4.991714568802763e-05,
-    "h_quebrada": 4.999125932836357e-05,
-    "exposicion": 4.995617879099967e-05,
-    "vulnerabilidad": 4.9976381672145465e-05,
-    "riesgo_sql": 4.9992736167236984e-05,
-    "personas_en_riesgo_sql": 4.999435265062857e-05,
-    "ranking_relativo_sql": 0.0,
+    "amenaza": 9.2755,
+    "h_agua": 4.9998305165610546e-05,
+    "h_rio": 9.9156,
+    "h_quebrada": 4.998964758584634e-05,
+    "exposicion": 4.998273717937707e-05,
+    "vulnerabilidad": 4.999999999988347e-05,
+    "riesgo_sql": 2.8765966586876774,
+    "personas_en_riesgo_sql": 44831.109201889194,
+    "ranking_relativo_sql": 836.0,
     "silver_poblacion": 0.0,
     "silver_pob_terreno_bajo": 0.0,
-    "silver_pct_cloaca": 1.9895196601282805e-13,
-    "silver_pct_nbi": 1.7763568394002505e-14,
-    "silver_pct_materiales_deficientes": 3.197442310920451e-14
+    "silver_pct_cloaca": 1.7053025658242404e-13,
+    "silver_pct_nbi": 1.4210854715202004e-14,
+    "silver_pct_materiales_deficientes": 2.842170943040401e-14
   },
-  "coincide": true
+  "coincide": false
 }

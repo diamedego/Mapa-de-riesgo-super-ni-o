@@ -49,6 +49,8 @@ function iniciar(m) {
     S.crecidaHora = Float32Array.from(m.relEvac, (r) => Math.max(-1, bordo + r));
     S.crecida = S.crecidaHora[0]; S.bordo = bordo;
   }
+  // Escenario: lagunas más bajas que la orilla (en metros, ≤ 0): guardan más agua antes de desbordar
+  if (m.lagoOffset) for (let l = 0; l < S.nLagos; l++) S.nivelLago[l] += m.lagoOffset;
   S.nivel0 = Float64Array.from(S.nivelLago);
   S.cuenta = { lluvia: 0, infiltrada: 0, desague: 0, evaporada: 0, salida: 0, lagos: 0, rio: 0 };   // m³, para verificar que no se crea ni se pierde agua
   // Humedad inicial del suelo (fracción del espacio poroso ocupada) → agua guardada en la capa de 30 cm

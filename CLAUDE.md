@@ -12,7 +12,7 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
   `tiempo.js` (campos del tiempo, partículas de viento, miniaturas), `mapa.js`, `buscador.js`, `tableros.js` (un tablero por capa y
   el análisis de abajo), `laminas.js` (las cuatro láminas: solapas, lámina 03 de alertas y ríos, validación en la 04),
   `guia.js` (encabezado, fuentes por tipo, recorrido guiado), `app.js` (estado, indicadores, modo actual/futuro). Datos: `preparar_geometrias.py` y `preparar_centros.py` (fijos, Mac),
-  `actualizar_datos_web.py` (diario), `exportar_alertas.py` (cada 3 h), `ingesta/tiempo_grilla.py` (2 veces por día).
+  `actualizar_datos_web.py` (diario), `preparar_rios_extremos.py` (fijo, Mac), `exportar_alertas.py` (cada 3 h), `ingesta/tiempo_grilla.py` (2 veces por día).
   `construir_artifact.py` arma la versión privada en claude.ai (inlina los módulos; mapa base propio).
 - `consumo_ia/` — medición del consumo de tokens de Claude Code en este proyecto.
 - `.github/workflows/actualizar_datos.yml` — SMN cada 3 h (+ alertas vigentes para la web), INA + pronóstico 16 días diario, grilla del tiempo 05:20 y 17:20 ART, GloFAS los lunes, SEAS5 el 6 de cada mes, y recálculo del índice y la web.
@@ -45,7 +45,11 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
 - Reestructura pedida 14-nov (respaldo: etiqueta `respaldo-2026-11-14`): dos secciones, (1) situación de hoy + pronóstico en línea de
   tiempo y (2) simulación de escenarios con barras entre mínimos y máximos históricos de cada zona en años Niño (si no hay, otros
   extremos): lluvia y duración, viento, humedad del suelo, lagunas, río. Mapa de la estructura actual: `docs/mapa_proyecto/mapa_proyecto.html`
-  (PDF en `Mapa del proyecto - versiones/`). Esperando que lo revise antes de cambiar nada.
+  (PDF en `Mapa del proyecto - versiones/`). 14-nov hecho: índice con umbrales físicos fijos (`UMBRALES` en
+  `modelos/indice_riesgo.py`, también radios y SQL) y simulador con barras de escenario (lluvia y duración, humedad del suelo,
+  lagunas, río o mar, desagües; sin viento) entre extremos de 8 temporadas Niño (ERA5) y del INA (`web/preparar_rios_extremos.py`).
+  Falta: agrupar las láminas en las dos secciones, peso del pronóstico estacional (w = 0,10) y la amenaza de ríos en la réplica SQL
+  (le falta el ajuste por distancia).
 - Rediseño «láminas» (13-nov): 01 y 02 iguales a la maqueta aprobada (`Propuestas de diseño`, fotos 6, 7 y 10); falta ajustar 03 y 04 a sus maquetas si lo pide, probar en el celular y republicar la versión privada de claude.ai.
 - Pedido 10-nov (`docs/02_plan_cambios_nov.md`): tandas 1 a 6 publicadas (colores, capas, filtros, período, Situación con tortas y
   recomendaciones, análisis tipo Power BI, encabezado con fuentes por tipo y recorrido guiado en `web/guia.js`) y tandas 7-8

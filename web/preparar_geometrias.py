@@ -114,6 +114,17 @@ def indice_buscador() -> list:
     return entradas
 
 
+def exposicion_vulnerabilidad_radios(rr: pd.DataFrame):
+    """E y V de cada radio censal con los mismos umbrales físicos fijos que el índice (modelos/indice_riesgo.py), no rangos:
+    E = 10 × % de la superficie a menos de 2 m del cauce; V = 10 × promedio de sin cloaca (0-100 %), NBI (0-25 %) y
+    materiales deficientes (0-100 %)."""
+    def u(s, cero, lleno):
+        return ((s - cero) / (lleno - cero)).clip(0, 1).fillna(0)
+    E = (10 * u(rr["pct_area_hand_2m"], 0, 100)).round(2)
+    V = (10 * (u(100 - rr["pct_cloaca"], 0, 100) + u(rr["pct_nbi"], 0, 25) + u(rr["pct_materiales_deficientes"], 0, 100)) / 3).round(2)
+    return E, V
+
+
 def main() -> None:
     SALIDA.mkdir(parents=True, exist_ok=True)
     # Municipios: geometría + atributos fijos (el riesgo se agrega en el navegador desde riesgo.json)
@@ -162,9 +173,7 @@ def main() -> None:
     # Radios censales (nivel barrio): el navegador calcula riesgo = cbrt(H del municipio en el mes × E × V)
     rr = pd.read_parquet(RAIZ / "data" / "referencia" / "rasgos_radios.parquet")
     rr = rr[(rr["poblacion"] > 0) & rr["cmu"].notna()].copy()
-    rng = lambda s: s.rank(pct=True).fillna(0)
-    rr["E"] = (10 * rng(rr["pct_area_hand_2m"])).round(2)
-    rr["V"] = (10 * (rng(100 - rr["pct_cloaca"]) + rng(rr["pct_nbi"]) + rng(rr["pct_materiales_deficientes"])) / 3).round(2)
+    rr["E"], rr["V"] = exposicion_vulnerabilidad_radios(rr)
     geo_r = gpd.read_parquet(RAIZ / "data" / "raw" / "limites" / "radios_censales.parquet")[["cod_indec", "geometry"]]
     # Nombres cortos (son ~66 000 radios): nbi = % hogares con NBI, agua = % del área con agua alguna vez 1984-2021 (JRC),
     # pend = pendiente media en grados
