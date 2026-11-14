@@ -32,6 +32,15 @@ def barrios() -> None:
                             "loc": g["localidad"]}, geometry=g.geometry.set_precision(1e-5), crs=4326)
     (SALIDA / "barrios_populares.geojson").write_text(sal.to_json(drop_id=True, na="null"))
     print(f"barrios_populares: {len(sal)} ({(SALIDA / 'barrios_populares.geojson').stat().st_size / 1e6:.1f} MB)")
+    indice_barrios(sal)
+
+
+def indice_barrios(sal: gpd.GeoDataFrame) -> None:
+    """Índice liviano para el buscador: [nombre, localidad, lon, lat, viviendas] de cada barrio popular (punto interior)."""
+    p = sal.geometry.representative_point()
+    filas = [[n, loc or "", round(pt.x, 5), round(pt.y, 5), int(v or 0)] for n, loc, pt, v in zip(sal["n"], sal["loc"], p, sal["viv"]) if n]
+    (SALIDA / "barrios_buscador.json").write_text(json.dumps(filas, ensure_ascii=False, separators=(",", ":")))
+    print(f"barrios_buscador: {len(filas)} barrios")
 
 
 def infraestructura() -> None:

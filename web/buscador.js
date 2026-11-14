@@ -165,9 +165,24 @@ let photonVersion = 0;
 // Lugares cargados a mano: empresas importantes que OpenStreetMap no tiene o tiene en un solo sitio. Se encuentran aunque el
 // nombre esté mal escrito (hasta 2 letras de diferencia). Con el lugar en el texto («… zárate»), primero el de ese lugar.
 const LUGARES_PROPIOS = [
-  { alias: ["masterbus", "master bus"], nombre: "MasterBus · terminal de micros", detalle: "Ruta Nacional 9, Colectora Sur km 87,5 · Zárate · Buenos Aires", cat: "cat_transporte", punto: [-58.9561856, -34.16999685], lugar: "zarate" },   // ubicación del link de Google Maps que pasó la usuaria (14-nov)
+  // Zárate: RN 9, Colectora Sur km 87,5 (dirección del link de Google Maps que pasó la usuaria). Google no da la posición exacta:
+  // se calculó 2 km al noroeste del km 85,5 (RN 9 y Larrea, servicio oficial de direcciones) sobre el trazado de la ruta (OSM)
+  { alias: ["masterbus", "master bus"], nombre: "MasterBus · terminal de micros", detalle: "Ruta Nacional 9, Colectora Sur km 87,5 · Zárate · Buenos Aires", cat: "cat_transporte", punto: [-59.084059, -34.125982], lugar: "zarate" },
   { alias: ["masterbus", "master bus"], nombre: "MasterBus · oficina", detalle: "Doctor Salk 243 · Campana · Buenos Aires", cat: "cat_transporte", punto: [-58.948364, -34.1869741], lugar: "campana" },
 ];
+// Barrios populares del RENABAP (6.467, con su localidad): «barrio San Cayetano zárate», «san cayetano, zarate». Con un lugar
+// en el texto, los barrios a menos de 25 km de ese lugar (algunos figuran en la localidad vecina); el nombre admite errores.
+let indiceBarrios = null;
+async function buscarBarrios(texto) {
+  const { nombre, lugar } = separarLugar(texto), q = normalizar(nombre ?? texto).replace(/^(barrio|bo\.?|b°)\s+/, "").trim();
+  if (q.length < 3) return [];
+  indiceBarrios ??= await fetch("datos/barrios_buscador.json").then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  const centro = lugar?.caja ? [(lugar.caja[0] + lugar.caja[2]) / 2, (lugar.caja[1] + lugar.caja[3]) / 2] : null, tol = q.length >= 6 ? 2 : 1;
+  return indiceBarrios.map(([n, loc, lo, la, viv]) => ({ n, loc, punto: [lo, la], viv, nn: normalizar(n), km: centro ? distanciaKm(centro, [lo, la]) : 0 }))
+    .filter((b) => (b.nn === q || b.nn.startsWith(q) || b.nn.includes(` ${q}`) || distanciaEdicion(q, b.nn) <= tol) && (!centro || b.km <= 25))
+    .sort((a, b) => (a.nn === q ? 0 : 1) - (b.nn === q ? 0 : 1) || a.km - b.km || b.viv - a.viv).slice(0, 4)
+    .map((b) => ({ tipo: "osm", nombre: `${t("barrio")} ${b.n}`, detalle: [b.loc, b.viv ? t("viviendas_n")(fmt(b.viv)) : ""].filter(Boolean).join(" · "), cat: "cat_barrio", punto: b.punto }));
+}
 function lugaresPropios(texto) {
   const { nombre, lugar } = separarLugar(texto), q = normalizar(nombre ?? texto).replace(/(\p{L})\1+/gu, "$1").replace(/[^\p{L}\p{N}]/gu, "");
   if (q.length < 4) return [];
@@ -296,7 +311,7 @@ async function sugerenciasLibres(texto) {
     for (const [nombre] of [...vistos.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3))
       items.push({ tipo: "calle", nombre: `${nombreCalle(nombre)} ${m?.[2] ?? ""}`.trim(), numero: m?.[2] ?? "", detalle: `${t("calle")} · ${zona.nombre}` });
   }
-  const propios = lugaresPropios(q);
+  const propios = [...lugaresPropios(q), ...await buscarBarrios(q).catch(() => [])];
   items.push(...propios);
   // Photon, con una pausa corta para no consultar en cada letra
   if (!SIN_TESELAS && q.length >= 3) {
@@ -534,7 +549,7 @@ async function buscarDireccion(texto) {
       if (r) { punto = [r.ubicacion.lon, r.ubicacion.lat]; nombre = nombreCalle(r.nomenclatura.split(",")[0]); }
     } catch (err) { /* sin conexión al servicio */ }
     if (!punto && !/\d/.test(calle)) {   // 2) nombres de lugares (empresas, clubes, hospitales…): Photon con opciones para elegir
-      const propios = lugaresPropios([calle, zona?.nombre].filter(Boolean).join(" "));
+      const propios = [...lugaresPropios([calle, zona?.nombre].filter(Boolean).join(" ")), ...await buscarBarrios([calle, zona?.nombre].filter(Boolean).join(", ")).catch(() => [])];
       const op = [...propios, ...(await buscarPhoton([calle, zona?.nombre].filter(Boolean).join(" "), { limite: 6 }).catch(() => []))
         .filter((o) => !propios.some((p) => distanciaKm(p.punto, o.punto) < 0.2))];
       if (op.length) {
