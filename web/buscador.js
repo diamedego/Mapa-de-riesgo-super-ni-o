@@ -162,22 +162,52 @@ const CATEGORIAS_OSM = [
 ];
 const categoriaOSM = (p) => (CATEGORIAS_OSM.find(([re]) => re.test(`${p.osm_key}:${p.osm_value}`))?.[1]) ?? "cat_lugar_osm";
 let photonVersion = 0;
-async function buscarPhoton(texto, { limite = 8 } = {}) {
-  const zona = zonaDireccion() ?? estado.filtros.provincia;
-  const centro = zona?.caja ? [(zona.caja[0] + zona.caja[2]) / 2, (zona.caja[1] + zona.caja[3]) / 2] : mapa ? mapa.getCenter().toArray() : null;
-  const params = new URLSearchParams({ q: texto, limit: String(limite * 2), bbox: "-74,-56,-53,-21.5" });
-  if (centro) { params.set("lon", centro[0].toFixed(4)); params.set("lat", centro[1].toFixed(4)); params.set("location_bias_scale", "0.3"); }
+// "Master Bus, Zárate" o "masterbus zarate": separa el nombre buscado del lugar (localidad o partido conocido) que lo acompaña
+function separarLugar(texto) {
+  const partes = texto.split(",").map((x) => x.trim()).filter(Boolean);
+  const exacto = (q) => lugarExacto("localidad", q) ?? lugarExacto("partido", q);
+  if (partes.length > 1) { const l = exacto(partes.at(-1)); if (l) return { nombre: partes.slice(0, -1).join(" "), lugar: l }; }
+  const pal = texto.replace(/,/g, " ").split(/\s+/).filter(Boolean);
+  for (const n of [2, 1]) if (pal.length > n) { const l = exacto(pal.slice(-n).join(" ")); if (l) return { nombre: pal.slice(0, -n).join(" "), lugar: l }; }
+  return { nombre: partes[0] ?? texto, lugar: null };
+}
+async function consultaPhoton(texto, centro, limite, escala = "0.3") {
+  const params = new URLSearchParams({ q: texto, limit: String(limite), bbox: "-74,-56,-53,-21.5" });
+  if (centro) { params.set("lon", centro[0].toFixed(4)); params.set("lat", centro[1].toFixed(4)); params.set("location_bias_scale", escala); }
   const d = await fetch(`${PHOTON}?${params}`).then((r) => (r.ok ? r.json() : { features: [] }));
+  return d.features.filter((f) => (f.properties.countrycode ?? "AR") === "AR");
+}
+async function buscarPhoton(texto, { limite = 8 } = {}) {
+  const { nombre, lugar } = separarLugar(texto);
+  const zona = lugar ?? zonaDireccion() ?? estado.filtros.provincia;
+  const centro = zona?.caja ? [(zona.caja[0] + zona.caja[2]) / 2, (zona.caja[1] + zona.caja[3]) / 2] : mapa ? mapa.getCenter().toArray() : null;
+  // Con un lugar en el texto se busca también solo el nombre, cerca de ese lugar (una empresa de Zárate puede figurar en Campana)
+  const [todo, solo] = await Promise.all([consultaPhoton(texto, centro, limite * 2).catch(() => []),
+    lugar && nombre ? consultaPhoton(nombre, centro, limite * 2, "0.6").catch(() => []) : []]);
+  // Si Photon no responde o no encuentra nada, Nominatim cerca del lugar (también con las palabras juntas: "Master Bus" → "MasterBus")
+  if (!todo.length && !solo.length && lugar && nombre) for (const v of [...new Set([nombre, nombre.replace(/\s+/g, "")])]) {
+    const m = 0.45, q = new URLSearchParams({ q: v, format: "geojson", countrycodes: "ar", limit: "5", addressdetails: "1", "accept-language": "es",
+      viewbox: `${centro[0] - m},${centro[1] + m},${centro[0] + m},${centro[1] - m}`, bounded: "1" });
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?${q}`).then((x) => (x.ok ? x.json() : { features: [] })).catch(() => ({ features: [] }));
+    solo.push(...r.features.map((f) => { const ad = f.properties.address ?? {}; return { geometry: f.geometry, properties: { name: f.properties.name, osm_key: f.properties.category, osm_value: f.properties.type,
+      street: ad.road, housenumber: ad.house_number, city: ad.city || ad.town || ad.village, county: ad.county, state: ad.state, countrycode: "AR" } }; }));
+    if (solo.length) break;
+  }
+  const cerca = (f) => !lugar || distanciaKm(centro, f.geometry.coordinates) <= 60;
+  const fichas = normalizar(nombre).split(/[\s\-.,]+/).filter((f) => f.length > 1), junto = fichas.join("");
+  // Primero lo que coincide con el nombre buscado (no el lugar que lo acompaña), después lo más cercano
+  const parecido = (n) => { const x = normalizar(n).replace(/[\s\-.]/g, ""); return !fichas.length ? 0 : x.includes(junto) ? 1 : fichas.filter((f) => x.includes(f)).length / fichas.length; };
   const vistos = new Set();
-  return d.features.filter((f) => (f.properties.countrycode ?? "AR") === "AR").map((f) => {
+  return [...solo.filter(cerca), ...todo].map((f) => {
     const p = f.properties, cat = categoriaOSM(p);
-    const lugar = p.city || p.town || p.village || p.district || p.county || "";
+    const lugarP = p.city || p.town || p.village || p.district || p.county || "";
     const calle = p.street ? `${p.street}${p.housenumber ? ` ${p.housenumber}` : ""}` : "";
-    return { tipo: "osm", nombre: p.name || calle || lugar, cat, punto: f.geometry.coordinates,
-      detalle: [p.name ? calle : "", lugar, p.state].filter(Boolean).filter((v, k, a) => a.indexOf(v) === k).join(" · "),
-      orden: cat === "cat_parada" ? 2 : 0 };
+    const nom = p.name || calle || lugarP;
+    return { tipo: "osm", nombre: nom, cat, punto: f.geometry.coordinates,
+      detalle: [p.name ? calle : "", lugarP && lugarP[0].toUpperCase() + lugarP.slice(1), p.state].filter(Boolean).filter((v, k, a) => a.indexOf(v) === k).join(" · "),
+      orden: cat === "cat_parada" ? 2 : 0, parecido: parecido(nom), km: centro ? distanciaKm(centro, f.geometry.coordinates) : 0 };
   }).filter((x) => x.nombre && !vistos.has(`${normalizar(x.nombre)}|${x.detalle}`) && vistos.add(`${normalizar(x.nombre)}|${x.detalle}`))
-    .sort((a, b) => a.orden - b.orden).slice(0, limite);
+    .sort((a, b) => (b.parecido >= 0.5) - (a.parecido >= 0.5) || b.parecido - a.parecido || a.orden - b.orden || (lugar ? a.km - b.km : 0)).slice(0, limite);
 }
 
 async function sugerenciasLibres(texto) {

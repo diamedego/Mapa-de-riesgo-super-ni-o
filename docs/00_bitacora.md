@@ -670,3 +670,9 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 - Leyenda de ríos sin cantidades. Botones de zoom abajo a la izquierda (el cuadro de referencias los tapaba).
 - Alertas del SMN apagadas por defecto; la lámina 03 las enciende y al salir vuelven a como estaban.
 - Curvas de nivel: se ven desde zoom 3, van encima del riesgo, sin fondo marino, con la altura en metros escrita derecha sobre las líneas (antes el ángulo máximo descartaba casi todas las etiquetas) y 500 m de separación mínima con el país entero a la vista.
+
+### 14-nov — Costa, animación de desagües, sin calles cortadas en rojo y buscador de empresas
+- Mapa: borde fino de la costa (`--mapa-costa`), porque el océano y los países tenían tonos parecidos.
+- Maqueta 3D: vuelve la animación de desagües del respaldo del 10-nov (caños virtuales propios de la maqueta: película de agua que moja y líneas blancas que bajan y se juntan), alimentada con la lluvia de cada hora de la tormenta. Es solo visual: los charcos y las cifras siguen saliendo del modelo de inundación; al terminar, la película se seca y quedan los charcos calculados.
+- Simulador: se quitaron las calles cortadas en rojo (mapa y maqueta) y su filtro; la cifra de km cortados sigue en los indicadores.
+- Buscador: «Master Bus, Zárate» no aparecía porque Photon ponía primero la ciudad de Zárate. Ahora se separa el nombre del lugar, se busca también solo el nombre cerca de ese lugar (60 km: en OSM MasterBus figura en Campana), se ordena por parecido con el nombre y, si Photon no responde, se prueba Nominatim (también con las palabras juntas).

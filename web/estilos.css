@@ -25,7 +25,7 @@
   --lluvia-4: #e8a33c; --lluvia-5: #d6453a;
   /* Mapa y maqueta 3D: sin cambios */
   --suelo-corte: #d9c9a8; --suelo-borde: #8a6f48; --maq-1: #f4f6f8; --maq-2: #d9dee4; --maq-3: #c9cfd6;
-  --mapa-fondo: #f6f3ec; --mapa-tierra: #e4dfd1; --agua: #a9cfe9; --agua-texto: #2f6690; --calle: #ffffff; --velo: #ffffff;
+  --mapa-fondo: #f6f3ec; --mapa-tierra: #e4dfd1; --mapa-costa: #8f8873; --agua: #a9cfe9; --agua-texto: #2f6690; --calle: #ffffff; --velo: #ffffff;
   --mapa-texto: #0e1726; --mapa-halo-texto: rgba(255, 255, 255, 0.95);
   --mini-tierra: #dfe5eb; --mini-borde: rgba(14, 23, 38, 0.32); --tinta-calor: #1d2533;
   /* Sin sombras blandas: filetes; lo que flota (sugerencias, carteles) lleva una sombra dura desplazada */
@@ -51,7 +51,7 @@
     --ok: #3ccf6e; --atencion: #fab219; --critico: #ff6b6b; --rio-normal: #58a6e6;
     --ok-fondo: rgba(60, 207, 110, 0.12); --atencion-fondo: rgba(250, 178, 25, 0.14); --critico-fondo: rgba(255, 107, 107, 0.14);
     --suelo-corte: #5b4a33; --suelo-borde: #b39368; --maq-1: #2a3540; --maq-2: #172029; --maq-3: #0e151c;
-    --mapa-fondo: #101716; --mapa-tierra: #1f2b29; --agua: #16324a; --agua-texto: #8ab8de; --calle: #4a5765; --velo: #000000;
+    --mapa-fondo: #101716; --mapa-tierra: #1f2b29; --mapa-costa: #5c6b67; --agua: #16324a; --agua-texto: #8ab8de; --calle: #4a5765; --velo: #000000;
     --mapa-texto: #f1f6fb; --mapa-halo-texto: rgba(5, 11, 16, 0.92);
     --mini-tierra: #172331; --mini-borde: rgba(255, 255, 255, 0.32); --tinta-calor: #0b1118;
     --sombra-2: 5px 5px 0 rgba(0, 0, 0, 0.5);
@@ -70,7 +70,7 @@
   --ok: #3ccf6e; --atencion: #fab219; --critico: #ff6b6b; --rio-normal: #58a6e6;
   --ok-fondo: rgba(60, 207, 110, 0.12); --atencion-fondo: rgba(250, 178, 25, 0.14); --critico-fondo: rgba(255, 107, 107, 0.14);
   --suelo-corte: #5b4a33; --suelo-borde: #b39368; --maq-1: #2a3540; --maq-2: #172029; --maq-3: #0e151c;
-  --mapa-fondo: #101716; --mapa-tierra: #1f2b29; --agua: #16324a; --agua-texto: #8ab8de; --calle: #4a5765; --velo: #000000;
+  --mapa-fondo: #101716; --mapa-tierra: #1f2b29; --mapa-costa: #5c6b67; --agua: #16324a; --agua-texto: #8ab8de; --calle: #4a5765; --velo: #000000;
   --mapa-texto: #f1f6fb; --mapa-halo-texto: rgba(5, 11, 16, 0.92);
   --mini-tierra: #172331; --mini-borde: rgba(255, 255, 255, 0.32); --tinta-calor: #0b1118;
   --sombra-2: 5px 5px 0 rgba(0, 0, 0, 0.5);

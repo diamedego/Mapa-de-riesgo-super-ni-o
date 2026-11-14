@@ -35,6 +35,10 @@ function mapaBaseLiso() {
     else if (sl === "water" && capa.type === "fill") { mapa.setPaintProperty(capa.id, "fill-color", css("--mapa-fondo")); mapa.setPaintProperty(capa.id, "fill-pattern", undefined); }
     else if (sl === "waterway" && capa.type === "line") mapa.setPaintProperty(capa.id, "line-color", css("--mapa-fondo"));
   });
+  // Borde fino de la costa: el océano y los países tienen tonos parecidos
+  const agua = mapa.getStyle().layers.find((l) => l["source-layer"] === "water" && l.type === "fill");
+  if (agua && !mapa.getLayer("costa")) mapa.addLayer({ id: "costa", type: "line", source: agua.source, "source-layer": "water", filter: ["==", ["get", "class"], "ocean"],
+    paint: { "line-color": css("--mapa-costa"), "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.6, 10, 1.2] } }, primeraCapa(["symbol"]));
 }
 const primeraCapa = (tipos) => mapa.getStyle().layers.find((l) => tipos.includes(l.type))?.id;
 
