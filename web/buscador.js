@@ -165,7 +165,7 @@ let photonVersion = 0;
 // Lugares cargados a mano: empresas importantes que OpenStreetMap no tiene o tiene en un solo sitio. Se encuentran aunque el
 // nombre esté mal escrito (hasta 2 letras de diferencia). Con el lugar en el texto («… zárate»), primero el de ese lugar.
 const LUGARES_PROPIOS = [
-  { alias: ["masterbus", "master bus"], nombre: "MasterBus · terminal de micros", detalle: "Terminal de Ómnibus · Zárate · Buenos Aires", cat: "cat_transporte", punto: [-59.016071, -34.1201407], lugar: "zarate" },
+  { alias: ["masterbus", "master bus"], nombre: "MasterBus · terminal de micros", detalle: "Ruta Nacional 9, Colectora Sur km 87,5 · Zárate · Buenos Aires", cat: "cat_transporte", punto: [-58.9561856, -34.16999685], lugar: "zarate" },   // ubicación del link de Google Maps que pasó la usuaria (14-nov)
   { alias: ["masterbus", "master bus"], nombre: "MasterBus · oficina", detalle: "Doctor Salk 243 · Campana · Buenos Aires", cat: "cat_transporte", punto: [-58.948364, -34.1869741], lugar: "campana" },
 ];
 function lugaresPropios(texto) {
