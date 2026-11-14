@@ -720,3 +720,4 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 - Cabeza de la lectura: radio compacto («Radio», barra de 90 px y valor) a la derecha del rótulo, sin líneas; escala de riesgo y bajada lado a lado.
 - Océano y detalle: cuadrícula del papel (20 px) bajo el mapa y bajo el detalle; retícula gris de 1 px con rayas de 4 px igual en ambos; sin la línea gris entre zonas de riesgo (bordes-riesgo oculta).
 - Buscador: lugar mal escrito (zarata → Zárate, distancia de edición ≤ 2); para el nombre mal escrito se prueba Overpass (3 servidores públicos, 9 s c/u), hoy saturados. Botones del mapa más abajo y a la derecha: no tapan los grados.
+- Buscador: lugares propios (LUGARES_PROPIOS en buscador.js) con nombre aproximado: MasterBus terminal de micros (Zárate, Terminal de Ómnibus) y oficina (Campana). Con el lugar en el texto, primero el de ese lugar.

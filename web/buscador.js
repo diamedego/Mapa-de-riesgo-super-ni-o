@@ -162,6 +162,20 @@ const CATEGORIAS_OSM = [
 ];
 const categoriaOSM = (p) => (CATEGORIAS_OSM.find(([re]) => re.test(`${p.osm_key}:${p.osm_value}`))?.[1]) ?? "cat_lugar_osm";
 let photonVersion = 0;
+// Lugares cargados a mano: empresas importantes que OpenStreetMap no tiene o tiene en un solo sitio. Se encuentran aunque el
+// nombre esté mal escrito (hasta 2 letras de diferencia). Con el lugar en el texto («… zárate»), primero el de ese lugar.
+const LUGARES_PROPIOS = [
+  { alias: ["masterbus", "master bus"], nombre: "MasterBus · terminal de micros", detalle: "Terminal de Ómnibus · Zárate · Buenos Aires", cat: "cat_transporte", punto: [-59.016071, -34.1201407], lugar: "zarate" },
+  { alias: ["masterbus", "master bus"], nombre: "MasterBus · oficina", detalle: "Doctor Salk 243 · Campana · Buenos Aires", cat: "cat_transporte", punto: [-58.948364, -34.1869741], lugar: "campana" },
+];
+function lugaresPropios(texto) {
+  const { nombre, lugar } = separarLugar(texto), q = normalizar(nombre ?? texto).replace(/(\p{L})\1+/gu, "$1").replace(/[^\p{L}\p{N}]/gu, "");
+  if (q.length < 4) return [];
+  const pegado = (a) => a.replace(/[^\p{L}\p{N}]/gu, "");
+  return LUGARES_PROPIOS.filter((x) => x.alias.some((a) => { const b = pegado(a); return b.startsWith(q) || distanciaEdicion(q, b) <= 2 || (q.length > b.length && distanciaEdicion(q.slice(0, b.length + 1), b) <= 2); }))
+    .map((x) => ({ tipo: "osm", nombre: x.nombre, detalle: x.detalle, cat: x.cat, punto: x.punto, orden: lugar && lugar.clave.includes(x.lugar) ? -1 : 0 }))
+    .sort((a, b) => a.orden - b.orden);
+}
 // "Master Bus, Zárate" o "masterbus zarate": separa el nombre buscado del lugar (localidad o partido conocido) que lo acompaña
 // Distancia de edición (cuántas letras hay que cambiar, agregar o quitar): «zarata» → «zarate» = 1
 function distanciaEdicion(a, b) {
@@ -282,11 +296,13 @@ async function sugerenciasLibres(texto) {
     for (const [nombre] of [...vistos.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3))
       items.push({ tipo: "calle", nombre: `${nombreCalle(nombre)} ${m?.[2] ?? ""}`.trim(), numero: m?.[2] ?? "", detalle: `${t("calle")} · ${zona.nombre}` });
   }
+  const propios = lugaresPropios(q);
+  items.push(...propios);
   // Photon, con una pausa corta para no consultar en cada letra
   if (!SIN_TESELAS && q.length >= 3) {
     const v = ++photonVersion;
     await demora(260);
-    if (v === photonVersion) items.push(...await buscarPhoton(q).catch(() => []));
+    if (v === photonVersion) items.push(...(await buscarPhoton(q).catch(() => [])).filter((o) => !propios.some((p) => distanciaKm(p.punto, o.punto) < 0.2)));
   }
   return items.slice(0, 10);
 }
@@ -518,7 +534,9 @@ async function buscarDireccion(texto) {
       if (r) { punto = [r.ubicacion.lon, r.ubicacion.lat]; nombre = nombreCalle(r.nomenclatura.split(",")[0]); }
     } catch (err) { /* sin conexión al servicio */ }
     if (!punto && !/\d/.test(calle)) {   // 2) nombres de lugares (empresas, clubes, hospitales…): Photon con opciones para elegir
-      const op = await buscarPhoton([calle, zona?.nombre].filter(Boolean).join(" "), { limite: 6 }).catch(() => []);
+      const propios = lugaresPropios([calle, zona?.nombre].filter(Boolean).join(" "));
+      const op = [...propios, ...(await buscarPhoton([calle, zona?.nombre].filter(Boolean).join(" "), { limite: 6 }).catch(() => []))
+        .filter((o) => !propios.some((p) => distanciaKm(p.punto, o.punto) < 0.2))];
       if (op.length) {
         elegirSugerencia(document.getElementById("b-direccion"), op[0]);
         if (op.length > 1) mostrarOpciones(op);
