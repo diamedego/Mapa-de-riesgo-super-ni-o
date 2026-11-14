@@ -716,3 +716,4 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 - Océano con la cuadrícula del papel (patrón de 20 px); demás países color de fondo liso.
 - Créditos del mapa cerrados por defecto; se abren con el ícono (i). Se mantienen los tres (OpenFreeMap, OpenMapTiles, OpenStreetMap): sus licencias exigen la atribución.
 - Corrección: el océano vuelve a verse como antes (transparente: cuadrícula del papel y retícula punteada con sus grados). Para que los demás países queden lisos se agregó la tierra mundial (Natural Earth 1:50 M, world-atlas en jsDelivr) con el color de la hoja, encima de la retícula y debajo de la Argentina.
+- Fondo como la lámina aprobada: con el país entero (zoom < 6) no se dibuja el mapa base (países vecinos, ciudades, costas): solo el papel con su cuadrícula, la retícula punteada y la Argentina. Desde zoom 6 vuelven calles y ríos. Se quitó la capa de tierra mundial.

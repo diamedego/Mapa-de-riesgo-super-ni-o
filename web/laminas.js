@@ -141,10 +141,6 @@ function iniciarLaminas() {
 
 // ---------- Plano de la lámina 01: retícula con grados, recuadro «A», escala gráfica y detalle del Litoral ----------
 const CAJA_A = [-63, -31.6, -53.4, -24];   // oeste, sur, este, norte
-let cargaTopo = null;
-const cargarTopojson = () => (cargaTopo ??= window.topojson ? Promise.resolve() : new Promise((ok, mal) => {
-  const sc = document.createElement("script"); sc.src = "https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"; sc.onload = ok; sc.onerror = mal; document.head.appendChild(sc);
-}));
 function iniciarPlano() {
   if (mapa.getSource("reticula")) return;
   const lineas = [];
@@ -152,14 +148,7 @@ function iniciarPlano() {
   for (let lat = -20; lat >= -55; lat -= 5) lineas.push([[-78, lat], [-48, lat]]);
   const [o, s, e, n] = CAJA_A;
   mapa.addSource("reticula", { type: "geojson", data: { type: "FeatureCollection", features: lineas.map((c) => ({ type: "Feature", geometry: { type: "LineString", coordinates: c }, properties: {} })) } });
-  mapa.addLayer({ id: "reticula", type: "line", source: "reticula", paint: { "line-color": css("--cian"), "line-opacity": 0.3, "line-width": 0.6, "line-dasharray": [3, 3] } }, "sin-datos");
-  // Tierra de todo el mundo (Natural Earth 1:50 M) del color liso de la hoja, encima de la retícula: la cuadrícula del papel y la
-  // retícula punteada quedan solo en el océano; la Argentina se pinta encima con sus capas
-  Promise.all([fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/land-50m.json").then((r) => r.json()), cargarTopojson()]).then(([tp]) => {
-    if (mapa.getSource("tierra")) return;
-    mapa.addSource("tierra", { type: "geojson", data: topojson.feature(tp, tp.objects.land) });
-    mapa.addLayer({ id: "tierra", type: "fill", source: "tierra", paint: { "fill-color": css("--superficie") } }, "sin-datos");
-  }).catch((e) => console.warn("tierra", e));
+  mapa.addLayer({ id: "reticula", type: "line", source: "reticula", paint: { "line-color": css("--cian"), "line-opacity": 0.3, "line-width": 0.6, "line-dasharray": [3, 3] } });
   mapa.addSource("caja-a", { type: "geojson", data: { type: "Feature", geometry: { type: "LineString", coordinates: [[o, n], [e, n], [e, s], [o, s], [o, n]] }, properties: {} } });
   mapa.addLayer({ id: "caja-a", type: "line", source: "caja-a", paint: { "line-color": css("--tinta-1"), "line-width": 1.2, "line-dasharray": [4, 2.5] } });
   mapa.on("move", actualizarReticula);

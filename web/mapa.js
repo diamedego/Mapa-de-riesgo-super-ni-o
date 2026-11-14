@@ -28,6 +28,9 @@ function nombresEnEspanol() {
 }
 // Mapa base liso: océano transparente (cuadrícula del papel y retícula); la tierra de los demás países, color liso (capa «tierra» en laminas.js) (sin bosques, parques ni relieve pintado)
 function mapaBaseLiso() {
+  // Como la lámina aprobada: con el país entero a la vista no se dibuja el mapa base (ni países vecinos, ni ciudades, ni
+  // costas): solo el papel con su cuadrícula, la retícula y la Argentina. Desde zoom 6 vuelve el mapa base (calles, ríos)
+  for (const capa of mapa.getStyle().layers) if (capa.type !== "background") mapa.setLayerZoomRange(capa.id, Math.max(capa.minzoom ?? 0, 6), capa.maxzoom ?? 24);
   mapa.getStyle().layers.forEach((capa) => {
     const sl = capa["source-layer"];
     if (capa.type === "background") mapa.setPaintProperty(capa.id, "background-opacity", 0);   // océano transparente: se ve la cuadrícula del papel
@@ -37,7 +40,7 @@ function mapaBaseLiso() {
   });
   // Borde fino de la costa: el océano y los países tienen tonos parecidos
   const agua = mapa.getStyle().layers.find((l) => l["source-layer"] === "water" && l.type === "fill");
-  if (agua && !mapa.getLayer("costa")) mapa.addLayer({ id: "costa", type: "line", source: agua.source, "source-layer": "water", filter: ["==", ["get", "class"], "ocean"],
+  if (agua && !mapa.getLayer("costa")) mapa.addLayer({ id: "costa", type: "line", minzoom: 6, source: agua.source, "source-layer": "water", filter: ["==", ["get", "class"], "ocean"],
     paint: { "line-color": css("--mapa-costa"), "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.6, 10, 1.2] } }, primeraCapa(["symbol"]));
 }
 const primeraCapa = (tipos) => mapa.getStyle().layers.find((l) => tipos.includes(l.type))?.id;
