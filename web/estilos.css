@@ -1313,7 +1313,7 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
 .lec-radio input { height: 14px; }
 .lec-radio-ext { font-size: 9px; }
 /* Lámina 01: fuera de la Argentina, color de fondo liso (sin la cuadrícula del papel) */
-.hoja-mapa .mapa-marco { background: var(--superficie); }
+.hoja-mapa .mapa-marco { background: transparent; }
 /* El detalle no tapa la atribución del mapa (OpenFreeMap / OpenStreetMap), abajo a la derecha */
 .detalle { bottom: 38px; }
 .detalle header span { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

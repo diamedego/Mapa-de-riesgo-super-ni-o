@@ -141,6 +141,10 @@ function iniciarLaminas() {
 
 // ---------- Plano de la lámina 01: retícula con grados, recuadro «A», escala gráfica y detalle del Litoral ----------
 const CAJA_A = [-63, -31.6, -53.4, -24];   // oeste, sur, este, norte
+let cargaTopo = null;
+const cargarTopojson = () => (cargaTopo ??= window.topojson ? Promise.resolve() : new Promise((ok, mal) => {
+  const sc = document.createElement("script"); sc.src = "https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"; sc.onload = ok; sc.onerror = mal; document.head.appendChild(sc);
+}));
 function iniciarPlano() {
   if (mapa.getSource("reticula")) return;
   const lineas = [];
@@ -148,7 +152,14 @@ function iniciarPlano() {
   for (let lat = -20; lat >= -55; lat -= 5) lineas.push([[-78, lat], [-48, lat]]);
   const [o, s, e, n] = CAJA_A;
   mapa.addSource("reticula", { type: "geojson", data: { type: "FeatureCollection", features: lineas.map((c) => ({ type: "Feature", geometry: { type: "LineString", coordinates: c }, properties: {} })) } });
-  mapa.addLayer({ id: "reticula", type: "line", source: "reticula", paint: { "line-color": css("--cian"), "line-opacity": 0.3, "line-width": 0.6, "line-dasharray": [3, 3] } });
+  mapa.addLayer({ id: "reticula", type: "line", source: "reticula", paint: { "line-color": css("--cian"), "line-opacity": 0.3, "line-width": 0.6, "line-dasharray": [3, 3] } }, "sin-datos");
+  // Tierra de todo el mundo (Natural Earth 1:50 M) del color liso de la hoja, encima de la retícula: la cuadrícula del papel y la
+  // retícula punteada quedan solo en el océano; la Argentina se pinta encima con sus capas
+  Promise.all([fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/land-50m.json").then((r) => r.json()), cargarTopojson()]).then(([tp]) => {
+    if (mapa.getSource("tierra")) return;
+    mapa.addSource("tierra", { type: "geojson", data: topojson.feature(tp, tp.objects.land) });
+    mapa.addLayer({ id: "tierra", type: "fill", source: "tierra", paint: { "fill-color": css("--superficie") } }, "sin-datos");
+  }).catch((e) => console.warn("tierra", e));
   mapa.addSource("caja-a", { type: "geojson", data: { type: "Feature", geometry: { type: "LineString", coordinates: [[o, n], [e, n], [e, s], [o, s], [o, n]] }, properties: {} } });
   mapa.addLayer({ id: "caja-a", type: "line", source: "caja-a", paint: { "line-color": css("--tinta-1"), "line-width": 1.2, "line-dasharray": [4, 2.5] } });
   mapa.on("move", actualizarReticula);
@@ -162,13 +173,13 @@ function actualizarReticula() {
   const W = cont.clientWidth, H = cont.clientHeight, c = mapa.getCenter(), vis = verPlanoNacional();
   let html = "";
   if (vis) {
-    if (false) for (let lon = -75; lon <= -50; lon += 5) { const x = mapa.project([lon, c.lat]).x; if (x > 40 && x < W - 30) html += `<span class="ret-lon" style="left:${x.toFixed(0)}px">${-lon}° ${t("oeste_corto")}</span>`; }
-    if (false) for (let lat = -20; lat >= -55; lat -= 5) { const y = mapa.project([c.lng, lat]).y; if (y > 50 && y < H - 20) html += `<span class="ret-lat" style="top:${y.toFixed(0)}px">${-lat}° S</span>`; }
+    for (let lon = -75; lon <= -50; lon += 5) { const x = mapa.project([lon, c.lat]).x; if (x > 40 && x < W - 30) html += `<span class="ret-lon" style="left:${x.toFixed(0)}px">${-lon}° ${t("oeste_corto")}</span>`; }
+    for (let lat = -20; lat >= -55; lat -= 5) { const y = mapa.project([c.lng, lat]).y; if (y > 50 && y < H - 20) html += `<span class="ret-lat" style="top:${y.toFixed(0)}px">${-lat}° S</span>`; }
     const p = mapa.project([CAJA_A[2], CAJA_A[3]]);
     if (estado.capa === "riesgo") html += `<b class="ret-a" style="left:${p.x.toFixed(0)}px;top:${p.y.toFixed(0)}px">A</b>`;
   }
   cont.innerHTML = html;
-  for (const id of ["reticula", "caja-a"]) if (mapa.getLayer(id)) mapa.setLayoutProperty(id, "visibility", vis && id !== "reticula" && estado.capa === "riesgo" ? "visible" : "none");   // sin la retícula punteada: fondo liso
+  for (const id of ["reticula", "caja-a"]) if (mapa.getLayer(id)) mapa.setLayoutProperty(id, "visibility", vis && (id === "reticula" || estado.capa === "riesgo") ? "visible" : "none");
   // Escala gráfica de 500 km (o 50 km de cerca) en la leyenda
   const km = document.getElementById("ley-km");
   if (km) {

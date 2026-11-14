@@ -26,22 +26,13 @@ function nombresEnEspanol() {
     }
   });
 }
-// Mapa base liso: demás países del color de fondo de la hoja; el océano con la cuadrícula del papel; la costa con una línea fina (sin bosques, parques ni relieve pintado)
+// Mapa base liso: océano transparente (cuadrícula del papel y retícula); la tierra de los demás países, color liso (capa «tierra» en laminas.js) (sin bosques, parques ni relieve pintado)
 function mapaBaseLiso() {
-  // Océano con la cuadrícula del papel (20 px, como la hoja); los demás países, del color de fondo liso
-  if (!mapa.hasImage("cuadricula")) {
-    const r = Math.min(2, devicePixelRatio || 1), n = 20 * r, cv = document.createElement("canvas");
-    cv.width = cv.height = n;
-    const c = cv.getContext("2d");
-    c.fillStyle = css("--superficie"); c.fillRect(0, 0, n, n);
-    c.fillStyle = css("--cuadricula"); c.fillRect(0, 0, n, r); c.fillRect(0, 0, r, n);
-    mapa.addImage("cuadricula", c.getImageData(0, 0, n, n), { pixelRatio: r });
-  }
   mapa.getStyle().layers.forEach((capa) => {
     const sl = capa["source-layer"];
-    if (capa.type === "background") { mapa.setPaintProperty(capa.id, "background-color", css("--superficie")); mapa.setPaintProperty(capa.id, "background-opacity", 1); }
+    if (capa.type === "background") mapa.setPaintProperty(capa.id, "background-opacity", 0);   // océano transparente: se ve la cuadrícula del papel
     else if (capa.type === "raster" || ["landcover", "landuse", "park", "aeroway"].includes(sl)) mapa.setLayoutProperty(capa.id, "visibility", "none");
-    else if (sl === "water" && capa.type === "fill") mapa.setPaintProperty(capa.id, "fill-pattern", "cuadricula");
+    else if (sl === "water" && capa.type === "fill") { mapa.setPaintProperty(capa.id, "fill-opacity", 0); mapa.setPaintProperty(capa.id, "fill-pattern", undefined); }
     else if (sl === "waterway" && capa.type === "line") mapa.setPaintProperty(capa.id, "line-color", css("--mapa-fondo"));
   });
   // Borde fino de la costa: el océano y los países tienen tonos parecidos
