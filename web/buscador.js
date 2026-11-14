@@ -163,9 +163,30 @@ const CATEGORIAS_OSM = [
 const categoriaOSM = (p) => (CATEGORIAS_OSM.find(([re]) => re.test(`${p.osm_key}:${p.osm_value}`))?.[1]) ?? "cat_lugar_osm";
 let photonVersion = 0;
 // "Master Bus, Zárate" o "masterbus zarate": separa el nombre buscado del lugar (localidad o partido conocido) que lo acompaña
+// Distancia de edición (cuántas letras hay que cambiar, agregar o quitar): «zarata» → «zarate» = 1
+function distanciaEdicion(a, b) {
+  const v = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = v[0]; v[0] = i;
+    for (let j = 1; j <= b.length; j++) { const t0 = v[j]; v[j] = Math.min(v[j] + 1, v[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = t0; }
+  }
+  return v[b.length];
+}
+// Localidad o partido con el nombre mal escrito (hasta 1 letra en nombres cortos, 2 en los de 6 letras o más)
+function lugarParecido(texto) {
+  const q = normalizar(texto);
+  if (q.length < 4) return null;
+  let mejor = null, dm = q.length >= 6 ? 2 : 1;
+  for (const l of estado.lugares) {
+    if (l.nivel !== "gl" && l.nivel !== "loc" && l.nivel !== "depto" || Math.abs(l.clave.length - q.length) > dm) continue;
+    const d = distanciaEdicion(q, l.clave);
+    if (d < dm || (d === dm && !mejor)) { mejor = l; dm = d; }
+  }
+  return mejor;
+}
 function separarLugar(texto) {
   const partes = texto.split(",").map((x) => x.trim()).filter(Boolean);
-  const exacto = (q) => lugarExacto("localidad", q) ?? lugarExacto("partido", q);
+  const exacto = (q) => lugarExacto("localidad", q) ?? lugarExacto("partido", q) ?? lugarParecido(q);
   if (partes.length > 1) { const l = exacto(partes.at(-1)); if (l) return { nombre: partes.slice(0, -1).join(" "), lugar: l }; }
   // «Masterbus en Zárate», «… de Zárate», «… cerca de Zárate»: el conector no es parte del nombre
   const m = texto.match(/^(.+?)\s+(?:en|de|del|cerca de)\s+(.+)$/i);
@@ -200,6 +221,26 @@ async function buscarPhoton(texto, { limite = 8 } = {}) {
     solo.push(...r.features.map((f) => { const ad = f.properties.address ?? {}; return { geometry: f.geometry, properties: { name: f.properties.name, osm_key: f.properties.category, osm_value: f.properties.type,
       street: ad.road, housenumber: ad.house_number, city: ad.city || ad.town || ad.village, county: ad.county, state: ad.state, countrycode: "AR" } }; }));
     if (solo.length) break;
+  }
+  // Último recurso, con un lugar: OpenStreetMap (Overpass) busca nombres parecidos a 30 km del lugar, aunque falten o sobren
+  // letras («mster bus» → MasterBus): cada letra puede tener otra en el medio
+  if (![...todo, ...solo].some(parece) && lugar && nombre) {
+    const letras = simple(nombre).replace(/[^\p{L}\p{N}]/gu, "");
+    if (letras.length >= 4) {
+      const re = [...letras].map((ch) => ch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".?.?"), [lo, la] = centro;
+      const q = `[out:json][timeout:8];nw(around:25000,${la.toFixed(4)},${lo.toFixed(4)})["name"~"${re}",i];out center 8;`;
+      // Servidores públicos de Overpass (a veces saturados): se prueba uno tras otro, con 9 s cada uno
+      let r = { elements: [] };
+      for (const h of ["https://overpass-api.de", "https://overpass.private.coffee", "https://maps.mail.ru/osm/tools/overpass"]) {
+        const ctl = new AbortController(), reloj = setTimeout(() => ctl.abort(), 9000);
+        const x = await fetch(`${h}/api/interpreter?data=${encodeURIComponent(q)}`, { signal: ctl.signal }).then((y) => (y.ok ? y.json() : null)).catch(() => null).finally(() => clearTimeout(reloj));
+        if (x?.elements) { r = x; break; }
+      }
+      solo.push(...r.elements.map((e) => ({ geometry: { coordinates: [e.lon ?? e.center?.lon, e.lat ?? e.center?.lat] },
+        properties: { name: e.tags.name, osm_key: Object.keys(e.tags).find((k) => ["amenity", "office", "shop", "industrial", "craft", "man_made", "landuse"].includes(k)) ?? "place",
+          osm_value: e.tags.amenity ?? e.tags.office ?? e.tags.shop ?? "", street: e.tags["addr:street"], housenumber: e.tags["addr:housenumber"], city: e.tags["addr:city"] ?? lugar.nombre, countrycode: "AR" } }))
+        .filter((f) => f.geometry.coordinates[0] != null));
+    }
   }
   const cerca = (f) => !lugar || distanciaKm(centro, f.geometry.coordinates) <= 60;
   const fichas = normalizar(nombre).split(/[\s\-.,]+/).filter((f) => f.length > 1), junto = fichas.join("");

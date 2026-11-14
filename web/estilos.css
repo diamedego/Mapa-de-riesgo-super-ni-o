@@ -1332,3 +1332,6 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
 @media (max-width: 760px) { .lec-fila-etq { flex-wrap: wrap; } }
 .lec-fila-etq > .etq { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .lec-fila-etq .lec-radio input { width: 90px; }
+
+/* Los botones del mapa no tapan los rótulos de grados (arriba y a la izquierda) */
+.hoja-mapa .plano-cab { top: 26px; left: 56px; }

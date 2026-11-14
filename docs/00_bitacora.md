@@ -719,3 +719,4 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 - Fondo como la lámina aprobada: con el país entero (zoom < 6) no se dibuja el mapa base (países vecinos, ciudades, costas): solo el papel con su cuadrícula, la retícula punteada y la Argentina. Desde zoom 6 vuelven calles y ríos. Se quitó la capa de tierra mundial.
 - Cabeza de la lectura: radio compacto («Radio», barra de 90 px y valor) a la derecha del rótulo, sin líneas; escala de riesgo y bajada lado a lado.
 - Océano y detalle: cuadrícula del papel (20 px) bajo el mapa y bajo el detalle; retícula gris de 1 px con rayas de 4 px igual en ambos; sin la línea gris entre zonas de riesgo (bordes-riesgo oculta).
+- Buscador: lugar mal escrito (zarata → Zárate, distancia de edición ≤ 2); para el nombre mal escrito se prueba Overpass (3 servidores públicos, 9 s c/u), hoy saturados. Botones del mapa más abajo y a la derecha: no tapan los grados.
