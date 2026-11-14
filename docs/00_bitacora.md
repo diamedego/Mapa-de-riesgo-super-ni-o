@@ -727,3 +727,4 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 - MasterBus terminal Zárate: el punto de Google era el centro de la vista (caía en Campana). Ahora calculado: 2 km al noroeste del km 85,5 (RN 9 y Larrea, Georef) sobre el trazado OSM, lado sur (-34.125982, -59.084059; Los Mirtillos, Zárate).
 - Buscador de barrios: índice web/datos/barrios_buscador.json (6.467 barrios populares RENABAP, nombre, localidad y punto; generado por preparar_capas.py). Admite «barrio …», errores de tipeo y lugar a 25 km. San Cayetano (el más inundado en mayo-2025) figura en Campana, junto a Zárate.
 - MasterBus terminal Zárate ubicada con la captura de Google Maps de la usuaria: al sur de la RN 9, esquina noreste de Los Mirtillos (-34.128394, -59.077632).
+- Detalle: con un punto elegido marca el punto y el círculo, y en el centro un botón «Simulador 3D →» que abre la lámina 02 (como la solapa).
