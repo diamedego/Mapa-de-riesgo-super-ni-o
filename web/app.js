@@ -18,25 +18,53 @@ const CAPAS = ["riesgo", "lluvia", "viento", "temp"];
 function alcanceKpis() {
   const s = estado.sel;
   if (s?.tipo === "zona") return { nombre: s.lugar.nombre, cmus: s.lugar.cmus.filter((c) => estado.riesgo.cmu[c]), caja: s.lugar.caja };
-  if (s?.tipo === "punto" && s.cmu) { const m = estado.porCmu.get(s.cmu); return { nombre: m?.nam ?? "", cmus: [s.cmu], caja: cajaDe(estado.datos.municipios.features.find((f) => f.properties.cmu === s.cmu).geometry) }; }
+  if (s?.tipo === "punto" && s.cmu) { const m = estado.porCmu.get(s.cmu); return { nombre: `${m?.nam ?? ""} · ${t("sel_circulo")(s.km).toLowerCase()}`, cmus: [s.cmu], caja: cajaCirculo(s.punto, s.km), circulo: s }; }
   return { nombre: "Argentina", cmus: todosLosCmus(), caja: null };
+}
+
+// Con un punto elegido, los indicadores son los del círculo: los radios censales que caen adentro (su riesgo es el del radio,
+// no el promedio del municipio). Si los radios de la zona todavía no se bajaron, se piden y se vuelve a pintar.
+let pedidoRadiosKpi = "";
+function circuloKpis(s) {
+  const R = estado.riesgo, M = R.meses, idx = indicesVista(), radios = (estado.radios ?? []).filter((f) => f.properties._c && f.properties[`r_${M[0]}`] != null);
+  let dentro = radios.filter((f) => distanciaKm(s.punto, f.properties._c) <= s.km);
+  if (!dentro.length) {   // círculo chico: el radio que contiene el punto
+    const c = radios.find((f) => cajasSeTocan(cajaCirculo(s.punto, 0.01), cajaDe(f.geometry)) && contiene(f.geometry, s.punto));
+    if (c) dentro = [c];
+  }
+  const clave = `${s.punto}|${s.km}`;
+  if (!dentro.length) {
+    if (pedidoRadiosKpi !== clave) { pedidoRadiosKpi = clave; cargarRadiosEn(cajaCirculo(s.punto, s.km)).then(() => { if (estado.sel === s) pintarKpis(); }); return { cargando: true }; }
+    return null;   // sin radios censales en el lugar (zona rural sin datos): queda el municipio
+  }
+  const props = dentro.map((f) => f.properties), pob = props.map((p) => Number(p.poblacion) || 0), peso = pob.map((v) => Math.max(1, v)), total = sumar(peso);
+  const rVista = props.map((p) => Math.max(...idx.map((i) => Number(p[`r_${M[i]}`]) || 0)));
+  const altos = props.filter((p, k) => rVista[k] >= CORTES[2]);
+  return { n: props.length, poblacion: sumar(pob), altos: altos.length, pobAlto: sumar(altos.map((p) => Number(p.poblacion) || 0)),
+    riesgo: M.map((m) => sumar(props.map((p, k) => (Number(p[`r_${m}`]) || 0) * peso[k])) / total) };
 }
 
 function pintarKpis() {
   const A = alcanceKpis(), R = estado.riesgo, idx = indicesVista();
-  const Z = analisisRiesgoZona(A.cmus);
+  const C = A.circulo ? circuloKpis(A.circulo) : null;
+  if (C?.cargando) return;   // vuelve a pintarse apenas llegan los radios censales del círculo
+  const Z = C ?? analisisRiesgoZona(A.cmus);
   const rV = Math.max(...idx.map((i) => Z.riesgo[i]));
-  const altos = A.cmus.filter((c) => Math.max(...idx.map((i) => R.cmu[c].r[i] ?? 0)) >= CORTES[2]);
-  const pobAlto = sumar(altos.map((c) => Number(estado.porCmu.get(c)?.poblacion) || 0));
-  const enCaja = (c) => !A.caja || (c[0] >= A.caja[0] - 0.1 && c[0] <= A.caja[2] + 0.1 && c[1] >= A.caja[1] - 0.1 && c[1] <= A.caja[3] + 0.1);
-  const alertas = estado.datos.alertas.features.filter((f) => !A.caja || cajasSeTocan(cajaDe(f.geometry), A.caja)).map((f) => f.properties);
+  const altos = C ? [] : A.cmus.filter((c) => Math.max(...idx.map((i) => R.cmu[c].r[i] ?? 0)) >= CORTES[2]);
+  const pobAlto = C ? C.pobAlto : sumar(altos.map((c) => Number(estado.porCmu.get(c)?.poblacion) || 0));
+  // Ríos: con un punto, las estaciones a menos de 15 km (o dentro del círculo, si es más grande); con una zona, las de su caja
+  const enCaja = (c) => (A.circulo ? distanciaKm(A.circulo.punto, c) <= Math.max(15, A.circulo.km)
+    : !A.caja || (c[0] >= A.caja[0] - 0.1 && c[0] <= A.caja[2] + 0.1 && c[1] >= A.caja[1] - 0.1 && c[1] <= A.caja[3] + 0.1));
+  const alertas = estado.datos.alertas.features.filter((f) => !A.caja || (cajasSeTocan(cajaDe(f.geometry), A.caja) && (!A.circulo || contiene(f.geometry, A.circulo.punto)))).map((f) => f.properties);
   const nivelAl = alertas.some((a) => a.nivel === "roja") ? "roja" : alertas.some((a) => a.nivel === "naranja") ? "naranja" : alertas.length ? "amarilla" : null;
   const ests = estado.datos.estaciones.features.filter((f) => f.properties.estado && enCaja(f.geometry.coordinates)).map((f) => f.properties);
   const evac = ests.filter((e) => e.estado === "evacuacion").length, alerta = ests.filter((e) => e.estado === "alerta").length;
   const kpis = [
     { k: "personas", ico: "personas", etq: t("kpi_personas"), valor: fmtPersonas(pobAlto), sub: t("kpi_personas_sub")(fmt((100 * pobAlto) / (Z.poblacion || 1), 1)),
       sev: pobAlto > 0 ? "atencion" : "ok", ir: () => { elegirCapa("riesgo"); irALamina(4); } },
-    { k: "municipios", ico: "municipio", etq: t("kpi_municipios"), valor: fmt(altos.length), unidad: ` / ${fmt(A.cmus.length)}`, sub: t("kpi_municipios_sub"),
+    C ? { k: "radios", ico: "municipio", etq: t("kpi_radios"), valor: fmt(C.altos), unidad: ` / ${fmt(C.n)}`, sub: t("kpi_municipios_sub"),
+      sev: C.altos ? "atencion" : "ok", ir: () => { elegirCapa("riesgo"); irALamina(4); } }
+      : { k: "municipios", ico: "municipio", etq: t("kpi_municipios"), valor: fmt(altos.length), unidad: ` / ${fmt(A.cmus.length)}`, sub: t("kpi_municipios_sub"),
       sev: altos.length ? "atencion" : "ok", ir: () => { elegirCapa("riesgo"); irALamina(4); } },
     { k: "rios", ico: "rio", etq: t("kpi_rios"), valor: fmt(evac + alerta), unidad: ` / ${fmt(ests.length)}`, sub: t("kpi_rios_sub")(evac, alerta),
       sev: evac ? "critico" : alerta ? "atencion" : "ok", ir: () => irALamina(3) },
@@ -49,7 +77,7 @@ function pintarKpis() {
     const lluvia = ext((s) => sumar(s.lluvia.slice(h0, h6 + 1).filter((v) => v != null)));
     const raf = ext((s) => Math.max(...s.rafaga.slice(h0, h2 + 1).filter((v) => v != null)));
     const tmx = ext((s) => Math.max(...s.tmax.slice(h0, h6 + 1).filter((v) => v != null)));
-    const lugar = (m) => (m ? `${estado.porCmu.get(m.c)?.nam ?? ""}${A.cmus.length > 1 ? ` · ${estado.porCmu.get(m.c)?.jur ?? ""}` : ""}` : "");
+    const lugar = (m) => (m ? (A.circulo ? t("en_el_lugar") : `${estado.porCmu.get(m.c)?.nam ?? ""}${A.cmus.length > 1 ? ` · ${estado.porCmu.get(m.c)?.jur ?? ""}` : ""}`) : "");
     const irA = (capa, m, dias) => () => { estado.modo = "futuro"; estado.rangoDias = [h0, dias]; elegirCapa(capa); if (m && A.cmus.length > 1) seleccionarPunto(estado.riesgo.cmu[m.c].c, { volar: true, origen: "kpi" }); };
     kpis.push(
       { k: "lluvia", ico: "lluvia", etq: t("kpi_lluvia"), valor: fmt(lluvia?.v), unidad: " mm", sub: lugar(lluvia), sev: lluvia?.v >= 100 ? "critico" : lluvia?.v >= 50 ? "atencion" : "ok", ir: irA("lluvia", lluvia, h6) },
@@ -57,8 +85,15 @@ function pintarKpis() {
       { k: "temp", ico: "temp", etq: t("kpi_temp"), valor: fmt(tmx?.v), unidad: " °C", sub: lugar(tmx), sev: tmx?.v >= 38 ? "critico" : tmx?.v >= 34 ? "atencion" : "ok", ir: irA("temp", tmx, h6) },
     );
   }
-  // Pico estimado del evento (mes con más estaciones de río con 50 % o más de probabilidad de evacuación)
-  const res = estado.datos.resumen, mp = res?.mes_pico;
+  // Camino al pico y mes pico: en todo el país, las estaciones de río con 50 % o más de probabilidad de evacuación (resumen);
+  // con un lugar elegido, las estaciones cercanas o, si no hay ninguna, el riesgo del lugar mes a mes
+  const res = estado.datos.resumen;
+  let pico;
+  if (!estado.sel) pico = { meses: res?.meses ?? [], vals: (res?.meses ?? []).map((m) => res.por_mes?.[m]?.estaciones_prob_evacuacion_50 ?? 0), tipo: "est" };
+  else if (ests.length) pico = { meses: res?.meses ?? [], vals: (res?.meses ?? []).map((m) => ests.filter((e) => (e[`pe_${m}`] ?? 0) >= 0.5).length), tipo: "est_cerca" };
+  else pico = { meses: R.meses, vals: R.meses.map((_, i) => Math.round((Z.riesgo[i] ?? 0) * 10) / 10), tipo: "riesgo" };
+  if (pico.tipo !== "riesgo" && estado.sel && !pico.vals.some((v) => v > 0)) pico = { meses: R.meses, vals: R.meses.map((_, i) => Math.round((Z.riesgo[i] ?? 0) * 10) / 10), tipo: "riesgo" };
+  const mp = !estado.sel ? res?.mes_pico : pico.vals.length ? pico.meses[pico.vals.indexOf(Math.max(...pico.vals))] : null;
   if (mp) kpis.push({ k: "pico", ico: "calendario", etq: t("kpi_pico"), valor: mesAbrev(mp), unidad: ` ${mp.slice(0, 4)}`, sub: t("kpi_pico_sub"), sev: "ok", ir: () => { elegirCapa("riesgo"); elegirModo("futuro"); } });
   document.getElementById("kpis-alcance").textContent = t("kpis_de")(A.nombre);
   const cont = document.getElementById("kpis");
@@ -67,19 +102,19 @@ function pintarKpis() {
       <span class="kpi-v">${k.valor}${k.unidad ? `<small>${k.unidad.trim()}</small>` : ""}</span>
       <span class="kpi-f">${escapar(k.sub)}</span></button>`).join("");
   cont.querySelectorAll(".kpi").forEach((b) => { b.onclick = () => kpis[+b.dataset.i].ir(); });
-  pintarCabezaLectura(A, rV, pobAlto, evac);
+  pintarCabezaLectura(A, rV, pobAlto, evac, mp, pico);
 }
 
 // ---------- Cabeza de la lámina 01: titular, bajada, escala de riesgo y camino al pico ----------
 const mesAbrev = (m) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString(loc(), { month: "short", timeZone: "UTC" }).replace(".", "");
 const mesLargo = (m) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString(loc(), { month: "long", year: "numeric", timeZone: "UTC" });
-function pintarCabezaLectura(A, rV, pobAlto, evac) {
+function pintarCabezaLectura(A, rV, pobAlto, evac, mp, pico) {
   const pais = A.nombre === "Argentina", h = hoyLocal(), hoy = `${+h.slice(8, 10)} ${mesAbrev(h.slice(0, 7))} ${h.slice(0, 4)}`;
-  const mp = estado.datos.resumen?.mes_pico, nivel = nombreNivel(rV).toLowerCase();
+  const nivel = nombreNivel(rV).toLowerCase(), c = A.circulo ? "_c" : "";
   document.getElementById("lec-etq").textContent = t("lec_etq")(pais ? t("lec_pais") : A.nombre, hoy);
   document.getElementById("lec-titular").innerHTML = `${escapar(capitalizar(t("lec_titular")(nivel)))} <span>${t("sobre_10")(fmtRiesgo(rV))}</span>`;
   const pers = pobAlto >= 1e6 ? t("personas_txt")(fmt(pobAlto / 1e6, 1), true) : t("personas_txt")(fmt(Math.round(pobAlto)), false);
-  document.getElementById("lec-bajada").textContent = mp ? (evac ? t("lec_bajada")(capitalizar(pers), evac, mesLargo(mp)) : t("lec_bajada_sin")(capitalizar(pers), mesLargo(mp))) : "";
+  document.getElementById("lec-bajada").textContent = mp ? (evac ? t(`lec_bajada${c}`)(capitalizar(pers), evac, mesLargo(mp)) : t(`lec_bajada_sin${c}`)(capitalizar(pers), mesLargo(mp))) : "";
   document.getElementById("escala-sub").textContent = t("escala_sub")(pais ? t("el_pais") : A.nombre);
   // Indicador de aguja de 0 a 10: un tramo por nivel del índice y la aguja en el valor de hoy
   const cortes = [0, ...CORTES, 10], nombres = t("niveles_cortos"), cx = 115, cy = 108, R = 82, v = limitar(rV, 0, 10);
@@ -95,8 +130,8 @@ function pintarCabezaLectura(A, rV, pobAlto, evac) {
   ag += `<text class="v" x="${cx}" y="${cy + 34}" text-anchor="middle">${fmtRiesgo(rV)} · ${escapar(nombreNivel(rV))}</text>`;
   document.getElementById("lec-escala").innerHTML = `<svg class="aguja" viewBox="0 0 230 150" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${fmtRiesgo(rV)} / 10 · ${escapar(nombreNivel(rV))}">${ag}</svg>`;
   // Camino al pico: estaciones con 50 % o más de probabilidad de evacuación, mes a mes
-  const res = estado.datos.resumen, meses = res?.meses ?? [];
-  const vals = meses.map((m) => res.por_mes?.[m]?.estaciones_prob_evacuacion_50 ?? 0);
+  const meses = pico.meses, vals = pico.vals;
+  document.getElementById("pico-sub").textContent = t(`pico_sub_${pico.tipo}`);
   if (!vals.length) { document.getElementById("lec-pico").innerHTML = ""; return; }
   const W = 230, H = 150, iz = 6, ab = 36, ar = 20, n = vals.length, max = Math.max(1, ...vals) * 1.05, bw = (W - iz * 2) / n;
   const imax = vals.indexOf(Math.max(...vals)), mHoy = hoyLocal().slice(0, 7);
@@ -104,8 +139,8 @@ function pintarCabezaLectura(A, rV, pobAlto, evac) {
   vals.forEach((v, i) => {
     const h = (v / max) * (H - ab - ar), x = iz + i * bw + bw * 0.16, w = bw * 0.68, esHoy = meses[i] === mHoy;
     const color = i === imax ? "var(--cian)" : esHoy ? "var(--ocre)" : "var(--pico-resto)";
-    g += `<rect x="${x.toFixed(1)}" y="${(H - ab - h).toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(h, 1.5).toFixed(1)}" style="fill:${color}"><title>${mesLargo(meses[i])}: ${v}</title></rect>`;
-    g += `<text class="v" x="${(x + w / 2).toFixed(1)}" y="${(H - ab - h - 5).toFixed(1)}" text-anchor="middle">${v}</text>`;
+    g += `<rect x="${x.toFixed(1)}" y="${(H - ab - h).toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(h, 1.5).toFixed(1)}" style="fill:${color}"><title>${mesLargo(meses[i])}: ${pico.tipo === "riesgo" ? fmtRiesgo(v) : v}</title></rect>`;
+    g += `<text class="v" x="${(x + w / 2).toFixed(1)}" y="${(H - ab - h - 5).toFixed(1)}" text-anchor="middle">${pico.tipo === "riesgo" ? fmtRiesgo(v) : v}</text>`;
     g += `<text x="${(x + w / 2).toFixed(1)}" y="${H - 21}" text-anchor="middle">${mesAbrev(meses[i])}</text>`;
     if (esHoy || i === imax) g += `<text class="v" x="${(x + w / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle">${esHoy ? t("pico_hoy") : t("pico_max")}</text>`;
   });
