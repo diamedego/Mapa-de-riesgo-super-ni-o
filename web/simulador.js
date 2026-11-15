@@ -2309,7 +2309,7 @@ function reproducirSimulador(desdeCero = false) {
       avanzarLluvia(SIM.maqueta.lluvia, lam, Math.min(dt, 0.2) / Math.max(0.3, SIM.velocidad));
       actualizarMaqueta(); hudReproduccion(Mo);
     }
-    if (j >= ultimo && !Mo.corriendo) { detenerAnimaciones(); btn.innerHTML = icono("repetir"); return; }
+    if (j >= ultimo && !Mo.corriendo) { detenerAnimaciones(); btn.innerHTML = icono("play"); return; }   // ▶ solo reproduce o pausa: repetir es el botón de al lado
     SIM.reproduciendo = requestAnimationFrame(cuadro);
   };
   SIM.reproduciendo = requestAnimationFrame(cuadro);
