@@ -840,14 +840,6 @@ function accesoHora(M) {
 // Confianza de la hora que se ve: la menor entre la lluvia (dato real o pronóstico a menos de 3 días: alta; a 3-7 días: media;
 // más lejos o escenario estacional: baja), el relieve (FABDEM: alta; satelital con edificios y árboles: media) y el modelo
 // (según el CSI validado en esa ciudad; sin validación: baja)
-const NIVELES_CONF = ["", "baja", "media", "alta"];
-function confianzaHora(M, k, d) {
-  const tp = M.met.tipo[k], adelante = k - M.hoy;
-  const lluvia = M.escenario ? 3 : tp === 0 ? 3 : tp === 2 ? 1 : adelante <= 72 ? 3 : adelante <= 168 ? 2 : 1;   // escenario: la lluvia es la elegida, no un pronóstico
-  const terreno = d.D.fuente === "fabdem" ? 3 : 2, v = validacionCiudad(d);
-  const modelo = v?.csi != null ? (v.csi >= 0.5 ? 3 : v.csi >= 0.3 ? 2 : 1) : 1;   // sin validación en esta ciudad: confianza baja, no media
-  return { nivel: Math.min(lluvia, terreno, modelo), lluvia, terreno, modelo, v };
-}
 
 function mostrarHora() {
   if (!SIM.datos || !SIM.modelo?.frames.length) return;
@@ -925,7 +917,8 @@ function pintarLineaSim() {
     <g clip-path="url(#sim-clip-falta)" class="sim-futuro">${capa()}</g><g clip-path="url(#sim-clip-ya)">${capa()}</g>
     <line x1="${iz}" x2="${ancho - de}" y1="${yB}" y2="${yB}" class="sim-eje-base"/>${franja}${ejes}${eje}
     ${finPron > 0 ? hito(finPron, t("sim_hito_fin_pron")) : ""}${M.pico != null ? hito(M.pico, t("sim_hito_pico")) : ""}${globo}</svg>
-    <div class="sim-linea-ley"><span><i class="sim-ley-lluvia"></i>${t("sim_ley_lluvia")}</span><span><i class="sim-ley-agua"></i>${t("sim_area")}</span><span><i style="background:${COLOR_TIPO[0]}"></i>${t("sim_tipo_real")}</span><span><i style="background:${COLOR_TIPO[1]}"></i>${t("sim_tipo_pronostico")}</span>${finPron > 0 ? `<span><i style="background:${COLOR_TIPO[2]}"></i>${t("sim_tipo_escenario")}</span>` : ""}</div>`;
+    <div class="sim-linea-ley"><span><i class="sim-ley-lluvia"></i>${t("sim_ley_lluvia")}</span><span><i class="sim-ley-agua"></i>${t("sim_area")}</span>${[0, 1, 2].filter((k) => met.tipo.includes(k))
+      .map((k) => `<span><i style="background:${COLOR_TIPO[k]}"></i>${t(k === 2 && M.escenario ? "sim_tipo_tormenta" : ["sim_tipo_real", "sim_tipo_pronostico", "sim_tipo_escenario"][k])}</span>`).join("")}</div>`;
   const svg = cont.querySelector("svg");
   const ir = (ev) => {
     const r = svg.getBoundingClientRect(), k = k0 + Math.round(((ev.clientX - r.left - iz) / (ancho - iz - de)) * (n - 1 - k0));
@@ -2066,7 +2059,7 @@ function pintarPanelSimulador(d) {
         </div>
     <p class="sim-progreso" id="sim-progreso" role="status" hidden></p>
     <div class="sim-ahora"><span class="sim-ahora-fecha" id="sim-fecha">–</span><span class="sim-ahora-tipo" id="sim-tipo"></span>
-      <span class="pill" id="sim-conf" tabindex="0"></span><span class="sim-ahora-lluvia" id="sim-acum"></span></div>
+      <span class="sim-ahora-lluvia" id="sim-acum"></span></div>
     <div class="sim-control">
       <input type="range" id="sim-barra" min="0" max="0" step="1" value="0" aria-label="${t("sim_linea")}">
     </div>
@@ -2240,11 +2233,6 @@ function actualizarNumeros() {
   ext[3].textContent = g.nRuta ? t("sim_cortes_de")(fmt((g.nRuta * g.dx) / 1000)) : "";
   vals[4].textContent = ac ? fmtPersonas(ac.aisladas) : t("sin_informacion");
   vals[5].innerHTML = ac && ac.salud ? conU(ac.sinAcceso, `/ ${ac.salud}`) : t("sin_informacion");
-  const cf = confianzaHora(Mo, k, d), pc = document.getElementById("sim-conf");
-  pc.className = `pill sem-${cf.nivel === 3 ? "ok" : cf.nivel === 2 ? "atencion" : "critico"}`;
-  pc.textContent = t("sim_conf")(NIVELES_CONF[cf.nivel]);
-  pc.dataset.ayuda = t("sim_conf_ayuda")(t(`conf_${NIVELES_CONF[cf.lluvia]}`), t(`conf_${NIVELES_CONF[cf.terreno]}`), t(`conf_${NIVELES_CONF[cf.modelo]}`) + ` · ${textoModelo(cf.v)}`,
-    t(Mo.escenario ? "sim_conf_lluvia_elegido" : `sim_conf_lluvia_${tp}`)(Math.max(0, Math.round((k - Mo.hoy) / 24))), d.D.fuente === "fabdem");
   pintarAntecedentesSim(Mo, d);
   const sup = document.getElementById("sim-supuestos");
   if (sup) sup.textContent = `${t(d.D.fuente === "fabdem" ? "sim_terreno_fabdem" : "sim_terreno_aws")} ` + t("sim_supuestos")(Mo.suelo.nombre, Mo.suelo.supuesto, SIM.desague, fmt(Mo.g.dx), Mo.cuenta ? fmt(100 * Mo.cuenta.infiltrada / Math.max(1, Mo.cuenta.lluvia)) : "…")

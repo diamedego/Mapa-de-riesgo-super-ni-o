@@ -390,7 +390,7 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <tr><td>Superficie con agua y personas</td><td>Celdas de tierra del círculo con 10 cm o más; las personas se reparten por celda a partir de los radios censales</td></tr>
 <tr><td>Profundidad máxima</td><td>Mayor lámina en el bajo más hondo, sin el agua dentro de arroyos o canales</td></tr>
 <tr><td>Calles cortadas, personas aisladas y salud sin acceso</td><td>Calles con 30 cm o más (los puentes siguen pasables); quienes en seco llegaban a la salida del área y con agua no; centros de salud con agua o con sus calles cortadas</td></tr>
-<tr><td>Confianza</td><td>Alta, media o baja: la menor entre la lluvia, el relieve y la validación del modelo en esa ciudad (sin validación, baja)</td></tr></tbody></table>
+</tbody></table>
 <h2><span class="n">6.8</span>Visualización y reproducción</h2>
 <p>Arriba del panel están el ▶, la hora, la barra de tiempo, la velocidad (×0,5 a ×4) y el gráfico de lluvia y agua. La maqueta 3D usa imagen satelital de alta resolución (hasta nivel 18, unos 0,6 m por píxel en un círculo de 0,5 km) y muestra solo las acumulaciones de 2 cm o más. Mientras llueve, unas líneas blancas siguen la pendiente de la superficie calculada: su dirección sale del cálculo, y su velocidad y su largo son ilustrativos.</p>
 {alcance(f"Muestra dónde se acumula el agua con una tormenta y un río dados, en un círculo de hasta 20 km y con horas de detalle. En crecidas de río con estación cercana acierta el {pc(R['ahora']['pod'])} del agua vista por radar. No representa la red pluvial real (se supone pareja) ni el agua que entra al círculo desde fuera de él, y no fue posible validar el anegamiento urbano de pocas horas. Las tormentas son reales pero vistas a 11 km de resolución: los picos de minutos quedan suavizados.")}</section>''',
@@ -501,7 +501,7 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <tr><td>RF-10</td><td>Simulador: reproducción</td><td>▶, hora, barra de tiempo, velocidad y gráfico arriba de todo; maqueta seca al abrir; imagen de alta resolución; animación de desagües</td></tr>
 <tr><td>RF-11</td><td>Simulador: escenario</td><td>Barras de lluvia, duración (1–72 h), humedad, lagunas, río y desagües con sus límites y fuentes; «Condiciones de hoy» y «Peor Niño»</td></tr>
 <tr><td>RF-12</td><td>Simulador: Niños</td><td>Selector con los Niños desde 1997–98, su tormenta, su fecha y el río de esos días; el peor para la población marcado con ▲; cuadro informativo con los 27 Niños desde 1951</td></tr>
-<tr><td>RF-13</td><td>Simulador: resultados</td><td>Superficie con agua, personas, profundidad, calles cortadas, aislados, salud sin acceso y confianza</td></tr>
+<tr><td>RF-13</td><td>Simulador: resultados</td><td>Superficie con agua, personas, profundidad, calles cortadas, aislados y salud sin acceso</td></tr>
 <tr><td>RF-14</td><td>Fuentes y recorrido</td><td>Ventana de fuentes por tipo de dato y recorrido guiado</td></tr>
 <tr><td>RF-15</td><td>Transversales</td><td>Español e inglés; tema claro y oscuro; adaptación a celular y tableta; separador de miles con punto; atribución del mapa plegada detrás del ícono «i»</td></tr></tbody></table>
 <h2><span class="n">9.1</span>Guía rápida</h2>
@@ -509,7 +509,7 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 
 10: f'''<section><h1><span class="num">Capítulo 10</span>Calidad, pruebas y trazabilidad</h1>
 <h2><span class="n">10.1</span>Principios</h2>
-<ul><li><b>No inventar.</b> Cada cifra tiene fuente, fecha y método. Cuando falta el dato se escribe «Sin información» y no se rellena con un supuesto oculto.</li><li><b>Coincidir con la realidad.</b> Un escenario histórico usa lluvia, humedad y río del mismo momento.</li><li><b>Elegir midiendo.</b> Cada fuente y cada regla se eligen comparando contra observaciones, y la comparación queda publicada.</li><li><b>Decir lo que no se sabe.</b> La validación, sus límites y la confianza de cada corrida están en pantalla.</li></ul>
+<ul><li><b>No inventar.</b> Cada cifra tiene fuente, fecha y método. Cuando falta el dato se escribe «Sin información» y no se rellena con un supuesto oculto.</li><li><b>Coincidir con la realidad.</b> Un escenario histórico usa lluvia, humedad y río del mismo momento.</li><li><b>Elegir midiendo.</b> Cada fuente y cada regla se eligen comparando contra observaciones, y la comparación queda publicada.</li><li><b>Decir lo que no se sabe.</b> La validación y sus límites están en pantalla. Se probó un aviso de confianza alta, media o baja en cada hora simulada y se quitó: sin una medida propia de cada lugar, sumaba desconfianza sin informar</li></ul>
 <h2><span class="n">10.2</span>Pruebas</h2>
 <p>La aplicación se prueba en un Chrome sin ventana controlado por el protocolo de depuración, con guiones que devuelven datos y no imágenes: son repetibles y baratos.</p>
 <ul>
@@ -592,7 +592,7 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <h2><span class="n">13.2</span>Riesgos del proyecto</h2>
 <table><thead><tr><th>Riesgo</th><th>Mitigación</th></tr></thead><tbody>
 <tr><td>Fuentes inestables (INA, SMN, Open-Meteo)</td><td>Reintentos, copias y avisos en pantalla; los datos históricos del simulador ya están precalculados</td></tr>
-<tr><td>Interpretación alarmista o como producto oficial</td><td>Aviso permanente, lenguaje medido, confianza visible y fuentes por tipo</td></tr>
+<tr><td>Interpretación alarmista o como producto oficial</td><td>Aviso permanente, lenguaje medido, validación visible y fuentes por tipo</td></tr>
 <tr><td>Licencias y cuotas</td><td>FABDEM CC BY-NC-SA; OpenStreetMap ODbL; Open-Meteo, Earth Engine y TomTom gratuitos para uso no comercial. La clave de TomTom es pública por naturaleza, así que conviene limitarla al dominio del sitio. Cloudflare: 500 publicaciones por mes</td></tr>
 <tr><td>Fecha de lanzamiento (antes del 30 de noviembre)</td><td>Lo que falta se muestra como faltante</td></tr></tbody></table>
 <h2><span class="n">13.3</span>Trabajo futuro</h2>
