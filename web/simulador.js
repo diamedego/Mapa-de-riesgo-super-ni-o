@@ -341,6 +341,7 @@ function limitesEscenario() {
 function pintarEscenario() {
   const cont = document.getElementById("sim-esc"), L = limitesEscenario(), E = SIM.esc;
   if (!cont) return;
+  SIM.kpisEl?.remove();   // se vuelve a colocar después de rearmar las barras
   if (!L) { cont.innerHTML = `<p class="sim-hint">${t("sim_hist_cargando")}</p>`; return; }
   // Cada valor dentro de su barra (por ejemplo, al saber la porosidad del suelo del lugar o al cambiar la duración)
   E.mm = limitar(E.mm, 0, L.lluvia.max); E.theta = limitar(E.theta, L.humedad.min, L.humedad.max); E.lagos = limitar(E.lagos, L.lagos.min, L.lagos.max);
@@ -356,6 +357,7 @@ function pintarEscenario() {
   cont.innerHTML = `${SIM.modelo?.alInicio && E.nino && !E.tocado ? `<p class="sim-hint">${t("sim_peor_cargado")(E.nino)}</p>` : SIM.modelo?.escenario ? "" : `<p class="sim-hint">${t("sim_seco_inicio")}</p>`}
     <div class="esc-nino"><span class="etq">${t("sim_f_nino")}${infoIcono("sim_nino", t("sim_peor_ayuda"))}</span><select id="esc-nino" aria-label="${t("sim_f_nino")}">${opcionesNino()}</select>
       <p class="esc-peor" id="esc-peor-linea"></p></div>
+    <div id="sim-kpis-lugar"></div>
     ${fila("mm", t("sim_f_lluvia"), E.mm, 0, L.lluvia.max, 1, ["0", `${fmt(L.lluvia.max)} mm`], L.lluvia.fuente)}
     ${fila("horas", t("sim_f_dur"), E.horas, 1, DUR_MAX, 1, ["1 h", `${DUR_MAX} h`], L.horas.fuente)}
     ${fila("theta", t("sim_f_humedad"), E.theta, L.humedad.min.toFixed(3), L.humedad.max.toFixed(3), 0.005, [t("sim_r_seco"), t("sim_r_saturado")], L.humedad.fuente)}
@@ -365,6 +367,7 @@ function pintarEscenario() {
       : fila("crecida", t("sim_f_rio"), E.crecida, L.rio.min, L.rio.max, 0.25, [`${fmt(L.rio.min)} m`, `+${fmt(L.rio.max)} m`], L.rio.fuente)) : ""}
     ${fila("desague", t("sim_f_desague"), E.desague, L.desague.min, L.desague.max, 1, [t("sim_r_tapados"), "30 mm/h"], L.desague.fuente)}`;
   enlazarInfo(cont);
+  if (SIM.kpisEl && (SIM.modoSim ?? "escenario") === "escenario") document.getElementById("sim-kpis-lugar")?.replaceWith(SIM.kpisEl);
   cont.querySelectorAll(".esc-fila").forEach((f) => {
     const k = f.dataset.k, inp = f.querySelector("input");
     inp.oninput = () => { f.querySelector(".esc-v").innerHTML = texto(k, Number(inp.value)); };   // al mover: solo el número
@@ -821,8 +824,8 @@ function llegaACalle(g, vis, c) {   // ¿hay una calle alcanzable a 2 celdas o m
   }
   return false;
 }
-function accesoHora(M) {
-  const g = M.g, F = frameVista(M);
+function accesoHora(M, F = frameVista(M)) {
+  const g = M.g;
   if (!g.nRuta) return null;
   M.visSeco ??= alcanzables(g, null);
   const vis = alcanzables(g, F), conAgua = (c) => F[c] / 1000 - g.cauce[c] >= CORTE;
@@ -1832,6 +1835,7 @@ function elegirModoSim(modo) {
   detenerAnimaciones();
   avisoProgreso("");
   const guardado = SIM.modelosModo[modo];
+  if (modo === "escenario" && SIM.esc) pintarEscenario();
   if (guardado) { SIM.modelo = guardado; bloquearControles(false); mostrarHora(); if (modo === "pronostico") pintarPronostico(); }
   else if (modo === "pronostico") prepararPronostico();
   else if (SIM.esc?.nino) aplicarNino(SIM.esc.nino, !SIM.esc.tocado);
@@ -2013,13 +2017,15 @@ function pintarPronostico() {
     return `<tr><td>${nombreMes(m)}</td><td>${fmt(v)} mm${normal ? ` <small>(${v >= normal ? "+" : ""}${fmt((100 * (v - normal)) / normal)} % ${t("pron_vs_normal")})</small>` : ""}</td>${est ? `<td>${Number.isFinite(pe) ? `${fmt(100 * pe)} %` : "–"}</td>` : ""}</tr>`;
   }).join("");
   const varBtn = (v) => `<button type="button" class="chip" data-var="${v}" aria-pressed="${P.variante === v}"${P.ens ? "" : " disabled"}>${t(`pron_var_${v}`)}</button>`;
-  cont.innerHTML = `<h3 class="tit esc-tit">${t("pron_hoy_t")}${infoIcono("pron_intro", t("pron_intro"))}</h3><ul class="pron-cond">${cond}</ul>
+  SIM.kpisEl?.remove();
+  cont.innerHTML = `<div id="sim-kpis-lugar-pron"></div><h3 class="tit esc-tit">${t("pron_hoy_t")}${infoIcono("pron_intro", t("pron_intro"))}</h3><ul class="pron-cond">${cond}</ul>
     <h3 class="tit esc-tit">${t("pron_tramos_t")}</h3>${graficoPronostico(diasPronostico(P))}
     <div class="pron-leyenda">${tramos}</div>
     <div class="pron-var"><span class="etq">${t("pron_var_t")}</span>${varBtn("probable")}${varBtn("pesimista")}</div>
     <h3 class="tit esc-tit">${t("pron_meses_t")}${infoIcono("pron_meses", t("pron_meses_sub"))}</h3>
     ${meses.length ? `<div class="tabla-ninos"><table><thead><tr><th>${t("pron_mes")}</th><th>${t("pron_mes_lluvia")}</th>${est ? `<th>${t("pron_mes_rio")(est.estacion)}</th>` : ""}</tr></thead><tbody>${filasMes}</tbody></table></div>` : `<p class="sim-hint">${t("pron_meses_no")}</p>`}`;
   enlazarInfo(cont);
+  if (SIM.kpisEl && SIM.modoSim === "pronostico") document.getElementById("sim-kpis-lugar-pron")?.replaceWith(SIM.kpisEl);
   cont.querySelectorAll("[data-var]").forEach((b) => { b.onclick = () => { if (P.variante !== b.dataset.var) { simularPronostico(b.dataset.var); pintarPronostico(); } }; });
 }
 
@@ -2044,7 +2050,13 @@ function pintarFiltrosSimulador() {
 
 function pintarPanelSimulador(d) {
   const panel = document.getElementById("sim-panel");
-  const kpiSim = (etq, sub) => `<div class="kpi"><span class="kpi-l">${etq}</span><span class="kpi-v tb-dato-valor">–</span><span class="kpi-f tb-dato-extra">${sub}</span></div>`;
+  const kpiSim = (etq, ayuda) => `<div class="kpi"><span class="kpi-l">${etq}${infoIcono("sim_kpi", ayuda)}</span><span class="kpi-v tb-dato-valor">–</span><span class="kpi-f tb-dato-extra"></span></div>`;
+  // Indicadores del momento de más agua: en una fila debajo del selector de Niño (o arriba del pronóstico): primer pantallazo
+  SIM.kpisEl = Object.assign(document.createElement("div"), { className: "sim-kpis", id: "sim-kpis" });
+  SIM.kpisEl.innerHTML = `<p class="sim-kpis-cab" id="sim-kpis-cab"></p><div class="kpis sim-datos">
+    ${kpiSim(t("sim_k_area"), t("sim_k_area_a"))}${kpiSim(t("sim_k_prof"), t("sim_prof_sub"))}${kpiSim(t("sim_k_pers"), t("sim_personas_sub"))}
+    ${kpiSim(t("sim_k_calles"), t("sim_k_calles_a"))}${kpiSim(t("sim_k_aisl"), t("sim_aisladas_sub"))}${kpiSim(t("sim_k_salud"), t("sim_salud_sub"))}</div>`;
+  enlazarInfo(SIM.kpisEl);
   panel.innerHTML = `
     <div class="sim-lec">
       <div class="lec-radio" id="sim-radio">${estado.sel?.tipo === "punto" ? `<div class="lec-radio-cab"><span class="etq">${t("radio_km")}</span><b id="sim-radio-v">${fmt(estado.sel.km, estado.sel.km % 1 ? 1 : 0)} km</b></div>
@@ -2069,10 +2081,6 @@ function pintarPanelSimulador(d) {
         <div class="esc" id="sim-esc"><p class="sim-hint">${t("sim_hist_cargando")}</p></div></div>
         <div id="sim-modo-pronostico" class="pron"${SIM.modoSim === "pronostico" ? "" : " hidden"}></div>
         <p class="sim-hint" id="sim-hint" hidden>${t("sim_hint")}</p></div>
-      <div class="kpis sim-datos">
-        ${kpiSim(t("sim_area"), "&nbsp;")}${kpiSim(t("sim_prof"), t("sim_prof_sub"))}${kpiSim(t("sim_personas"), t("sim_personas_sub"))}
-        ${kpiSim(t("sim_cortes"), "&nbsp;")}${kpiSim(t("sim_aisladas"), t("sim_aisladas_sub"))}${kpiSim(t("sim_salud"), t("sim_salud_sub"))}
-      </div>
       <div class="lec-pie" id="sim-pie"></div>
     </div>
     <div class="sim-mas">
@@ -2218,16 +2226,28 @@ function actualizarNumeros() {
     : t("sim_acum_ahora")(fmt(Math.max(0, pron - test)), fmt(test), fmt(esc));
   const barra = document.getElementById("sim-barra");
   barra.min = String(Mo.hoy); barra.max = String(met.horas.length - 1); barra.value = String(k);
-  const vals = document.querySelectorAll(".sim-datos .tb-dato-valor"), ext = document.querySelectorAll(".sim-datos .tb-dato-extra");
-  const conU = (v, u) => `${v}<small>${u}</small>`, pctTxt = fmt(R.pct, R.pct < 10 ? 1 : 0);
-  vals[0].innerHTML = conU(pctTxt, "%"); ext[0].textContent = t("sim_km2_circulo")(fmt(R.km2, 2));
-  vals[1].innerHTML = R.maxProf >= 0.01 ? conU(fmt(R.maxProf, 2), "m") : "–";
+  // Indicadores y titular: el momento de más agua de la corrida (no la hora que se ve): primer pantallazo aunque la maqueta esté seca
+  const kp = Mo.corriendo || Mo.pico == null ? Math.max(Mo.hoy, Mo.frames.length - 1) : Mo.pico, P = Mo.stats[kp] ?? R;
+  const caja = SIM.kpisEl ?? document, vals = caja.querySelectorAll(".sim-datos .tb-dato-valor"), ext = caja.querySelectorAll(".sim-datos .tb-dato-extra");
+  const cab = caja.querySelector("#sim-kpis-cab");
+  if (cab) cab.textContent = Mo.corriendo ? t("sim_kpis_calc") : Mo.escenario ? t("sim_kpis_pico_esc")(Math.max(1, kp - 1), Mo.tormenta.horas)
+    : t("sim_kpis_pico_fecha")(new Date(met.horas[kp]).toLocaleString(estado.idioma === "en" ? "en-GB" : "es-AR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }));
+  const conU = (v, u) => `${v}<small>${u}</small>`, pctTxt = fmt(P.pct, P.pct < 10 ? 1 : 0);
+  if (Mo.corriendo || Mo.pico == null) {   // hasta tener la corrida completa: «–» (no valores a medio calcular)
+    vals.forEach((v) => { v.textContent = "–"; }); ext.forEach((x) => { x.textContent = ""; });
+    const tit0 = document.getElementById("sim-titular"); if (tit0) tit0.innerHTML = `${t("sim_tit_q")} <span>–</span>`;
+    return;
+  }
+  vals[0].innerHTML = conU(pctTxt, "%"); ext[0].textContent = t("sim_km2_corto")(fmt(P.km2, P.km2 < 10 ? 2 : 0));
+  vals[1].innerHTML = P.maxProf >= 0.01 ? conU(fmt(P.maxProf, 2), "m") : "–";
   pintarCabezaSim();
   const tit = document.getElementById("sim-titular"); if (tit) tit.innerHTML = `${t("sim_tit_q")} <span>${t("sim_tit_pct")(pctTxt)}</span>`;
-  vals[2].textContent = fmtPersonas(R.personas);
-  const g = Mo.g, ac = accesoHora(Mo);
-  vals[3].innerHTML = g.nRuta ? conU(fmt(R.cortesKm, R.cortesKm < 10 ? 1 : 0), "km") : t("sin_informacion");
-  ext[3].textContent = g.nRuta ? t("sim_cortes_de")(fmt((g.nRuta * g.dx) / 1000)) : "";
+  vals[2].textContent = fmtPersonas(P.personas);
+  const g = Mo.g;
+  if (Mo.accesoK !== kp) { Mo.accesoK = kp; Mo.accesoPico = accesoHora(Mo, Mo.frames[kp]); }   // una vez por corrida (es una búsqueda en la red de calles)
+  const ac = Mo.accesoPico;
+  vals[3].innerHTML = g.nRuta ? conU(fmt(P.cortesKm, P.cortesKm < 10 ? 1 : 0), "km") : t("sin_informacion");
+  ext[3].textContent = g.nRuta ? t("sim_cortes_de_corto")(fmt((g.nRuta * g.dx) / 1000)) : "";
   vals[4].textContent = ac ? fmtPersonas(ac.aisladas) : t("sin_informacion");
   vals[5].innerHTML = ac && ac.salud ? conU(ac.sinAcceso, `/ ${ac.salud}`) : t("sin_informacion");
   pintarAntecedentesSim(Mo, d);
