@@ -5,3 +5,5 @@ geopandas
 shapely
 scikit-learn
 scipy
+earthengine-api
+google-auth

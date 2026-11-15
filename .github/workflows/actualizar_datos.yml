@@ -19,6 +19,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write   # identidad federada con Google Cloud (Earth Engine) sin claves
 
 concurrency:
   group: actualizar-datos
@@ -68,6 +69,19 @@ jobs:
           python ingesta/smn_alertas.py || echo "::warning::El SMN no respondió bien; se reintenta en 3 horas"
           python web/exportar_alertas.py || echo "::warning::No se pudieron exportar las alertas; se reintenta en 3 horas"
 
+      - name: Identidad en Google Cloud para Earth Engine (cuenta de servicio, sin claves)
+        if: steps.tarea.outputs.tarea == 'smn' || steps.tarea.outputs.tarea == 'tiempo'
+        continue-on-error: true
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/994958423059/locations/global/workloadIdentityPools/github/providers/github-repo
+          service_account: mapa-nino-actions@camisetas-de-futbol-argentino.iam.gserviceaccount.com
+
+      - name: Agua de hoy vista por radar (Sentinel-1; el mapa de Earth Engine vence a las horas)
+        if: steps.tarea.outputs.tarea == 'smn' || steps.tarea.outputs.tarea == 'tiempo'
+        continue-on-error: true
+        run: python earth_engine/agua_hoy_radar.py
+
       - name: Pronóstico de lluvia a 16 días (ECMWF)
         if: steps.tarea.outputs.tarea == 'ina'
         continue-on-error: true
@@ -103,7 +117,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f data/archivo data/gold web/datos/riesgo.json web/datos/estaciones.geojson web/datos/resumen.json web/datos/tiempo.json web/datos/alertas.geojson web/datos/lluvia_estacional.json web/datos/riesgo_semanal.json
+          git add -f data/archivo data/gold web/datos/riesgo.json web/datos/estaciones.geojson web/datos/resumen.json web/datos/tiempo.json web/datos/alertas.geojson web/datos/lluvia_estacional.json web/datos/riesgo_semanal.json web/datos/radar_agua.json
           git diff --cached --quiet || git commit -m "Datos automáticos: ${{ steps.tarea.outputs.tarea }} $(date -u +%F\ %H:%M) UTC"
           for i in 1 2 3 4; do   # si alguien subió algo justo antes, se rebasa dando prioridad a los datos de esta corrida y se reintenta
             git pull --rebase --autostash -X theirs && git push && exit 0
