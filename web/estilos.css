@@ -20,6 +20,7 @@
   --torta-resto: #ddd8cb;
   --violeta: #7c5aa6;
   --ok: #0a7d32; --atencion: #a35f00; --critico: #c62f2f; --serio: #ec835a; --rio-normal: #3f8fd2;
+  --bordo: #8c1d2e; --bordo-fondo: rgba(140, 29, 46, 0.08);   /* avisos de carga: que se vean */
   --ok-fondo: rgba(12, 163, 12, 0.1); --atencion-fondo: rgba(250, 178, 25, 0.16); --critico-fondo: rgba(208, 59, 59, 0.12);
   --alerta-amarilla: #e0ae00; --alerta-naranja: #ef8a00; --alerta-roja: #d03b3b;
   --lluvia-4: #e8a33c; --lluvia-5: #d6453a;
@@ -48,7 +49,7 @@
     --r1: #2fb366; --r2: #a6d96a; --r3: #fee08b; --r4: #fc8d59; --r5: #f04a3a;
     --sin-datos: #1f2b29; --borde-riesgo: #8d99a8; --borde-prov: rgba(255, 255, 255, 0.45);
     --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --torta-resto: #2a3634; --violeta: #a689d6;
-    --ok: #3ccf6e; --atencion: #fab219; --critico: #ff6b6b; --rio-normal: #58a6e6;
+    --ok: #3ccf6e; --atencion: #fab219; --critico: #ff6b6b; --rio-normal: #58a6e6; --bordo: #f3a0ad; --bordo-fondo: rgba(243, 160, 173, 0.12); --bordo: #f3a0ad; --bordo-fondo: rgba(243, 160, 173, 0.12);
     --ok-fondo: rgba(60, 207, 110, 0.12); --atencion-fondo: rgba(250, 178, 25, 0.14); --critico-fondo: rgba(255, 107, 107, 0.14);
     --suelo-corte: #5b4a33; --suelo-borde: #b39368; --maq-1: #2a3540; --maq-2: #172029; --maq-3: #0e151c;
     --mapa-fondo: #101716; --mapa-tierra: #1f2b29; --mapa-costa: #5c6b67; --agua: #16324a; --agua-texto: #8ab8de; --calle: #4a5765; --velo: #000000;
@@ -527,8 +528,15 @@ button { cursor: pointer; }
 .sim-mapa-marco { position: relative; min-height: 0; background: var(--mapa-fondo); }
 #sim-mapa { position: absolute; inset: 0; }
 .sim-estado { position: absolute; z-index: 2; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; padding: 8px 14px; border-radius: var(--radio-2);
-  background: var(--superficie); color: var(--tinta-2); box-shadow: var(--sombra-1); font-size: 0.9rem; }
+  background: var(--superficie); color: var(--bordo); border: 1.5px solid var(--bordo); font-weight: 700; box-shadow: var(--sombra-1); font-size: 0.95rem; }
 .sim-estado:empty { display: none; }
+/* Cartel de carga arriba de la maqueta: datos del lugar, peor Niño y cálculo del escenario */
+.sim-carga { position: absolute; z-index: 6; top: 14px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px); margin: 0; display: flex; align-items: center; gap: 10px;
+  padding: 9px 16px; background: var(--superficie); border: 1.5px solid var(--bordo); color: var(--bordo); font-weight: 700; font-size: 0.95rem; line-height: 1.3; box-shadow: var(--sombra-1); }
+.sim-carga[hidden] { display: none; }
+.sim-carga::before { content: ""; flex: none; width: 13px; height: 13px; border: 2px solid var(--bordo); border-right-color: transparent; border-radius: 50%; animation: sim-girar 0.9s linear infinite; }
+@keyframes sim-girar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .sim-carga::before { animation: none; } }
 .sim-panel { overflow-y: auto; padding: 16px; border-left: 1px solid var(--borde); display: flex; flex-direction: column; gap: 12px; }
 .sim-mm { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
 .sim-mm-valor { font-family: var(--f-num); font-weight: 700; font-size: 3.6rem; line-height: 0.9; color: var(--cian); }
@@ -537,7 +545,7 @@ button { cursor: pointer; }
 .sim-control { display: flex; align-items: center; gap: 10px; }
 .sim-control input[type="range"] { flex: 1; accent-color: var(--cian); height: 28px; }
 .sim-presets { display: flex; flex-wrap: wrap; gap: 6px; }
-.sim-progreso { margin: 0; padding: 8px 10px; border-radius: var(--radio-1); background: var(--cian-suave); color: var(--tinta-1); font-size: 0.84rem; }
+.sim-progreso { margin: 0; padding: 8px 10px; border-radius: var(--radio-1); background: var(--bordo-fondo); color: var(--bordo); font-weight: 700; font-size: 0.86rem; }
 .sim-ahora { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
 .sim-ahora-fecha { font-family: var(--f-num); font-size: 1.35rem; font-weight: 700; color: var(--tinta-1); }
 .sim-ahora-tipo { padding: 2px 8px; border-radius: 0; color: #fff; font-size: 0.72rem; font-weight: 600; }
@@ -1364,6 +1372,7 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
 .esc-nino option.peor { color: var(--critico); font-weight: 600; }
 .esc-peor { margin: 0; font-size: 11.5px; line-height: 1.35; color: var(--tinta-3); }
 .esc-peor.listo { color: var(--critico); font-weight: 600; }
+.esc-peor.estimando { color: var(--bordo); font-weight: 700; font-size: 12.5px; }
 .esc-peor:empty { display: none; }
 
 /* Cuadro informativo de todos los Niños (pie del simulador) */

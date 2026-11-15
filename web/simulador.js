@@ -299,9 +299,11 @@ function pintarPeorLinea() {
   const h = SIM.hist;
   calcularPeor();   // depende también de la barra de desagües
   const p = h?.peor;
-  el.innerHTML = !h?.H?.horariasListas ? t("sim_peor_estimando") : !p ? "" : p.personas >= 1 ? t("sim_peor_res")(p.temporada, fmtPersonas(p.personas), fmt(p.area / 1e4)) : t("sim_peor_res0")(p.temporada);
+  el.innerHTML = h && !h.H ? t("sim_peor_sin_datos") : !h?.H?.horariasListas ? t("sim_peor_estimando") : !p ? "" : p.personas >= 1 ? t("sim_peor_res")(p.temporada, fmtPersonas(p.personas), fmt(p.area / 1e4)) : t("sim_peor_res0")(p.temporada);
   el.dataset.ayuda = t("sim_peor_ayuda");
   el.classList.toggle("listo", !!p);
+  el.classList.toggle("estimando", !!h?.H && !h.H.horariasListas);
+  actualizarCarga();
   if (sel) sel.innerHTML = opcionesNino();
 }
 
@@ -654,7 +656,15 @@ function mascaraAgua(D, aPx, r = 2) {
 // Corre desde hace 14 días (dato real: el suelo y las lagunas llegan a hoy como están) hasta la fecha elegida. Cada hora
 // calculada se guarda (profundidad en mm por celda) y la línea de tiempo permite recorrerlas.
 const COLOR_TIPO = ["#7b8794", "#0e7490", "#8e6bbf"];   // dato real · pronóstico · escenario estacional
-function avisoProgreso(txt) { const p = document.getElementById("sim-progreso"); if (p) { p.textContent = txt; p.hidden = !txt; } }
+function avisoProgreso(txt) { const p = document.getElementById("sim-progreso"); if (p) { p.textContent = txt; p.hidden = !txt; } actualizarCarga(); }
+// Cartel arriba de la maqueta mientras algo tarda: el aviso de progreso del panel o la estimación del peor Niño
+function actualizarCarga() {
+  const el = document.getElementById("sim-carga");
+  if (!el) return;
+  const p = document.getElementById("sim-progreso"), cargando = document.getElementById("sim-estado")?.textContent;
+  const txt = cargando ? "" : p && !p.hidden && p.textContent ? p.textContent : SIM.hist?.H && !SIM.hist.H.horariasListas ? t("sim_peor_estimando") : "";
+  el.textContent = txt; el.hidden = !txt;
+}
 
 // Reparto de una tormenta de prueba hora a hora: 3 h con picos al comienzo (40-40-20 %), el resto parejo
 const repartoTormenta = (h) => (h === 3 ? [0.4, 0.4, 0.2] : Array(h).fill(1 / h));
@@ -1099,6 +1109,7 @@ async function elegirVistaSimulador(v) {
     return;
   }
   est.textContent = "";
+  actualizarCarga();
   if (SIM.vista !== "maqueta" || !SIM.maqueta) return;
   if (SIM.camaraPendiente) { Object.assign(SIM.maqueta, SIM.camaraPendiente); SIM.camaraPendiente = null; }
   SIM.maqueta.capa.hidden = false;
