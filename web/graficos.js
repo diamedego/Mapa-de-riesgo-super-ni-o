@@ -33,13 +33,15 @@ function marcasEje(max, n = 4) {
 }
 
 const ancho = (cont) => Math.max(260, Math.floor(cont.clientWidth || cont.parentElement?.clientWidth || 320));
+// Unidad del eje vertical, arriba de los números del eje (todos los gráficos con eje la llevan)
+const unidadEje = (o, izq, arr) => (o.unidad ? `<text class="eje eje-unidad" x="2" y="${arr - 11}">${escapar(o.unidad)}</text>` : "");
 const svgAbre = (W, H, clase = "") => `<svg class="graf ${clase}" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="presentation">`;
 
 // ---------- Columnas (una serie) ----------
 // opts: etiquetas, valores, alto, formato, colores (fn i → css), activos [a, b], onClick(i), tip(i) → html,
 //       refs [{valor, texto}], iconos [svg] (arriba de cada etiqueta), marcar ("max" | i)
 function grafBarras(cont, o) {
-  const W = ancho(cont), H = o.alto ?? 170, izq = 34, der = 8, arr = o.iconos ? 14 : 12, aba = o.iconos ? 44 : 26;
+  const W = ancho(cont), H = o.alto ?? 170, izq = 34, der = 8, arr = (o.iconos ? 14 : 12) + (o.unidad ? 14 : 0), aba = o.iconos ? 44 : 26;
   const n = o.valores.length;
   const maxV = Math.max(...o.valores.filter((v) => v != null), ...(o.refs ?? []).map((r) => r.valor), o.minMax ?? 0);
   const marcas = marcasEje(maxV || 1);
@@ -50,7 +52,7 @@ function grafBarras(cont, o) {
   const activo = (i) => !o.activos || (i >= o.activos[0] && i <= o.activos[1]);
   const imax = o.marcar === "max" ? o.valores.indexOf(Math.max(...o.valores.filter((v) => v != null))) : o.marcar;
   const cada = Math.ceil(n / Math.max(1, Math.floor((W - izq - der) / 46)));
-  let s = svgAbre(W, H);
+  let s = svgAbre(W, H) + unidadEje(o, izq, arr);
   for (const m of marcas) s += `<line class="grilla" x1="${izq}" x2="${W - der}" y1="${y(m)}" y2="${y(m)}"/>
     <text class="eje" x="${izq - 6}" y="${y(m) + 4}" text-anchor="end">${o.formatoEje ? o.formatoEje(m) : fmt(m)}</text>`;
   for (const r of o.refs ?? []) s += `<line class="ref" x1="${izq}" x2="${W - der}" y1="${y(r.valor)}" y2="${y(r.valor)}"/>
@@ -85,7 +87,7 @@ function enlazar(cont, o, tip) {
 // opts: etiquetas, series [{nombre, valores, color, ancho, punteada, area}], min, max, alto, formato, banda [a, b],
 //       marca i, onClick(i), extraTip(i) → html
 function grafLineas(cont, o) {
-  const W = ancho(cont), H = o.alto ?? 190, izq = 30, der = 10, arr = 12, aba = 26;
+  const W = ancho(cont), H = o.alto ?? 190, izq = 30, der = 10, arr = 12 + (o.unidad ? 14 : 0), aba = 26;
   const n = o.etiquetas.length;
   const vals = o.series.flatMap((s) => s.valores.filter((v) => v != null));
   const max = o.max ?? Math.max(...vals) * 1.1, min = o.min ?? 0;
@@ -93,7 +95,7 @@ function grafLineas(cont, o) {
   const x = (i) => izq + (n === 1 ? (W - izq - der) / 2 : (i * (W - izq - der)) / (n - 1));
   const y = (v) => arr + (1 - (v - min) / (max - min)) * (H - arr - aba);
   const cada = Math.ceil(n / Math.max(1, Math.floor((W - izq - der) / 52)));
-  let s = svgAbre(W, H);
+  let s = svgAbre(W, H) + unidadEje(o, izq, arr);
   if (o.banda) {
     const [a, b] = o.banda, x0 = Math.max(izq, x(a) - (W - izq - der) / Math.max(1, n - 1) / 2), x1 = Math.min(W - der, x(b) + (W - izq - der) / Math.max(1, n - 1) / 2);
     s += `<rect class="banda" x="${x0}" y="${arr}" width="${x1 - x0}" height="${H - arr - aba}"/>`;
@@ -315,7 +317,8 @@ function grafPaneles(cont, o) {
       <b>${escapar(p.titulo)}</b><span>${escapar(p.sub ?? "")}</span></button>${s}</div>`;
   }).join("");
   const marcas = [0, Math.floor(n / 2), n - 1].map((k, i) => `<span style="left:${(100 * xc(k)) / W}%;${i === 0 ? "transform:none;left:0" : i === 2 ? "transform:none;left:auto;right:0" : ""}">${escapar(o.etiquetas[k])}</span>`).join("");
-  cont.innerHTML = `<div class="paneles">${paneles}<div class="paneles-eje">${marcas}</div></div>`;
+  const escala = o.unidad ? `<p class="paneles-escala">${t("escala_paneles")(fmt(min), fmt(max, max < 10 ? 1 : 0), escapar(o.unidad))}</p>` : "";
+  cont.innerHTML = `<div class="paneles">${paneles}<div class="paneles-eje">${marcas}</div>${escala}</div>`;
   cont.querySelectorAll(".golpe").forEach((g) => {
     const p = o.paneles[+g.dataset.j], k = +g.dataset.k;
     g.addEventListener("pointermove", (ev) => Tip.mostrar(o.tipDe(p, k), ev));
@@ -328,14 +331,14 @@ function grafPaneles(cont, o) {
 // ---------- Columnas apiladas (series que se suman; 2 px entre segmentos) ----------
 // opts: etiquetas, series [{nombre, valores, color}], alto, formato, formatoEje, activos [a, b], onClick(i), tip(i) → html
 function grafApiladas(cont, o) {
-  const W = ancho(cont), H = o.alto ?? 170, izq = 40, der = 8, arr = 12, aba = 26, n = o.etiquetas.length;
+  const W = ancho(cont), H = o.alto ?? 170, izq = 40, der = 8, arr = 12 + (o.unidad ? 14 : 0), aba = 26, n = o.etiquetas.length;
   const tot = o.etiquetas.map((_, i) => sumar(o.series.map((se) => se.valores[i] ?? 0)));
   const marcas = marcasEje(Math.max(...tot) || 1), tope = marcas[marcas.length - 1];
   const banda = (W - izq - der) / n, grueso = Math.min(24, Math.max(3, banda - 4));
   const y = (v) => arr + (1 - v / tope) * (H - arr - aba), xc = (i) => izq + banda * (i + 0.5);
   const activo = (i) => !o.activos || (i >= o.activos[0] && i <= o.activos[1]);
   const cada = Math.ceil(n / Math.max(1, Math.floor((W - izq - der) / 46)));
-  let s = svgAbre(W, H);
+  let s = svgAbre(W, H) + unidadEje(o, izq, arr);
   for (const m of marcas) s += `<line class="grilla" x1="${izq}" x2="${W - der}" y1="${y(m)}" y2="${y(m)}"/>
     <text class="eje" x="${izq - 6}" y="${y(m) + 4}" text-anchor="end">${o.formatoEje ? o.formatoEje(m) : fmt(m)}</text>`;
   o.etiquetas.forEach((_, i) => {

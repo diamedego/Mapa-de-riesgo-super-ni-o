@@ -565,7 +565,7 @@ function tableroLluvia(cont) {
     ${enlacesCapas("lluvia")}`;
   grafBarras(document.getElementById("tb-lluvia-dias"), {
     etiquetas: dias, valores: S.lluvia.map((v) => (v == null ? null : Math.round(v * 10) / 10)), alto: 190, iconos,
-    activos: [a, b], marcar: "max", formato: (v) => `${fmt(v, v < 10 ? 1 : 0)} mm`, refs: [{ valor: 20, texto: "20 mm" }],
+    activos: [a, b], marcar: "max", formato: (v) => `${fmt(v, v < 10 ? 1 : 0)} mm`, refs: [{ valor: 20, texto: "20 mm" }], unidad: "mm",
     colores: (i, v) => (v >= 50 ? "var(--lluvia-5)" : v >= 20 ? "var(--lluvia-4)" : "var(--s-1)"),
     tip: (i) => `<span class="tip-titulo">${fmtDia(T.dias[i], { weekday: "long", day: "numeric", month: "short" })}</span>
       <span class="tip-fila"><b>${fmt(S.lluvia[i], 1)} mm</b> ${t(tiempoWmo(S.codigo[i]).clave)}</span><span class="tip-fila">${t("prob")} ${fmt(S.prob[i])} %</span>`,
@@ -573,7 +573,7 @@ function tableroLluvia(cont) {
   });
   grafBarras(document.getElementById("tb-lluvia-48"), {
     etiquetas: T.horas.map((h) => fmtHora(h)), valores: S.h.lluvia.map((v) => (v == null ? null : Math.round(v * 10) / 10)), alto: 150,
-    formato: (v) => `${fmt(v, 1)} mm`, marcar: "max", activos: P.tipo === "hora" ? [P.k, P.k] : null,
+    formato: (v) => `${fmt(v, 1)} mm`, unidad: t("mm_en_3h"), marcar: "max", activos: P.tipo === "hora" ? [P.k, P.k] : null,
     colores: () => "var(--s-1)", minMax: 2,
     tip: (i) => `<span class="tip-titulo">${fmtDia(T.horas[i].slice(0, 10))} ${fmtHora(T.horas[i])} – ${fmtHora(T.horas[Math.min(i + 1, T.horas.length - 1)])}</span><span class="tip-fila"><b>${fmt(S.h.lluvia[i], 1)} mm</b> ${t("en_3h")}</span>`,
     onClick: (i) => { estado.modo = "actual"; estado.paso3h = i; actualizarTodo(); },
@@ -637,14 +637,14 @@ function tableroViento(cont) {
     ${!s || s.tipo === "zona" ? `<section class="tb-bloque"><h3>${tit("rafagas_fuertes")}</h3><div id="tb-viento-rk"></div></section>` : ""}
     ${enlacesCapas("viento")}`;
   grafLineas(document.getElementById("tb-viento-dias"), {
-    etiquetas: dias, alto: 180, banda: [a, b], formato: (v) => `${fmt(v)} km/h`,
+    etiquetas: dias, alto: 180, banda: [a, b], formato: (v) => `${fmt(v)} km/h`, unidad: "km/h",
     series: [{ nombre: t("viento_max"), valores: S.viento, color: "var(--s-1)", ancho: 2.2 }, { nombre: t("rafagas"), valores: S.rafaga, color: "var(--s-2)", ancho: 2.2 }],
     extraTip: (i) => `<span class="tip-fila">${t("del")} ${sector(S.dir[i] ?? 0)} · ${t("beaufort")[beaufort(S.viento[i] ?? 0)]}${tipos[i] ? ` · ${t(`viento_${tipos[i]}`)}` : ""}</span>`,
     onClick: (i) => { estado.modo = "futuro"; estado.rangoDias = [i, i]; actualizarTodo(); },
   });
   grafRosa(document.getElementById("tb-rosa"), { valores: rosa, color: "var(--s-1)", tip: (k) => `<span class="tip-fila"><b>${t("puntos_largos")[k]}</b></span><span class="tip-fila">${fmt((100 * rosa[k]) / (sumar(rosa) || 1))} % ${t("del_viento")}</span>` });
   grafLineas(document.getElementById("tb-viento-48"), {
-    etiquetas: T.horas.map((h) => fmtHora(h)), alto: 150, formato: (v) => `${fmt(v)} km/h`, marca: P.tipo === "hora" ? P.k : null,
+    etiquetas: T.horas.map((h) => fmtHora(h)), alto: 150, formato: (v) => `${fmt(v)} km/h`, unidad: "km/h", marca: P.tipo === "hora" ? P.k : null,
     series: [{ nombre: t("viento"), valores: S.h.viento, color: "var(--s-1)", ancho: 2 }, { nombre: t("rafagas"), valores: S.h.rafaga, color: "var(--s-2)", ancho: 2 }],
     extraTip: (i) => `<span class="tip-fila">${fmtDia(T.horas[i].slice(0, 10))} · ${t("del")} ${sector(S.h.dir[i] ?? 0)}</span>`,
     onClick: (i) => { estado.modo = "actual"; estado.paso3h = i; actualizarTodo(); },
@@ -707,7 +707,7 @@ function tableroTemp(cont) {
     onClick: (i) => { estado.modo = "futuro"; estado.rangoDias = [i, i]; actualizarTodo(); },
   });
   grafLineas(document.getElementById("tb-temp-48"), {
-    etiquetas: T.horas.map((h) => fmtHora(h)), alto: 150, formato: (v) => `${fmt(v)} °C`, marca: P.tipo === "hora" ? P.k : null,
+    etiquetas: T.horas.map((h) => fmtHora(h)), alto: 150, formato: (v) => `${fmt(v)} °C`, unidad: "°C", marca: P.tipo === "hora" ? P.k : null,
     min: Math.floor(Math.min(...S.h.temp.filter((v) => v != null)) / 5) * 5, max: Math.ceil(Math.max(...S.h.temp.filter((v) => v != null)) / 5) * 5 + 2,
     series: [{ nombre: t("temperatura"), valores: S.h.temp, color: "var(--s-2)", ancho: 2.2, area: true }],
     extraTip: (i) => `<span class="tip-fila">${fmtDia(T.horas[i].slice(0, 10))}</span>`,
@@ -927,12 +927,12 @@ function analisisTiempo(cont) {
     formato: (v) => `${fmt(v)} ${unidad}`, onClick: (f) => elegirZonaDesdeGrafico(f.u),
   });
   grafPaneles(document.getElementById("an-paneles"), {
-    paneles, etiquetas: dias, activos: [a, b], colorDe: colorDia, linea: capa === "temp", ref: umbral[0], minMax: umbral[0],
+    paneles, etiquetas: dias, activos: [a, b], colorDe: colorDia, linea: capa === "temp", ref: umbral[0], minMax: umbral[0], unidad,
     tipDe: (p, k) => `<span class="tip-titulo">${escapar(p.titulo)} · ${fmtDia(T.dias[k])}</span><span class="tip-fila"><b>${fmt(p.valores[k], dec)} ${unidad}</b></span>`,
     onDia: elegirDia, onTitulo: (p) => elegirZonaDesdeGrafico(p.dato),
   });
   grafApiladas(document.getElementById("an-personas"), {
-    etiquetas: T.dias.map((d) => fmtDia(d, { weekday: "narrow", day: "numeric" })), alto: 190, activos: [a, b], formatoEje: fmtPersonas,
+    etiquetas: T.dias.map((d) => fmtDia(d, { weekday: "narrow", day: "numeric" })), alto: 190, activos: [a, b], formatoEje: fmtPersonas, unidad: t("personas_u"),
     series: [{ nombre: t(`an_${capa}_n1`), valores: s1, color: "var(--lluvia-4)" }, { nombre: t(`an_${capa}_n2`), valores: s2, color: "var(--lluvia-5)" }],
     tip: (k) => `<span class="tip-titulo">${fmtDia(T.dias[k], { weekday: "long", day: "numeric", month: "short" })}</span>
       <span class="tip-fila">${t(`an_${capa}_n1`)}: <b>${fmtPersonas(s1[k])}</b></span><span class="tip-fila">${t(`an_${capa}_n2`)}: <b>${fmtPersonas(s2[k])}</b></span>`,

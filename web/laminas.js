@@ -62,7 +62,7 @@ function pintarLamina3() {
   const barras = tipos.map((x) => `<li><span>${escapar(t(`alerta_${x.tipo}`))}</span>
     <span class="l3-pista" style="width:${(100 * sumar(x.n)) / tope}%">${x.n.map((v, i) => (v ? `<i style="flex:${v};background:var(--alerta-${NIVELES[i]})"
       data-tip="${escapar(`<b>${escapar(t(`alerta_${x.tipo}`))}</b><span>${capitalizar(t(`nivel_alerta_${NIVELES[i]}`))}: ${fmt(v)} ${t("l3_areas")}</span>`)}"></i>` : "")).join("")}</span>
-    <b>${fmt(sumar(x.n))}</b></li>`).join("");
+    <b>${fmt(sumar(x.n))} <small>${t("l3_areas")}</small></b></li>`).join("");
   const rios = ests.map((e, i) => {
     const max = Math.max(e.nivel_evacuacion ?? e.nivel_alerta, e.h) * 1.12, pos = (v) => `${limitar((100 * v) / max, 0, 100)}%`;
     return `<li class="rio" tabindex="0" role="button" data-i="${i}"><div class="rio-cab"><b>${escapar(e.estacion)}</b> <span>${escapar(nombreRio(e.rio))}${e.km != null ? ` · ${fmt(e.km)} km` : ""}</span>

@@ -1437,6 +1437,7 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
 .pron-b.pasado { fill: var(--eje); } .pron-b.alta { fill: var(--cian); } .pron-b.media { fill: var(--ocre); } .pron-b.baja { fill: var(--violeta); }
 .pron-pes { fill: none; stroke: var(--violeta); stroke-width: 1; stroke-dasharray: 2 2; }
 .pron-leyenda { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 4px 0 10px; font-size: 0.74rem; color: var(--tinta-2); }
+.pron-leyenda > span { display: inline-flex; align-items: center; gap: 2px; }
 .pron-leyenda span::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 5px; vertical-align: -1px; background: var(--eje); }
 .pron-leyenda .alta::before { background: var(--cian); } .pron-leyenda .media::before { background: var(--ocre); } .pron-leyenda .baja::before { background: var(--violeta); }
 .pron-tramos { display: grid; gap: 8px; margin-bottom: 10px; }
@@ -1445,3 +1446,7 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
 .pron-tramo b { font-size: 0.84rem; } .pron-tramo p { margin: 2px 0 0; font-size: 0.8rem; color: var(--tinta-2); }
 .pron-var { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
 .pron-var .etq { margin-right: 4px; }
+
+/* Unidad del eje vertical y escala de los paneles */
+.eje-unidad { font-weight: 600; }
+.paneles-escala { margin: 6px 0 0; font-size: 0.74rem; color: var(--tinta-3); }

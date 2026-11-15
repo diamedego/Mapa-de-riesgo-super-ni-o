@@ -361,7 +361,7 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <div class="tabla-t">Tabla 4. Barras del escenario</div>
 <table><thead><tr><th>Barra</th><th>Rango</th><th>De dónde sale el rango</th></tr></thead><tbody>
 <tr><td>Lluvia (mm) y duración (1 a 72 h)</td><td>0 al máximo de esa duración</td><td>Lo más que llovió en esa cantidad de horas en algún Niño (IMERG). Se conocen la hora, el día y los 3 días más lluviosos de cada temporada; entre esos puntos la lluvia crece como una potencia de la duración, como en las curvas intensidad-duración-frecuencia, y se toma el mayor de ese valor y de lo medido en las tormentas hora a hora</td></tr>
-<tr><td>Humedad del suelo</td><td>Mínimo y máximo de los Niños</td><td>ERA5, 0–7 cm, en el punto; botón «Condiciones de hoy» con la humedad actual</td></tr>
+<tr><td>Humedad del suelo</td><td>Mínimo y máximo de los Niños</td><td>ERA5, 0–7 cm, en el punto</td></tr>
 <tr><td>Lagunas</td><td>−1,5 m a llenas</td><td>Sin registro: rango supuesto</td></tr>
 <tr><td>Río (con estación)</td><td>Mínimo y máximo de los Niños, de hoy y de las tormentas</td><td>Alturas del INA y estimaciones de GloFAS</td></tr>
 <tr><td>Desagües</td><td>0 a 30 mm/h; por defecto, la lluvia de 1 h de 2 años del lugar</td><td>Sección 6.6</td></tr></tbody></table>
@@ -499,7 +499,7 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <tr><td>RF-08</td><td>Alertas y ríos</td><td>Alertas vigentes del SMN y estado de los ríos con sus niveles</td></tr>
 <tr><td>RF-09</td><td>Análisis y validación</td><td>Gráficos que siguen los filtros, al estilo de Power BI, y la validación del simulador</td></tr>
 <tr><td>RF-10</td><td>Simulador: reproducción</td><td>▶, hora, barra de tiempo, velocidad y gráfico arriba de todo; maqueta seca al abrir; imagen de alta resolución; animación de desagües</td></tr>
-<tr><td>RF-11</td><td>Simulador: escenario</td><td>Barras de lluvia, duración (1–72 h), humedad, lagunas, río y desagües con sus límites y fuentes; «Condiciones de hoy» y «Peor Niño»</td></tr>
+<tr><td>RF-11</td><td>Simulador: escenario</td><td>Barras de lluvia, duración (1–72 h), humedad, lagunas, río y desagües con sus límites y fuentes; al abrir, cargadas con el peor Niño del lugar</td></tr>
 <tr><td>RF-12</td><td>Simulador: Niños</td><td>Selector con los Niños desde 1997–98, su tormenta, su fecha y el río de esos días; el peor para la población marcado con ▲; cuadro informativo con los 27 Niños desde 1951</td></tr>
 <tr><td>RF-13</td><td>Simulador: resultados</td><td>Superficie con agua, personas, profundidad, calles cortadas, aislados y salud sin acceso</td></tr>
 <tr><td>RF-14</td><td>Fuentes y recorrido</td><td>Ventana de fuentes por tipo de dato y recorrido guiado</td></tr>

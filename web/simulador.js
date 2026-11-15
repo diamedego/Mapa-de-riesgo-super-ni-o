@@ -350,11 +350,11 @@ function pintarEscenario() {
   const texto = (k, v) => k === "mm" ? `${fmt(v)} mm` : k === "horas" ? `${fmt(v)} h` : k === "theta" ? t("sim_v_humedad")(sat(v)) : k === "lagos" ? (v === 0 ? t("sim_r_llenas") : t("sim_v_lagos")(fmt(-v, 1)))
     : k === "rio" ? `${fmt(v, 2)} m <small>${t("sim_v_evac")(fmt(L.rio.estacion.ref, 2))}</small>` : k === "crecida" ? `${v > 0 ? "+" : ""}${fmt(v, 2)} m` : `${fmt(v)} mm/h`;
   const fila = (k, etq, v, min, max, paso, extremos, fuente) => `<div class="esc-fila" data-k="${k}">
-      <div class="esc-cab"><span class="etq">${etq}</span><b class="esc-v">${texto(k, v)}</b></div>
+      <div class="esc-cab"><span class="etq">${etq}${infoIcono(`sim_b_${k}`, t(`info_b_${k}`))}</span><b class="esc-v">${texto(k, v)}</b></div>
       <input type="range" min="${min}" max="${max}" step="${paso}" value="${v}" aria-label="${etq}">
       <div class="esc-pie"><span>${extremos[0]}</span><span class="esc-fuente">${fuente}</span><span>${extremos[1]}</span></div></div>`;
   cont.innerHTML = `${SIM.modelo?.alInicio && E.nino && !E.tocado ? `<p class="sim-hint">${t("sim_peor_cargado")(E.nino)}</p>` : SIM.modelo?.escenario ? "" : `<p class="sim-hint">${t("sim_seco_inicio")}</p>`}
-    <div class="esc-nino"><span class="etq">${t("sim_f_nino")}</span><select id="esc-nino" aria-label="${t("sim_f_nino")}">${opcionesNino()}</select>
+    <div class="esc-nino"><span class="etq">${t("sim_f_nino")}${infoIcono("sim_nino", t("sim_peor_ayuda"))}</span><select id="esc-nino" aria-label="${t("sim_f_nino")}">${opcionesNino()}</select>
       <p class="esc-peor" id="esc-peor-linea"></p></div>
     ${fila("mm", t("sim_f_lluvia"), E.mm, 0, L.lluvia.max, 1, ["0", `${fmt(L.lluvia.max)} mm`], L.lluvia.fuente)}
     ${fila("horas", t("sim_f_dur"), E.horas, 1, DUR_MAX, 1, ["1 h", `${DUR_MAX} h`], L.horas.fuente)}
@@ -363,17 +363,14 @@ function pintarEscenario() {
     ${hayRio ? (L.rio.estacion
       ? fila("rio", t("sim_f_rio_en")(L.rio.estacion.estacion), E.rio, L.rio.min, L.rio.max, 0.05, [`${fmt(L.rio.min, 2)} m`, `${fmt(L.rio.max, 2)} m`], L.rio.fuente)
       : fila("crecida", t("sim_f_rio"), E.crecida, L.rio.min, L.rio.max, 0.25, [`${fmt(L.rio.min)} m`, `+${fmt(L.rio.max)} m`], L.rio.fuente)) : ""}
-    ${fila("desague", t("sim_f_desague"), E.desague, L.desague.min, L.desague.max, 1, [t("sim_r_tapados"), "30 mm/h"], L.desague.fuente)}
-    <div class="esc-botones"><button type="button" class="btn-texto" id="esc-hoy">${t("sim_b_hoy")}</button><button type="button" class="btn-texto" id="esc-peor">${t("sim_b_peor")}</button></div>
-    <p class="esc-nota">${t("sim_esc_nota")(SIM.hist.H?.temporadas ?? 0)}</p>`;
+    ${fila("desague", t("sim_f_desague"), E.desague, L.desague.min, L.desague.max, 1, [t("sim_r_tapados"), "30 mm/h"], L.desague.fuente)}`;
+  enlazarInfo(cont);
   cont.querySelectorAll(".esc-fila").forEach((f) => {
     const k = f.dataset.k, inp = f.querySelector("input");
     inp.oninput = () => { f.querySelector(".esc-v").innerHTML = texto(k, Number(inp.value)); };   // al mover: solo el número
     inp.onchange = () => { E.tocado = true; cambiarEscenario({ [k]: Number(inp.value) }); };   // al soltar: se calcula de nuevo
   });
   document.getElementById("esc-nino").onchange = (e) => { E.tocado = true; if (e.target.value) aplicarNino(e.target.value); };
-  document.getElementById("esc-hoy").onclick = () => { E.tocado = true; aplicarCondicionesHoy(); };
-  document.getElementById("esc-peor").onclick = () => { E.tocado = true; aplicarPeorNino(); };
   pintarPeorLinea();
   pintarTablaNinos();
 }
@@ -874,7 +871,7 @@ function trazoSuave(P) {
 function pintarLineaSim() {
   const cont = document.getElementById("sim-linea"), M = SIM.modelo;
   if (!cont || !M?.met) return;
-  const met = M.met, n = met.horas.length, k0 = M.hoy, ancho = Math.max(240, cont.clientWidth), alto = 206, iz = 34, de = 38, yB = 150, hB = 100;
+  const met = M.met, n = met.horas.length, k0 = M.hoy, ancho = Math.max(240, cont.clientWidth), alto = 206, iz = 54, de = 38, yB = 150, hB = 100;
   const x = (k) => iz + (Math.max(0, k - k0) / Math.max(1, n - 1 - k0)) * (ancho - iz - de);   // el eje arranca ahora: lo pasado no se muestra
   const art = (k) => new Date(met.horas[k] - 3 * 3600e3), ci = estado.idioma === "en" ? "en-GB" : "es-AR";
   const porDia = ((n - k0) / 24) <= 14, bloque = porDia ? 6 : 24;
@@ -907,7 +904,7 @@ function pintarLineaSim() {
     <circle cx="${xh}" cy="${yD}" r="4.5" class="sim-punto"/>${etiqueta(M.hora, true)}`;
   const hito = (k, texto) => (k > k0 && k < n ? `<line x1="${x(k)}" x2="${x(k)}" y1="${yB - hB}" y2="${yB}" class="sim-hito"/><text x="${x(k) + 3}" y="${yB - hB + 10}" class="sim-hito-txt"${k > n * 0.8 ? ` text-anchor="end" dx="-6"` : ""}>${texto}</text>` : "");
   const finPron = met.tipo.indexOf(2);
-  const ejes = `<text x="${iz - 4}" y="${yB + 3}" class="sim-tick-txt" text-anchor="end">0</text><text x="${iz - 4}" y="${yB - hB + 8}" class="sim-tick-txt" text-anchor="end">${fmt(maxL, maxL < 10 ? 1 : 0)}</text>
+  const ejes = `<text x="${iz - 4}" y="${yB + 3}" class="sim-tick-txt" text-anchor="end">0</text><text x="${iz - 4}" y="${yB - hB + 8}" class="sim-tick-txt" text-anchor="end">${fmt(maxL, maxL < 10 ? 1 : 0)} mm</text>
     <text x="${ancho - de + 4}" y="${yB + 3}" class="sim-tick-txt sim-tick-der">0</text><text x="${ancho - de + 4}" y="${yB - hB + 8}" class="sim-tick-txt sim-tick-der">${fmt(maxP, maxP < 10 ? 1 : 0)} %</text>
     <text x="${iz}" y="10" class="sim-eje-tit">${t("sim_eje_mm")}</text><text x="${ancho - de}" y="10" class="sim-eje-tit sim-tick-der" text-anchor="end">${t("sim_eje_pct")}</text>`;
   const capa = (cls) => `<path d="${dL}" class="sim-ar-lluvia"/><path d="${tL}" class="sim-tr-lluvia"/><path d="${dP}" class="sim-ar-agua"/><path d="${tP}" class="sim-tr-agua"/>`;
@@ -1964,7 +1961,7 @@ function diasPronostico(P) {
   return [...out.values()].sort((a, b) => a.off - b.off);
 }
 function graficoPronostico(dias) {
-  const W = 340, Hh = 120, iz = 26, de = 6, ar = 10, ab = 18, n = dias.length, max = Math.max(5, ...dias.map((x) => Math.max(x.real + x.pron, x.pes))),
+  const W = 340, Hh = 128, iz = 40, de = 6, ar = 18, ab = 18, n = dias.length, max = Math.max(5, ...dias.map((x) => Math.max(x.real + x.pron, x.pes))),
     bw = (W - iz - de) / n, y = (v) => ar + (Hh - ar - ab) * (1 - v / max);
   const barras = dias.map((x, i) => {
     const x0 = iz + i * bw + 1, w = Math.max(1, bw - 2), v = x.tramo === "pasado" ? x.real : x.tramo === "baja" ? x.prob : x.real + x.pron;
@@ -1972,7 +1969,7 @@ function graficoPronostico(dias) {
     return `${pes}<rect x="${x0}" y="${y(v)}" width="${w}" height="${Math.max(0, Hh - ab - y(v))}" class="pron-b ${x.tramo}"><title>${fmtDia(x.iso)}: ${fmt(v)} mm${x.tramo === "baja" ? ` · ${t("pron_var_pesimista")} ${fmt(x.pes)} mm` : ""}</title></rect>`;
   }).join("");
   const iHoy = dias.findIndex((x) => x.off === 0), xh = iz + iHoy * bw;
-  const eje = [0, max / 2, max].map((v) => `<text x="${iz - 4}" y="${y(v) + 3}" text-anchor="end" class="pron-eje">${fmt(v)}</text>`).join("");
+  const eje = [0, max / 2, max].map((v) => `<text x="${iz - 4}" y="${y(v) + 3}" text-anchor="end" class="pron-eje">${fmt(v)}</text>`).join("") + `<text x="2" y="8" class="pron-eje">${t("mm_dia")}</text>`;
   const etq = [[0, "-14"], [iHoy, t("pr_hoy")], [n - 1, `+${DIAS_PRON}`]].map(([i, txt]) => `<text x="${iz + i * bw + bw / 2}" y="${Hh - 4}" text-anchor="middle" class="pron-eje">${txt}</text>`).join("");
   return `<svg viewBox="0 0 ${W} ${Hh}" class="pron-graf" role="img" aria-label="${t("pron_graf_aria")}">${eje}<line x1="${xh}" x2="${xh}" y1="${ar - 4}" y2="${Hh - ab}" class="pron-hoy"/>${barras}${etq}</svg>`;
 }
@@ -1990,7 +1987,7 @@ function pintarPronostico() {
   let pTot = 0, pSin = 0;
   for (const [r, nC] of cuenta) { const pr = d.radios[r - 1]?.properties; if (!pr) continue; const pob = ((Number(pr.poblacion) || 0) * nC) / Math.max(1, d.celdasRadio[r]); pTot += pob; pSin += (pob * (100 - (Number(pr.pct_cloaca) || 0))) / 100; }
   const alertas = (estado.datos.alertas?.features ?? []).filter((f) => contiene(f.geometry, d.s.punto)).map((f) => f.properties);
-  const fila = (etq, valor, fuente) => `<li><span class="pron-c-etq">${etq}</span><span class="pron-c-v">${valor}</span><span class="pron-c-f">${fuente}</span></li>`;
+  const fila = (etq, valor, fuente) => `<li><span class="pron-c-etq">${etq}${fuente ? infoIcono("pron_c", fuente) : ""}</span><span class="pron-c-v">${valor}</span></li>`;
   const cond = [
     fila(t("pron_c_lluvia"), `${fmt(lluvia14)} mm`, t("pron_f_real")),
     fila(t("pron_c_humedad"), tSup != null ? `${fmt(Math.min(100, (100 * tSup) / ts))} %${tProf != null ? ` · ${t("pron_c_a1m")} ${fmt(Math.min(100, (100 * tProf) / ts))} %` : ""}` : "–", t("pron_f_humedad")),
@@ -2001,11 +1998,12 @@ function pintarPronostico() {
     fila(t("pron_c_napas"), tProf != null ? `${t("pron_c_a1m")} ${fmt(Math.min(100, (100 * tProf) / ts))} %` : "–", t("pron_f_napas")),
     fila(t("pron_c_alertas"), alertas.length ? alertas.map((x) => `${x.evento} (${x.nivel})`).join(", ") : t("pron_c_alertas_no"), t("pron_f_alertas")),
   ].join("");
-  const tramo = (cls, tit, txt) => `<div class="pron-tramo ${cls}"><b>${tit}</b><p>${txt}</p></div>`;
+  const tramo = (cls, tit, txt) => `<span class="${cls}">${tit}${infoIcono("pron_tramo", txt)}</span>`;
   const met3 = (k) => pp[k] ? t("pron_medido")(fmt(pp[k].correlacion, 2), fmt(100 * pp[k].deteccion_20mm), Vp.dias) : t("pron_sin_medir");
-  const tramos = [tramo("pasado", t("pron_tr_pasado_t"), t("pron_tr_pasado")), tramo("alta", t("pron_tr_alta_t"), `${t("pron_tr_det")} ${met3("0-3")}`),
-    tramo("media", t("pron_tr_media_t"), `${t("pron_tr_det")} ${met3("4-7")}`),
-    tramo("baja", t("pron_tr_baja_t"), `${P.ens ? t("pron_tr_ens")(P.ens.miembros.length) : t("pron_tr_ens_no")} ${met3("8-15")}`)].join("");
+  const tramos = [tramo("pasado", t("pron_ley_pasado"), `<b>${t("pron_tr_pasado_t")}</b><br>${t("pron_tr_pasado")}`),
+    tramo("alta", t("pron_ley_alta"), `<b>${t("pron_tr_alta_t")}</b><br>${t("pron_tr_det")} ${met3("0-3")}`),
+    tramo("media", t("pron_ley_media"), `<b>${t("pron_tr_media_t")}</b><br>${t("pron_tr_det")} ${met3("4-7")}`),
+    tramo("baja", t("pron_ley_baja"), `<b>${t("pron_tr_baja_t")}</b><br>${P.ens ? t("pron_tr_ens")(P.ens.miembros.length) : t("pron_tr_ens_no")} ${met3("8-15")}`)].join("");
   // Meses: lluvia del mes según SEAS5 (frente a lo normal, si hay climatología) y probabilidad de evacuación del río
   const E = lluviaEstacional, mm = E?.cmu[d.s.cmu], mesHoy = hoyLocal().slice(0, 7);
   const meses = (E?.meses ?? []).map((m, i) => ({ m, v: mm?.[i] })).filter((x) => x.m > mesHoy && x.v != null);
@@ -2015,14 +2013,13 @@ function pintarPronostico() {
     return `<tr><td>${nombreMes(m)}</td><td>${fmt(v)} mm${normal ? ` <small>(${v >= normal ? "+" : ""}${fmt((100 * (v - normal)) / normal)} % ${t("pron_vs_normal")})</small>` : ""}</td>${est ? `<td>${Number.isFinite(pe) ? `${fmt(100 * pe)} %` : "–"}</td>` : ""}</tr>`;
   }).join("");
   const varBtn = (v) => `<button type="button" class="chip" data-var="${v}" aria-pressed="${P.variante === v}"${P.ens ? "" : " disabled"}>${t(`pron_var_${v}`)}</button>`;
-  cont.innerHTML = `<p class="bajada">${t("pron_intro")}</p>
-    <h3 class="tit esc-tit">${t("pron_hoy_t")}</h3><ul class="pron-cond">${cond}</ul>
+  cont.innerHTML = `<h3 class="tit esc-tit">${t("pron_hoy_t")}${infoIcono("pron_intro", t("pron_intro"))}</h3><ul class="pron-cond">${cond}</ul>
     <h3 class="tit esc-tit">${t("pron_tramos_t")}</h3>${graficoPronostico(diasPronostico(P))}
-    <div class="pron-leyenda"><span class="pasado">${t("pron_ley_pasado")}</span><span class="alta">${t("pron_ley_alta")}</span><span class="media">${t("pron_ley_media")}</span><span class="baja">${t("pron_ley_baja")}</span></div>
-    <div class="pron-tramos">${tramos}</div>
+    <div class="pron-leyenda">${tramos}</div>
     <div class="pron-var"><span class="etq">${t("pron_var_t")}</span>${varBtn("probable")}${varBtn("pesimista")}</div>
-    <h3 class="tit esc-tit">${t("pron_meses_t")}</h3><p class="sim-periodo-nota">${t("pron_meses_sub")}</p>
+    <h3 class="tit esc-tit">${t("pron_meses_t")}${infoIcono("pron_meses", t("pron_meses_sub"))}</h3>
     ${meses.length ? `<div class="tabla-ninos"><table><thead><tr><th>${t("pron_mes")}</th><th>${t("pron_mes_lluvia")}</th>${est ? `<th>${t("pron_mes_rio")(est.estacion)}</th>` : ""}</tr></thead><tbody>${filasMes}</tbody></table></div>` : `<p class="sim-hint">${t("pron_meses_no")}</p>`}`;
+  enlazarInfo(cont);
   cont.querySelectorAll("[data-var]").forEach((b) => { b.onclick = () => { if (P.variante !== b.dataset.var) { simularPronostico(b.dataset.var); pintarPronostico(); } }; });
 }
 
@@ -2068,7 +2065,7 @@ function pintarPanelSimulador(d) {
       </div>
       <div><div class="sim-modos" role="tablist" aria-label="${t("sim_modos")}">${["escenario", "pronostico"].map((m) => `<button type="button" role="tab" class="sim-modo" data-modo="${m}" aria-selected="${(SIM.modoSim ?? "escenario") === m}">${t(`sim_modo_${m}`)}</button>`).join("")}</div>
         <div id="sim-modo-escenario"${SIM.modoSim === "pronostico" ? " hidden" : ""}><p class="bajada">${t("sim_bajada_lam")}</p>
-        <h3 class="tit esc-tit">${t("sim_esc_t")}</h3>
+        <h3 class="tit esc-tit">${t("sim_esc_t")}${infoIcono("sim_esc", t("info_esc"))}</h3>
         <div class="esc" id="sim-esc"><p class="sim-hint">${t("sim_hist_cargando")}</p></div></div>
         <div id="sim-modo-pronostico" class="pron"${SIM.modoSim === "pronostico" ? "" : " hidden"}></div>
         <p class="sim-hint" id="sim-hint" hidden>${t("sim_hint")}</p></div>
@@ -2119,17 +2116,17 @@ function pintarPieSim() {
   pintarCabezaSim();
   if (!V?.nino) { cont.innerHTML = ""; return; }
   const v = validacionCiudad(SIM.datos), temp = (f) => f.temporada.replace(/^nino_/, "").replace("_", "-");
-  const fila = (n, a, b, max, dec) => `<div class="fila-b"><span class="n">${n}</span><span class="pista doble"><i style="width:${(100 * limitar(a / max, 0, 1)).toFixed(1)}%"></i><i style="width:${(100 * limitar((b ?? 0) / max, 0, 1)).toFixed(1)}%"></i></span><b>${fmt(a, dec)}<small>${b == null ? "–" : fmt(b, dec)}</small></b></div>`;
+  const fila = (n, a, b, max, dec, u = "") => `<div class="fila-b"><span class="n">${n}</span><span class="pista doble"><i style="width:${(100 * limitar(a / max, 0, 1)).toFixed(1)}%"></i><i style="width:${(100 * limitar((b ?? 0) / max, 0, 1)).toFixed(1)}%"></i></span><b>${fmt(a, dec)}${u}<small>${b == null ? "–" : fmt(b, dec) + u}</small></b></div>`;
   const ley = (b) => `<div class="leyq"><span><i style="background:var(--cian)"></i>${t("sim_val_modelo_c")}</span><span><i style="background:var(--pista-ref)"></i>${b}</span></div>`;
   let a, b;
   if (v?.filas?.length) {
     a = `<h3 class="tit">${t("sim_acierto_en")(escapar(v.ciudad))}</h3><p class="sub">${t("sim_csi_sub")}</p><div class="barras">${v.filas.map((f) => fila(temp(f), f.csi, f.csi_jrc, 1, 2)).join("")}</div>${ley(t("sim_ref_jrc"))}`;
     const mx = Math.max(1, ...v.filas.flatMap((f) => [f.sup_sim_pct ?? 0, f.sup_obs_pct ?? 0])) * 1.1;
-    b = `<h3 class="tit">${t("sim_vs_sat")}</h3><p class="sub">${t("sim_vs_sat_sub")(V.radio_km)}</p><div class="barras">${v.filas.map((f) => fila(temp(f), f.sup_sim_pct ?? 0, f.sup_obs_pct, mx, 1)).join("")}</div>${ley(t("sim_satelite"))}`;
+    b = `<h3 class="tit">${t("sim_vs_sat")}</h3><p class="sub">${t("sim_vs_sat_sub")(V.radio_km)}</p><div class="barras">${v.filas.map((f) => fila(temp(f), f.sup_sim_pct ?? 0, f.sup_obs_pct, mx, 1, " %")).join("")}</div>${ley(t("sim_satelite"))}`;
   } else {
     const N = V.nino;
     a = `<h3 class="tit">${t("sim_acierto_todas")}</h3><p class="sub">${t("sim_csi_sub_todas")(V.ciudades)}</p><div class="barras">${fila(t("sim_mediana"), N.csi_mediana, N.csi_jrc_mediana, 1, 2)}</div>${ley(t("sim_ref_jrc"))}`;
-    b = `<h3 class="tit">${t("sim_aciertos_t")}</h3><p class="sub">${t("sim_aciertos_sub")}</p><div class="barras">${fila(t("sim_detecta"), 100 * N.pod_mediana, null, 100, 0)}${fila(t("sim_falsas"), 100 * N.far_mediana, null, 100, 0)}</div>`;
+    b = `<h3 class="tit">${t("sim_aciertos_t")}</h3><p class="sub">${t("sim_aciertos_sub")}</p><div class="barras">${fila(t("sim_detecta"), 100 * N.pod_mediana, null, 100, 0, " %")}${fila(t("sim_falsas"), 100 * N.far_mediana, null, 100, 0, " %")}</div>`;
   }
   cont.innerHTML = `<div>${a}</div><div>${b}</div>`;
 }

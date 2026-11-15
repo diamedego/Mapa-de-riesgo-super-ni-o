@@ -146,7 +146,7 @@ function pintarCabezaLectura(A, rV, pobAlto, evac, mp, pico) {
   cortes.forEach((c) => { const q = pt(c, R + 17); ag += `<text x="${q[0]}" y="${c === 0 || c === 10 ? cy + 16 : q[1]}" text-anchor="middle" dominant-baseline="middle">${fmt(c, c % 1 ? 1 : 0)}</text>`; });
   const punta = pt(v, R - 13);
   ag += `<line x1="${cx}" y1="${cy}" x2="${punta[0]}" y2="${punta[1]}" stroke-width="2.5" stroke-linecap="round" style="stroke:var(--tinta-1)"/><circle cx="${cx}" cy="${cy}" r="5.5" style="fill:var(--tinta-1)"/>`;
-  ag += `<text class="v" x="${cx}" y="${cy + 34}" text-anchor="middle">${fmtRiesgo(rV)} · ${escapar(nombreNivel(rV))}</text>`;
+  ag += `<text class="v" x="${cx}" y="${cy + 34}" text-anchor="middle">${fmtRiesgo(rV)} / 10 · ${escapar(nombreNivel(rV))}</text>`;
   document.getElementById("lec-escala").innerHTML = `<svg class="aguja" viewBox="0 0 230 150" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${fmtRiesgo(rV)} / 10 · ${escapar(nombreNivel(rV))}">${ag}</svg>`;
   // Camino al pico: estaciones con 50 % o más de probabilidad de evacuación, mes a mes
   const meses = pico.meses, vals = pico.vals;
