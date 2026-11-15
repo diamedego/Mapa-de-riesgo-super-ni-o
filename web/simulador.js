@@ -133,7 +133,20 @@ function rasgosLugar() {
   const g = SIM.modelo?.g ?? grillaModelo(d, 100, 100);
   let sImp = 0, nImp = 0;
   for (let c = 0; c < g.N; c++) if (g.dentroC[c] && g.tipo2[c] === 1) { sImp += g.imp[c]; nImp++; }
-  return (h.lugar = { imp: nImp ? sImp / nImp : 0, fBajo: a ? sBajo / a : 0.2, pend: a ? sPend / a : 0, pobBajo, pobTot });
+  // Ribera: tierra del círculo a menos de 1 km del río (o del mar). Solo ahí entra el agua de una crecida
+  const dist = new Int16Array(g.N).fill(-1), cola = [], pasos = Math.max(1, Math.round(1000 / g.dx));
+  for (let c = 0; c < g.N; c++) if (g.tipo2[c] === 3) { dist[c] = 0; cola.push(c); }
+  for (let q = 0; q < cola.length; q++) {
+    const c = cola[q], x = c % g.nx, y = (c / g.nx) | 0;
+    if (dist[c] >= pasos) continue;
+    for (const [vx, vy] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+      const v = vy * g.nx + vx;
+      if (vx >= 0 && vy >= 0 && vx < g.nx && vy < g.ny && dist[v] < 0) { dist[v] = dist[c] + 1; cola.push(v); }
+    }
+  }
+  let nRib = 0;
+  for (let c = 0; c < g.N; c++) if (g.dentroC[c] && g.tipo2[c] === 1 && dist[c] >= 0) nRib++;
+  return (h.lugar = { imp: nImp ? sImp / nImp : 0, fBajo: a ? sBajo / a : 0.2, pend: a ? sPend / a : 0, pobBajo, pobTot, fRibera: nImp ? nRib / nImp : 0 });
 }
 // Número de Curva (SCS) del suelo del lugar con humedad media (grupo hidrológico según la textura, pastura en estado regular)
 const cnTextura = (nombre = "") => (/^arcill/.test(nombre) ? 84 : /arcill/.test(nombre) ? 79 : /^arenos/.test(nombre) ? 49 : /arenos/.test(nombre) ? 61 : 69);
@@ -143,7 +156,8 @@ const cnTextura = (nombre = "") => (/^arcill/.test(nombre) ? 84 : /arcill/.test(
 //  · superficie impermeable: lo que llueve en cada hora por encima de la capacidad de los desagües (barra «Desagües»), así cuenta
 //    cuánto cayó y en cuánto tiempo;
 //  · desniveles: esa agua se junta en los bajos (se divide por su fracción del círculo) y se va más rápido con pendiente;
-//  · río: si ese día (o hoy, sin medición) estaba por encima del nivel de evacuación, lo que lo supera se suma en los bajos.
+//  · río: lo que la crecida de la temporada superó el nivel de evacuación, solo en la ribera (tierra a menos de 1 km del río):
+//    se reparte en los bajos según la parte de ellos que es ribera. Un río lejos del círculo no suma nada.
 function indiceNino(ev, temporada) {
   const L = rasgosLugar(), E = SIM.esc, suelo = SIM.modelo?.suelo ?? SIM.hist.suelo;
   if (!ev || !L) return null;
@@ -154,7 +168,8 @@ function indiceNino(ev, temporada) {
   const qImp = ev.lluvia.reduce((a, v) => a + Math.max(0, v - E.desague), 0);
   const escurre = (1 - L.imp) * qPerm + L.imp * qImp;
   const est = SIM.hist.est, hRio = est ? rioTemporada(temporada)?.max ?? rioDelEvento(ev) : null, rio = hRio != null ? hRio - est.ref : 0;   // sin dato del río: no suma
-  return { mm: escurre / Math.max(0.05, L.fBajo) / (1 + L.pend) + Math.max(0, rio) * 1000, escurre, cn };
+  const mmLluvia = escurre / Math.max(0.05, L.fBajo) / (1 + L.pend), mmRio = Math.max(0, rio) * 1000 * Math.min(1, L.fRibera / Math.max(0.05, L.fBajo));
+  return { mm: mmLluvia + mmRio, mmLluvia, mmRio, escurre, cn };
 }
 function calcularPeor() {
   const H = SIM.hist?.H;
