@@ -64,6 +64,10 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
 - 15-nov (ver bitácora y documento v4): lluvia de los Niños con IMERG, río de los días de la tormenta (+3 días), fórmula del peor
   Niño con λ = 0,05, humedad relativa, bajos del relieve y río conectado; modelo 3D corregido (arrancaba quieto). Falta: sensibilidad
   de la ventana del río (1/3/7 días), radar en otras crecidas, republicar la versión privada con `datos/lluvia_ninos/*` y `datos/rios_ninos/*`.
+- Simulador con dos solapas (escenario / pronóstico 15 días con ensamble y radar). Agua de hoy por radar: `earth_engine/agua_hoy_radar.py`,
+  regenerada por Actions (cuenta de servicio `mapa-nino-actions`, identidad federada sin claves). Verificar la primera corrida automática y
+  cuánto dura un mapa de Earth Engine (si vence antes de 3 h, regenerar más seguido). Documento funcional v4 listo en el código, sin
+  generar: la usuaria pide esperar a validar el simulador (agregarle la solapa de pronóstico).
 - Sitio público (Cloudflare Workers, gratis): https://mapa-de-riesgo-super-nino.diamedego.workers.dev — se publica solo con cada push
   (configuración en `wrangler.jsonc` y `web/.assetsignore`; ~11 publicaciones por día, plan gratis 500 por mes).
 - Simulador (versión pública): vista Mapa + Maqueta 3D con lluvia animada (estilo reel CutSheetRX). Posible mejora: relieve
