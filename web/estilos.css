@@ -528,11 +528,11 @@ button { cursor: pointer; }
 .sim-mapa-marco { position: relative; min-height: 0; background: var(--mapa-fondo); }
 #sim-mapa { position: absolute; inset: 0; }
 .sim-estado { position: absolute; z-index: 2; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; padding: 8px 14px; border-radius: var(--radio-2);
-  background: var(--superficie); color: var(--bordo); border: 1.5px solid var(--bordo); font-weight: 700; box-shadow: var(--sombra-1); font-size: 0.95rem; }
+  background: var(--superficie); color: var(--bordo); box-shadow: var(--sombra-1); font-size: 0.95rem; }
 .sim-estado:empty { display: none; }
 /* Cartel de carga arriba de la maqueta: datos del lugar, peor Niño y cálculo del escenario */
 .sim-carga { position: absolute; z-index: 6; top: 14px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px); margin: 0; display: flex; align-items: center; gap: 10px;
-  padding: 9px 16px; background: var(--superficie); border: 1.5px solid var(--bordo); color: var(--bordo); font-weight: 700; font-size: 0.95rem; line-height: 1.3; box-shadow: var(--sombra-1); }
+  padding: 9px 16px; background: var(--superficie); color: var(--bordo); font-size: 0.95rem; line-height: 1.3; box-shadow: var(--sombra-1); }
 .sim-carga[hidden] { display: none; }
 .sim-carga::before { content: ""; flex: none; width: 13px; height: 13px; border: 2px solid var(--bordo); border-right-color: transparent; border-radius: 50%; animation: sim-girar 0.9s linear infinite; }
 @keyframes sim-girar { to { transform: rotate(360deg); } }
@@ -545,7 +545,7 @@ button { cursor: pointer; }
 .sim-control { display: flex; align-items: center; gap: 10px; }
 .sim-control input[type="range"] { flex: 1; accent-color: var(--cian); height: 28px; }
 .sim-presets { display: flex; flex-wrap: wrap; gap: 6px; }
-.sim-progreso { margin: 0; padding: 8px 10px; border-radius: var(--radio-1); background: var(--bordo-fondo); color: var(--bordo); font-weight: 700; font-size: 0.86rem; }
+.sim-progreso { margin: 0; padding: 8px 10px; border-radius: var(--radio-1); background: var(--bordo-fondo); color: var(--bordo); font-size: 0.86rem; }
 .sim-ahora { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
 .sim-ahora-fecha { font-family: var(--f-num); font-size: 1.35rem; font-weight: 700; color: var(--tinta-1); }
 .sim-ahora-tipo { padding: 2px 8px; border-radius: 0; color: #fff; font-size: 0.72rem; font-weight: 600; }
@@ -1372,7 +1372,7 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
 .esc-nino option.peor { color: var(--critico); font-weight: 600; }
 .esc-peor { margin: 0; font-size: 11.5px; line-height: 1.35; color: var(--tinta-3); }
 .esc-peor.listo { color: var(--critico); font-weight: 600; }
-.esc-peor.estimando { color: var(--bordo); font-weight: 700; font-size: 12.5px; }
+.esc-peor.estimando { color: var(--bordo); font-size: 12.5px; }
 .esc-peor:empty { display: none; }
 
 /* Cuadro informativo de todos los Niños (pie del simulador) */
