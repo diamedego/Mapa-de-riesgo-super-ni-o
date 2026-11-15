@@ -752,3 +752,8 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 - Validación contra Dynamic World repetida con el motor corregido (`data/validacion/v2_rio_corregido/`): 9 casos, CSI mediano 0,36 contra 0,35 de la referencia (igual que antes; el arreglo solo cambia los días secos con río). Avellaneda, Corrientes y Córdoba fallaron la primera vez por el límite de consultas de Open-Meteo y se repitieron.
 - Zárate (1 km) con IMERG: desagüe de 2 años 20 mm/h; peor Niño 2023-24 (224 mm en 3 días), ~2 430 personas con 10 cm o más.
 - Documento funcional v4 preparado en `docs/documento_funcional/` (contenido, gráficos y cifras leídas de los resultados), sin generar: la usuaria pidió esperar a validar el simulador.
+
+### 15-nov — Simulador arranca con el peor Niño y buscador
+- Al abrir el simulador, apenas se conoce el peor Niño, las barras toman sus valores solas (si no se tocó nada): lluvia, duración y forma de su tormenta, humedad justo antes y río de esos días. Lo que no tiene dato en esa tormenta queda supuesto y avisado (humedad media del lugar, río en su mediana del registro; `rios_extremos.json` ahora trae `mediana`), nunca el valor de hoy ni el de otro año. La corrida queda hecha pero la maqueta sigue seca en la hora 0 hasta tocar ▶.
+- Sin el archivo de Open-Meteo (hoy se agotó el cupo diario de esta conexión por las validaciones): los Niños desde 1997-98 salen igual de las teselas de IMERG; sin la hora a hora de ERA5, total y pico reales con forma triangular del SCS, avisado.
+- Buscador: el recuadro «¿Era otro?» se cierra al elegir una opción, al tocar fuera, con Escape o al volver a escribir; tiene ✕ y fondo opaco (antes se leía el texto de atrás).

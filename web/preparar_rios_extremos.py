@@ -3,7 +3,8 @@
 Por estación (las mismas de estaciones.geojson, con nivel de alerta):
 - nino: mínimo (percentil 1 y sin ceros exactos, que son falta de dato) y máximo del promedio diario en las temporadas Niño con registro (oct → may de 2015-16 y 2023-24),
   y en qué temporada fue el máximo;
-- todo: mínimo y máximo de todo el registro (2015 → hoy), para cuando la estación no midió durante un Niño.
+- todo: mínimo, máximo y mediana de todo el registro (2015 → hoy), para cuando la estación no midió durante un Niño (la mediana
+  es el nivel supuesto, avisado, si no hay dato en los días de una tormenta).
 
 Se corre en la Mac (necesita data/raw/ina) cuando se actualizan las alturas históricas.
 Salida: web/datos/rios_extremos.json y web/datos/rios_ninos.json (altura de cada día de los Niños medidos)
@@ -30,6 +31,7 @@ def main() -> None:
     out = {}
     for est, d in dia[dia["estacion_id"].isin(estaciones)].groupby("estacion_id"):
         e = {"todo": {"min": round(float(d["altura_m"].quantile(0.01)), 2), "max": round(float(d["altura_m"].max()), 2),
+                      "mediana": round(float(d["altura_m"].median()), 2),   # supuesto cuando no hay dato del río en los días de una tormenta
                       "desde": d["fecha"].min().date().isoformat()}}
         enN = [(k, d[d["fecha"].between(a, b)]) for k, (a, b) in NINOS.items()]
         enN = [(k, x) for k, x in enN if len(x) >= 60]   # al menos dos meses medidos en la temporada

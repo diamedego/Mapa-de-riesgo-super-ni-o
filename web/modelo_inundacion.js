@@ -204,6 +204,13 @@ function tormentaHoraria(h) {
 }
 const tormentaDe = (n, h) => (n.evento.fuente === "era5" ? tormentaHoraria(h)
   : recortarTormenta(corregirPerfil(h.precipitation.map((v) => v ?? 0), n.evento.total, n.evento.pico), h));
+// Sin la hora a hora de ERA5 (sin conexión o sin cupo del día): total y hora más lluviosa reales de IMERG con la forma triangular
+// del SCS, avisado como forma supuesta. Una tormenta solo de ERA5 (sin dato precalculado) no se puede rearmar: queda sin hora a hora
+function sinForma(n) {
+  if (n.evento.fuente === "era5") return null;
+  const d0 = n.evento.dias[0], h = { time: Array.from({ length: DUR_MAX }, (_, k) => `${sumarDiasISO(d0, Math.floor(k / 24))}T${String(k % 24).padStart(2, "0")}:00`), soil_moisture_0_to_7cm: [] };
+  return { ...recortarTormenta(corregirPerfil(new Array(DUR_MAX).fill(0), n.evento.total, n.evento.pico), h), formaSupuesta: true };
+}
 const tramoDe = (n) => (n.evento.fuente === "era5" ? [sumarDiasISO(n.evento.dias[0], -1), sumarDiasISO(n.evento.dias[1], 1)] : n.evento.dias);
 
 // Máximos de la barra de lluvia para cada duración w (1 a 72 h): lo más que llovió en w horas en algún Niño. Con el dato
@@ -239,25 +246,26 @@ function historicoNino(punto) {
       const off = d.daily.time.indexOf(d2.daily.time[0]);
       for (const k of ["soil_moisture_0_to_7cm_mean", "et0_fao_evapotranspiration_sum"]) d.daily[k] = d.daily.time.map((_, i) => (i >= off ? d2.daily[k][i - off] : null));
     } else if (d?.daily) for (const k of ["soil_moisture_0_to_7cm_mean", "et0_fao_evapotranspiration_sum"]) d.daily[k] = d.daily.time.map(() => null);
-    const D = d?.daily;
-    if (!D?.time?.length) { cacheHistorico.delete(clave); return null; }
-    const idx = new Map(D.time.map((t, i) => [t, i])), ninos = [], hum = [];
+    // Sin el archivo de Open-Meteo (sin conexión o sin cupo del día) igual quedan los Niños desde 1997-98, que vienen precalculados
+    const D = d?.daily?.time?.length ? d.daily : null;
+    if (!D && !sat) { cacheHistorico.delete(clave); return null; }
+    const idx = new Map((D?.time ?? []).map((t, i) => [t, i])), ninos = [], hum = [];
     let sEt = 0, nEt = 0;
     for (const [anio, intensidad] of NINOS) {
       const a = idx.get(`${anio}-10-01`), b = idx.get(`${anio + 1}-04-30`);
-      if (a == null || b == null) continue;
       const completo = anio >= DESDE_COMPLETO, S = completo ? sat?.temporadas[anio] : null;
+      if (D && (a == null || b == null)) continue;
       let evento = null;
       if (S && S.total > 0) {
         const d0 = sumarDiasISO(`${anio}-10-01`, S.d0);
         evento = { total: S.total, dias: [d0, sumarDiasISO(d0, 2)], era5: S.era5, imerg: S.imerg, pico: S.pico, fuente: S.imerg != null ? "imerg" : "era5_sat" };
-      } else {
+      } else if (D) {
         const p = D.precipitation_sum.slice(a, b + 1).map((v) => v ?? 0);
         let mejor = -1, k0 = 0;
         for (let k = 0; k + 2 < p.length; k++) { const s3 = p[k] + p[k + 1] + p[k + 2]; if (s3 > mejor) { mejor = s3; k0 = k; } }
         if (mejor > 0) evento = { total: mejor, dias: [D.time[a + k0], D.time[a + k0 + 2]], era5: mejor, imerg: null, fuente: "era5" };
       }
-      if (completo) for (let i = a; i <= b; i++) { const v = D.soil_moisture_0_to_7cm_mean[i]; if (v != null) hum.push(v); const e = D.et0_fao_evapotranspiration_sum[i]; if (e != null) { sEt += e; nEt++; } }
+      if (completo && D) for (let i = a; i <= b; i++) { const v = D.soil_moisture_0_to_7cm_mean[i]; if (v != null) hum.push(v); const e = D.et0_fao_evapotranspiration_sum[i]; if (e != null) { sEt += e; nEt++; } }
       ninos.push({ temporada: `${anio}-${String(anio + 1).slice(2)}`, anio, intensidad, completo, evento });
     }
     // Máximos provisorios de la barra de lluvia (se afinan con las tormentas hora por hora apenas llegan)
@@ -265,7 +273,7 @@ function historicoNino(punto) {
     const anclas = completos.map((n) => {
       const S = sat?.temporadas[n.anio];
       if (S) return { temporada: n.temporada, p1: S.picoTemporada, p24: S.diaTemporada, p72: S.total };
-      const a = idx.get(`${n.anio}-10-01`), b = idx.get(`${n.anio + 1}-04-30`), p = D.precipitation_sum.slice(a, b + 1).map((v) => v ?? 0);
+      const a = idx.get(`${n.anio}-10-01`), b = idx.get(`${n.anio + 1}-04-30`), p = D ? D.precipitation_sum.slice(a, b + 1).map((v) => v ?? 0) : [0];
       return { temporada: n.temporada, p1: 0, p24: Math.max(...p), p72: n.evento.total };
     });
     const R = { temporadas: ninos.length, ninos, lluvia: maximosPorDuracion(anclas), humedad: hum.length ? { min: Math.min(...hum), max: Math.max(...hum) } : null,
@@ -274,7 +282,7 @@ function historicoNino(punto) {
     R.horarias = (async () => {
       const horarias = [];
       for (let i = 0; i < completos.length; i += 9) horarias.push(...await Promise.all(completos.slice(i, i + 9).map((n) => lluviaHoraria(lat, lon, ...tramoDe(n)))));
-      completos.forEach((n, k) => { if (horarias[k]?.precipitation) n.evento.horaria = tormentaDe(n, horarias[k]); });
+      completos.forEach((n, k) => { n.evento.horaria = horarias[k]?.precipitation ? tormentaDe(n, horarias[k]) : sinForma(n); });
       // Con las tormentas hora por hora: lo más que llovió en w horas dentro de cada una (y las anclas de la temporada)
       const fino = maximosPorDuracion(anclas);
       for (const n of completos) {
@@ -296,7 +304,7 @@ function historicoNino(punto) {
 // La peor tormenta de un Niño hora por hora (se baja solo cuando se la elige)
 async function eventoHorario(H, n) {
   if (!n?.evento) return null;
-  n.evento.horaria ??= await lluviaHoraria(H.lat, H.lon, ...tramoDe(n)).then((h) => (h?.precipitation ? tormentaDe(n, h) : null));
+  n.evento.horaria ??= await lluviaHoraria(H.lat, H.lon, ...tramoDe(n)).then((h) => (h?.precipitation ? tormentaDe(n, h) : sinForma(n)));
   return n.evento.horaria;
 }
 // Humedad del suelo de ahora en el punto (Open-Meteo, 3-9 cm), para el botón «Condiciones de hoy»

@@ -14,6 +14,11 @@ function prepararBuscador() {
   for (const nivel of ["provincia", "partido", "localidad"]) autocompletar(document.getElementById(`b-${nivel}`), nivel);
   autocompletarDireccion(document.getElementById("b-direccion"));
   document.querySelectorAll(".buscador input").forEach((x) => x.addEventListener("input", actualizarBorrar));
+  // El recuadro de avisos y opciones se cierra al volver a escribir, al tocar fuera de él o con Escape
+  const aviso = document.getElementById("aviso-busqueda");
+  document.querySelectorAll(".buscador input").forEach((x) => x.addEventListener("input", () => { aviso.hidden = true; }));
+  document.addEventListener("pointerdown", (e) => { if (!aviso.hidden && !aviso.contains(e.target) && !e.target.closest(".buscador")) aviso.hidden = true; });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") aviso.hidden = true; });
   document.getElementById("form-buscar").addEventListener("submit", (e) => { e.preventDefault(); buscar(); });
   document.getElementById("btn-borrar").onclick = borrarTodo;
   // Radio: barra; el número cambia al deslizar y el análisis se recalcula al soltar
@@ -494,9 +499,11 @@ const demora = (ms) => new Promise((ok) => setTimeout(ok, ms));
 // "¿Era otro?": las demás opciones encontradas, para elegir con un toque
 function mostrarOpciones(op, titulo = t("sug_otras")) {
   const aviso = document.getElementById("aviso-busqueda");
-  aviso.innerHTML = `<span>${escapar(titulo)}</span> ` + op.slice(1).map((o, k) => `<button type="button" class="btn-texto" data-k="${k + 1}">${escapar(o.nombre)}${o.detalle ? ` <small>(${escapar(o.detalle.split(" · ").slice(-2).join(", "))})</small>` : ""}</button>`).join(" · ");
+  aviso.innerHTML = `<button type="button" class="aviso-cerrar" aria-label="${t("cerrar")}">✕</button><span>${escapar(titulo)}</span> ` + op.slice(1).map((o, k) => `<button type="button" class="btn-texto" data-k="${k + 1}">${escapar(o.nombre)}${o.detalle ? ` <small>(${escapar(o.detalle.split(" · ").slice(-2).join(", "))})</small>` : ""}</button>`).join(" · ");
   aviso.hidden = false;
-  aviso.querySelectorAll("button[data-k]").forEach((b) => { b.onclick = () => { elegirSugerencia(document.getElementById("b-direccion"), op[+b.dataset.k]); mostrarOpciones([op[+b.dataset.k], ...op.filter((x, k) => k !== +b.dataset.k)]); }; });
+  aviso.querySelector(".aviso-cerrar").onclick = () => { aviso.hidden = true; };
+  // Al elegir una opción el recuadro se cierra (elegirSugerencia lo oculta)
+  aviso.querySelectorAll("button[data-k]").forEach((b) => { b.onclick = () => elegirSugerencia(document.getElementById("b-direccion"), op[+b.dataset.k]); });
 }
 
 async function buscarDireccionLocal(texto) {
