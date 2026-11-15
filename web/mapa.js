@@ -58,7 +58,7 @@ function colorRiesgoExpr(meses) {
 const OPAC_RELLENO = [[4, 0.86], [10, 0.78], [13, 0.55], [16, 0.42]];
 function opacidadRiesgo(paradas) {
   const cmus = estado.sel?.tipo === "zona" ? estado.sel.lugar.cmus : null;
-  const f = estado.verInundadas || estado.verDensidad || estado.verSuelo ? 0.45 : 1;   // con una capa de superficie encendida, el riesgo se atenúa para que se lea
+  const f = estado.verInundadas || estado.verInundHoy || estado.verDensidad || estado.verSuelo ? 0.45 : 1;   // con una capa de superficie encendida, el riesgo se atenúa para que se lea
   const valor = (v) => (cmus ? ["case", ["in", ["get", "cmu"], ["literal", cmus]], v * f, v * f * 0.38] : v * f);
   return ["interpolate", ["linear"], ["zoom"], ...paradas.flatMap(([z, v]) => [z, valor(v)])];
 }
@@ -321,7 +321,7 @@ const CAPAS_REFERENCIAS = ["ref-municipios", "ref-ind-grandes", "ref-ind-grandes
 // Hidrografía, zonas que ya se inundaron (satélite), densidad de población, barrios populares, suelo urbano y verde,
 // infraestructura crítica y rutas. Tonos neutros o propios para no confundirse con el semáforo del riesgo.
 const CAPAS_OPCIONALES = {
-  verHidro: ["hidro-agua", "hidro-cursos"], verInundadas: ["jrc-agua"], verDensidad: ["densidad-mun", "densidad-radio"],
+  verHidro: ["hidro-agua", "hidro-cursos"], verInundadas: ["jrc-agua"], verInundHoy: ["inund-hoy"], verDensidad: ["densidad-mun", "densidad-radio"],
   verBarrios: ["barrios-relleno", "barrios-borde"], verSuelo: ["suelo-urbano", "suelo-verde"],
   verInfra: ["infra-punto", "infra-texto"], verRutas: ["rutas-borde", "rutas-linea", "rutas-tren"],
 };
@@ -349,6 +349,35 @@ function agregarCapasOpcionales() {
   mapa.addSource("jrc", { type: "raster", tileSize: 256, maxzoom: 13, tiles: ["https://storage.googleapis.com/global-surface-water/tiles2021/occurrence/{z}/{x}/{y}.png"],
     attribution: "Agua en superficie 1984-2021: EC JRC / Google (Pekel et al. 2016)" });
   mapa.addLayer({ id: "jrc-agua", type: "raster", source: "jrc", layout: { visibility: vis("verInundadas") }, paint: { "raster-opacity": 0.8 } }, antes);
+  // Inundación de hoy por satélite: producto diario de NASA (LANCE, satélites MODIS Terra y Aqua, 250 m), compuesto de hoy y ayer
+  // (exige ver el agua más de una vez: descarta sombras de nubes). Clases: 0 sin agua · 1 agua de referencia · 2 inundación
+  // recurrente · 3 inundación inusual · 255 sin dato (nubes). Cada tesela se recolorea: azul fuerte = inundación, azul claro =
+  // recurrente, gris tenue = nubes; el agua de siempre no se pinta (ya está en el mapa base)
+  if (!maplibregl.__inundHoy) {
+    maplibregl.__inundHoy = true;
+    maplibregl.addProtocol("inundhoy", async (params, abort) => {
+      const r = await fetch(params.url.replace("inundhoy://", "https://"), { signal: abort.signal });
+      if (!r.ok) throw new Error(`satélite ${r.status}`);
+      const bmp = await createImageBitmap(await r.blob()), cv = new OffscreenCanvas(bmp.width, bmp.height), c = cv.getContext("2d");
+      c.drawImage(bmp, 0, 0);
+      const img = c.getImageData(0, 0, bmp.width, bmp.height), p = img.data;
+      for (let i = 0; i < p.length; i += 4) {
+        const [R, G, B, A] = [p[i], p[i + 1], p[i + 2], p[i + 3]];
+        let o = [0, 0, 0, 0];
+        if (A > 0 && R > 200 && G < 90 && B < 90) o = [24, 74, 200, 235];            // inundación inusual (rojo en NASA)
+        else if (A > 0 && R > 200 && G > 200 && B < 90) o = [92, 150, 235, 200];     // inundación recurrente (amarillo en NASA)
+        else if (A > 0 && R === G && G === B && R > 120) o = [140, 140, 140, 40];    // sin dato: nubes
+        p[i] = o[0]; p[i + 1] = o[1]; p[i + 2] = o[2]; p[i + 3] = o[3];
+      }
+      c.putImageData(img, 0, 0);
+      return { data: await (await cv.convertToBlob({ type: "image/png" })).arrayBuffer() };
+    });
+  }
+  const hoyUTC = new Date().toISOString().slice(0, 10);
+  mapa.addSource("inund-hoy", { type: "raster", tileSize: 256, maxzoom: 9,
+    tiles: [`inundhoy://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Combined_Flood_2-Day/default/${hoyUTC}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png`],
+    attribution: "Inundación hoy: NASA LANCE MODIS NRT Global Flood Product (2 días)" });
+  mapa.addLayer({ id: "inund-hoy", type: "raster", source: "inund-hoy", layout: { visibility: vis("verInundHoy") }, paint: { "raster-opacity": 1, "raster-resampling": "nearest" } }, antes);
   // Densidad de población (habitantes por km²): municipio de lejos, radio censal de cerca
   densidades(estado.datos.municipios.features); densidades(estado.radios);
   const opDens = ["interpolate", ["linear"], ["get", "dens"], 1, 0, 50, 0.18, 500, 0.35, 3000, 0.55, 15000, 0.75];

@@ -7,7 +7,7 @@ const estado = {
   idioma: "es", capa: "riesgo", modo: "actual", sel: null, km: 1,
   iMesActual: 0, rangoMeses: [0, 0], rangoDias: [0, 6], paso3h: null,
   mesReproduciendo: null, diaReproduciendo: null, semanaReproduciendo: null, reproduciendo: null,
-  verRios: true, verAlertas: false, verReferencias: true, verHidro: true, verInundadas: false, verDensidad: false,
+  verRios: true, verAlertas: false, verReferencias: true, verHidro: true, verInundadas: false, verInundHoy: false, verDensidad: false,
   verBarrios: false, verSuelo: false, verInfra: false, verRutas: false, riesgo3d: false, relieve3d: false, relieve: false, ranking: "r",
   datos: {}, riesgo: null, porCmu: new Map(), radios: [], cargasRadios: new Map(), tiempo: null,
 };
@@ -481,11 +481,11 @@ function pintarLeyenda() {
 // capas adicionales se pueden sumar de a varias. Referencias y líneas de relieve quedan aparte, en la fila chica de opciones.
 const OPCIONES_MAPA = [["verReferencias", "capa_ref"], ["relieve", "capa_relieve"]];
 const CAPAS_SUMAR = [
-  ["verHidro", "capa_hidro"], ["verAlertas", "capa_alertas"], ["verInundadas", "capa_inundadas"], ["verDensidad", "capa_densidad"],
+  ["verHidro", "capa_hidro"], ["verAlertas", "capa_alertas"], ["verInundHoy", "capa_inund_hoy"], ["verInundadas", "capa_inundadas"], ["verDensidad", "capa_densidad"],
   ["verBarrios", "capa_barrios"], ["verSuelo", "capa_suelo"], ["verInfra", "capa_infra"], ["verRutas", "capa_rutas"],
 ];
 function pintarCapasExtra() {
-  const sinTeselas = new Set(SIN_TESELAS ? ["relieve", "verSuelo", "verRutas", "verInundadas"] : []);
+  const sinTeselas = new Set(SIN_TESELAS ? ["relieve", "verSuelo", "verRutas", "verInundadas", "verInundHoy"] : []);
   const botones = (lista) => lista.filter(([k]) => !sinTeselas.has(k)).map(([k, txt]) => {
     const apagada = k === "verAlertas" && estado.modo !== "actual";
     return `<button type="button" class="capa-chip" data-k="${k}" aria-pressed="${!!estado[k] && !apagada}"${apagada ? " disabled" : ""}
