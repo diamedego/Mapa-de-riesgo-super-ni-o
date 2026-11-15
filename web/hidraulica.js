@@ -48,7 +48,11 @@ function iniciar(m) {
     for (let i = 0; i < N; i++) if (m.tipo2[i] === 3) orilla(i, (v) => { if (m.tipo2[v] === 1) bordes.push(m.z[v]); });
     bordes.sort((a, b) => a - b);
     const bordo = bordes.length ? bordes[Math.floor(bordes.length * (m.cuantilOrilla ?? 0.4))] - S.baseRio : 0;
-    S.crecidaHora = Float32Array.from(m.relEvac, (r) => Math.max(-1, bordo + r));
+    // Por debajo del nivel de evacuación: en la altura mediana del río el agua queda en su cauce (superficie del relieve) y sube en
+    // proporción hasta la orilla del cuantil 40 % en evacuación; por encima, cada metro de más se suma (validado con radar en Concordia).
+    // Antes bajaba metro por metro también por debajo de evacuación y un río normal desbordaba sobre las orillas más bajas (islas del delta)
+    const rm = m.relMed;   // mediana del río respecto de evacuación (m, negativa); sin dato, la regla anterior
+    S.crecidaHora = Float32Array.from(m.relEvac, (r) => (r >= 0 || !(rm < 0) ? Math.max(-1, bordo + r) : bordo * Math.min(1, Math.max(0, (r - rm) / -rm))));
     S.crecida = S.crecidaHora[0]; S.bordo = bordo;
   }
   // Escenario: lagunas más bajas que la orilla (en metros, ≤ 0): guardan más agua antes de desbordar

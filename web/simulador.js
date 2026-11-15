@@ -221,6 +221,12 @@ function bajosDelLugar(g) {
 // (como el modelo 3D en equilibrio). Un río no llega a donde hay terreno más alto en el medio, esté cerca o lejos. Validado contra
 // el radar Sentinel-1 en la crecida de Concordia de nov-2023 (herramientas/validacion/validar_rio_radar.py): acierta el 76 % del
 // agua vista; con un límite fijo de 1 km de ribera acertaba solo el 24 %.
+// Nivel del río sobre su base (m), la misma regla del modelo 3D (hidraulica.js): en la mediana queda en el cauce, sube en proporción
+// hasta la orilla del cuantil 40 % en evacuación y, por encima, metro por metro
+function nivelRio(bordo, dRio, relMed) {
+  return dRio >= 0 || !(relMed < 0) ? bordo + dRio : bordo * limitar((dRio - relMed) / -relMed, 0, 1);
+}
+const relMedRio = () => { const m = SIM.hist?.rio?.todo?.mediana, e = SIM.hist?.est; return m != null && e ? m - e.ref : null; };
 function aguaEvento(L, qPerm, qImp, dRio) {
   const g = L.g, a = g.dx * g.dx, prof = new Float32Array(g.N);
   for (const b of L.bajos.B) {
@@ -236,7 +242,7 @@ function aguaEvento(L, qPerm, qImp, dRio) {
   const contar = () => { let p = 0, ar = 0, v = 0; for (let c = 0; c < g.N; c++) if (g.dentroC[c] && g.tipo2[c] === 1) { v += prof[c] * a; if (prof[c] >= AGUA_MIN) { p += g.pob[c]; ar += a; } } return [p, ar, v]; };
   const [personasLluvia] = contar();
   if (dRio != null && L.rio) {
-    const eta = L.rio.base + L.rio.bordo + dRio, visto = new Uint8Array(g.N), cola = [];
+    const eta = L.rio.base + nivelRio(L.rio.bordo, dRio, relMedRio()), visto = new Uint8Array(g.N), cola = [];
     for (let c = 0; c < g.N; c++) if (g.tipo2[c] === 3) { visto[c] = 1; cola.push(c); }
     for (let q = 0; q < cola.length; q++) {
       const c = cola[q], x = c % g.nx, y = (c / g.nx) | 0;
@@ -695,7 +701,7 @@ async function simularEscenario(alInicio = false) {
   w.postMessage({ tipo: "iniciar", nx: g.nx, ny: g.ny, dx: g.dx, z: g.z, tipo2: g.tipo2, lago: g.lago, nMan: g.nMan, imp: g.imp,
     suelo: M.suelo, theta0: E.theta, desague: E.desague, crecida: est ? 0 : E.crecida, lagoOffset: E.lagos,
     lluvia: Float32Array.from(met.lluvia), et0: Float32Array.from(met.et0),
-    ...(est ? { relEvac: new Float32Array(n).fill(E.rio - est.ref) } : {}) });
+    ...(est ? { relEvac: new Float32Array(n).fill(E.rio - est.ref), relMed: relMedRio() } : {}) });
   pintarLineaSim();
 }
 
@@ -1946,7 +1952,7 @@ async function simularPronostico(variante) {
   w.postMessage({ tipo: "iniciar", nx: g.nx, ny: g.ny, dx: g.dx, z: g.z, tipo2: g.tipo2, lago: g.lago, nMan: g.nMan, imp: g.imp,
     suelo: M.suelo, theta0: met.theta0, desague: Math.round(SIM.hist?.H?.desague ?? SIM.desague), crecida: 0, lluvia: Float32Array.from(met.lluvia), et0: Float32Array.from(met.et0),
     // Río: la altura de hoy del INA durante los 15 días (no hay pronóstico diario de su altura en el sitio)
-    ...(M.estacion ? { relEvac: new Float32Array(n).fill(M.estacion.h - M.estacion.ref) } : {}), ...(asimilar ? { asimilar } : {}) });
+    ...(M.estacion ? { relEvac: new Float32Array(n).fill(M.estacion.h - M.estacion.ref), relMed: relMedRio() } : {}), ...(asimilar ? { asimilar } : {}) });
   pintarLineaSim();
 }
 // Lluvia de cada día (hora argentina): real, pronóstico de 1 a 7 días y, de 8 a 15, el probable y el pesimista del ensamble
