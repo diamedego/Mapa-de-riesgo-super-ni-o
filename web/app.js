@@ -61,15 +61,15 @@ function pintarKpis() {
   const evac = ests.filter((e) => e.estado === "evacuacion").length, alerta = ests.filter((e) => e.estado === "alerta").length;
   const kpis = [
     { k: "personas", ico: "personas", etq: t("kpi_personas"), valor: fmtPersonas(pobAlto), sub: t("kpi_personas_sub")(fmt((100 * pobAlto) / (Z.poblacion || 1), 1)),
-      sev: pobAlto > 0 ? "atencion" : "ok", ir: () => { elegirCapa("riesgo"); irALamina(4); } },
+      sev: pobAlto > 0 ? "atencion" : "ok", ir: () => { elegirCapa("riesgo"); irALamina(3); } },
     C ? { k: "radios", ico: "municipio", etq: t("kpi_radios"), valor: fmt(C.altos), unidad: ` / ${fmt(C.n)}`, sub: t("kpi_municipios_sub"),
-      sev: C.altos ? "atencion" : "ok", ir: () => { elegirCapa("riesgo"); irALamina(4); } }
+      sev: C.altos ? "atencion" : "ok", ir: () => { elegirCapa("riesgo"); irALamina(3); } }
       : { k: "municipios", ico: "municipio", etq: t("kpi_municipios"), valor: fmt(altos.length), unidad: ` / ${fmt(A.cmus.length)}`, sub: t("kpi_municipios_sub"),
-      sev: altos.length ? "atencion" : "ok", ir: () => { elegirCapa("riesgo"); irALamina(4); } },
+      sev: altos.length ? "atencion" : "ok", ir: () => { elegirCapa("riesgo"); irALamina(3); } },
     { k: "rios", ico: "rio", etq: t("kpi_rios"), valor: fmt(evac + alerta), unidad: ` / ${fmt(ests.length)}`, sub: t("kpi_rios_sub")(evac, alerta),
-      sev: evac ? "critico" : alerta ? "atencion" : "ok", ir: () => irALamina(3) },
+      sev: evac ? "critico" : alerta ? "atencion" : "ok", ir: () => { estado.verRios = true; actualizarTodo(); } },
     { k: "alertas", ico: "alerta", etq: t("kpi_alertas"), valor: fmt(alertas.length), sub: alertas.length ? [...new Set(alertas.map((a) => t(`alerta_${a.tipo}`)))].slice(0, 2).join(" · ") : t("sin_alertas"),
-      sev: nivelAl === "roja" || nivelAl === "naranja" ? "critico" : nivelAl ? "atencion" : "ok", nivelAl, ir: () => irALamina(3) },
+      sev: nivelAl === "roja" || nivelAl === "naranja" ? "critico" : nivelAl ? "atencion" : "ok", nivelAl, ir: () => { estado.verAlertas = true; actualizarTodo(); } },
   ];
   if (estado.tiempo) {
     const T = estado.tiempo, TM = tiempoMunicipios(), h0 = diaHoy(T), h6 = Math.min(T.dias.length - 1, h0 + 6), h2 = Math.min(T.dias.length - 1, h0 + 2);
@@ -557,7 +557,6 @@ function actualizarTodo({ ligero = false, cuadro = false } = {}) {
   pintarGraficosHeader();
   pintarMinisDemorado();
   pintarTablero();
-  if (laminaActual === 3) pintarLamina3();
   if (typeof mapa !== "undefined" && mapa.getSource?.("reticula")) { actualizarReticula(); dibujarDetalle(); }
   if (!ligero || estado.capa !== "riesgo") pintarAnalisis(); else pintarAnalisisDemorado();
 }
@@ -683,7 +682,7 @@ async function iniciar() {
   alCargar(() => {
     iniciarPlano();
     actualizarTodo();
-    laminaDelEnlace();   // enlaces directos a una lámina: #lamina-2, #lamina-3, #lamina-4
+    laminaDelEnlace();   // enlaces directos a una lámina: #lamina-2, #lamina-3
     const buscarL = (nombre, niveles) => estado.lugares.find((l) => niveles.includes(l.nivel) && l.clave === normalizar(nombre));
     const pt = q.get("punto")?.split(",").map(Number);
     if (pt?.length === 2) seleccionarPunto(pt, { volar: true });

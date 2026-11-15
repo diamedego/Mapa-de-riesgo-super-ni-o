@@ -903,9 +903,7 @@ a.btn-banda { text-decoration: none; }
 .lectura { min-width: 0; min-height: 0; overflow-y: auto; padding: 20px 24px 24px; border-left: 1.5px solid var(--marco); background: var(--superficie); scrollbar-width: thin; }
 .lec-1, .lec-cabeza { display: flex; flex-direction: column; min-width: 0; }
 .lec-1 { gap: 18px; } .lec-cabeza { gap: 12px; }
-.lec-3 { display: none; }
 body[data-lamina="3"] .lec-1 { display: none; }
-body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .titular { margin: 0; font: 600 30px/1.12 var(--f-ui); letter-spacing: -0.03em; text-wrap: balance; }
 .bajada { margin: 0; max-width: 62ch; font-size: 13px; line-height: 1.45; color: var(--tinta-2); }
 .lec-1 > .tablero { order: 2; }
@@ -952,9 +950,6 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
 .l3-ley span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .l3-ley i { width: 10px; height: 10px; flex: none; }
 .l3-nota { margin: 0; font: 400 10.5px/1.45 var(--f-mono); color: var(--tinta-3); }
-.lec-3 .rios { gap: 0; }
-.lec-3 .rio { padding: 9px 0; border: 0; border-bottom: 1px solid var(--borde); background: none; cursor: pointer; }
-.lec-3 .rio:hover, .lec-3 .rio:focus-visible { background: var(--cian-suave); outline: none; }
 
 /* Lámina 02: el simulador ocupa la hoja (sin ventana flotante) */
 .hoja-sim { position: relative; }
@@ -1019,7 +1014,6 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
   .miniaturas > .minis-titulo { display: none; }
   .mini { flex: 0 0 62%; min-height: 200px; scroll-snap-align: start; }
   .tablero { order: 5; padding: 16px; background: var(--superficie); }
-  body[data-lamina="3"] .lec-3 { order: 1; padding: 16px; background: var(--superficie); }
   .titular { font-size: 26px; }
   .hoja-sim .sim, .hoja-sim .sim-caja { height: auto; }
   .hoja-sim .sim-cuerpo { min-height: 72svh; }
@@ -1190,7 +1184,6 @@ body[data-lamina="3"] .lec-3 { display: flex; flex-direction: column; gap: 18px;
   .lec-mas { order: 3; margin: 0; padding: 16px; background: var(--superficie); border-top: 0; }
   .lec-1 > .miniaturas { order: 4; margin: 0; }
   .lec-1 > .tablero { order: 5; margin: 0; padding: 16px; background: var(--superficie); }
-  body[data-lamina="3"] .lec-3 { order: 1; }
   .lec-cabeza .kpi { min-height: 0; }
   .plano-cab { right: 12px; }
   .refs { top: auto; bottom: 12px; right: 12px; width: 190px; padding: 10px 12px; }

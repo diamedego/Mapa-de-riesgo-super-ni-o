@@ -12,7 +12,7 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
 - `sql/` — medallón bronze→silver→gold; `correr_duckdb.py` (local, validado igual a Python) y `correr_databricks.py` (perfil `mapa-nino`, login pendiente).
 - `web/` — tablero "sala de situación" (MapLibre, sin otras librerías). Módulos: `textos.js` (ES/EN), `utiles.js`, `graficos.js`,
   `tiempo.js` (campos del tiempo, partículas de viento, miniaturas), `mapa.js`, `buscador.js`, `tableros.js` (un tablero por capa y
-  el análisis de abajo), `laminas.js` (las cuatro láminas: solapas, lámina 03 de alertas y ríos, validación en la 04),
+  el análisis de abajo), `laminas.js` (las tres láminas: panorama, simulador y análisis con la validación en la 03),
   `guia.js` (encabezado, fuentes por tipo, recorrido guiado), `app.js` (estado, indicadores, modo actual/futuro). Datos: `preparar_geometrias.py` y `preparar_centros.py` (fijos, Mac),
   `actualizar_datos_web.py` (diario), `preparar_rios_extremos.py` y `preparar_rios_ninos.py` (fijos, Mac; altura de cada día de los Niños en `datos/rios_ninos/`), `exportar_alertas.py` (cada 3 h), `ingesta/tiempo_grilla.py` (2 veces por día).
   `construir_artifact.py` arma la versión privada en claude.ai (inlina los módulos; mapa base propio).
