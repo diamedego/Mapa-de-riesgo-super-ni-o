@@ -1,6 +1,6 @@
 # Fuentes de datos y cobertura real
 
-*Actualizado: 2026-09-28 (noche). La cobertura se calcula con `ingesta/cobertura.py` sobre los datos descargados, no se estima.*
+*Actualizado: 2026-09-28 (noche); fuentes del simulador y de las validaciones, 2026-11-15. La cobertura se calcula con `ingesta/cobertura.py` sobre los datos descargados, no se estima.*
 *Detalle por gobierno local: `data/cobertura.csv`. Resumen por provincia: `data/cobertura_provincias.csv`. Registro de cada descarga: `data/manifest.csv`.*
 
 ## Unidad territorial
@@ -36,6 +36,12 @@
 | Urbano, agua, humedal y cultivos, cada año 1985-2024 | MapBiomas Argentina col. 2 vía Earth Engine | **100 %** | 30 m → gobierno local | ✅ |
 | Agua histórica 1984-2021 (ocurrencia y máxima extensión) | JRC Global Surface Water vía Earth Engine | **100 %** | 30 m → gobierno local | ✅ |
 | Agua observada en los Niños 2015-16 y 2023-24 vs. la sequía 2022-23 | Dynamic World (Sentinel-2 + deep learning) vía Earth Engine | **100 %** | 10 m → gobierno local | ✅ (Sentinel-1 descartado por falsos positivos en sequía) |
+| Lluvia de las tormentas de los Niños (desde 2000), hora más lluviosa y lluvia de 1 h de 2 años | IMERG V07 Final (NASA) vía Earth Engine (`earth_engine/lluvia_ninos.py`) | **100 %** | 0,1° (~11 km), cada 30 min | ✅ precalculada (elegida contra 482 tormentas medidas: ver `docs/04_validacion_simulador.md`) |
+| Lluvia de 1997-98 y forma hora a hora de cada tormenta; humedad del suelo antes de la tormenta | ERA5 / ERA5-Land (Earth Engine y Open-Meteo) | **100 %** | 0,1°–0,25°, horaria | ✅ (subestima las tormentas fuertes: 60 % de lo medido en las de ≥ 100 mm) |
+| Altura de los ríos cada día de los Niños desde 1997-98 | INA medido (2015-16, 2023-24) + reanálisis GloFAS con la curva de cada estación | 72 estaciones | diaria | ✅ `web/datos/rios_ninos/` |
+| Lluvia diaria medida (validación) | INA red RHN-SAT (366 pluviómetros, 2019-2026) + GHCN-Daily de NOAA (75 estaciones, completas solo en 2002-2005) | puntos | diaria (9 a 9 h) | ✅ |
+| Agua vista por radar (validación del río) | Sentinel-1 GRD vía Earth Engine | casos | 10 m | ✅ Concordia 28-nov-2023 |
+| Empresas y lugares que OSM no tiene | TomTom Search (2 500 consultas/día gratis) | nacional | punto | ✅ (clave pública en `web/claves.js`: conviene limitarla al dominio) |
 | Sudestada y mareas del Río de la Plata | SHN | costa del Río de la Plata | puertos | ⏳ pendiente |
 | Deslizamientos históricos 1970-2019 | Catálogo Global de Deslizamientos (NASA) vía Earth Engine | 7 gobiernos locales | punto | ⚠️ subregistro; se complementa con pendiente p90 + arcilla + lluvia |
 | Suelo: % de arcilla (infiltración) | OpenLandMap vía Earth Engine | **100 %** | 250 m | ✅ (reemplaza al INTA, cuyo geoservicio no responde) |
@@ -46,7 +52,8 @@
 
 | Dato | Por qué falta | Alternativa (proxy) | Acción |
 |---|---|---|---|
-| Red pluvial fuera de CABA | Los municipios no la publican | Pendiente + bajos del DEM + canales/alcantarillas de OSM | Borrador de pedido de información a municipios piloto |
+| Red pluvial fuera de CABA | Los municipios no la publican | Capacidad = lluvia de 1 h de 2 años del lugar (IMERG) + bajos del DEM + canales/alcantarillas de OSM | Borrador de pedido de información a municipios piloto |
+| Curvas intensidad-duración-frecuencia locales | No hay curvas públicas para la mayoría de las ciudades | Máximos de IMERG por duración (suavizan los picos de minutos) | — |
 | Geometría de la red cloacal | Los operadores (AySA, ABSA, Aguas Santafesinas, etc.) no la publican | Censo 2022: % de hogares con desagüe a red por radio | Borrador de pedido a operadores |
 | Conexiones clandestinas o irregulares | No existe un registro | RENABAP (servicios en barrios populares) + Censo (pozo ciego, hoyo) | — |
 | Estado de limpieza de sumideros | Solo CABA publica reclamos | Reclamos 147 en CABA; resto sin dato | — |

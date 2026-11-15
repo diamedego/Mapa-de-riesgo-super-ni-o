@@ -4,7 +4,9 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
 
 ## Estructura
 - `ingesta/` — un script por fuente (SMN, INA, Open-Meteo SEAS5/GloFAS/ECMWF, IGN, INDEC, Censo, OSM, RENABAP, BA Data, históricos). `comun.py`: sesión HTTP con reintentos, descarga WFS paginada, registro en `data/manifest.csv`.
-- `earth_engine/` — terreno, agua histórica, MapBiomas, suelo, Dynamic World, lluvia ERA5. Proyecto GEE en `earth_engine/config.py`.
+- `earth_engine/` — terreno, agua histórica, MapBiomas, suelo, Dynamic World, lluvia ERA5. `lluvia_ninos.py`: peor tormenta de cada Niño
+  (IMERG, 1997-98 ERA5-Land) y desagües de 2 años por celda de 0,1° → `web/datos/lluvia_ninos/`; `validar_lluvia.py`: fuentes contra 482
+  tormentas de pluviómetros (INA RHN-SAT + GHCN). Proyecto GEE en `earth_engine/config.py`.
 - `transformacion/` — capas silver (rasgos fijos por radio y gobierno local, reclamos CABA, dengue).
 - `modelos/` — `rios.py` (curva caudal→altura + sesgo reciente), `anegamientos_caba.py`, `indice_riesgo.py` (INFORM + Monte Carlo), `verificacion.py`, `amenaza_agua.py` y `dengue.py` (documentados, no usados en el índice).
 - `sql/` — medallón bronze→silver→gold; `correr_duckdb.py` (local, validado igual a Python) y `correr_databricks.py` (perfil `mapa-nino`, login pendiente).
@@ -12,12 +14,14 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
   `tiempo.js` (campos del tiempo, partículas de viento, miniaturas), `mapa.js`, `buscador.js`, `tableros.js` (un tablero por capa y
   el análisis de abajo), `laminas.js` (las cuatro láminas: solapas, lámina 03 de alertas y ríos, validación en la 04),
   `guia.js` (encabezado, fuentes por tipo, recorrido guiado), `app.js` (estado, indicadores, modo actual/futuro). Datos: `preparar_geometrias.py` y `preparar_centros.py` (fijos, Mac),
-  `actualizar_datos_web.py` (diario), `preparar_rios_extremos.py` (fijo, Mac), `exportar_alertas.py` (cada 3 h), `ingesta/tiempo_grilla.py` (2 veces por día).
+  `actualizar_datos_web.py` (diario), `preparar_rios_extremos.py` y `preparar_rios_ninos.py` (fijos, Mac; altura de cada día de los Niños en `datos/rios_ninos/`), `exportar_alertas.py` (cada 3 h), `ingesta/tiempo_grilla.py` (2 veces por día).
   `construir_artifact.py` arma la versión privada en claude.ai (inlina los módulos; mapa base propio).
 - `consumo_ia/` — medición del consumo de tokens de Claude Code en este proyecto.
 - `.github/workflows/actualizar_datos.yml` — SMN cada 3 h (+ alertas vigentes para la web), INA + pronóstico 16 días diario, grilla del tiempo 05:20 y 17:20 ART, GloFAS los lunes, SEAS5 el 6 de cada mes, y recálculo del índice y la web.
 - `docs/00_bitacora.md` (registro paso a paso, se agrega al final), `docs/01_fuentes.md` (fuentes y cobertura),
-  `docs/04_validacion_simulador.md` (validación del simulador contra Dynamic World).
+  `docs/03_investigacion_trabajos.md` (17 trabajos de referencia; PDF en la carpeta local «Investigación - trabajos», sin commitear),
+  `docs/04_validacion_simulador.md` (validación: Dynamic World, lluvia contra pluviómetros, río contra radar en
+  `herramientas/validacion/validar_rio_radar.py`), `docs/documento_funcional/generar.py` (PDF; versiones en «Documento funcional - versiones»).
 
 ## Comandos
 - Entorno: `.venv/bin/python`. Web local: `cd web && python3 -m http.server 8765`.
@@ -55,7 +59,11 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
   recomendaciones, análisis tipo Power BI, encabezado con fuentes por tipo y recorrido guiado en `web/guia.js`) y tandas 7-8
   (calles cortadas, aislados, confianza, validación contra satélite en `herramientas/validacion/`, ver `docs/04_validacion_simulador.md`).
   13-nov: revisada una crítica externa (ver bitácora): confianza baja sin validación, «Sin información» en ríos sin estación, límites explícitos. Próximo: mejorar el modelo donde falla (nivel de referencia del río, lagunas) y volver a correr `validar.py`.
-- Buscador de empresas: TomTom Search (plan gratis, sin tarjeta) listo en `web/buscador.js`; falta que la usuaria cree la cuenta y pegue la clave en `web/claves.js` (no por el chat).
+- Buscador: TomTom activo (clave en `web/claves.js`; recomendar limitarla al dominio del sitio en el panel de TomTom). Toyota Boshoku y
+  Padilla Logística: faltan coordenadas exactas (clic derecho en Google Maps en la Mac).
+- 15-nov (ver bitácora y documento v4): lluvia de los Niños con IMERG, río de los días de la tormenta (+3 días), fórmula del peor
+  Niño con λ = 0,05, humedad relativa, bajos del relieve y río conectado; modelo 3D corregido (arrancaba quieto). Falta: sensibilidad
+  de la ventana del río (1/3/7 días), radar en otras crecidas, republicar la versión privada con `datos/lluvia_ninos/*` y `datos/rios_ninos/*`.
 - Sitio público (Cloudflare Workers, gratis): https://mapa-de-riesgo-super-nino.diamedego.workers.dev — se publica solo con cada push
   (configuración en `wrangler.jsonc` y `web/.assetsignore`; ~11 publicaciones por día, plan gratis 500 por mes).
 - Simulador (versión pública): vista Mapa + Maqueta 3D con lluvia animada (estilo reel CutSheetRX). Posible mejora: relieve

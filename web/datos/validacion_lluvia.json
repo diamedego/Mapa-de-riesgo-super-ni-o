@@ -1,0 +1,238 @@
+{
+ "pluviometros": 235,
+ "tormentas": 482,
+ "descartadas_control": 21,
+ "por_red": {
+  "GHCN": 22,
+  "INA": 460
+ },
+ "temporadas": [
+  "2002-03",
+  "2004-05",
+  "2019-20",
+  "2020-21",
+  "2021-22",
+  "2022-23",
+  "2023-24",
+  "2024-25",
+  "2025-26"
+ ],
+ "fuentes": {
+  "era5": {
+   "mismos_dias": {
+    "mediana_cociente": 0.605,
+    "error_mediano": 0.545,
+    "correlacion": 0.384,
+    "llanura_mediana_cociente": 0.532,
+    "llanura_error_mediano": 0.538,
+    "por_tamano": {
+     "10-60": [
+      0.981,
+      249
+     ],
+     "60-100": [
+      0.505,
+      124
+     ],
+     "100-150": [
+      0.403,
+      76
+     ],
+     "150-2000": [
+      0.332,
+      33
+     ]
+    }
+   },
+   "peor_temporada": {
+    "mediana_cociente": 1.116,
+    "error_mediano": 0.428,
+    "por_tamano": {
+     "10-60": 1.754,
+     "60-100": 0.89,
+     "100-150": 0.661,
+     "150-2000": 0.498
+    },
+    "error_por_tamano": {
+     "10-60": 0.754,
+     "60-100": 0.213,
+     "100-150": 0.35,
+     "150-2000": 0.502
+    },
+    "fuertes_100": {
+     "mediana_cociente": 0.604,
+     "error_mediano": 0.402,
+     "n": 109
+    }
+   },
+   "orden_temporadas": {
+    "spearman_mediana": 0.543,
+    "acierto_peor": 0.375,
+    "n_pluviometros": 8
+   }
+  },
+  "imerg": {
+   "mismos_dias": {
+    "mediana_cociente": 0.735,
+    "error_mediano": 0.462,
+    "correlacion": 0.54,
+    "llanura_mediana_cociente": 0.805,
+    "llanura_error_mediano": 0.422,
+    "por_tamano": {
+     "10-60": [
+      0.942,
+      249
+     ],
+     "60-100": [
+      0.652,
+      124
+     ],
+     "100-150": [
+      0.578,
+      76
+     ],
+     "150-2000": [
+      0.579,
+      33
+     ]
+    }
+   },
+   "peor_temporada": {
+    "mediana_cociente": 1.314,
+    "error_mediano": 0.417,
+    "por_tamano": {
+     "10-60": 1.775,
+     "60-100": 1.221,
+     "100-150": 0.89,
+     "150-2000": 0.733
+    },
+    "error_por_tamano": {
+     "10-60": 0.775,
+     "60-100": 0.325,
+     "100-150": 0.235,
+     "150-2000": 0.268
+    },
+    "fuertes_100": {
+     "mediana_cociente": 0.823,
+     "error_mediano": 0.243,
+     "n": 109
+    }
+   },
+   "orden_temporadas": {
+    "spearman_mediana": 0.771,
+    "acierto_peor": 0.625,
+    "n_pluviometros": 8
+   }
+  },
+  "promedio": {
+   "mismos_dias": {
+    "mediana_cociente": 0.723,
+    "error_mediano": 0.451,
+    "correlacion": 0.546,
+    "llanura_mediana_cociente": 0.676,
+    "llanura_error_mediano": 0.452,
+    "por_tamano": {
+     "10-60": [
+      1.043,
+      249
+     ],
+     "60-100": [
+      0.658,
+      124
+     ],
+     "100-150": [
+      0.507,
+      76
+     ],
+     "150-2000": [
+      0.461,
+      33
+     ]
+    }
+   },
+   "peor_temporada": {
+    "mediana_cociente": 1.119,
+    "error_mediano": 0.365,
+    "por_tamano": {
+     "10-60": 1.579,
+     "60-100": 0.961,
+     "100-150": 0.703,
+     "150-2000": 0.53
+    },
+    "error_por_tamano": {
+     "10-60": 0.581,
+     "60-100": 0.211,
+     "100-150": 0.3,
+     "150-2000": 0.47
+    },
+    "fuertes_100": {
+     "mediana_cociente": 0.655,
+     "error_mediano": 0.35,
+     "n": 109
+    }
+   },
+   "orden_temporadas": {
+    "spearman_mediana": 0.6,
+    "acierto_peor": 0.625,
+    "n_pluviometros": 8
+   }
+  }
+ },
+ "mapeo_cuantiles_llanura": {
+  "n": 351,
+  "promedio": [
+   34.7,
+   47.0,
+   51.0,
+   53.1,
+   57.4,
+   60.0,
+   61.5,
+   63.9,
+   66.7,
+   69.2,
+   70.7,
+   73.2,
+   75.7,
+   78.4,
+   81.8,
+   85.2,
+   87.6,
+   90.2,
+   93.7,
+   97.0,
+   102.0,
+   106.1,
+   112.2,
+   130.0,
+   149.9
+  ],
+  "medido": [
+   12.0,
+   19.2,
+   25.0,
+   32.7,
+   37.0,
+   40.8,
+   46.2,
+   50.4,
+   54.0,
+   59.5,
+   64.4,
+   69.2,
+   73.0,
+   76.0,
+   80.5,
+   88.0,
+   92.3,
+   100.0,
+   108.2,
+   116.0,
+   124.0,
+   136.8,
+   147.9,
+   168.1,
+   199.0
+  ]
+ }
+}

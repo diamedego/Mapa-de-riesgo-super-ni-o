@@ -77,14 +77,55 @@ def cronograma() -> str:
              ("Índice de riesgo y modelos", "2026-09-29", "2026-10-02", CIAN), ("Web: primera versión y análisis", "2026-09-29", "2026-10-15", VERDE),
              ("Rediseño «sala de situación» y sitio público", "2026-11-05", "2026-11-06", VERDE), ("Simulador: llenado de bajos", "2026-11-06", "2026-11-08", NARANJA),
              ("Modelo hidráulico 2D y terreno FABDEM", "2026-11-10", "2026-11-11", NARANJA), ("Tandas 1 a 9 (28 puntos del pedido)", "2026-11-10", "2026-11-12", ROJO),
-             ("Validación y mejora del simulador", "2026-11-11", "2026-11-12", ROJO), ("Simulador en 3D: uso y velocidad", "2026-11-12", "2026-11-12", NARANJA)]
-    fig, ax = plt.subplots(figsize=(6.8, 3.0))
+             ("Validación del simulador (Dynamic World)", "2026-11-11", "2026-11-12", ROJO), ("Láminas, índice físico y escenarios", "2026-11-13", "2026-11-14", VERDE),
+             ("Investigación y validación de lluvia y río", "2026-11-15", "2026-11-15", ROJO)]
+    fig, ax = plt.subplots(figsize=(6.8, 3.2))
     for i, (n, a, b, c) in enumerate(hitos[::-1]):
         a_, b_ = pd.Timestamp(a), pd.Timestamp(b) + pd.Timedelta(days=1)
         ax.barh(i, (b_ - a_).days, left=matplotlib.dates.date2num(a_), height=0.55, color=c)
     ax.set_yticks(range(len(hitos))); ax.set_yticklabels([h[0] for h in hitos[::-1]], fontsize=7.5)
     ax.xaxis_date(); ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%d/%m")); ax.xaxis.set_major_locator(matplotlib.dates.DayLocator(interval=7))
     ax.grid(axis="x", color=GRIS, lw=0.6); ax.set_axisbelow(True); ax.tick_params(axis="x", labelsize=8)
+    return svg(fig)
+
+
+def validacion_lluvia(csv) -> str:
+    """Peor tormenta de 3 días de cada temporada: lo que da cada fuente frente al pluviómetro y su error, por tamaño."""
+    import numpy as np
+    d = pd.read_csv(csv)
+    d = d[~d["descartada"]]
+    clases = [(10, 60, "< 60 mm"), (60, 100, "60–100 mm"), (100, 150, "100–150 mm"), (150, 2000, "≥ 150 mm")]
+    fuentes = [("era5", "Reanálisis ERA5", NARANJA), ("promedio", "Promedio de los dos", "#9aa6b5"), ("imerg", "Satélite IMERG (el elegido)", CIAN)]
+    fig, ax = plt.subplots(1, 2, figsize=(6.9, 2.7))
+    x = np.arange(len(clases))
+    for j, (k, nom, col) in enumerate(fuentes):
+        r = [(d[f"{k}_peor"] / d["obs"])[(d["obs"] >= a) & (d["obs"] < b)] for a, b, _ in clases]
+        ax[0].bar(x + (j - 1) * 0.27, [100 * v.median() for v in r], width=0.25, color=col, label=nom)
+        ax[1].bar(x + (j - 1) * 0.27, [100 * (v - 1).abs().median() for v in r], width=0.25, color=col)
+    ax[0].axhline(100, color=TINTA, lw=0.8, ls="--")
+    n = [int(((d["obs"] >= a) & (d["obs"] < b)).sum()) for a, b, _ in clases]
+    for a_ in ax:
+        a_.set_xticks(x); a_.set_xticklabels([f"{e}\n{k} casos" for (_, _, e), k in zip(clases, n)], fontsize=7)
+        a_.grid(axis="y", color=GRIS, lw=0.6); a_.set_axisbelow(True)
+    ax[0].set_ylabel("Fuente / pluviómetro (%)"); ax[0].set_title("Lluvia que da (100 % = exacto)", fontsize=8.5)
+    ax[1].set_ylabel("Error mediano (%)"); ax[1].set_title("Error", fontsize=8.5)
+    ax[0].legend(frameon=False, fontsize=6.8, loc="upper right")
+    fig.tight_layout()
+    return svg(fig)
+
+
+def validacion_rio(antes: dict, ahora: dict) -> str:
+    """Crecida de Concordia (nov-2023) contra el radar: regla de 1 km frente a tierra conectada (= modelo 3D)."""
+    fig, ax = plt.subplots(figsize=(6.2, 2.0))
+    met = [("pod", "Agua del radar que el modelo acierta (POD)"), ("far", "Agua del modelo que el radar no vio (FAR)"), ("csi", "Índice de acierto (CSI)")]
+    y = range(len(met))
+    ax.barh([i + 0.19 for i in y], [antes[m] for m, _ in met], height=0.36, color="#9aa6b5", label="Antes: solo a menos de 1 km del río")
+    ax.barh([i - 0.19 for i in y], [ahora[m] for m, _ in met], height=0.36, color=CIAN, label="Ahora: tierra conectada y más baja (= modelo 3D)")
+    for i, (m, _) in enumerate(met):
+        ax.text(antes[m] + 0.01, i + 0.19, f"{antes[m]:.2f}", va="center", fontsize=7.5, color=SUAVE)
+        ax.text(ahora[m] + 0.01, i - 0.19, f"{ahora[m]:.2f}", va="center", fontsize=7.5, color=CIAN)
+    ax.set_yticks(list(y)); ax.set_yticklabels([t for _, t in met], fontsize=7.5); ax.invert_yaxis()
+    ax.set_xlim(0, 1); ax.legend(frameon=False, fontsize=7, loc="lower right"); ax.grid(axis="x", color=GRIS, lw=0.6); ax.set_axisbelow(True)
     return svg(fig)
 
 

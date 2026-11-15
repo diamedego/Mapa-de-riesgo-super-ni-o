@@ -8,7 +8,11 @@ Por estación y temporada (octubre → mayo): altura máxima, su fecha y cuánto
 - Antes de 1984 no hay caudal ni alturas: sin dato.
 
 Se corre en la Mac (lee data/raw/glofas para la celda de cada estación).
-Salida: web/datos/rios_ninos_resumen.json  {estacion_id: {temporada: {max, fecha, dias, fuente}}}
+Salidas:
+- web/datos/rios_ninos_resumen.json  {estacion_id: {temporada: {max, fecha, dias, fuente}}} (contexto: lo peor de la temporada)
+- web/datos/rios_ninos/<estacion_id>.json  {temporada: {d0, g: [cm], m: [cm]}}: altura de CADA DÍA de oct → may, estimada (g,
+  GloFAS + curva) y medida (m, INA), en centímetros (null sin dato). El simulador toma el río de la ventana de la tormenta
+  (del primer día de lluvia a 3 días después del último), no el máximo de la temporada: lluvia y río tienen que coincidir.
 """
 import json
 import time
@@ -41,6 +45,7 @@ def main() -> None:
     cel = celdas()
     medidas = json.loads((WEB / "rios_ninos.json").read_text())
     out: dict = {}
+    diario: dict = {}   # estacion_id → temporada → {"d0", "g", "m"}
     ses = requests.Session()
     for _, c in curvas.iterrows():
         est = int(info.loc[c["series_id"], "estacion_id"]); evac = info.loc[c["series_id"], "nivel_evacuacion"]
@@ -63,8 +68,10 @@ def main() -> None:
         for a in NINOS:
             t = h[f"{a}-10-01":f"{a + 1}-05-31"].dropna()
             if len(t) > 60:
-                res[f"{a}-{str(a + 1)[2:]}"] = {"max": round(float(t.max()), 2), "fecha": t.idxmax().date().isoformat(),
-                                                "dias": int((t >= evac).sum()), "fuente": "GloFAS"}
+                tp = f"{a}-{str(a + 1)[2:]}"
+                res[tp] = {"max": round(float(t.max()), 2), "fecha": t.idxmax().date().isoformat(), "dias": int((t >= evac).sum()), "fuente": "GloFAS"}
+                dias = pd.date_range(f"{a}-10-01", f"{a + 1}-05-31")
+                diario.setdefault(str(est), {})[tp] = {"d0": f"{a}-10-01", "g": [None if pd.isna(v) else int(round(v * 100)) for v in h.reindex(dias)]}
         out[str(est)] = res
         time.sleep(1)
     # Lo medido por el INA reemplaza a lo estimado (2015-16 y 2023-24)
@@ -75,11 +82,20 @@ def main() -> None:
             continue
         for a in (2015, 2023):
             v = {k: x for k, x in serie.items() if f"{a}-10-01" <= k <= f"{a + 1}-05-31"}
+            tp = f"{a}-{str(a + 1)[2:]}"
+            if v:   # cada día medido entra en la serie diaria, aunque sean pocos
+                dias = [d.date().isoformat() for d in pd.date_range(f"{a}-10-01", f"{a + 1}-05-31")]
+                diario.setdefault(est, {}).setdefault(tp, {"d0": f"{a}-10-01"})["m"] = [None if v.get(d) is None else int(round(v[d] * 100)) for d in dias]
             if len(v) > 60:
                 k = max(v, key=v.get)
-                out.setdefault(est, {})[f"{a}-{str(a + 1)[2:]}"] = {"max": v[k], "fecha": k, "dias": int(sum(x >= evac for x in v.values())), "fuente": "INA"}
+                out.setdefault(est, {})[tp] = {"max": v[k], "fecha": k, "dias": int(sum(x >= evac for x in v.values())), "fuente": "INA"}
     (WEB / "rios_ninos_resumen.json").write_text(json.dumps(out, separators=(",", ":")))
     print(f"rios_ninos_resumen.json: {len(out)} estaciones")
+    carpeta = WEB / "rios_ninos"
+    carpeta.mkdir(exist_ok=True)
+    for est, temporadas in diario.items():
+        (carpeta / f"{est}.json").write_text(json.dumps(temporadas, separators=(",", ":")))
+    print(f"rios_ninos/: {len(diario)} estaciones con la altura de cada día")
     for est in ("40", "26", "30"):
         print(est, {k: (v["max"], v["dias"], v["fuente"]) for k, v in sorted(out.get(est, {}).items())})
 

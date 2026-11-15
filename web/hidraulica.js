@@ -140,7 +140,8 @@ function balance(horas, lluviaMm, et0Mm) {
 
 function correr() {
   const { lluvia, et0, nx, N } = S, horas = lluvia.length;
-  let quietas = 99;
+  // Con río (o mar) el agua arranca en movimiento: un río alto inunda la orilla aunque no llueva (antes quedaba quieta)
+  let quietas = Number.isFinite(S.baseRio) ? 0 : 99;
   const t0 = performance.now();
   for (let k = 0; k < horas; k++) {
     if (cortar) { postMessage({ tipo: "cortado" }); return; }

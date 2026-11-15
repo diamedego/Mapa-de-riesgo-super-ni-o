@@ -1,0 +1,73 @@
+{
+ "caso": {
+  "nombre": "Concordia",
+  "lon": -58.02,
+  "lat": -31.39,
+  "radio": 5,
+  "estacion": "79",
+  "fecha": "2023-11-28",
+  "radar": [
+   "2023-11-28",
+   "2023-11-29"
+  ],
+  "referencia": [
+   "2023-01-01",
+   "2023-04-01"
+  ]
+ },
+ "altura_m": 13.7,
+ "evacuacion_m": 12.5,
+ "celda_m": 130,
+ "celdas_tierra": 4205,
+ "personas_formula": 1813,
+ "resultados": {
+  "agua_15": {
+   "formula": {
+    "celdas_sim": 534,
+    "celdas_obs": 303,
+    "pod": 0.746,
+    "far": 0.577,
+    "csi": 0.37
+   },
+   "modelo3d": {
+    "celdas_sim": 534,
+    "celdas_obs": 303,
+    "pod": 0.746,
+    "far": 0.577,
+    "csi": 0.37
+   }
+  },
+  "agua_16": {
+   "formula": {
+    "celdas_sim": 534,
+    "celdas_obs": 250,
+    "pod": 0.756,
+    "far": 0.646,
+    "csi": 0.318
+   },
+   "modelo3d": {
+    "celdas_sim": 534,
+    "celdas_obs": 250,
+    "pod": 0.756,
+    "far": 0.646,
+    "csi": 0.318
+   }
+  },
+  "agua_18": {
+   "formula": {
+    "celdas_sim": 534,
+    "celdas_obs": 157,
+    "pod": 0.79,
+    "far": 0.768,
+    "csi": 0.219
+   },
+   "modelo3d": {
+    "celdas_sim": 534,
+    "celdas_obs": 157,
+    "pod": 0.79,
+    "far": 0.768,
+    "csi": 0.219
+   }
+  }
+ }
+}

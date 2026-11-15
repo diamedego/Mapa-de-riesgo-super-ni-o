@@ -26,3 +26,8 @@ web/datos/base/
 
 # Notas de reels (transcripciones de contenido ajeno: no van al repo público)
 REELS/
+
+# Lluvia de los Niños en grilla, día por día (se regenera con earth_engine/lluvia_ninos.py; ~800 MB)
+data/procesado/
+# Caché de la validación de la lluvia (se regenera con earth_engine/validar_lluvia.py)
+data/validacion/lluvia_fuentes_estaciones.json

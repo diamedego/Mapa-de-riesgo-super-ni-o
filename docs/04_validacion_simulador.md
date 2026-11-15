@@ -72,3 +72,8 @@ En los otros 31 casos (sobre todo el conurbano) el satélite casi no ve agua y n
   puede validar el anegamiento urbano de pocas horas con satélites ópticos.
 - El simulador muestra esta validación con un gráfico por ciudad. La confianza del modelo en cada hora usa el resultado de su
   ciudad: alta con CSI ≥ 0,5, media entre 0,3 y 0,5 o donde no se pudo validar, baja por debajo de 0,3.
+
+## Actualización 15-nov-2026
+- **Motor corregido**: arrancaba «quieto» y, sin lluvia, el río alto no inundaba. Repetida la validación (`data/validacion/v2_rio_corregido/`): 9 casos, CSI mediano 0,36 contra 0,35 de la referencia, igual que antes.
+- **Lluvia contra pluviómetros** (`earth_engine/validar_lluvia.py`, 482 tormentas en 235 pluviómetros del INA y del SMN): en las tormentas de 100 mm o más, IMERG da el 82 % de lo medido (error mediano 24 %), ERA5 el 60 % (40 %) y su promedio el 65 % (35 %). El simulador usa IMERG para las tormentas de los Niños.
+- **Río contra radar** (`herramientas/validacion/validar_rio_radar.py`, Concordia 28-nov-2023, Sentinel-1): la fórmula del peor Niño y el modelo 3D aciertan el 76 % del agua vista (CSI 0,32). Con el río limitado a 1 km de la orilla la fórmula acertaba el 24 % (CSI 0,15): se reemplazó por la tierra conectada y más baja que el río.
