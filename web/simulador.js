@@ -766,7 +766,7 @@ function recibirHora(M, m) {
     // Al terminar: la hora con más agua desde hoy
     let pico = M.hoy;
     for (let k = M.hoy; k < M.stats.length; k++) if (M.stats[k].pct > M.stats[pico].pct) pico = k;
-    M.pico = pico; M.hora = M.alInicio ? M.hoy : pico; M.siguiendo = false;   // al abrir con el peor Niño: seca hasta tocar ▶
+    M.pico = pico; M.hora = M.alInicio ? M.hoy : pico; M.siguiendo = false; M.seco = !!M.alInicio;   // al abrir con el peor Niño: seca hasta tocar ▶
     avisoProgreso("");
     bloquearControles(false);
     const hint = document.getElementById("sim-hint");
@@ -792,7 +792,13 @@ function estadisticaHora(M, h) {
 // Profundidad del agua en un píxel del relieve: el nivel del agua de su celda del modelo contra la altura fina del píxel
 // (así el borde del agua sigue el terreno con más detalle que la celda)
 // Fotograma que se ve: entre dos horas calculadas se mezcla el agua (Mo.frac de 0 a 1) para que la reproducción en cámara lenta sea continua
+// Con el peor Niño cargado solo al abrir, la maqueta se ve seca (como la imagen satelital) hasta que se toca ▶ o la línea de
+// tiempo: el río del modelo ya mueve agua desde la primera hora y no tiene que aparecer antes de que se pida ver la tormenta
+const seco = (M) => (M.vacio ??= new Uint16Array(M.frames[0].length));
+const STAT_SECO = { pct: 0, km2: 0, maxProf: 0, personas: 0, cortesKm: 0, pct3: 0 };
+const statHora = (M, k = M.hora) => (M.seco ? STAT_SECO : M.stats[k]);
 function frameVista(M) {
+  if (M.seco) return seco(M);
   const k = M.hora, F = M.frames[k], f = M.frac || 0;
   if (!f || k >= M.frames.length - 1) return F;
   if (M.bufK !== k || M.bufF !== f) {
@@ -807,7 +813,7 @@ function aguaFina(i) {
   if (!M?.frames.length) return 0;
   const g = M.g, c = g.celdaFina[i];
   if (c < 0) return 0;
-  if (g.tipo2[c] === 2) { const sube = M.lagos[M.hora]?.[g.lago[c]] ?? 0; return sube > 0.05 ? sube : 0; }
+  if (g.tipo2[c] === 2) { const sube = M.seco ? 0 : M.lagos[M.hora]?.[g.lago[c]] ?? 0; return sube > 0.05 ? sube : 0; }
   if (g.tipo2[c] !== 1) return 0;
   const h = frameVista(M)[c] / 1000;
   if (h < 0.01) return 0;
@@ -850,7 +856,7 @@ function llegaACalle(g, vis, c) {   // ¿hay una calle alcanzable a 2 celdas o m
   return false;
 }
 function accesoHora(M) {
-  const g = M.g, F = M.frames[M.hora];
+  const g = M.g, F = frameVista(M);
   if (!g.nRuta) return null;
   M.visSeco ??= alcanzables(g, null);
   const vis = alcanzables(g, F), conAgua = (c) => F[c] / 1000 - g.cauce[c] >= CORTE;
@@ -933,7 +939,7 @@ function pintarLineaSim() {
   const mes = (k) => art(k).toLocaleString(ci, { month: "short", timeZone: "UTC" }).replace(".", "");
   const etiqueta = (k, fuerte) => `<text x="${x(k)}" y="${yB + 20}" class="sim-eje-dia${fuerte ? " fuerte" : ""}" text-anchor="middle">${art(k).getUTCDate()}</text><text x="${x(k)}" y="${yB + 31}" class="sim-eje-mes${fuerte ? " fuerte" : ""}" text-anchor="middle">${mes(k)}</text>`;
   const eje = marcas.map((k, i) => `<line x1="${x(k)}" x2="${x(k)}" y1="${yB + 4}" y2="${yB + 9}" class="sim-tick"/>${i % sep === 0 && Math.abs(x(k) - xh) > 20 ? etiqueta(k, false) : ""}`).join("");
-  const R = M.stats[M.hora] ?? { pct: 0 }, yD = yP(R.pct);   // al empezar todavía no hay horas calculadas
+  const R = statHora(M) ?? { pct: 0 }, yD = yP(R.pct);   // al empezar todavía no hay horas calculadas
   const txt = `${fmt(R.pct, R.pct < 10 ? 1 : 0)} %`, bw = Math.max(46, txt.length * 8 + 16), bx = limitar(xh, iz + bw / 2, ancho - de - bw / 2), by = Math.max(14, yD - 36);
   const globo = `<line x1="${xh}" x2="${xh}" y1="${yD}" y2="${yB + 9}" class="sim-marca"/>
     <g class="sim-globo"><rect x="${bx - bw / 2}" y="${by}" width="${bw}" height="24" rx="6"/><path d="M${xh - 5},${by + 24}L${xh},${by + 30}L${xh + 5},${by + 24}Z"/><text x="${bx}" y="${by + 16}" text-anchor="middle">${txt}</text></g>
@@ -954,7 +960,7 @@ function pintarLineaSim() {
   const svg = cont.querySelector("svg");
   const ir = (ev) => {
     const r = svg.getBoundingClientRect(), k = k0 + Math.round(((ev.clientX - r.left - iz) / (ancho - iz - de)) * (n - 1 - k0));
-    M.siguiendo = false; M.hora = limitar(k, k0, M.frames.length - 1); detenerAnimaciones(); mostrarHora();
+    M.siguiendo = false; M.seco = false; M.hora = limitar(k, k0, M.frames.length - 1); detenerAnimaciones(); mostrarHora();
   };
   svg.onpointerdown = (ev) => { ir(ev); svg.setPointerCapture(ev.pointerId); svg.onpointermove = (e2) => { if (e2.buttons) ir(e2); }; };
 }
@@ -1522,7 +1528,7 @@ function alturasMaqueta() {
 
 // Bajos llenos (mismo cálculo y colores que el mapa), en el recuadro del círculo
 function pintarCharcos() {
-  const M = SIM.maqueta, d = SIM.datos, W = d.D.W, clave = `${SIM.modelo?.frames.length ? SIM.modelo.hora : -1}.${Math.floor((SIM.modelo?.frac || 0) * 4)}|${SIM.modelo?.hasta}|${SIM.capas.cortes}`;
+  const M = SIM.maqueta, d = SIM.datos, W = d.D.W, clave = `${SIM.modelo?.frames.length ? SIM.modelo.hora : -1}.${Math.floor((SIM.modelo?.frac || 0) * 4)}|${SIM.modelo?.hasta}|${SIM.capas.cortes}|${SIM.modelo?.seco ? 1 : 0}`;
   if (M.claveCharcos === clave) return;
   M.claveCharcos = clave;
   const c = M.charcos.getContext("2d"), img = c.createImageData(M.bw, M.bh), px = img.data;
@@ -1968,7 +1974,7 @@ function pintarPanelSimulador(d) {
     <details class="sim-metodo"><summary>${t("sim_como")}</summary><p>${t("sim_metodo")}</p><p id="sim-supuestos"></p></details>
     </div>`;
   const barra = document.getElementById("sim-barra");
-  barra.oninput = () => { const Mo = SIM.modelo; if (!Mo?.frames.length) return; detenerAnimaciones(); Mo.siguiendo = false; Mo.hora = limitar(Number(barra.value), Mo.hoy, Mo.frames.length - 1); mostrarHora(); };
+  barra.oninput = () => { const Mo = SIM.modelo; if (!Mo?.frames.length) return; detenerAnimaciones(); Mo.siguiendo = false; Mo.seco = false; Mo.hora = limitar(Number(barra.value), Mo.hoy, Mo.frames.length - 1); mostrarHora(); };
   document.getElementById("sim-play").onclick = () => reproducirSimulador();
   document.getElementById("sim-reiniciar").onclick = reiniciarSimulador;
   panel.querySelectorAll("#sim-vel .chip").forEach((b) => { b.onclick = () => { SIM.velocidad = +b.dataset.v; panel.querySelectorAll("#sim-vel .chip").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); }; });
@@ -2084,7 +2090,7 @@ function usoDelSuelo(g) {
 function actualizarNumeros() {
   const Mo = SIM.modelo, d = SIM.datos;
   if (!d || !Mo?.frames.length) return;
-  const k = Mo.hora, R = Mo.stats[k], met = Mo.met, tp = TIPO_DATO[met.tipo[k]];
+  const k = Mo.hora, R = statHora(Mo, k), met = Mo.met, tp = TIPO_DATO[met.tipo[k]];
   const fecha = new Date(met.horas[k]);
   document.getElementById("sim-fecha").textContent = fecha.toLocaleString(estado.idioma === "en" ? "en-GB" : "es-AR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const etq = document.getElementById("sim-tipo");
@@ -2157,13 +2163,14 @@ function reiniciarSimulador() {
   const Mo = SIM.modelo;
   if (!Mo?.frames.length) return;
   detenerAnimaciones();
-  Mo.hora = planReproduccion(Mo).ini; Mo.frac = 0; Mo.siguiendo = false;
+  Mo.hora = planReproduccion(Mo).ini; Mo.frac = 0; Mo.siguiendo = false; Mo.seco = false;
   reproducirSimulador(true);
 }
 function reproducirSimulador(desdeCero = false) {
   const Mo = SIM.modelo, btn = document.getElementById("sim-play");
   if (!Mo?.frames.length) return;
   if (SIM.reproduciendo) { detenerAnimaciones(); return; }
+  Mo.seco = false;
   const { ini, ts } = planReproduccion(Mo), ultimo = ts.length - 1;
   let j0 = Mo.hora - ini;
   if (desdeCero || j0 < 0 || j0 >= ultimo || Mo.hora === Mo.pico) j0 = 0;   // desde el pico o el final, arranca la tormenta de nuevo
