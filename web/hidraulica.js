@@ -11,6 +11,8 @@
 // Lagunas: guardan el agua (nivel único por laguna que sube y baja). Ríos: borde con nivel fijo (actual + crecida elegida):
 // reciben el agua o la desbordan sobre la costa. Bordes del área: el agua sale libremente.
 // Las horas secas con el agua quieta no mueven el agua (solo infiltración y evaporación): así un período largo es viable.
+// Asimilación (pronóstico): en la hora de la pasada del radar, las celdas donde el satélite vio agua y el modelo tiene menos
+// suben a lo observado (m.asimilar = { k, h }); el agua agregada se cuenta aparte en el balance (cuenta.asimilada).
 "use strict";
 const G = 9.81, ALFA = 0.7, H_MIN = 0.002;
 let S = null, cortar = false;
@@ -146,6 +148,11 @@ function correr() {
   for (let k = 0; k < horas; k++) {
     if (cortar) { postMessage({ tipo: "cortado" }); return; }
     const r = lluvia[k], e = et0[k];
+    if (S.asimilar && k === S.asimilar.k) {
+      const H = S.asimilar.h, a = S.dx * S.dx;
+      for (let i = 0; i < N; i++) if (S.tipo2[i] === 1 && H[i] > S.h[i]) { S.cuenta.asimilada = (S.cuenta.asimilada ?? 0) + (H[i] - S.h[i]) * a; S.h[i] = H[i]; }
+      quietas = 0;
+    }
     // Nivel del río hora por hora (para repetir crecidas reales con las alturas del INA); si cambia, el agua se mueve
     if (S.crecidaHora && Math.abs(S.crecidaHora[k] - S.crecida) > 0.005) { S.crecida = S.crecidaHora[k]; quietas = 0; }
     let hAntes = null;

@@ -145,6 +145,8 @@ def main() -> None:
         "corrida_glofas": str(rios["corrida_glofas"].iloc[0]), "meses": meses, "mes_pico": pico,
         "peso_pronostico": float(idx["peso_pronostico"].iloc[0]),
         "verificacion_lluvia": ver.get("lluvia_16_dias", {}).get("estado", "sin verificar todavía"),
+        # Precisión medida del pronóstico por plazo (simulador: tramos de confianza del pronóstico)
+        "verificacion_plazos": {"dias": ver.get("lluvia_16_dias", {}).get("dias_verificados"), "por_plazo": ver.get("lluvia_16_dias", {}).get("por_plazo", {})},
         "por_mes": {m: {**por_mes.loc[m].to_dict(), "estaciones_prob_evacuacion_50": int(est_evac.get(m, 0))}
                     for m in meses},
         "top_relativo": idx[idx["mes"] == pico].nlargest(20, "riesgo")[cols].round(2).to_dict("records"),

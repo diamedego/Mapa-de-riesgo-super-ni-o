@@ -43,15 +43,28 @@ async function sueloEn(punto) {
 // ---------- Lluvia hora por hora ----------
 async function lluviaDelPunto(punto, hastaISO) {
   const [lon, lat] = punto.map((v) => v.toFixed(3));
-  const u = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=precipitation,et0_fao_evapotranspiration,soil_moisture_3_to_9cm&past_days=14&forecast_days=16&timezone=America%2FArgentina%2FBuenos_Aires`;
+  const u = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=precipitation,et0_fao_evapotranspiration,soil_moisture_3_to_9cm,soil_moisture_27_to_81cm&past_days=14&forecast_days=16&timezone=America%2FArgentina%2FBuenos_Aires`;
   const d = await fetch(u).then((r) => { if (!r.ok) throw new Error(`Open-Meteo ${r.status}`); return r.json(); });
   const h = d.hourly, ahora = Date.now();
   const horas = h.time.map((t) => Date.parse(`${t}:00-03:00`));
   const tipo = horas.map((t) => (t <= ahora ? 0 : 1));
   const met = { horas, lluvia: h.precipitation.map((v) => v ?? 0), et0: h.et0_fao_evapotranspiration.map((v) => v ?? 0), tipo,
-    theta0: h.soil_moisture_3_to_9cm.find((v) => v != null) ?? 0.25, theta: h.soil_moisture_3_to_9cm };
+    theta0: h.soil_moisture_3_to_9cm.find((v) => v != null) ?? 0.25, theta: h.soil_moisture_3_to_9cm, thetaProf: h.soil_moisture_27_to_81cm ?? [] };
   if (hastaISO && Date.parse(`${hastaISO}T23:00:00-03:00`) > horas.at(-1)) await extenderEscenario(met, punto, hastaISO);
   return met;
+}
+
+// Ensamble de 51 pronósticos del ECMWF (Open-Meteo, gratis), 15 días hora por hora: para los días 8 a 15, donde un solo pronóstico
+// no alcanza, se elige el miembro del medio (probable) y el del 10 % más lluvioso (pesimista), siempre una tormenta entera y coherente
+async function ensambleLluvia(punto) {
+  const [lon, lat] = punto.map((v) => v.toFixed(3));
+  for (const modelo of ["ecmwf_ifs025", "gfs_seamless"]) {
+    const d = await fetch(`https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${lat}&longitude=${lon}&hourly=precipitation&models=${modelo}&forecast_days=15&timezone=America%2FArgentina%2FBuenos_Aires`)
+      .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const claves = Object.keys(d?.hourly ?? {}).filter((k) => k.startsWith("precipitation"));
+    if (claves.length > 5) return { modelo, horas: d.hourly.time.map((x) => Date.parse(`${x}:00-03:00`)), miembros: claves.map((k) => d.hourly[k].map((v) => v ?? 0)) };
+  }
+  return null;
 }
 
 // Más allá de los 16 días: total mensual del pronóstico estacional, repartido como llueve habitualmente en ese lugar y mes

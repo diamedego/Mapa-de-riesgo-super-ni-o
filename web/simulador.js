@@ -107,7 +107,7 @@ async function iniciarEscenario() {
   H?.horarias?.then(() => {
     if (SIM.hist?.H !== H) return;
     pintarEscenario();
-    if (!SIM.esc.tocado) aplicarPeorNino(true);
+    if (!SIM.esc.tocado && (SIM.modoSim ?? "escenario") === "escenario") aplicarPeorNino(true);
   });
 }
 function aplicarCondicionesHoy(correr = true) {
@@ -398,7 +398,7 @@ const validacion = () => (cargaValidacion ??= fetch("datos/validacion.json").the
 function abrirSimulador() {
   const s = estado.sel;
   if (s?.tipo !== "punto") return;
-  SIM.tormenta = { mm: 0, horas: 3 }; SIM.esc = null; SIM.hist = null;   // el escenario se arma al terminar de preparar el lugar (iniciarEscenario)
+  SIM.tormenta = { mm: 0, horas: 3 }; SIM.esc = null; SIM.hist = null; SIM.modoSim = "escenario"; SIM.modelosModo = {}; SIM.pron = null;   // el escenario se arma al terminar de preparar el lugar (iniciarEscenario)
   validacion().then((V) => { SIM.validacion = V; pintarValidez(); });
   const caja = document.getElementById("sim");
   caja.hidden = false;
@@ -668,43 +668,6 @@ function actualizarCarga() {
 
 // Reparto de una tormenta de prueba hora a hora: 3 h con picos al comienzo (40-40-20 %), el resto parejo
 const repartoTormenta = (h) => (h === 3 ? [0.4, 0.4, 0.2] : Array(h).fill(1 / h));
-async function simularPeriodo(hastaISO, tormenta = 0, corto = false) {
-  const tor = typeof tormenta === "number" ? { mm: tormenta, horas: 3 } : tormenta, tormentaMm = tor.mm;
-  const d = SIM.datos;
-  if (!d) return;
-  detenerAnimaciones();
-  SIM.modelo?.worker?.terminate();
-  const M = (SIM.modelo = { frames: [], lagos: [], stats: [], hora: 0, corriendo: true, siguiendo: true, hasta: hastaISO, tormenta: tor, corto });
-  bloquearControles(true);
-  avisoProgreso(t("sim_bajando"));
-  let met;
-  try { met = await lluviaDelPunto(d.s.punto, hastaISO); } catch (e) { console.error(e); avisoProgreso(t("sim_error_meteo")); return; }
-  if (SIM.modelo !== M) return;
-  const fin = Date.parse(`${hastaISO}T23:59:00-03:00`);
-  let n = met.horas.findIndex((x) => x > fin);
-  if (n < 0) n = met.horas.length;
-  // Tormenta de prueba: no hace falta recorrer las 2 semanas anteriores; se arranca 24 h antes de ahora con la humedad del suelo que informa
-  // Open-Meteo a esa hora (así calcula en unos segundos y no en un minuto)
-  const a = corto ? Math.max(0, met.tipo.indexOf(1) - 24) : 0;
-  if (corto && met.theta?.[a] != null) met.theta0 = met.theta[a];
-  for (const k of ["horas", "lluvia", "et0", "tipo"]) met[k] = met[k].slice(a, n);
-  n -= a;
-  M.hoy = Math.max(0, met.tipo.indexOf(1));
-  if (tormentaMm) repartoTormenta(tor.horas).forEach((f, j) => { if (M.hoy + j < n) met.lluvia[M.hoy + j] += tormentaMm * f; });   // tormenta de prueba: desde ahora, en 1 a 24 h
-  const g = grillaModelo(d, n, corto ? 100 : null);   // tormenta de prueba: celdas de ~60 m (el agua se dibuja igual sobre el relieve fino)
-  await prepararCorrida(M, d, g, met);
-  if (SIM.modelo !== M) return;
-  const w = (M.worker = new Worker("hidraulica.js"));
-  w.onmessage = (e) => recibirHora(M, e.data);
-  w.onerror = (e) => { avisoProgreso(t("sim_error")); console.error(e); };
-  w.postMessage({ tipo: "iniciar", nx: g.nx, ny: g.ny, dx: g.dx, z: g.z, tipo2: g.tipo2, lago: g.lago, nMan: g.nMan, imp: g.imp,
-    suelo: M.suelo, theta0: met.theta0, desague: SIM.desague, crecida: SIM.crecida, lluvia: Float32Array.from(met.lluvia), et0: Float32Array.from(met.et0),
-    // Río: con una estación del INA a menos de 15 km, arranca con su altura de hoy respecto del nivel de evacuación (el mismo método
-    // validado); la barra suma o resta metros sobre esa altura
-    ...(M.estacion ? { relEvac: new Float32Array(n).fill(M.estacion.h - M.estacion.ref + SIM.crecida) } : {}) });
-  pintarLineaSim();
-}
-
 // Corrida del escenario: 2 horas secas, la tormenta elegida y 36 horas más para que el agua escurra y se junte. Arranca con la
 // humedad del suelo, las lagunas y el río de las barras (no con la lluvia real de los días anteriores).
 async function simularEscenario(alInicio = false) {
@@ -766,7 +729,7 @@ function recibirHora(M, m) {
     // Al terminar: la hora con más agua desde hoy
     let pico = M.hoy;
     for (let k = M.hoy; k < M.stats.length; k++) if (M.stats[k].pct > M.stats[pico].pct) pico = k;
-    M.pico = pico; M.hora = M.alInicio ? M.hoy : pico; M.siguiendo = false; M.seco = !!M.alInicio;   // al abrir con el peor Niño: seca hasta tocar ▶
+    M.pico = pico; M.hora = M.alInicio || M.verHoy ? M.hoy : pico; M.siguiendo = false; M.seco = !!M.alInicio;   // peor Niño al abrir: seco hasta ▶; pronóstico: hoy
     avisoProgreso("");
     bloquearControles(false);
     const hint = document.getElementById("sim-hint");
@@ -1855,54 +1818,213 @@ function tooltipSimulador(e) {
 let lluviaEstacional = null;
 const fechaISO = (d) => d.toISOString().slice(0, 10);
 const sumarDias = (iso, n) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return fechaISO(d); };
-function limitesPeriodo() {
-  const T = estado.tiempo, hoy = T ? T.dias[diaHoy(T)] : hoyLocal();
-  const ultimoMes = lluviaEstacional?.meses.at(-1);
-  const fin = ultimoMes ? fechaISO(new Date(Date.UTC(+ultimoMes.slice(0, 4), +ultimoMes.slice(5, 7), 0, 12))) : T?.dias.at(-1) ?? hoy;
-  return { hoy, fin };
+// ---------- Simular pronóstico: desde hoy, con lo que ya llovió ----------
+// La corrida arranca 14 días atrás con la lluvia real (así el suelo, los bajos y las lagunas llegan a hoy como están), incorpora el
+// agua vista por el radar el día de su pasada y sigue con el pronóstico hasta 15 días: hora a hora en los días 1 a 7 y, en los días
+// 8 a 15, un miembro entero del ensamble de 51 pronósticos del ECMWF (probable: el del medio; pesimista: el del 10 % más lluvioso).
+// Más allá de 15 días no se simula el agua (nadie sabe en qué día lloverá): solo la tendencia de cada mes.
+const DIAS_PRON = 15;
+function elegirModoSim(modo) {
+  const ant = SIM.modoSim ?? "escenario";
+  if (ant === modo) return;
+  SIM.modelosModo ??= {};
+  if (SIM.modelo?.corriendo) { SIM.modelo.worker?.terminate(); SIM.modelosModo[ant] = null; } else SIM.modelosModo[ant] = SIM.modelo;   // para volver sin recalcular
+  SIM.modoSim = modo;
+  document.querySelectorAll(".sim-modo").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.modo === modo)));
+  document.getElementById("sim-modo-escenario").hidden = modo !== "escenario";
+  document.getElementById("sim-modo-pronostico").hidden = modo !== "pronostico";
+  detenerAnimaciones();
+  avisoProgreso("");
+  const guardado = SIM.modelosModo[modo];
+  if (guardado) { SIM.modelo = guardado; bloquearControles(false); mostrarHora(); if (modo === "pronostico") pintarPronostico(); }
+  else if (modo === "pronostico") prepararPronostico();
+  else if (SIM.esc?.nino) aplicarNino(SIM.esc.nino, !SIM.esc.tocado);
+  else if (SIM.esc && !SIM.esc.tocado && SIM.hist?.H?.horariasListas) aplicarPeorNino(true);
+  else if (SIM.esc) cambiarEscenario({});
 }
-function lluviaPeriodo(desde, hasta) {
-  const T = estado.tiempo, s = estado.sel, E = lluviaEstacional;
-  if (!s || desde > hasta) return null;
-  const serie = T ? seriePunto(T, T.diario.lluvia, T.dias.length, s.punto[0], s.punto[1]) : [];
-  const mensual = E?.cmu[s.cmu] ?? null;
-  let diario = 0, estacional = 0, diasDiario = 0, diasEst = 0, sinDato = 0, hastaDiario = null;
-  for (let d = desde; d <= hasta; d = sumarDias(d, 1)) {
-    const k = T ? T.dias.indexOf(d) : -1;
-    if (k >= 0 && serie[k] != null) { diario += serie[k]; diasDiario++; hastaDiario = d; continue; }
-    const m = E ? E.meses.indexOf(d.slice(0, 7)) : -1;
-    if (m >= 0 && mensual?.[m] != null) {
-      const diasMes = new Date(Date.UTC(+d.slice(0, 4), +d.slice(5, 7), 0)).getUTCDate();
-      estacional += mensual[m] / diasMes; diasEst++;
-    } else sinDato++;
+// Agua del radar en la zona del relieve (mismas teselas y zoom, píxel a píxel): rojo = agua, verde = días desde la pasada × 20
+let cargaRadarAgua = null;
+async function aguaRadar(d) {
+  const R = await (cargaRadarAgua ??= fetch("datos/radar_agua.json").then((r) => (r.ok ? r.json() : null)).catch(() => null));
+  if (!R?.url) return null;
+  const D = d.D, nTx = Math.ceil(D.W / 256), nTy = Math.ceil(D.H / 256);
+  const cv = new OffscreenCanvas(nTx * 256, nTy * 256), c = cv.getContext("2d", { willReadFrequently: true });
+  let ok = 0;
+  await Promise.all(Array.from({ length: nTx * nTy }, async (_, k) => {
+    const tx = D.tx0 + (k % nTx), ty = D.ty0 + Math.floor(k / nTx);
+    const b = await fetch(R.url.replace("{z}", D.z).replace("{x}", tx).replace("{y}", ty)).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+    if (!b) return;
+    c.drawImage(await createImageBitmap(b), (k % nTx) * 256, Math.floor(k / nTx) * 256);
+    ok++;
+  }));
+  return ok ? { px: c.getImageData(0, 0, D.W, D.H).data, W: D.W, generado: R.generado } : null;
+}
+// Por celda del modelo: fracción con agua y días desde la pasada (mediana del círculo)
+function radarEnGrilla(rad, g) {
+  const fr = new Float32Array(g.N), dias = [];
+  let cubiertas = 0, total = 0;
+  for (let y = 0; y < g.ny; y++) for (let x = 0; x < g.nx; x++) {
+    let cub = 0, agua = 0;
+    for (let yy = 0; yy < g.f; yy++) for (let xx = 0; xx < g.f; xx++) {
+      const o = 4 * ((g.by0 + y * g.f + yy) * rad.W + g.bx0 + x * g.f + xx);
+      if (rad.px[o + 3] > 0) { cub++; if (rad.px[o] > 127) agua++; }
+    }
+    const c = y * g.nx + x;
+    fr[c] = cub ? agua / cub : 0;
+    if (g.dentroC[c]) { total++; if (cub) { cubiertas++; const o = 4 * ((g.by0 + y * g.f) * rad.W + g.bx0 + x * g.f); dias.push(Math.round(rad.px[o + 1] / 20)); } }
   }
-  return { total: Math.round(diario + estacional), diario: Math.round(diario), estacional: Math.round(estacional), diasDiario, diasEst, sinDato, hastaDiario };
+  dias.sort((a, b) => a - b);
+  return { fr, cobertura: total ? cubiertas / total : 0, dias: dias.length ? dias[dias.length >> 1] : null };
 }
-async function prepararPeriodo() {
-  const cont = document.getElementById("sim-periodo");
-  if (!cont) return;
-  if (!lluviaEstacional) lluviaEstacional = await fetch("datos/lluvia_estacional.json").then((r) => (r.ok ? r.json() : null)).catch(() => null);
-  const { hoy, fin } = limitesPeriodo(), desde = document.getElementById("sim-desde"), hasta = document.getElementById("sim-hasta");
-  for (const x of [desde, hasta]) { x.min = hoy; x.max = fin; }
-  if (!desde.value) desde.value = hoy;
-  if (!hasta.value) hasta.value = sumarDias(hoy, 6);
-  const calcular = () => {
-    if (hasta.value < desde.value) hasta.value = desde.value;
-    const r = lluviaPeriodo(desde.value, hasta.value), res = document.getElementById("sim-periodo-res"), btn = document.getElementById("sim-periodo-ir");
-    if (!r) { res.textContent = "–"; btn.disabled = true; return; }
-    btn.disabled = !SIM.datos;
-    if (SIM.modelo?.hasta) hasta.value = SIM.modelo.hasta;
-    const partes = [];
-    if (r.diasDiario) partes.push(t("sim_per_diario")(fmt(r.diario), fmtDia(r.hastaDiario)));
-    if (r.diasEst) partes.push(t("sim_per_estacional")(fmt(r.estacional)));
-    if (r.sinDato) partes.push(t("sim_per_sindato")(r.sinDato));
-    res.innerHTML = `<b>${fmt(r.total)} mm</b> ${t("sim_per_en")(r.diasDiario + r.diasEst + r.sinDato)}<br><small>${partes.join(" + ")}</small>`;
-    btn.dataset.mm = r.total;
-  };
-  desde.onchange = calcular; hasta.onchange = calcular;
-  cont.querySelectorAll("[data-dias]").forEach((b) => { b.onclick = () => { desde.value = hoy; hasta.value = [sumarDias(hoy, +b.dataset.dias - 1), fin].sort()[0]; calcular(); }; });
-  document.getElementById("sim-periodo-ir").onclick = () => simularPeriodo(hasta.value);
-  calcular();
+// Profundidad inicial donde el radar vio agua: en cada bajo, el nivel que cubre exactamente las celdas con agua vistas (el borde
+// del agua vista se toma con 10 cm). El agua vista fuera de un bajo (terreno llano o en pendiente) no se agrega
+function profundidadRadar(g, fr) {
+  const { bajo, B } = bajosDelLugar(g), vistas = new Array(B.length).fill(0), h = new Float32Array(g.N), a = g.dx * g.dx;
+  let haVista = 0, haAsignada = 0;
+  for (let c = 0; c < g.N; c++) if (g.tipo2[c] === 1 && fr[c] >= 0.5) { if (g.dentroC[c]) haVista += a / 1e4; if (bajo[c] >= 0) vistas[bajo[c]]++; }
+  B.forEach((b, k) => { if (vistas[k]) b.nivelRadar = Math.min(b.tope, b.zs[Math.min(vistas[k], b.zs.length) - 1] + AGUA_MIN); });
+  for (let c = 0; c < g.N; c++) {
+    const k = bajo[c];
+    if (k >= 0 && B[k].nivelRadar != null && B[k].nivelRadar > g.z[c]) { h[c] = B[k].nivelRadar - g.z[c]; if (g.dentroC[c] && h[c] >= AGUA_MIN) haAsignada += a / 1e4; }
+  }
+  return { h, haVista, haAsignada };
+}
+function elegirMiembro(E, met, hoy, variante) {
+  if (!E) return null;
+  const desde = met.horas[hoy] + 168 * 3600e3;
+  const tot = E.miembros.map((m, i) => [m.reduce((s2, v, j) => s2 + (E.horas[j] > desde ? v : 0), 0), i]).sort((x, y) => x[0] - y[0]);
+  return E.miembros[tot[Math.round((variante === "pesimista" ? 0.9 : 0.5) * (tot.length - 1))][1]];
+}
+async function prepararPronostico() {
+  const d = SIM.datos, cont = document.getElementById("sim-modo-pronostico");
+  if (!d || !cont) return;
+  if (SIM.pron?.clave !== SIM.clave) {
+    SIM.pron = { clave: SIM.clave, variante: "probable" };
+    cont.innerHTML = `<p class="sim-hint">${t("pron_cargando")}</p>`;
+    avisoProgreso(t("pron_cargando"));
+    const [met, ens, rad, clima] = await Promise.all([lluviaDelPunto(d.s.punto, sumarDias(hoyLocal(), DIAS_PRON)).catch(() => null), ensambleLluvia(d.s.punto),
+      aguaRadar(d).catch(() => null), climatologia(d.s.punto).catch(() => null)]);
+    if (SIM.datos !== d) return;
+    if (!lluviaEstacional) lluviaEstacional = await fetch("datos/lluvia_estacional.json").then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    Object.assign(SIM.pron, { met, ens, rad, clima });
+    avisoProgreso("");
+  }
+  pintarPronostico();
+  if (SIM.pron.met && SIM.modoSim === "pronostico") simularPronostico(SIM.pron.variante);
+}
+async function simularPronostico(variante) {
+  const d = SIM.datos, P = SIM.pron;
+  if (!d || !P?.met) return;
+  detenerAnimaciones();
+  SIM.modelo?.worker?.terminate();
+  P.variante = variante;
+  const met0 = P.met, fin = Date.parse(`${sumarDias(hoyLocal(), DIAS_PRON)}T23:59:00-03:00`);
+  let n = met0.horas.findIndex((x) => x > fin);
+  if (n < 0) n = met0.horas.length;
+  const met = { horas: met0.horas.slice(0, n), lluvia: met0.lluvia.slice(0, n), et0: met0.et0.slice(0, n), tipo: met0.tipo.slice(0, n), theta0: met0.theta0 };
+  const hoy = Math.max(0, met.tipo.indexOf(1)), miembro = elegirMiembro(P.ens, met, hoy, variante);
+  if (miembro) met.horas.forEach((ms, k) => { if (k - hoy > 168) { const j = P.ens.horas.indexOf(ms); if (j >= 0) met.lluvia[k] = miembro[j]; } });
+  const M = (SIM.modelo = { frames: [], lagos: [], stats: [], hora: 0, corriendo: true, siguiendo: true, hasta: sumarDias(hoyLocal(), DIAS_PRON), tormenta: { mm: 0, horas: 3 }, corto: false, pronostico: true, verHoy: true });
+  bloquearControles(true);
+  avisoProgreso(t("pron_calculando"));
+  M.hoy = hoy;
+  const g = grillaModelo(d, n, 100);
+  await prepararCorrida(M, d, g, met);
+  if (SIM.modelo !== M) return;
+  // El agua que vio el radar entra el día de su pasada (si el modelo tenía menos ahí)
+  let asimilar = null;
+  P.radarHoy = null;
+  if (P.rad) {
+    const R = radarEnGrilla(P.rad, g), H = profundidadRadar(g, R.fr);
+    P.radarHoy = { cobertura: R.cobertura, dias: R.dias, haVista: H.haVista, haAsignada: H.haAsignada };
+    if (R.dias != null && H.haAsignada > 0) asimilar = { k: Math.max(0, hoy - R.dias * 24), h: H.h };
+  }
+  pintarPronostico();
+  const w = (M.worker = new Worker("hidraulica.js"));
+  w.onmessage = (e) => recibirHora(M, e.data);
+  w.onerror = (e) => { avisoProgreso(t("sim_error")); console.error(e); };
+  w.postMessage({ tipo: "iniciar", nx: g.nx, ny: g.ny, dx: g.dx, z: g.z, tipo2: g.tipo2, lago: g.lago, nMan: g.nMan, imp: g.imp,
+    suelo: M.suelo, theta0: met.theta0, desague: Math.round(SIM.hist?.H?.desague ?? SIM.desague), crecida: 0, lluvia: Float32Array.from(met.lluvia), et0: Float32Array.from(met.et0),
+    // Río: la altura de hoy del INA durante los 15 días (no hay pronóstico diario de su altura en el sitio)
+    ...(M.estacion ? { relEvac: new Float32Array(n).fill(M.estacion.h - M.estacion.ref) } : {}), ...(asimilar ? { asimilar } : {}) });
+  pintarLineaSim();
+}
+// Lluvia de cada día (hora argentina): real, pronóstico de 1 a 7 días y, de 8 a 15, el probable y el pesimista del ensamble
+function diasPronostico(P) {
+  const met = P.met, hoy = Math.max(0, met.tipo.indexOf(1)), dia = (ms) => new Date(ms - 3 * 3600e3).toISOString().slice(0, 10);
+  const prob = elegirMiembro(P.ens, met, hoy, "probable"), pes = elegirMiembro(P.ens, met, hoy, "pesimista"), hoyISO = dia(met.horas[hoy]), out = new Map();
+  met.horas.forEach((ms, k) => {
+    const iso = dia(ms), off = Math.round((Date.parse(`${iso}T12:00:00Z`) - Date.parse(`${hoyISO}T12:00:00Z`)) / 864e5);
+    if (off < -14 || off > DIAS_PRON) return;
+    const x = out.get(iso) ?? { iso, off, real: 0, pron: 0, prob: 0, pes: 0, tramo: off < 0 || (off === 0 && met.tipo[k] === 0) ? "pasado" : off <= 2 ? "alta" : off <= 6 ? "media" : "baja" };
+    if (met.tipo[k] === 0) x.real += met.lluvia[k];
+    else if (k - hoy > 168 && P.ens) { const j = P.ens.horas.indexOf(ms); if (j >= 0) { x.prob += prob[j]; x.pes += pes[j]; } }
+    else x.pron += met.lluvia[k];
+    out.set(iso, x);
+  });
+  return [...out.values()].sort((a, b) => a.off - b.off);
+}
+function graficoPronostico(dias) {
+  const W = 340, Hh = 120, iz = 26, de = 6, ar = 10, ab = 18, n = dias.length, max = Math.max(5, ...dias.map((x) => Math.max(x.real + x.pron, x.pes))),
+    bw = (W - iz - de) / n, y = (v) => ar + (Hh - ar - ab) * (1 - v / max);
+  const barras = dias.map((x, i) => {
+    const x0 = iz + i * bw + 1, w = Math.max(1, bw - 2), v = x.tramo === "pasado" ? x.real : x.tramo === "baja" ? x.prob : x.real + x.pron;
+    const pes = x.tramo === "baja" && x.pes > x.prob ? `<rect x="${x0}" y="${y(x.pes)}" width="${w}" height="${y(x.prob) - y(x.pes)}" class="pron-pes"/>` : "";
+    return `${pes}<rect x="${x0}" y="${y(v)}" width="${w}" height="${Math.max(0, Hh - ab - y(v))}" class="pron-b ${x.tramo}"><title>${fmtDia(x.iso)}: ${fmt(v)} mm${x.tramo === "baja" ? ` · ${t("pron_var_pesimista")} ${fmt(x.pes)} mm` : ""}</title></rect>`;
+  }).join("");
+  const iHoy = dias.findIndex((x) => x.off === 0), xh = iz + iHoy * bw;
+  const eje = [0, max / 2, max].map((v) => `<text x="${iz - 4}" y="${y(v) + 3}" text-anchor="end" class="pron-eje">${fmt(v)}</text>`).join("");
+  const etq = [[0, "-14"], [iHoy, t("pr_hoy")], [n - 1, `+${DIAS_PRON}`]].map(([i, txt]) => `<text x="${iz + i * bw + bw / 2}" y="${Hh - 4}" text-anchor="middle" class="pron-eje">${txt}</text>`).join("");
+  return `<svg viewBox="0 0 ${W} ${Hh}" class="pron-graf" role="img" aria-label="${t("pron_graf_aria")}">${eje}<line x1="${xh}" x2="${xh}" y1="${ar - 4}" y2="${Hh - ab}" class="pron-hoy"/>${barras}${etq}</svg>`;
+}
+function pintarPronostico() {
+  const cont = document.getElementById("sim-modo-pronostico"), P = SIM.pron, d = SIM.datos;
+  if (!cont || !P || !d) return;
+  if (!P.met) { cont.innerHTML = `<p class="sim-aviso">${t("pron_sin_datos")}</p>`; return; }
+  const met = P.met, hoy = Math.max(0, met.tipo.indexOf(1)), Vp = estado.datos.resumen?.verificacion_plazos, pp = Vp?.por_plazo ?? {};
+  const ultimo = (arr) => { for (let k = hoy; k >= 0; k--) if (arr?.[k] != null) return arr[k]; return null; };
+  const suelo = SIM.modelo?.suelo ?? SIM.hist?.suelo, ts = suelo?.thetaS ?? 0.46, tSup = ultimo(met.theta), tProf = ultimo(met.thetaProf);
+  const lluvia14 = met.lluvia.slice(0, hoy).reduce((a, b) => a + b, 0), est = estacionCercana(d), R = P.radarHoy;
+  // Hogares sin red cloacal en el círculo (Censo 2022, pesado por población de cada radio dentro del círculo)
+  const cuenta = new Map();
+  d.celdas.forEach((i, k) => { if (d.radioDe[k]) cuenta.set(d.radioDe[k], (cuenta.get(d.radioDe[k]) ?? 0) + 1); });
+  let pTot = 0, pSin = 0;
+  for (const [r, nC] of cuenta) { const pr = d.radios[r - 1]?.properties; if (!pr) continue; const pob = ((Number(pr.poblacion) || 0) * nC) / Math.max(1, d.celdasRadio[r]); pTot += pob; pSin += (pob * (100 - (Number(pr.pct_cloaca) || 0))) / 100; }
+  const alertas = (estado.datos.alertas?.features ?? []).filter((f) => contiene(f.geometry, d.s.punto)).map((f) => f.properties);
+  const fila = (etq, valor, fuente) => `<li><span class="pron-c-etq">${etq}</span><span class="pron-c-v">${valor}</span><span class="pron-c-f">${fuente}</span></li>`;
+  const cond = [
+    fila(t("pron_c_lluvia"), `${fmt(lluvia14)} mm`, t("pron_f_real")),
+    fila(t("pron_c_humedad"), tSup != null ? `${fmt(Math.min(100, (100 * tSup) / ts))} %${tProf != null ? ` · ${t("pron_c_a1m")} ${fmt(Math.min(100, (100 * tProf) / ts))} %` : ""}` : "–", t("pron_f_humedad")),
+    fila(t("pron_c_rio"), est ? `${fmt(est.h, 2)} m <small>${t("sim_v_evac")(fmt(est.ref, 2))}</small>` : t("pron_c_rio_sin"), est ? t("pron_f_rio")(est.estacion) : ""),
+    fila(t("pron_c_radar"), R ? (R.cobertura > 0.5 ? t("pron_c_radar_v")(fmt(R.haVista, 1), R.dias) : t("pron_c_radar_sin")) : P.rad === null ? t("pron_c_radar_no") : "…", t("pron_f_radar")),
+    fila(t("pron_c_desague"), `${fmt(Math.round(SIM.hist?.H?.desague ?? SIM.desague))} mm/h`, t("pron_f_desague")),
+    fila(t("pron_c_cloaca"), pTot ? `${fmt((100 * pSin) / pTot)} %` : "–", t("pron_f_cloaca")),
+    fila(t("pron_c_napas"), tProf != null ? `${t("pron_c_a1m")} ${fmt(Math.min(100, (100 * tProf) / ts))} %` : "–", t("pron_f_napas")),
+    fila(t("pron_c_alertas"), alertas.length ? alertas.map((x) => `${x.evento} (${x.nivel})`).join(", ") : t("pron_c_alertas_no"), t("pron_f_alertas")),
+  ].join("");
+  const tramo = (cls, tit, txt) => `<div class="pron-tramo ${cls}"><b>${tit}</b><p>${txt}</p></div>`;
+  const met3 = (k) => pp[k] ? t("pron_medido")(fmt(pp[k].correlacion, 2), fmt(100 * pp[k].deteccion_20mm), Vp.dias) : t("pron_sin_medir");
+  const tramos = [tramo("pasado", t("pron_tr_pasado_t"), t("pron_tr_pasado")), tramo("alta", t("pron_tr_alta_t"), `${t("pron_tr_det")} ${met3("0-3")}`),
+    tramo("media", t("pron_tr_media_t"), `${t("pron_tr_det")} ${met3("4-7")}`),
+    tramo("baja", t("pron_tr_baja_t"), `${P.ens ? t("pron_tr_ens")(P.ens.miembros.length) : t("pron_tr_ens_no")} ${met3("8-15")}`)].join("");
+  // Meses: lluvia del mes según SEAS5 (frente a lo normal, si hay climatología) y probabilidad de evacuación del río
+  const E = lluviaEstacional, mm = E?.cmu[d.s.cmu], mesHoy = hoyLocal().slice(0, 7);
+  const meses = (E?.meses ?? []).map((m, i) => ({ m, v: mm?.[i] })).filter((x) => x.m > mesHoy && x.v != null);
+  const nombreMes = (m) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString(loc(), { month: "short", year: "2-digit" });
+  const filasMes = meses.map(({ m, v }) => {
+    const normal = P.clima?.media?.[+m.slice(5) - 1], pe = est ? Number(est[`pe_${m}`]) : NaN;
+    return `<tr><td>${nombreMes(m)}</td><td>${fmt(v)} mm${normal ? ` <small>(${v >= normal ? "+" : ""}${fmt((100 * (v - normal)) / normal)} % ${t("pron_vs_normal")})</small>` : ""}</td>${est ? `<td>${Number.isFinite(pe) ? `${fmt(100 * pe)} %` : "–"}</td>` : ""}</tr>`;
+  }).join("");
+  const varBtn = (v) => `<button type="button" class="chip" data-var="${v}" aria-pressed="${P.variante === v}"${P.ens ? "" : " disabled"}>${t(`pron_var_${v}`)}</button>`;
+  cont.innerHTML = `<p class="bajada">${t("pron_intro")}</p>
+    <h3 class="tit esc-tit">${t("pron_hoy_t")}</h3><ul class="pron-cond">${cond}</ul>
+    <h3 class="tit esc-tit">${t("pron_tramos_t")}</h3>${graficoPronostico(diasPronostico(P))}
+    <div class="pron-leyenda"><span class="pasado">${t("pron_ley_pasado")}</span><span class="alta">${t("pron_ley_alta")}</span><span class="media">${t("pron_ley_media")}</span><span class="baja">${t("pron_ley_baja")}</span></div>
+    <div class="pron-tramos">${tramos}</div>
+    <div class="pron-var"><span class="etq">${t("pron_var_t")}</span>${varBtn("probable")}${varBtn("pesimista")}</div>
+    <h3 class="tit esc-tit">${t("pron_meses_t")}</h3><p class="sim-periodo-nota">${t("pron_meses_sub")}</p>
+    ${meses.length ? `<div class="tabla-ninos"><table><thead><tr><th>${t("pron_mes")}</th><th>${t("pron_mes_lluvia")}</th>${est ? `<th>${t("pron_mes_rio")(est.estacion)}</th>` : ""}</tr></thead><tbody>${filasMes}</tbody></table></div>` : `<p class="sim-hint">${t("pron_meses_no")}</p>`}`;
+  cont.querySelectorAll("[data-var]").forEach((b) => { b.onclick = () => { if (P.variante !== b.dataset.var) { simularPronostico(b.dataset.var); pintarPronostico(); } }; });
 }
 
 // Filtros: "Todos" prende o apaga las cuatro capas; Relieve ×5 es aparte (la escala real es la de siempre)
@@ -1945,9 +2067,11 @@ function pintarPanelSimulador(d) {
     <div class="sim-vel" id="sim-vel" role="group" aria-label="${t("sim_velocidad")}"><span class="sim-dur-etq">${t("sim_velocidad")}</span>${[0.5, 1, 2, 4].map((v) => `<button type="button" class="chip" data-v="${v}" aria-pressed="${SIM.velocidad === v}">×${String(v).replace(".", ",")}</button>`).join("")}</div>
     <div class="sim-linea" id="sim-linea"></div>
       </div>
-      <div><p class="bajada">${t("sim_bajada_lam")}</p>
+      <div><div class="sim-modos" role="tablist" aria-label="${t("sim_modos")}">${["escenario", "pronostico"].map((m) => `<button type="button" role="tab" class="sim-modo" data-modo="${m}" aria-selected="${(SIM.modoSim ?? "escenario") === m}">${t(`sim_modo_${m}`)}</button>`).join("")}</div>
+        <div id="sim-modo-escenario"${SIM.modoSim === "pronostico" ? " hidden" : ""}><p class="bajada">${t("sim_bajada_lam")}</p>
         <h3 class="tit esc-tit">${t("sim_esc_t")}</h3>
-        <div class="esc" id="sim-esc"><p class="sim-hint">${t("sim_hist_cargando")}</p></div>
+        <div class="esc" id="sim-esc"><p class="sim-hint">${t("sim_hist_cargando")}</p></div></div>
+        <div id="sim-modo-pronostico" class="pron"${SIM.modoSim === "pronostico" ? "" : " hidden"}></div>
         <p class="sim-hint" id="sim-hint" hidden>${t("sim_hint")}</p></div>
       <div class="kpis sim-datos">
         ${kpiSim(t("sim_area"), "&nbsp;")}${kpiSim(t("sim_prof"), t("sim_prof_sub"))}${kpiSim(t("sim_personas"), t("sim_personas_sub"))}
@@ -1961,15 +2085,6 @@ function pintarPanelSimulador(d) {
     <div class="sim-leyenda">${COLOR_AGUA.map(([v, c]) => `<span><i style="background:${rgba(c, 0.6)}"></i>${v < 1 ? `${fmt(v * 100)} cm` : `${fmt(v)} m`}</span>`).join("")}</div>
     <div class="sim-validez" id="sim-validez">${t("sim_validez")}</div>
     <div class="sim-ant" id="sim-ant"></div>
-    <div class="sim-periodo" id="sim-periodo">
-      <h3 class="sim-h3">${t("sim_periodo")}</h3>
-      <div class="sim-fechas"><label>${t("sim_desde")}<input type="date" id="sim-desde"></label><label>${t("sim_hasta")}<input type="date" id="sim-hasta"></label></div>
-      <div class="sim-presets">${[[3, "sim_per_3d"], [7, "sim_per_1s"], [14, "sim_per_2s"], [21, "sim_per_3s"], [30, "sim_per_1m"], [90, "sim_per_3m"]]
-        .map(([n, k]) => `<button type="button" class="chip" data-dias="${n}">${t(k)}</button>`).join("")}</div>
-      <p class="sim-periodo-res" id="sim-periodo-res"></p>
-      <button type="button" class="btn-primario" id="sim-periodo-ir" disabled>${t("sim_per_ir")}</button>
-      <p class="sim-periodo-nota">${t("sim_per_nota")}</p>
-    </div>
     <div class="sim-ninos" id="sim-ninos"></div>
     <details class="sim-metodo"><summary>${t("sim_como")}</summary><p>${t("sim_metodo")}</p><p id="sim-supuestos"></p></details>
     </div>`;
@@ -1985,8 +2100,9 @@ function pintarPanelSimulador(d) {
     rad.oninput = () => { document.getElementById("sim-radio-v").textContent = `${fmt(+rad.value, +rad.value % 1 ? 1 : 0)} km`; };
     rad.onchange = () => { cambiarRadio(Number(rad.value)); cerrarSimulador(); abrirSimulador(); };
   }
+  panel.querySelectorAll(".sim-modo").forEach((b) => { b.onclick = () => elegirModoSim(b.dataset.modo); });
   pintarFiltrosSimulador();
-  prepararPeriodo();
+  if (SIM.modoSim === "pronostico") pintarPronostico();
   pintarValidez();
   if (d) pintarCorte();
 }
