@@ -492,9 +492,9 @@ async function buscarEnOSM(calle, zona) {
 const demora = (ms) => new Promise((ok) => setTimeout(ok, ms));
 
 // "¿Era otro?": las demás opciones encontradas, para elegir con un toque
-function mostrarOpciones(op) {
+function mostrarOpciones(op, titulo = t("sug_otras")) {
   const aviso = document.getElementById("aviso-busqueda");
-  aviso.innerHTML = `<span>${t("sug_otras")}</span> ` + op.slice(1).map((o, k) => `<button type="button" class="btn-texto" data-k="${k + 1}">${escapar(o.nombre)}${o.detalle ? ` <small>(${escapar(o.detalle.split(" · ").slice(-2).join(", "))})</small>` : ""}</button>`).join(" · ");
+  aviso.innerHTML = `<span>${escapar(titulo)}</span> ` + op.slice(1).map((o, k) => `<button type="button" class="btn-texto" data-k="${k + 1}">${escapar(o.nombre)}${o.detalle ? ` <small>(${escapar(o.detalle.split(" · ").slice(-2).join(", "))})</small>` : ""}</button>`).join(" · ");
   aviso.hidden = false;
   aviso.querySelectorAll("button[data-k]").forEach((b) => { b.onclick = () => { elegirSugerencia(document.getElementById("b-direccion"), op[+b.dataset.k]); mostrarOpciones([op[+b.dataset.k], ...op.filter((x, k) => k !== +b.dataset.k)]); }; });
 }
@@ -570,6 +570,10 @@ async function buscarDireccion(texto) {
       const propios = [...lugaresPropios([calle, zona?.nombre].filter(Boolean).join(" ")), ...await buscarBarrios([calle, zona?.nombre].filter(Boolean).join(", ")).catch(() => [])];
       const op = [...propios, ...(await buscarPhoton([calle, zona?.nombre].filter(Boolean).join(" "), { limite: 6 }).catch(() => []))
         .filter((o) => !propios.some((p) => distanciaKm(p.punto, o.punto) < 0.2))];
+      if (op.length && (op[0].parecido ?? 1) < 0.75) {   // nada se llama como lo buscado: no llevar a un lugar parecido (p. ej. otro «Toyota»)
+        mostrarOpciones([{ nombre: "" }, ...op], t("sug_no_exacto")(calle));
+        return;
+      }
       if (op.length) {
         elegirSugerencia(document.getElementById("b-direccion"), op[0]);
         if (op.length > 1) mostrarOpciones(op);
