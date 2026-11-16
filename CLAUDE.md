@@ -52,8 +52,8 @@ Proyecto de portfolio de Diamela (ingeniera química). Publicación única en Li
   (PDF en `Mapa del proyecto - versiones/`). 14-nov hecho: índice con umbrales físicos fijos (`UMBRALES` en
   `modelos/indice_riesgo.py`, también radios y SQL) y simulador con barras de escenario (lluvia y duración, humedad del suelo,
   lagunas, río o mar, desagües; sin viento) entre extremos de 8 temporadas Niño (ERA5) y del INA (`web/preparar_rios_extremos.py`).
-  Falta: agrupar las láminas en las dos secciones, peso del pronóstico estacional (w = 0,10) y la amenaza de ríos en la réplica SQL
-  (le falta el ajuste por distancia).
+  Las dos secciones quedaron como riesgo por día (lámina 01) y simulador (lámina 02). Réplica SQL con el ajuste por distancia de los ríos
+  (16-nov: igual a Python). Falta: peso del pronóstico estacional (w = 0,10) en el índice mensual, que ya solo aporta E, V y propensión.
 - Rediseño «láminas» (13-nov): 01 y 02 iguales a la maqueta aprobada (`Propuestas de diseño`, fotos 6, 7 y 10); falta ajustar 03 y 04 a sus maquetas si lo pide, probar en el celular y republicar la versión privada de claude.ai.
 - Pedido 10-nov (`docs/02_plan_cambios_nov.md`): tandas 1 a 6 publicadas (colores, capas, filtros, período, Situación con tortas y
   recomendaciones, análisis tipo Power BI, encabezado con fuentes por tipo y recorrido guiado en `web/guia.js`) y tandas 7-8

@@ -114,14 +114,16 @@ FROM mensual;
 
 -- -------------------------------------------------------------------------------------
 -- 4. Amenaza de crecida de ríos por gobierno local y mes:
---    estación del INA confiable más cercana (≤ 30 km), 10 × max(P(evacuación), ½·P(alerta)).
+--    estación del INA confiable más cercana (≤ 30 km), 10 × max(P(evacuación), ½·P(alerta)), con el peso de la distancia:
+--    1 hasta 15 km y en línea recta hasta 0 a los 30 km (como modelos/indice_riesgo.py: sin corte brusco).
 -- -------------------------------------------------------------------------------------
 CREATE OR REPLACE TABLE silver.amenaza_rios AS
 SELECT
   m.cmu,
   r.mes,
   r.series_id,
-  10 * GREATEST(COALESCE(r.p_evacuacion, 0), 0.5 * COALESCE(r.p_alerta, 0)) AS h_rio
+  10 * GREATEST(COALESCE(r.p_evacuacion, 0), 0.5 * COALESCE(r.p_alerta, 0))
+     * LEAST(GREATEST(1 - (m.dist_m - 15000) / 15000, 0), 1)                AS h_rio
 FROM bronze.map_gobierno_local_estacion m
 JOIN bronze.rios_pronostico_mensual r
   ON r.series_id = m.series_id
