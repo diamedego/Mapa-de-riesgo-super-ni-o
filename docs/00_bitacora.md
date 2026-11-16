@@ -895,3 +895,4 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 - Simulador: el río del peor Niño nunca por debajo de lo medido hoy (Goya: 4,05 → 5,81 m); con riesgo alto, el pronóstico abre en
   la variante pesimista. Además: provincia → 3D en su lugar de mayor riesgo (20 km), «Argentina» en el buscador, modo oscuro,
   solapa «Simular pronóstico» rediseñada, solapas arriba, agua de la maqueta interpolada (sin bloques).
+

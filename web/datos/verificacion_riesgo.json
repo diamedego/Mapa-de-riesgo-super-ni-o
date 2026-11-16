@@ -1,0 +1,1 @@
+{"generado":"2026-11-16","ventana_dias":56,"lluvia":{},"rios":{"0":{"n":79,"acierto_pronostico":1.0,"acierto_persistencia":1.0},"1":{"n":43,"acierto_pronostico":0.884,"acierto_persistencia":0.884}},"parametros":{"p_umbral":0.3,"persistencia_rio_dias":3,"factor_suelo":0.25,"factor_terreno":0.2},"cambios":[]}

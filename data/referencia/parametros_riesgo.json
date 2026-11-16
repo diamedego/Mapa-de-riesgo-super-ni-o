@@ -1,0 +1,7 @@
+{
+  "p_umbral": 0.30,
+  "persistencia_rio_dias": 3,
+  "factor_suelo": 0.25,
+  "factor_terreno": 0.20,
+  "historial": [{"fecha": "2026-11-17", "cambio": "valores iniciales (EFAS: 30 %; persistencia 3 días; suelo 25 %; terreno 20 %)"}]
+}

@@ -55,7 +55,12 @@ import requests
 
 RAIZ = Path(__file__).resolve().parents[1]
 REF, WEB = RAIZ / "data" / "referencia", RAIZ / "web" / "datos"
-DIAS, P_UMBRAL, P_ALTA = 15, 0.30, 0.70
+DIAS, P_ALTA = 15, 0.70
+# Parámetros que la verificación semanal (modelos/verificar_riesgo.py) puede mover de a poco, dentro de límites, sin cambiar el método
+PARAM = json.loads((REF / "parametros_riesgo.json").read_text()) if (REF / "parametros_riesgo.json").exists() else {}
+P_UMBRAL = float(PARAM.get("p_umbral", 0.30))
+PERSIST_RIO = int(PARAM.get("persistencia_rio_dias", 3))
+F_SUELO, F_TERRENO = float(PARAM.get("factor_suelo", 0.25)), float(PARAM.get("factor_terreno", 0.20))
 F_NORMAL = 0.5   # factor de lluvia del índice con lluvia normal (f = lluvia / normal / 2)
 H_NIVEL = [0, 4, 7, 10]
 CRECIDA = "https://flood-api.open-meteo.com/v1/flood"
@@ -139,17 +144,17 @@ def niveles_lluvia(M: np.ndarray, u: pd.Series, propension: float) -> tuple[list
     """Por día (desde hoy): nivel 0-3 (umbrales amarillo / naranja / rojo del SMN superados por al menos el 30 % del ensamble) y la
     probabilidad del umbral alcanzado (o la del amarillo). M: miembros × días, con los 2 días previos al principio. Cada miembro
     usa su propia lluvia antecedente (los 5 días anteriores, con factor 0,85 por día) para bajar el umbral."""
-    base = np.array([u["amarillo"], u["naranja"], u["rojo"]], dtype=float) * (1 - 0.2 * min(1.0, max(0.0, propension)))
-    niv, prob = [], []
+    base = np.array([u["amarillo"], u["naranja"], u["rojo"]], dtype=float) * (1 - F_TERRENO * min(1.0, max(0.0, propension)))
+    niv, prob, p3 = [], [], []
     for d in range(min(DIAS, M.shape[1] - 2)):
         k = d + 2
         ant = sum(M[:, k - j] * 0.85 ** (j - 1) for j in range(1, 6) if k - j >= 0)
         sat = np.clip(ant / max(base[1], 1.0), 0, 1)
         dia = M[:, k][:, None]
-        p = ((dia > base[None, :] * (1 - 0.25 * sat)[:, None]).mean(axis=0))
+        p = ((dia > base[None, :] * (1 - F_SUELO * sat)[:, None]).mean(axis=0))
         n = 3 if p[2] >= P_UMBRAL else 2 if p[1] >= P_UMBRAL else 1 if p[0] >= P_UMBRAL else 0
-        niv.append(n); prob.append(round(float(p[max(0, n - 1)]), 2))
-    return niv, prob
+        niv.append(n); prob.append(round(float(p[max(0, n - 1)]), 2)); p3.append([float(x) for x in p])
+    return niv, prob, p3
 
 
 IMPACTO_CORTES = [100, 1_000, 10_000]
@@ -257,7 +262,7 @@ def niveles_rios(hoy: str, caudales: dict) -> dict:
                 n = 3 if evac and ho >= evac else 1 if ho >= alerta else 0
                 pe = pa = 1.0 if n else 0.0
                 altura[0] = round(ho, 2)
-            if 0 < d < 3 and ho is not None and niv[0] > n:   # lo medido hoy se mantiene al menos 3 días: un río de llanura no baja
+            if 0 < d < PERSIST_RIO and ho is not None and niv[0] > n:   # lo medido hoy se mantiene al menos 3 días: un río de llanura no baja
                 n, pe, pa = niv[0], max(pe, 0.7), max(pa, 0.7)   # de evacuación a alerta de un día para otro (GloFAS a veces sí)
             niv.append(n); prob.append(round(pe if n >= 2 else pa, 2))
         out[str(est)] = {"n": niv, "p": prob, "h": altura, "lat": e.geometry.y, "lon": e.geometry.x, "nombre": e["estacion"], "sesgo": round(sesgo, 2),
@@ -349,6 +354,7 @@ def main() -> None:
         print(f"  {len(fallas)} estaciones sin pronóstico de GloFAS (Open-Meteo no respondió)", flush=True)
     smn = alertas_smn(puntos, dias)
     salida, sin_lluvia = {}, 0
+    verif_p, verif_obs = {}, {}   # para la verificación (modelos/verificar_riesgo.py)
     for r in puntos.itertuples():
         n, p = [0] * DIAS, [0.0] * DIAS
         fuente = {"l": [0] * DIAS, "q": [0] * DIAS, "a": [0] * DIAS}   # nivel por lluvia, río y alerta
@@ -357,7 +363,9 @@ def main() -> None:
         f = idx.loc[r.cmu] if r.cmu in idx.index else None
         prop = amenaza_fija(f, 1.0) if f is not None else 0.0
         if L and r.cmu in umb.index and umb.loc[r.cmu].notna().all():
-            nl, pl = niveles_lluvia(L[1], umb.loc[r.cmu], float(f["P_agua"]) if f is not None else 0.0)
+            nl, pl, p3 = niveles_lluvia(L[1], umb.loc[r.cmu], float(f["P_agua"]) if f is not None else 0.0)
+            verif_p[r.cmu] = p3
+            verif_obs[r.cmu] = [float(L[1][0, 0]), float(L[1][0, 1])]   # los 2 días previos (análisis de corto plazo, igual en todos los miembros)
             fuente["l"][:len(nl)], pf["l"][:len(pl)] = nl, pl
         else:
             sin_lluvia += 1
@@ -397,6 +405,18 @@ def main() -> None:
     arch = RAIZ / "data" / "archivo" / "riesgo_diario"
     arch.mkdir(parents=True, exist_ok=True)
     (arch / f"{hoy}.json").write_text(json.dumps(res, separators=(",", ":")))
+    # Lo necesario para verificar después (comprimido): probabilidad de superar amarilla / naranja / roja por día (en %), umbrales,
+    # lluvia de los 2 días previos (lo «observado» de esta corrida) y su fecha
+    cm = sorted(verif_p)
+    vdir = RAIZ / "data" / "archivo" / "verificacion" / "pronosticos"
+    vdir.mkdir(parents=True, exist_ok=True)
+    P3 = np.zeros((len(cm), DIAS, 3), dtype=np.uint8)
+    for i, c in enumerate(cm):
+        P3[i, :len(verif_p[c])] = np.round(100 * np.array(verif_p[c]))
+    L0 = next(iter(lluvia.values()))[0]
+    np.savez_compressed(vdir / f"{hoy}.npz", cmu=np.array(cm), dias=np.array(dias), p3=P3,
+                        umb=np.array([[umb.loc[c, k] for k in ("amarillo", "naranja", "rojo")] for c in cm], dtype=np.float32),
+                        obs=np.array([verif_obs[c] for c in cm], dtype=np.float32), obs_dias=np.array(L0[:2]))
     cuenta = pd.Series([max(v["n"]) for v in salida.values()]).value_counts().sort_index().to_dict()   # máximo dígito
     print(f"riesgo_diario: {len(salida)} gobiernos locales, {len(rios)} estaciones, sin lluvia {sin_lluvia}; nivel máximo en 14 días: {cuenta}")
 
