@@ -1,6 +1,6 @@
 # Argentina frente a El Niño 2026-27 — mapa de riesgo de inundación
 
-Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publicación única en LinkedIn ~1-dic-2026: video del mapa 3D + web + este repo. Bilingüe ES/EN. Solo datos de Argentina. Foco actual: **solo riesgo de inundación** (dengue, impacto agrícola y capa social quedan pospuestos).
+Proyecto de portfolio de Diamela (ingeniera química). Publicación única en LinkedIn ~1-dic-2026: video del mapa 3D + web + este repo. Bilingüe ES/EN. Solo datos de Argentina. Foco actual: **solo riesgo de inundación** (dengue, impacto agrícola y capa social quedan pospuestos).
 
 ## Estructura
 - `ingesta/` — un script por fuente (SMN, INA, Open-Meteo SEAS5/GloFAS/ECMWF, IGN, INDEC, Censo, OSM, RENABAP, BA Data, históricos). `comun.py`: sesión HTTP con reintentos, descarga WFS paginada, registro en `data/manifest.csv`.
