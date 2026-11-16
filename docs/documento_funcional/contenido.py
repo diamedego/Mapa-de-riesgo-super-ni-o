@@ -265,7 +265,7 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 </ul>
 <p>Las capas se construyen con SQL y se validaron con DuckDB en forma local, con resultados idénticos a los de Python en los componentes de exposición y vulnerabilidad. La ejecución en Databricks quedó preparada y pendiente del inicio de sesión de la autora.</p>
 <h2><span class="n">4.2</span>Aplicación web</h2>
-<p>La interfaz es una aplicación estática con MapLibre GL como única librería de mapas, más maplibre-contour para las curvas de nivel y three.js, que se carga solo con la maqueta 3D. Se organiza en tres láminas (Panorama y mapa · Simulador 3D · Análisis y validación) y en módulos de responsabilidad única. Los cambios visuales siguen una guía de diseño propia (retícula de 8 px, filetes de 1 px, cifras en tipografía monoespaciada, el semáforo reservado para el nivel de riesgo y una revisión de cinco puntos antes de publicar: <code>docs/05_constitucion_grafica.md</code>).</p>
+<p>La interfaz es una aplicación estática con MapLibre GL como única librería de mapas, más maplibre-contour para las curvas de nivel y three.js, que se carga solo con la maqueta 3D. Se organiza en tres láminas (Panorama y mapa · Simulador 3D · Análisis y validación) y en módulos de responsabilidad única. Los cambios visuales siguen una guía de diseño propia (retícula de 8 px, filetes de 1 px, cifras en tipografía monoespaciada, el semáforo reservado para el nivel de riesgo y una revisión de cinco puntos antes de publicar: <code>docs/06_constitucion_grafica.md</code>).</p>
 <table><thead><tr><th>Módulo</th><th>Responsabilidad</th></tr></thead><tbody>
 <tr><td><code>textos.js</code></td><td>Todos los textos en español e inglés; los que dependen de datos son funciones</td></tr>
 <tr><td><code>utiles.js</code>, <code>graficos.js</code></td><td>Formatos, geometría, íconos y gráficos propios en SVG, sin librerías</td></tr>
@@ -278,6 +278,7 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <p>Para que el simulador responda en segundos en cualquier punto, lo que no cambia se calcula una sola vez:</p>
 <ul>
 <li><code>earth_engine/lluvia_ninos.py</code> calcula en Earth Engine, para cada celda de 0,1° de la Argentina y cada Niño desde 1997–98, la peor tormenta de 3 días, su total, su hora más lluviosa y la de la temporada, y la lluvia de 1 hora de 2 años. Se guarda en {V["teselas"]} teselas binarias de 2° × 2° ({V["teselas_mb"]} MB en total); la web baja solo la del punto.</li>
+<li><code>earth_engine/clima_ninos.py</code> calcula, en las mismas teselas, el rango de humedad del suelo de los Niños (ERA5-Land, 0–7 cm), la evapotranspiración de referencia de esos meses (Hargreaves, con las temperaturas de ERA5-Land) y la peor lluvia de 3 días de los Niños de 1951 a 1996. Antes el navegador los pedía al archivo de Open-Meteo en cada apertura del simulador: unas 350 unidades del cupo gratuito diario de 10.000 por dirección IP, que comparte toda una red, por ejemplo una oficina.</li>
 <li><code>earth_engine/umbrales_lluvia.py</code> calcula, para cada celda de 0,1°, la lluvia de 3 días seguidos que se supera una vez cada 2, 5 y 10 años, con los máximos anuales de ERA5-Land de 1995 a 2024 y un ajuste de Gumbel. El riesgo por día compara el pronóstico con esos umbrales.</li>
 <li><code>web/preparar_rios_ninos.py</code> guarda, por estación, la altura de cada día de octubre a mayo de cada Niño: medida por el INA cuando existe y, si no, estimada con GloFAS y la curva caudal-altura de la estación.</li>
 </ul>
@@ -572,6 +573,7 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <tr><td>Límite gratuito de Open-Meteo superado</td><td>El ensamble para 1.345 celdas pesa más que el cupo por hora</td><td>Datos abiertos del ECMWF, sin cupo</td></tr>
 <tr><td>Río del pronóstico con un salto de 30 a 40 cm entre hoy y mañana</td><td>La corrección se anclaba al error de los dos días anteriores, no al de hoy</td><td>Anclada a la altura medida hoy</td></tr>
 <tr><td>Simulador que tardaba en prepararse</td><td>Esperaba al mapa 2D oculto y pedía los datos del lugar en serie</td><td>Todo en paralelo: peor Niño en unos 3,5 s</td></tr>
+<tr><td>Cupo diario de Open-Meteo agotado en una red</td><td>Cada apertura del simulador pedía series diarias de décadas (unas 350 unidades de 10.000)</td><td>Humedad, evaporación y Niños antiguos precalculados en Earth Engine; quedan solo las tormentas hora por hora (unas 2 unidades)</td></tr>
 <tr><td>Buscador que llevaba a estaciones de servicio o a una calle parecida</td><td>Las estaciones caían como «comercio»; el servicio de calles iba antes que las empresas</td><td>Categoría propia, fuera de los resultados salvo que se pida; empresas antes que calles</td></tr></tbody></table></section>''',
 
 11: f'''<section><h1><span class="num">Capítulo 11</span>Registro cronológico del proceso</h1>

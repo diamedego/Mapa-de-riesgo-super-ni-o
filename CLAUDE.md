@@ -5,7 +5,8 @@ Proyecto de portfolio de Diamela (ingeniera química). Publicación única en Li
 ## Estructura
 - `ingesta/` — un script por fuente (SMN, INA, Open-Meteo SEAS5/GloFAS/ECMWF, IGN, INDEC, Censo, OSM, RENABAP, BA Data, históricos). `comun.py`: sesión HTTP con reintentos, descarga WFS paginada, registro en `data/manifest.csv`.
 - `earth_engine/` — terreno, agua histórica, MapBiomas, suelo, Dynamic World, lluvia ERA5. `lluvia_ninos.py`: peor tormenta de cada Niño
-  (IMERG, 1997-98 ERA5-Land) y desagües de 2 años por celda de 0,1° → `web/datos/lluvia_ninos/`; `validar_lluvia.py`: fuentes contra 482
+  (IMERG, 1997-98 ERA5-Land) y desagües de 2 años por celda de 0,1° → `web/datos/lluvia_ninos/`; `clima_ninos.py`: rango de humedad,
+  ET0 y Niños 1951-96 por celda → `web/datos/clima_ninos/` (el simulador ya no pide series diarias a Open-Meteo); `validar_lluvia.py`: fuentes contra 482
   tormentas de pluviómetros (INA RHN-SAT + GHCN). Proyecto GEE en `earth_engine/config.py`.
 - `transformacion/` — capas silver (rasgos fijos por radio y gobierno local, reclamos CABA, dengue).
 - `modelos/` — `rios.py` (curva caudal→altura + sesgo reciente), `anegamientos_caba.py`, `indice_riesgo.py` (INFORM + Monte Carlo), `verificacion.py`, `amenaza_agua.py` y `dengue.py` (documentados, no usados en el índice).
@@ -75,7 +76,7 @@ Proyecto de portfolio de Diamela (ingeniera química). Publicación única en Li
   reciente del INA, alertas SMN) → `web/datos/riesgo_diario.json`, 2 veces por día. El índice mensual se sigue calculando solo por
   E y V. Amenaza del día = combinación de la fija del lugar (propensión con lluvia normal) y la pronosticada; subindicador «Propensión a
   juntar agua». Falta: verificar el riesgo diario contra lo que pase (copias en `data/archivo/riesgo_diario/`), sumarlo al documento funcional.
-- Diseño: todo cambio visual sigue `docs/05_constitucion_grafica.md` (retícula 8 px, sin «…», semáforo solo para riesgo, auditoría de 5 puntos).
+- Diseño: todo cambio visual sigue `docs/06_constitucion_grafica.md` (retícula 8 px, sin «…», semáforo solo para riesgo, auditoría de 5 puntos).
 - Simulador: grilla por tramos de radio (≤1,5 km ~32 m z14; ≤3 km ~63 m z13; …), encajada y alineada: ≤ 9 s por corrida.
 - Simulador (versión pública): vista Mapa + Maqueta 3D con lluvia animada (estilo reel CutSheetRX). Posible mejora: relieve
   de 5 m (IGN / IDECOR) en ciudades puntuales para ver el escurrimiento de cerca.

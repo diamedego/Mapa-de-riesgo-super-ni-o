@@ -38,3 +38,21 @@ Medición de los tokens que usa Claude Code para construir este proyecto, con el
 | Pausas cortas (< 1 h) dentro de una misma tarea | Evita reescribir el caché | Hábito |
 
 Próximo paso: repetir la medición después de 1-2 semanas con estas reglas y comparar costo por respuesta y por tarea.
+
+## Re-medición (16-nov-2026)
+
+![Costo por día y retomas](img/consumo_ia_remedicion.png)
+
+Los registros locales ya no guardan algunas sesiones viejas (quedan 3), así que la comparación se hace por respuesta, con el mismo cálculo.
+
+| Indicador | Línea base (27-sep a 8-oct) | Después (9-oct a 16-nov) |
+|---|---|---|
+| Respuestas | 546 | 1.999 |
+| Costo equivalente | USD 124 | USD 493 |
+| Costo por respuesta | USD 0,23 | USD 0,25 (+9 %) |
+| Contexto medio por respuesta | 406 000 tokens | 526 000 tokens (+30 %) |
+| Retomas tras pausas de más de 1 h | 15 (45 % del costo) | 36 (35 % del costo) |
+
+**Lectura.** El costo por respuesta no bajó: el proyecto siguió casi entero en una sola sesión larga (el 64 % de las respuestas trabajó con más de 400 000 tokens de contexto) y las retomas después de pausas siguen siendo la mayor palanca. Las reglas de `CLAUDE.md` y la memoria ya permiten empezar sesiones nuevas sin perder el hilo.
+
+**Próximo paso.** Una sesión nueva por tarea grande (por ejemplo: documento funcional, video, publicación) y no retomar esta sesión después de una pausa larga; volver a medir después del lanzamiento.

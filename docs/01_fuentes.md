@@ -72,3 +72,6 @@
 - **Ensamble del ECMWF (IFS ENS, 50 miembros perturbados, 0,25°)** — datos abiertos del ECMWF (data.ecmwf.int, CC BY 4.0), corrida de 00 o 12 UTC hasta 360 h, parámetro `tp`. Cliente `ecmwf-opendata`, lectura con `eccodes`. Los 2 días previos: HRES 00 UTC de anteayer (pasos 24 y 48 h).
 - **ERA5-Land diario (Earth Engine `ECMWF/ERA5_LAND/DAILY_AGGR`)** 1995-2024 — máximos anuales de lluvia de 3 días y Gumbel por momentos (T2, T5, T10) por celda de 0,1°.
 - **GloFAS v4 ensamble (Open-Meteo flood API, `ensemble=true`)** — 51 miembros, 31 días pasados + 15, convertidos a altura con `data/referencia/rios_curvas.parquet`.
+
+## Clima de los Niños precalculado (16-nov-2026)
+- **ERA5-Land diario (Earth Engine `ECMWF/ERA5_LAND/DAILY_AGGR`)**: humedad del suelo 0-7 cm (mínimo y máximo de octubre a abril de los Niños 1997-2023), evapotranspiración de referencia de Hargreaves (FAO-56, ec. 52) con temperatura máxima y mínima, y la peor lluvia de 3 días de los Niños 1951-1996. `earth_engine/clima_ninos.py` → `web/datos/clima_ninos/`. Reemplaza los pedidos diarios al archivo de Open-Meteo que hacía el simulador al abrirse (~350 unidades del cupo por apertura).
