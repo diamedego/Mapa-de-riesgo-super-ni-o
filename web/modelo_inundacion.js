@@ -246,27 +246,25 @@ const cacheHistorico = new Map();
 function historicoNino(punto) {
   const [lon, lat] = punto.map((v) => v.toFixed(2)), clave = `${lon},${lat}`;
   if (!cacheHistorico.has(clave)) cacheHistorico.set(clave, (async () => {
-    // Dos consultas livianas: la lluvia diaria de 1951 a 2024 (para el cuadro de todos los Niños) y la humedad del suelo y la
-    // evaporación desde 1997; y las tormentas precalculadas de la celda
-    const pedirDiario = (desde, vars) => {
-      const u = `${ARCHIVO}?latitude=${lat}&longitude=${lon}&start_date=${desde}&end_date=2024-04-30&daily=${vars}${ZONA}`;
+    // Lo que hace falta para preparar el simulador: la lluvia, la humedad del suelo y la evaporación diarias desde 1997 (los Niños
+    // del selector y del peor) y las tormentas precalculadas de la celda. La lluvia de 1951 a 1997 (solo para el cuadro de los Niños
+    // anteriores) se pide aparte y llega después, sin demorar la preparación.
+    const pedirDiario = (desde, hasta, vars) => {
+      const u = `${ARCHIVO}?latitude=${lat}&longitude=${lon}&start_date=${desde}&end_date=${hasta}&daily=${vars}${ZONA}`;
       return fetch(u).then((r) => (r.ok ? r.json() : null)).catch(() => null)
         .then(async (x) => x ?? (await new Promise((ok) => setTimeout(ok, 2000)), await fetch(u).then((r) => (r.ok ? r.json() : null)).catch(() => null)));   // un reintento
     };
-    const [d, d2, sat] = await Promise.all([pedirDiario("1951-10-01", "precipitation_sum"), pedirDiario(`${DESDE_COMPLETO}-10-01`, "soil_moisture_0_to_7cm_mean,et0_fao_evapotranspiration_sum"),
+    const [d, sat] = await Promise.all([pedirDiario(`${DESDE_COMPLETO}-10-01`, "2024-04-30", "precipitation_sum,soil_moisture_0_to_7cm_mean,et0_fao_evapotranspiration_sum"),
       lluviaNinosEn(punto)]);
-    if (d?.daily && d2?.daily) {   // humedad y evaporación en la misma línea de tiempo (vacías antes de 1997)
-      const off = d.daily.time.indexOf(d2.daily.time[0]);
-      for (const k of ["soil_moisture_0_to_7cm_mean", "et0_fao_evapotranspiration_sum"]) d.daily[k] = d.daily.time.map((_, i) => (i >= off ? d2.daily[k][i - off] : null));
-    } else if (d?.daily) for (const k of ["soil_moisture_0_to_7cm_mean", "et0_fao_evapotranspiration_sum"]) d.daily[k] = d.daily.time.map(() => null);
     // Sin el archivo de Open-Meteo (sin conexión o sin cupo del día) igual quedan los Niños desde 1997-98, que vienen precalculados
     const D = d?.daily?.time?.length ? d.daily : null;
     if (!D && !sat) { cacheHistorico.delete(clave); return null; }
     const idx = new Map((D?.time ?? []).map((t, i) => [t, i])), ninos = [], hum = [];
     let sEt = 0, nEt = 0;
     for (const [anio, intensidad] of NINOS) {
+      if (anio < DESDE_COMPLETO) continue;   // los anteriores llegan después (R.antiguos)
       const a = idx.get(`${anio}-10-01`), b = idx.get(`${anio + 1}-04-30`);
-      const completo = anio >= DESDE_COMPLETO, S = completo ? sat?.temporadas[anio] : null;
+      const completo = true, S = sat?.temporadas[anio];
       if (D && (a == null || b == null)) continue;
       let evento = null;
       if (S && S.total > 0) {
@@ -291,6 +289,23 @@ function historicoNino(punto) {
     });
     const R = { temporadas: ninos.length, ninos, lluvia: maximosPorDuracion(anclas), humedad: hum.length ? { min: Math.min(...hum), max: Math.max(...hum) } : null,
       et0h: nEt ? sEt / nEt / 24 : 0.15, lat, lon, desague: sat?.desague > 0 ? sat.desague : null, fuenteLluvia: sat ? "imerg" : "era5" };
+    // Niños de 1951 a 1996 (solo el cuadro informativo): su peor ventana de 3 días de la lluvia diaria de ERA5
+    R.antiguos = pedirDiario("1951-10-01", `${DESDE_COMPLETO}-04-30`, "precipitation_sum").then((x) => {
+      const A = x?.daily;
+      if (!A?.time?.length) return;
+      const ia = new Map(A.time.map((t, i) => [t, i])), viejos = [];
+      for (const [anio, intensidad] of NINOS) {
+        const a = ia.get(`${anio}-10-01`), b = ia.get(`${anio + 1}-04-30`);
+        if (anio >= DESDE_COMPLETO || a == null || b == null) continue;
+        const p = A.precipitation_sum.slice(a, b + 1).map((v) => v ?? 0);
+        let mejor = -1, k0 = 0;
+        for (let k = 0; k + 2 < p.length; k++) { const s3 = p[k] + p[k + 1] + p[k + 2]; if (s3 > mejor) { mejor = s3; k0 = k; } }
+        viejos.push({ temporada: `${anio}-${String(anio + 1).slice(2)}`, anio, intensidad, completo: false,
+          evento: mejor > 0 ? { total: mejor, dias: [A.time[a + k0], A.time[a + k0 + 2]], era5: mejor, imerg: null, fuente: "era5" } : null });
+      }
+      R.ninos.unshift(...viejos);
+      R.temporadas = R.ninos.length;
+    });
     // En segundo plano: la peor tormenta de cada Niño hora por hora (de a 9 consultas chicas)
     R.horarias = (async () => {
       const horarias = [];

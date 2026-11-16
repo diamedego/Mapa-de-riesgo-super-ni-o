@@ -799,3 +799,10 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
   crítico», bloque «Qué cambia en los próximos días» (suben / siguen altos / bajan, cuándo, causa, probabilidad y recomendación
   del lugar) y gráfico «Riesgo día por día» (% de la superficie por nivel; una columna pinta el mapa con ese día). Workflow: el
   cálculo corre con la grilla del tiempo (05:20 y 17:20 ART).
+
+## 16-nov-2026 (madrugada) — el simulador se prepara más rápido
+- Medido (radio 1 km): 23 s hasta tener el peor Niño corrido. 9 s eran el mapa 2D oculto (relieve 3D y sombreado que nadie veía:
+  la preparación esperaba su «idle») y 14 s dos consultas al archivo de Open-Meteo hechas recién después del relieve.
+- Ahora: el relieve y el sombreado del mapa 2D se piden solo si se abre esa vista; los datos del lugar (Niños, ríos, humedad,
+  suelo) se piden en paralelo con el relieve; la lluvia de 1951-1996 (solo el cuadro informativo) llega aparte; la humedad de hoy
+  no frena (2 s máx.). Peor Niño elegido a los ~3,5 s (antes ~18 s); queda la corrida (8-12 s en Chrome sin GPU).

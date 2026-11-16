@@ -85,15 +85,26 @@ function rioTormenta(n) {
     fuente: !estimados ? "INA" : medidos ? "INA + GloFAS" : "GloFAS" };
 }
 
+// Datos del lugar que no dependen del relieve: se piden apenas se abre el simulador. La humedad de hoy (solo para «condiciones de
+// hoy») no frena nada: si tarda más de 2 s, se completa cuando llega.
+function pedirDatosZona(s) {
+  const est = estacionCercana({ s });
+  const hoy = humedadHoy(s.punto).catch(() => null);
+  SIM.zona = { s, est, hoy, todo: Promise.all([historicoNino(s.punto), riosExtremos(), riosResumen(), est ? rioDiario(String(est.estacion_id)) : null,
+    Promise.race([hoy, new Promise((ok) => setTimeout(() => ok(null), 2000))]),
+    sueloEn(s.punto).catch(() => null).then((x) => x ?? { ...TEXTURAS.franco, nombre: "franco", supuesto: true })]) };
+  return SIM.zona;
+}
 // Al abrir: busca los Niños en el lugar y deja las barras en las condiciones de hoy, sin lluvia (terreno seco)
 async function iniciarEscenario() {
   const d = SIM.datos;
   avisoProgreso(t("sim_hist_cargando"));
-  const est = estacionCercana(d);
-  const [H, X, RR, RD, hoy, suelo] = await Promise.all([historicoNino(d.s.punto), riosExtremos(), riosResumen(), est ? rioDiario(String(est.estacion_id)) : null,
-    humedadHoy(d.s.punto), sueloEn(d.s.punto).catch(() => null).then((x) => x ?? { ...TEXTURAS.franco, nombre: "franco", supuesto: true })]);
+  const Zp = SIM.zona?.s === d.s ? SIM.zona : pedirDatosZona(d.s), est = Zp.est;
+  const [H, X, RR, RD, hoy, suelo] = await Zp.todo;
   if (SIM.datos !== d) return;
   SIM.hist = { H, est, rio: est ? X[String(est.estacion_id)] ?? null : null, rioDia: RD, rioTemp: est ? RR[String(est.estacion_id)] ?? null : null, humedadHoy: hoy, suelo, peor: null };
+  if (hoy == null) Zp.hoy.then((v) => { if (SIM.hist?.H === H && v != null) SIM.hist.humedadHoy = v; });
+  H?.antiguos?.then(() => { if (SIM.hist?.H === H) pintarTablaNinos(); });   // los Niños de 1951 a 1996, cuando llegan
   // Desagües: la lluvia de 1 h que el lugar recibe una vez cada 2 años (la red pluvial se diseña para 2 a 10 años)
   SIM.esc = { horas: 3, mm: 0, theta: 0.3, lagos: 0, rio: est?.h ?? 0, crecida: 0, desague: Math.round(H?.desague ?? 10), nino: null, perfil: null, forma: null };
   aplicarCondicionesHoy(false);
@@ -555,6 +566,7 @@ async function prepararSimulacion(s) {
   const est = document.getElementById("sim-estado");
   est.textContent = t("sim_cargando");
   const mapaListo = crearMapaSimulador(s);
+  pedirDatosZona(s);   // Niños, ríos, humedad y suelo del lugar: en paralelo con el relieve
   const [D] = await Promise.all([relieveDe(cajaCirculo(s.punto, s.km * 1.25), s.km), cargarRadiosEn(cajaCirculo(s.punto, s.km)), mapaListo]);
   if (estado.sel !== s || document.getElementById("sim").hidden) return;
   const { W, H } = D, N = W * H;
@@ -939,12 +951,6 @@ function crearMapaSimulador(s) {
   m.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
   return new Promise((listo) => {
     m.on("style.load", () => {
-      const dem = { type: "raster-dem", encoding: "terrarium", tileSize: 256, maxzoom: 14, tiles: [TERRARIUM] };
-      m.addSource("relieve-sim", { ...dem, attribution: "Relieve: AWS Terrain Tiles" });
-      m.addSource("sombra-fuente-sim", dem);   // fuente aparte para el sombreado: MapLibre lo dibuja mejor así
-      m.setTerrain({ source: "relieve-sim", exaggeration: SIM.capas.x5 ? 5 : 1 });   // escala real salvo que se pida ×5
-      const antes = m.getStyle().layers.find((l) => l.type === "symbol")?.id;
-      m.addLayer({ id: "sombra-sim", type: "hillshade", source: "sombra-fuente-sim", paint: { "hillshade-exaggeration": 0.45, "hillshade-shadow-color": "#3d4652" } }, antes);
       m.addSource("circulo-sim", { type: "geojson", data: { type: "Feature", geometry: circuloGeo(s.punto, s.km), properties: {} } });
       m.addLayer({ id: "circulo-sim", type: "line", source: "circulo-sim", paint: { "line-color": css("--cian-vivo"), "line-width": 2.5 } });
       m.addSource("corte-sim", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
@@ -956,10 +962,22 @@ function crearMapaSimulador(s) {
       m.on("mousemove", tooltipSimulador);
       m.on("mouseout", () => Tip.ocultar());
       m.on("click", (e) => { moverCorte(e.lngLat); if (e.originalEvent.pointerType !== "mouse") tooltipSimulador(e); });
-      const fin = setTimeout(listo, 8000);   // si el mapa base tarda, se sigue sin ríos
+      const fin = setTimeout(listo, 4000);   // si el mapa base tarda, se sigue sin ríos
       m.once("idle", () => { clearTimeout(fin); listo(); });
     });
   });
+}
+// El mapa 2D queda debajo de la maqueta (respaldo si el navegador no puede con WebGL): su relieve en 3D y el sombreado se piden
+// recién cuando se lo muestra. Antes se bajaban siempre y la preparación esperaba esas teselas (unos 9 s de más)
+function relieveMapaSim() {
+  const m = SIM.mapa;
+  if (!m || !m.isStyleLoaded() || m.getSource("relieve-sim")) return;
+  const dem = { type: "raster-dem", encoding: "terrarium", tileSize: 256, maxzoom: 14, tiles: [TERRARIUM] };
+  m.addSource("relieve-sim", { ...dem, attribution: "Relieve: AWS Terrain Tiles" });
+  m.addSource("sombra-fuente-sim", dem);   // fuente aparte para el sombreado: MapLibre lo dibuja mejor así
+  m.setTerrain({ source: "relieve-sim", exaggeration: SIM.capas.x5 ? 5 : 1 });   // escala real salvo que se pida ×5
+  const antes = m.getStyle().layers.find((l) => l.type === "symbol")?.id;
+  m.addLayer({ id: "sombra-sim", type: "hillshade", source: "sombra-fuente-sim", paint: { "hillshade-exaggeration": 0.45, "hillshade-shadow-color": "#3d4652" } }, antes);
 }
 
 function agregarAguaAlMapa(D) {
@@ -1060,6 +1078,7 @@ async function elegirVistaSimulador(v) {
   const rf = document.querySelector(".sim-refs3d");
   if (rf) rf.hidden = v !== "maqueta";
   if (v === "mapa") {
+    relieveMapaSim();
     if (SIM.maqueta) SIM.maqueta.capa.hidden = true;
     if (SIM.mapaSucio) dibujarAgua();
     return;
