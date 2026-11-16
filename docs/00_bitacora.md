@@ -876,3 +876,22 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
   municipios vecinos (Icaño 7,3; Suncho Corral 7,1). Réplica SQL igual a Python.
 - Además: países vecinos con filete gris fino (límites y costas, Natural Earth 1:50 M) y, en el celular, la cuadrícula de 20 px de la
   computadora.
+
+## 16/17-nov-2026 — Riesgo diario: de INFORM a probabilidad × impacto (pronóstico basado en impacto)
+- Problema (usuaria): el mapa pintaba lo estructural. Chaco salía rojo sin lluvia; La Paz, Diamante y Paraná (Paraná sobre
+  evacuación) salían casi verdes; Córdoba, San Luis y Mendoza (alerta naranja, 80-120 mm) en verde. INFORM es un índice de riesgo
+  de fondo, no de pronóstico.
+- Investigación (solo Argentina, con referencias): umbrales del SMN (Nota Técnica 2021-109: percentiles 90 y 99 y valor extremo de
+  la lluvia diaria), niveles de alerta y evacuación del INA, Manual de mapas de riesgo del Ministerio del Interior (amenaza sobre
+  población vulnerable), y el paradigma de pronóstico basado en impacto que incorpora el SMN (como el FGS del Reino Unido y el EFAS).
+- Método nuevo (`modelos/riesgo_diario.py`): probabilidad del evento (lluvia del ensamble ECMWF sobre los umbrales del SMN por
+  celda, `earth_engine/umbrales_smn.py` con ERA5-Land 1991-2020; río INA/GloFAS, con persistencia de 3 días de lo medido y las
+  estaciones sin curva con 7 días; alertas del SMN) × impacto (personas a < 2 m del cauce para lluvia y < 5 m para río,
+  `transformacion/impacto.py`, + vulnerabilidad), en una matriz 3 × 4. Sin evento: muy bajo.
+- Agregados propios, justificados: suelo mojado (precipitación antecedente, idea del FFGS de la WMO) y terreno que se anega bajan el
+  umbral; 14 días con el ensamble (el SMN alerta a 1-3 días).
+- Contraste con La Nación 16-nov y el INA: muy alto en La Paz, Diamante, Paraná, Goya, Esquina, Reconquista y Santa Fe (río); alto
+  en Córdoba, San Luis, Mendoza, Catamarca y La Rioja (alerta naranja); Chaco sin lluvia deja de ser rojo.
+- Simulador: el río del peor Niño nunca por debajo de lo medido hoy (Goya: 4,05 → 5,81 m); con riesgo alto, el pronóstico abre en
+  la variante pesimista. Además: provincia → 3D en su lugar de mayor riesgo (20 km), «Argentina» en el buscador, modo oscuro,
+  solapa «Simular pronóstico» rediseñada, solapas arriba, agua de la maqueta interpolada (sin bloques).

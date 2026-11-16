@@ -142,6 +142,11 @@ async function aplicarNino(temporada, alInicio = false) {
   Object.assign(E, { nino: temporada, forma: temporada, horas: ev.dur, perfil: ev.lluvia.map((v) => v / ev.total), lagos: 0,
     theta: ev.theta ?? (Lh.min + Lh.max) / 2, ...(rt ? { rio: rt.max } : mediana != null ? { rio: mediana } : {}) });
   E.mm = Math.round(ev.total);
+  // El río nunca por debajo de lo que mide hoy el INA: un escenario del peor Niño no puede quedar mejor que la situación actual
+  // (por ejemplo Goya, 16-nov-2026: el Niño 2023-24 tuvo el río a 4,05 m y hoy está a 5,81 m, sobre evacuación)
+  const hoyRio = SIM.hist.est?.h;
+  E.rioHoy = hoyRio != null && E.rio < hoyRio;
+  if (E.rioHoy) E.rio = hoyRio;
   pintarEscenario();
   simularEscenario(true);   // al abrir o al elegir otro Niño: la maqueta vuelve a la imagen de hoy (seca) y la tormenta se ve con ▶
 }
@@ -374,7 +379,7 @@ function pintarEscenario() {
     ${fila("theta", t("sim_f_humedad"), E.theta, L.humedad.min.toFixed(3), L.humedad.max.toFixed(3), 0.005, [t("sim_r_seco"), t("sim_r_saturado")], L.humedad.fuente)}
     ${hayLagos ? fila("lagos", t("sim_f_lagunas"), E.lagos, L.lagos.min, L.lagos.max, 0.1, [t("sim_r_bajas"), t("sim_r_llenas")], L.lagos.fuente) : ""}
     ${hayRio ? (L.rio.estacion
-      ? fila("rio", t("sim_f_rio_en")(L.rio.estacion.estacion), E.rio, L.rio.min, L.rio.max, 0.05, [`${fmt(L.rio.min, 2)} m`, `${fmt(L.rio.max, 2)} m`], L.rio.fuente)
+      ? fila("rio", t("sim_f_rio_en")(L.rio.estacion.estacion), E.rio, L.rio.min, L.rio.max, 0.05, [`${fmt(L.rio.min, 2)} m`, `${fmt(L.rio.max, 2)} m`], E.rioHoy ? t("sim_rio_hoy") : L.rio.fuente)
       : fila("crecida", t("sim_f_rio"), E.crecida, L.rio.min, L.rio.max, 0.25, [`${fmt(L.rio.min)} m`, `+${fmt(L.rio.max)} m`], L.rio.fuente)) : ""}
     ${fila("desague", t("sim_f_desague"), E.desague, L.desague.min, L.desague.max, 1, [t("sim_r_tapados"), "30 mm/h"], L.desague.fuente)}`;
   enlazarInfo(cont);

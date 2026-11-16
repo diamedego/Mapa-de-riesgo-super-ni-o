@@ -1,29 +1,42 @@
-"""Riesgo de inundación de hoy y de los próximos 14 días por gobierno local (reemplaza al riesgo mensual, que fuera de los ríos
-grandes no tenía sustento: la lluvia de un mes no se puede pronosticar).
+"""Riesgo de inundación de hoy y de los próximos 14 días por lugar (gobierno local o zona rural), con el esquema de los pronósticos
+basados en impacto: PROBABILIDAD de que ocurra un evento × IMPACTO si ocurre (matriz de riesgo, como el Flood Guidance Statement
+del Reino Unido, la matriz de crecidas repentinas del EFAS europeo y el paradigma de pronóstico basado en impacto que incorpora el
+SMN). Sin un evento pronosticado (lluvia, río o alerta) el riesgo es «muy bajo», viva quien viva en el lugar: lo fijo (gente,
+terreno, vulnerabilidad) solo dice cuánto daño haría el evento.
 
-Amenaza de cada día (nivel 0 a 3) = el mayor entre:
-- LLUVIA: probabilidad de que la lluvia de 3 días seguidos que termina ese día supere la que en el lugar se da una vez cada 2, 5 o
-  10 años (umbrales del clima del propio modelo: earth_engine/umbrales_lluvia.py). Probabilidad = fracción de los 50 pronósticos
-  del ensamble del ECMWF (datos abiertos del ECMWF) que la superan. Nivel 1 / 2 / 3 si al menos el 30 % supera 2 / 5 / 10 años (el sistema
-  europeo EFAS avisa cuando el 30 % del ensamble supera la crecida de 5 años). En lugares poco propensos a juntar agua (propensión
-  histórica < 0,15: sin terreno bajo ni historia de agua) baja un nivel.
-- RÍO: estaciones del INA con curva validada (43). Caudal de los 51 pronósticos de GloFAS → altura con la curva de cada estación.
-  Nivel 1 si al menos el 30 % llega a alerta; 2 si el 30 % llega a evacuación; 3 si el 70 % llega a evacuación. Hoy manda la
-  altura medida por el INA. Cuenta para los gobiernos locales a ≤ 15 km de la estación (a 15-30 km, un nivel menos).
-- ALERTAS DEL SMN vigentes por tormentas o lluvias que cubren el lugar (solo los días que dura cada alerta): amarilla 1, naranja 2,
-  roja 3.
+AMENAZA del día (nivel 0 a 3), el mayor entre:
+- LLUVIA, con los umbrales del SMN (Nota Técnica SMN 2021-109): lluvia diaria del percentil 90 (amarillo), 99 (naranja) y del
+  valor extremo (rojo), calculados por celda de 0,1° con ERA5-Land (earth_engine/umbrales_smn.py). Probabilidad = fracción de los 50
+  pronósticos del ensamble del ECMWF que superan cada umbral ese día; nivel 1 / 2 / 3 si al menos el 30 % supera amarillo / naranja
+  / rojo (criterio de aviso del EFAS). Dos agregados con su porqué:
+    · suelo mojado: el umbral baja hasta un 25 % con la lluvia de los 5 días anteriores (índice de precipitación antecedente,
+      factor 0,85 por día): la misma lluvia inunda más sobre suelo saturado (es la base del sistema de crecidas repentinas de la
+      Organización Meteorológica Mundial, FFGS);
+    · terreno que se anega: el umbral baja hasta un 20 % según la propensión del lugar a juntar agua (agua vista por satélite,
+      terreno bajo): en la llanura la inundación es por anegamiento, que las alertas por tormenta no miden.
+- RÍO: estaciones del INA con curva validada (43), con sus niveles de alerta y evacuación. Caudal de los 51 pronósticos de GloFAS
+  → altura con la curva de cada estación. Nivel 1 si al menos el 30 % llega a alerta; 2 si el 30 % llega a evacuación; 3 si el
+  70 % llega a evacuación. Hoy manda la altura medida por el INA. Vale para los lugares a ≤ 15 km de la estación (a 15-30 km, un
+  nivel menos).
+- ALERTAS DEL SMN vigentes por tormentas o lluvias que cubren el lugar (los días que dura cada alerta): amarilla 1, naranja 2, roja 3.
 
-Amenaza del día H = 10 − (10 − Hfija) × (10 − Hpron) / 10 (la combinación de amenazas del índice): Hpron = 0 / 4 / 7 / 10 según el
-nivel pronosticado y Hfija la propensión del lugar con lluvia normal, la misma del índice con el factor de lluvia f = 0,5: agua en
-superficie 10 × P_agua × f y quebradas 10 × s_quebrada × f × (½ + ½ arcilla), combinadas igual. Sin ella, un lugar que se inunda
-seguido daba 0,0 en cualquier día sin pronóstico de lluvia (por ejemplo Toyota Boshoku, en Campana).
-Riesgo = ∛(H × E × V), con E y V la exposición y la vulnerabilidad fijas del índice (escala física 0-10). Se pinta con los mismos
-cortes del sitio.
+IMPACTO (1 a 4, fijo): personas que viven en terreno bajo (radios censales con más de la mitad de su superficie a < 2 m del cauce):
+< 100 mínimo, < 1.000 menor, < 10.000 significativo, ≥ 10.000 severo; un escalón más con vulnerabilidad alta (V ≥ 6: hogares sin
+cloaca, con NBI o materiales precarios), como superponer amenaza y vulnerabilidad del Manual de mapas de riesgo del Ministerio del
+Interior.
+
+RIESGO = matriz amenaza × impacto → muy bajo / bajo / medio / alto / muy alto (los colores del sitio), y una cifra de 0 a 10 dentro
+de cada nivel según la probabilidad del evento que manda:
+                 impacto 1   2         3         4
+    amenaza 1    bajo        bajo      medio     medio
+    amenaza 2    bajo        medio     alto      alto
+    amenaza 3    medio       alto      muy alto  muy alto
+Antes (hasta el 16-nov-2026) el riesgo era ∛(amenaza × exposición × vulnerabilidad) con una amenaza fija que nunca bajaba de cero:
+el mapa pintaba sobre todo lo estructural (INFORM, que es un índice de riesgo de fondo, no de pronóstico).
 
 Salida: web/datos/riesgo_diario.json
   {generado, dias, cmu: {cmu: {r: [15 riesgos], n: "nivel de amenaza por día", l / q / a: "nivel por lluvia / río / alerta",
-                               p: [15 prob. del nivel que manda]}}, est: {estacion_id: {n: "nivel por día", p: [15 prob.],
-                               h: [15 alturas: hoy la medida, después la mediana de los pronósticos (m)]}}}
+                               p: [15 prob. del nivel que manda], i: impacto 1-4, pr: propensión}}, est: {estacion_id: {n, p, h}}}
 (los niveles van como texto de 15 dígitos 0-3) y una copia con fecha en data/archivo/riesgo_diario/ (para verificar después
 contra lo que pasó). Lo bajado (ríos, lluvia) se guarda por día en data/procesado/riesgo_diario/ y se reusa si se corre de
 nuevo el mismo día.
@@ -122,15 +135,39 @@ def lluvia_ecmwf(puntos: pd.DataFrame, hoy: str) -> dict:
     return out
 
 
-def niveles_lluvia(M: np.ndarray, u: pd.Series) -> tuple[list, list]:
-    """Por día (desde hoy): nivel 0-3 y probabilidad de superar el umbral del nivel alcanzado (o el de 2 años)."""
-    tres = M[:, :-2] + M[:, 1:-1] + M[:, 2:]   # ventana que termina en cada día desde hoy
+def niveles_lluvia(M: np.ndarray, u: pd.Series, propension: float) -> tuple[list, list]:
+    """Por día (desde hoy): nivel 0-3 (umbrales amarillo / naranja / rojo del SMN superados por al menos el 30 % del ensamble) y la
+    probabilidad del umbral alcanzado (o la del amarillo). M: miembros × días, con los 2 días previos al principio. Cada miembro
+    usa su propia lluvia antecedente (los 5 días anteriores, con factor 0,85 por día) para bajar el umbral."""
+    base = np.array([u["amarillo"], u["naranja"], u["rojo"]], dtype=float) * (1 - 0.2 * min(1.0, max(0.0, propension)))
     niv, prob = [], []
-    for d in range(min(DIAS, tres.shape[1])):
-        p = [(tres[:, d] > u[k]).mean() for k in ("t2", "t5", "t10")]
+    for d in range(min(DIAS, M.shape[1] - 2)):
+        k = d + 2
+        ant = sum(M[:, k - j] * 0.85 ** (j - 1) for j in range(1, 6) if k - j >= 0)
+        sat = np.clip(ant / max(base[1], 1.0), 0, 1)
+        dia = M[:, k][:, None]
+        p = ((dia > base[None, :] * (1 - 0.25 * sat)[:, None]).mean(axis=0))
         n = 3 if p[2] >= P_UMBRAL else 2 if p[1] >= P_UMBRAL else 1 if p[0] >= P_UMBRAL else 0
         niv.append(n); prob.append(round(float(p[max(0, n - 1)]), 2))
     return niv, prob
+
+
+IMPACTO_CORTES = [100, 1_000, 10_000]
+MATRIZ = [[1, 1, 1, 1], [2, 2, 3, 3], [2, 3, 4, 4], [3, 4, 5, 5]]   # [amenaza][impacto − 1] → nivel de riesgo 1-5
+CORTES = [0, 3, 4.5, 6, 7, 10]                                     # los del sitio (muy bajo … muy alto)
+
+
+def impacto(pob_bajo: float, V: float) -> int:
+    i = 1 + sum(pob_bajo >= c for c in IMPACTO_CORTES)
+    return min(4, i + (1 if V >= 6 and pob_bajo >= 1 else 0))
+
+
+def riesgo_matriz(amenaza: int, imp: int, p: float) -> float:
+    """Cifra 0-10 dentro del nivel de la matriz: más alta cuanto más probable el evento que manda (sin amenaza, la probabilidad
+    del umbral amarillo lleva de 0 a 3). Nunca llega al corte del nivel siguiente (al redondear a un decimal)."""
+    nivel = MATRIZ[amenaza][imp - 1]
+    lo, hi = CORTES[nivel - 1], CORTES[nivel]
+    return math.floor((lo + (hi - lo - 0.1) * min(1.0, max(0.0, p))) * 10) / 10
 
 
 def caudales_glofas(fallas: list | None = None) -> dict:
@@ -220,9 +257,22 @@ def niveles_rios(hoy: str, caudales: dict) -> dict:
                 n = 3 if evac and ho >= evac else 1 if ho >= alerta else 0
                 pe = pa = 1.0 if n else 0.0
                 altura[0] = round(ho, 2)
+            if 0 < d < 3 and ho is not None and niv[0] > n:   # lo medido hoy se mantiene al menos 3 días: un río de llanura no baja
+                n, pe, pa = niv[0], max(pe, 0.7), max(pa, 0.7)   # de evacuación a alerta de un día para otro (GloFAS a veces sí)
             niv.append(n); prob.append(round(pe if n >= 2 else pa, 2))
         out[str(est)] = {"n": niv, "p": prob, "h": altura, "lat": e.geometry.y, "lon": e.geometry.x, "nombre": e["estacion"], "sesgo": round(sesgo, 2),
                          "sesgo_dias": int(len(comun))}
+    # Estaciones del INA con altura medida hoy y niveles de alerta / evacuación, pero sin curva validada (sin pronóstico de GloFAS):
+    # el nivel de hoy se mantiene 7 días (los ríos de llanura cambian lento; el INA pronostica el Paraná medio a 7 y 14 días)
+    for f in json.loads((WEB / "estaciones.geojson").read_text())["features"]:
+        pr, est = f["properties"], str(f["properties"]["estacion_id"])
+        if est in out or pr.get("h") is None or pr.get("nivel_alerta") is None:
+            continue
+        h, al, ev = float(pr["h"]), float(pr["nivel_alerta"]), pr.get("nivel_evacuacion")
+        n0 = 3 if ev is not None and h >= float(ev) else 1 if h >= al else 0
+        lon, lat = f["geometry"]["coordinates"][:2]
+        out[est] = {"n": [n0 if d < 7 else 0 for d in range(DIAS)], "p": [1.0 if d == 0 else 0.7 if d < 7 else 0.0 for d in range(DIAS)],
+                    "h": [round(h, 2)] + [None] * (DIAS - 1), "lat": lat, "lon": lon, "nombre": pr.get("estacion"), "persistencia": True}
     return out
 
 
@@ -286,7 +336,9 @@ def main() -> None:
     dias = [(dt.date.fromisoformat(hoy) + dt.timedelta(days=d)).isoformat() for d in range(DIAS)]
     puntos = pd.read_csv(REF / "puntos_gobiernos_locales.csv", dtype={"cmu": str})
     puntos["celda_lat"], puntos["celda_lon"] = (puntos.lat / 0.25).round() * 0.25, (puntos.lon / 0.25).round() * 0.25
-    umb = pd.read_parquet(REF / "umbrales_lluvia_municipios.parquet").astype({"cmu": str}).set_index("cmu")
+    umb = pd.read_parquet(REF / "umbrales_smn_municipios.parquet").astype({"cmu": str}).set_index("cmu")
+    expo = pd.read_csv(REF / "impacto_gobiernos_locales.csv", dtype={"cmu": str}).set_index("cmu")
+    centro = pd.read_csv(REF / "centros_poblados.csv", dtype={"cmu": str}).set_index("cmu")   # distancia al río desde donde vive la gente
     idx = pd.read_parquet(RAIZ / "data" / "gold" / "indice_riesgo_mensual.parquet").astype({"cmu": str}).drop_duplicates("cmu").set_index("cmu")
     # Lo bajado se guarda por día: correrlo de nuevo el mismo día no vuelve a bajar nada
     lluvia = guardado(f"{hoy}_lluvia", lambda: lluvia_ecmwf(puntos, hoy))
@@ -300,38 +352,45 @@ def main() -> None:
     for r in puntos.itertuples():
         n, p = [0] * DIAS, [0.0] * DIAS
         fuente = {"l": [0] * DIAS, "q": [0] * DIAS, "a": [0] * DIAS}   # nivel por lluvia, río y alerta
+        pf = {"l": [0.0] * DIAS, "q": [0.0] * DIAS, "a": [0.0] * DIAS}  # probabilidad de cada fuente
         L = lluvia.get((r.celda_lat, r.celda_lon))
-        if L and r.cmu in umb.index:
-            nl, pl = niveles_lluvia(L[1], umb.loc[r.cmu])
-            propenso = float(idx.loc[r.cmu, "P_agua"]) >= 0.15 if r.cmu in idx.index else True
-            for d in range(len(nl)):
-                v = nl[d] if propenso else max(0, nl[d] - 1)
-                fuente["l"][d] = v
-                if v > n[d]: n[d], p[d] = v, pl[d]
+        f = idx.loc[r.cmu] if r.cmu in idx.index else None
+        prop = amenaza_fija(f, 1.0) if f is not None else 0.0
+        if L and r.cmu in umb.index and umb.loc[r.cmu].notna().all():
+            nl, pl = niveles_lluvia(L[1], umb.loc[r.cmu], float(f["P_agua"]) if f is not None else 0.0)
+            fuente["l"][:len(nl)], pf["l"][:len(pl)] = nl, pl
         else:
             sin_lluvia += 1
         for est, R in rios.items():
-            dist = km(r.lat, r.lon, R["lat"], R["lon"])
+            la, lo = (centro.loc[r.cmu, "lat"], centro.loc[r.cmu, "lon"]) if r.cmu in centro.index else (r.lat, r.lon)
+            dist = km(la, lo, R["lat"], R["lon"])
             if dist > 30:
                 continue
             for d in range(DIAS):
                 v = R["n"][d] if dist <= 15 else max(0, R["n"][d] - 1)
-                fuente["q"][d] = max(fuente["q"][d], v)
-                if v > n[d]: n[d], p[d] = v, R["p"][d]
+                if v > fuente["q"][d] or (v == fuente["q"][d] and R["p"][d] > pf["q"][d]): fuente["q"][d], pf["q"][d] = v, R["p"][d]
         for d, v in enumerate(smn.get(r.cmu, [])):
-            fuente["a"][d] = v
-            if v > n[d]: n[d], p[d] = v, 1.0
-        E = float(idx.loc[r.cmu, "E"]) if r.cmu in idx.index else 0.0
-        V = float(idx.loc[r.cmu, "V"]) if r.cmu in idx.index else 0.0
-        hf = amenaza_fija(idx.loc[r.cmu]) if r.cmu in idx.index else 0.0
-        prop = amenaza_fija(idx.loc[r.cmu], 1.0) if r.cmu in idx.index else 0.0
-        riesgo = [round((combinar(hf, H_NIVEL[v]) * E * V) ** (1 / 3), 1) for v in n]
+            fuente["a"][d], pf["a"][d] = v, 1.0 if v else 0.0
+        V = float(f["V"]) if f is not None else 0.0
+        ex = expo.loc[r.cmu] if r.cmu in expo.index else None
+        imp = {"l": impacto(float(ex["pob_lluvia"]) if ex is not None else 0.0, V), "q": impacto(float(ex["pob_rio"]) if ex is not None else 0.0, V)}
+        imp["a"] = imp["l"]
+        riesgo = []
+        for d in range(DIAS):
+            # El riesgo del día es el de la fuente que da más (cada una con su impacto: la lluvia anega lo más bajo, el río su llanura)
+            cand = [(riesgo_matriz(fuente[k][d], imp[k], pf[k][d] if fuente[k][d] else 0.0), k) for k in ("l", "q", "a")]
+            rmax, k = max(cand)
+            if fuente[k][d] == 0:   # sin amenaza: se ordena por la probabilidad de la lluvia amarilla (0 a 3)
+                rmax = riesgo_matriz(0, imp["l"], pf["l"][d] / P_UMBRAL)
+            riesgo.append(rmax)
+            n[d], p[d] = max(fuente[x][d] for x in "lqa"), pf[k][d]
         digitos = lambda xs: "".join(str(x) for x in xs)
-        salida[r.cmu] = {"r": riesgo, "n": digitos(n), **{k: digitos(v) for k, v in fuente.items()}, "p": p, "hf": round(hf, 2), "pr": round(prop, 1)}
+        salida[r.cmu] = {"r": riesgo, "n": digitos(n), **{k: digitos(v) for k, v in fuente.items()}, "p": p, "i": max(imp.values()), "hf": 0, "pr": round(prop, 1),
+                         "u": [int(umb.loc[r.cmu, k]) for k in ("amarillo", "naranja", "rojo")] if r.cmu in umb.index and umb.loc[r.cmu].notna().all() else None}
     res = {"generado": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"), "dias": dias, "umbral_p": P_UMBRAL, "h_nivel": H_NIVEL,
-           "fuentes": {"lluvia": "Ensamble ECMWF IFS 0,25° (50 miembros, datos abiertos del ECMWF, CC BY 4.0)", "umbrales": "ERA5-Land 1995-2024, Gumbel",
+           "fuentes": {"lluvia": "Ensamble ECMWF IFS 0,25° (50 miembros, datos abiertos del ECMWF, CC BY 4.0)", "umbrales": "Método del SMN (percentiles 90 y 99 y valor extremo de la lluvia diaria) con ERA5-Land 1991-2020",
                        "rios": f"GloFAS (51 miembros) + curva de cada estación; hoy, INA ({len(rios)} estaciones)", "alertas": "SMN vigentes",
-                       "fija": "Propensión del índice con lluvia normal (agua en superficie y quebradas)"},
+                       "metodo": "Matriz probabilidad × impacto (pronóstico basado en impacto)"},
            "sin_lluvia": sin_lluvia, "cmu": salida,
            "est": {e: {"n": "".join(str(x) for x in R["n"]), "p": R["p"], "h": R["h"]} for e, R in rios.items()}}
     (WEB / "riesgo_diario.json").write_text(json.dumps(res, separators=(",", ":")))

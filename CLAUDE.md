@@ -73,6 +73,8 @@ Proyecto de portfolio de Diamela (ingeniera química). Publicación única en Li
   generar: la usuaria pide esperar a validar el simulador (agregarle la solapa de pronóstico).
 - Sitio público (Cloudflare Workers, gratis): https://mapa-de-riesgo-super-nino.diamedego.workers.dev — se publica solo con cada push
   (configuración en `wrangler.jsonc` y `web/.assetsignore`; ~11 publicaciones por día, plan gratis 500 por mes).
+- Riesgo por día, MÉTODO NUEVO (17-nov): probabilidad × impacto (umbrales del SMN `earth_engine/umbrales_smn.py`, niveles del INA,
+  alertas del SMN; impacto `transformacion/impacto.py`). Ver bitácora. Falta: documento funcional y validar contra lo que pase.
 - Riesgo por día (15-nov): `modelos/riesgo_diario.py` (ensamble ECMWF de datos abiertos + umbrales ERA5-Land, GloFAS con error
   reciente del INA, alertas SMN) → `web/datos/riesgo_diario.json`, 2 veces por día. El índice mensual se sigue calculando solo por
   E y V. Amenaza del día = combinación de la fija del lugar (propensión con lluvia normal) y la pronosticada; subindicador «Propensión a
