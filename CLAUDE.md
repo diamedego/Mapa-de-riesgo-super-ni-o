@@ -70,6 +70,9 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
   generar: la usuaria pide esperar a validar el simulador (agregarle la solapa de pronóstico).
 - Sitio público (Cloudflare Workers, gratis): https://mapa-de-riesgo-super-nino.diamedego.workers.dev — se publica solo con cada push
   (configuración en `wrangler.jsonc` y `web/.assetsignore`; ~11 publicaciones por día, plan gratis 500 por mes).
+- Riesgo por día (15-nov): `modelos/riesgo_diario.py` (ensamble ECMWF de datos abiertos + umbrales ERA5-Land, GloFAS con error
+  reciente del INA, alertas SMN) → `web/datos/riesgo_diario.json`, 2 veces por día. El índice mensual se sigue calculando solo por
+  E y V. Falta: verificar el riesgo diario contra lo que pase (copias en `data/archivo/riesgo_diario/`), sumarlo al documento funcional.
 - Diseño: todo cambio visual sigue `docs/05_constitucion_grafica.md` (retícula 8 px, sin «…», semáforo solo para riesgo, auditoría de 5 puntos).
 - Simulador: grilla por tramos de radio (≤1,5 km ~32 m z14; ≤3 km ~63 m z13; …), encajada y alineada: ≤ 9 s por corrida.
 - Simulador (versión pública): vista Mapa + Maqueta 3D con lluvia animada (estilo reel CutSheetRX). Posible mejora: relieve

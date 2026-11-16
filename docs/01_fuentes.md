@@ -67,3 +67,8 @@
 - OpenStreetMap: ODbL, exige atribución.
 - Open-Meteo (ECMWF, GloFAS, ERA5): CC BY 4.0, gratuito para uso no comercial.
 - Censo 2022 por radio: base REDATAM oficial del INDEC, consultada con el paquete `censoargentino`, que la expone como Parquet.
+
+## Riesgo por día (15-nov-2026)
+- **Ensamble del ECMWF (IFS ENS, 50 miembros perturbados, 0,25°)** — datos abiertos del ECMWF (data.ecmwf.int, CC BY 4.0), corrida de 00 o 12 UTC hasta 360 h, parámetro `tp`. Cliente `ecmwf-opendata`, lectura con `eccodes`. Los 2 días previos: HRES 00 UTC de anteayer (pasos 24 y 48 h).
+- **ERA5-Land diario (Earth Engine `ECMWF/ERA5_LAND/DAILY_AGGR`)** 1995-2024 — máximos anuales de lluvia de 3 días y Gumbel por momentos (T2, T5, T10) por celda de 0,1°.
+- **GloFAS v4 ensamble (Open-Meteo flood API, `ensemble=true`)** — 51 miembros, 31 días pasados + 15, convertidos a altura con `data/referencia/rios_curvas.parquet`.

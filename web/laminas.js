@@ -198,7 +198,7 @@ function dibujarDetalle() {
   }
   // De cerca (menos de ~0,6°): radios censales con su riesgo, si ya están cargados
   if (e - o < 0.6) for (const f of estado.radios ?? []) {
-    const cj = cajaDe(f.geometry), M = estado.riesgo.meses;
+    const cj = cajaDe(f.geometry), M = estado.riesgo.dias;
     if (cj[2] < o || cj[0] > e || cj[3] < s || cj[1] > n || f.properties[`r_${M[0]}`] == null) continue;
     const v = Math.max(...idx.map((i) => Number(f.properties[`r_${M[i]}`]) || 0));
     c.beginPath(); poligonos(f.geometry).forEach((p) => p.forEach(traza)); c.fillStyle = colores[cortes.filter((x) => v >= x).length]; c.fill("evenodd");

@@ -1481,3 +1481,31 @@ body[data-lamina="3"] .lec-1 { display: none; }
 .sim-lec .sim-kpis .kpi-v small { margin: 0; font-size: 14px; }
 .sim-lec .sim-kpis .kpi-f { margin: 0; font-size: 12px; line-height: 1.4; white-space: normal; overflow: visible; }
 .sim-lec .sim-kpis .kpi-f:empty { display: none; }
+
+/* Qué cambia en los próximos días: nivel de hoy → el mayor del período, con el día, la causa y la recomendación.
+   Retícula de 8 px, filetes de 1 px, cifras en mono; el color solo marca el nivel de riesgo. */
+.tb-cambios .cb-controles { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.tb-cambios .cb-controles .etq { font: 500 10px/16px var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--tinta-3); }
+.tb-cambios .cb-horiz button { min-height: 32px; padding: 0 8px; font-variant-numeric: tabular-nums; }
+.tb-cambios .cb-pest { margin: 0 0 8px; }
+.cb-n { margin-left: 4px; font: 500 11px var(--f-mono); color: var(--tinta-3); font-variant-numeric: tabular-nums; }
+.cb-lista { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--borde-fuerte); }
+.cb-fila { display: grid; gap: 8px; padding: 16px 8px; border-bottom: 1px solid var(--borde-fuerte); cursor: pointer; }
+.cb-fila:hover, .cb-fila:focus-visible { background: var(--cian-suave); outline: none; }
+.cb-cab { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "nombre cuando" "niveles niveles"; gap: 8px; align-items: baseline; }
+.cb-nombre { grid-area: nombre; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; min-width: 0; }
+.cb-nombre b { font: 600 14px/1.4 var(--f-ui); color: var(--tinta-1); }
+.cb-nombre small { font: 500 10px/16px var(--f-mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--tinta-3); }
+.cb-cuando { grid-area: cuando; font: 500 11px/16px var(--f-mono); color: var(--tinta-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cb-niveles { grid-area: niveles; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cb-niv { display: inline-flex; align-items: center; gap: 8px; font: 500 10px/16px var(--f-mono); font-style: normal; letter-spacing: 0.05em; text-transform: uppercase; color: var(--tinta-1); }
+.cb-niv::before { content: ""; width: 16px; height: 8px; background: var(--c); }
+.cb-flecha { font: 500 12px/16px var(--f-mono); color: var(--tinta-3); }
+.cb-rec { margin: 0; max-width: 68ch; font-size: 13px; line-height: 1.55; color: var(--tinta-2); }
+.cb-rec b { font-weight: 600; color: var(--tinta-1); }
+.cb-todos { margin-top: 8px; }
+.cb-vacio { margin: 8px 0; }
+
+/* Riesgo día por día: columnas apiladas (% de la superficie en cada nivel) */
+.kpi-g.dc .dc-ley { margin: 0 0 8px; }
+.kpi-g.dc .dc-pie { margin: 8px 0 0; font-size: 11px; line-height: 16px; color: var(--tinta-3); }

@@ -2,7 +2,7 @@
 // guiado que explica cómo usar el tablero (botones, mapas, búsquedas), llevando la pantalla a cada parte.
 
 // ---------- Encabezado: situación del país, zonas de mayor riesgo y actualización de los datos ----------
-const ABREV_PROV = { "Ciudad Autónoma de Buenos Aires": "CABA", "Tierra del Fuego, Antártida e Islas del Atlántico Sur": "Tierra del Fuego" };
+const ABREV_PROV = { "Ciudad Autónoma de Buenos Aires": "CABA", "Tierra del Fuego, Antártida e Islas del Atlántico Sur": "T. del Fuego", "Santiago del Estero": "Sgo. del Estero" };
 const fechaHora = (iso) => new Date(/T\d\d:\d\dZ$/.test(iso) ? iso.replace("Z", ":00Z") : iso)
   .toLocaleString(loc(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: ZONA_HORARIA }).replace(".", "");
 const fechaSola = (iso) => fmtDia(iso.slice(0, 10), { day: "numeric", month: "short" });
@@ -11,14 +11,14 @@ function actualizaciones() {
   const r = estado.datos.resumen ?? {}, T = estado.tiempo, A = estado.datos.alertas;
   const ina = estado.datos.estaciones.features.map((f) => f.properties.hf).filter(Boolean).sort().pop();
   return {
-    riesgo: r.calculado && fechaSola(r.calculado), tiempo: T?.generado && fechaHora(T.generado), alertas: A?.generado && fechaHora(A.generado),
+    riesgo: estado.riesgo?.generado && fechaHora(estado.riesgo.generado), tiempo: T?.generado && fechaHora(T.generado), alertas: A?.generado && fechaHora(A.generado),
     ina: ina && fechaSola(ina), glofas: r.corrida_glofas && fechaSola(r.corrida_glofas), seas5: r.corrida_seas5 && fechaSola(r.corrida_seas5),
   };
 }
 function pintarIntro() {
   const cont = document.getElementById("intro");
   if (!cont || !estado.riesgo) return;
-  const R = estado.riesgo, iM = estado.iMesActual, cmus = todosLosCmus(), pob = (c) => Number(estado.porCmu.get(c)?.poblacion) || 0;
+  const R = estado.riesgo, iM = 0, cmus = todosLosCmus(), pob = (c) => Number(estado.porCmu.get(c)?.poblacion) || 0;
   const peso = sumar(cmus.map((c) => Math.max(1, pob(c))));
   const rPais = sumar(cmus.map((c) => (R.cmu[c].r[iM] ?? 0) * Math.max(1, pob(c)))) / peso;
   const altos = sumar(cmus.filter((c) => nivelRiesgo(R.cmu[c].r[iM]) >= 4).map(pob));
@@ -28,11 +28,11 @@ function pintarIntro() {
   const al = estado.datos.alertas.features.map((f) => f.properties);
   const tipos = [...new Set(al.map((a) => t(`alerta_${a.tipo}`).toLowerCase()))].join(", ");
   const peorAlerta = ["roja", "naranja", "amarilla"].find((n) => al.some((a) => a.nivel === n));
-  const pico = estado.datos.resumen?.mes_pico, act = actualizaciones();
+  const pico = picoDias(null, null, analisisRiesgoZona(cmus)), act = actualizaciones();
   const partes = [t("intro_riesgo")(nombreNivel(rPais).toLowerCase(), fmtRiesgo(rPais)), t("intro_altos")(fmtPersonas(altos)),
     nEv || nAl ? t("intro_rios")(nEv, nAl) : "", tipos ? t("intro_alertas")(tipos, peorAlerta ? t(`nivel_alerta_${peorAlerta}`) : null) : "",
-    pico ? t("intro_pico")(nombreMes(pico, true)) : ""].filter(Boolean);
-  cont.innerHTML = `<div class="intro-fila"><span class="intro-etq">${t("intro_pais")(capitalizar(nombreMes(R.meses[iM], true)))}</span><span>${partes.join(" · ")}</span></div>`;
+    pico && pico.i ? t("intro_pico")(fmtDiaFrase(R.dias[pico.i])) : ""].filter(Boolean);
+  cont.innerHTML = `<div class="intro-fila"><span class="intro-etq">${t("intro_pais")(fmtDia(R.dias[iM], { weekday: "long", day: "numeric", month: "long" }).replace(",", ""))}</span><span>${partes.join(" · ")}</span></div>`;
   // Datos actualizados: al final de la página
   const pie = document.getElementById("datos-act");
   if (pie) {
@@ -54,7 +54,7 @@ async function pintarGraficosHeader() {
   //    censales; con un punto en el mapa no se muestra
   let filas = [], sub = "", ocultar = s?.tipo === "punto";
   if (!ocultar) {
-    const idx = indicesVista(), R = estado.riesgo, M = R.meses;
+    const idx = indicesVista(), R = estado.riesgo, M = R.dias;
     if (s?.tipo === "zona" && s.lugar.cmus.length === 1) {
       const cmu = s.lugar.cmus[0];
       await cargarRadiosEn(s.lugar.caja);
@@ -75,10 +75,12 @@ async function pintarGraficosHeader() {
     `<li class="zr-fila" data-i="${i}" tabindex="0" data-tip="${escapar(`<b>${escapar(f.nombre)}</b><span>${escapar(f.sub ?? "")} · ${nombreNivel(f.r)} (${fmtRiesgo(f.r)}/10)</span>`)}">
       <span class="zr-nombre">${escapar(f.nombre)}<small>${escapar(f.sub ?? "")}</small></span>
       <span class="zr-pista"><span style="width:${limitar(f.r * 10, 2, 100)}%;background:${colorNivel(f.r)}"></span></span><b>${fmtRiesgo(f.r)}</b></li>`).join("")}</ol></div>`;
-  const sem = "";
+  const sem = bloqueDias();
   cont.hidden = !barras && !sem;
   cont.className = `kpis-graficos${barras && sem ? " dos" : ""}`;
   cont.innerHTML = barras + sem;
+  const cols = cont.querySelector("#dias-col");
+  if (cols) graficoDias(cols);
   cont.querySelectorAll(".zr-fila").forEach((li) => {
     const f = filas[+li.dataset.i], ir = () => {
       if (f.radio) return seleccionarPunto(f.c, { volar: true, origen: "ranking" });
@@ -88,6 +90,31 @@ async function pintarGraficosHeader() {
   });
   prepararInfo(cont);
   tipsEn(cont);
+}
+
+// ---------- Riesgo día por día: % de la superficie en cada nivel (columnas apiladas) ----------
+// La selección (o el país) en los 15 días: cada columna suma 100 % del área. Tocar una columna pinta el mapa con ese día.
+function porcentajesDias() {
+  const R = estado.riesgo, cmus = cmusSel(), area = cmus.map((c) => Number(estado.porCmu.get(c)?.area_km2) || 0), tot = sumar(area) || 1;
+  return [1, 2, 3, 4, 5].map((n) => R.dias.map((_, i) => (100 * sumar(cmus.map((c, k) => ((nivelRiesgo(R.cmu[c].r[i]) || 1) === n ? area[k] : 0)))) / tot));
+}
+function bloqueDias() {
+  const s = estado.sel, sub = !s ? t("dc_pais") : s.tipo === "zona" ? t("dc_zona")(s.lugar.nombre) : t("dc_muni")(estado.porCmu.get(s.cmu)?.nam ?? "");
+  return `<div class="kpi-g dc"><div class="kpi-g-cab"><b>${t("dc_t")}${infoIcono("dc_t", infoTexto("dc_t"))}</b><small>${escapar(sub)}</small></div>
+    <ul class="apilada-leyenda dc-ley">${[5, 4, 3, 2, 1].map((n) => `<li><i style="background:var(--r${n})"></i>${t("niveles_cortos")[n - 1]}</li>`).join("")}</ul>
+    <div id="dias-col" class="graf-cont"></div><p class="dc-pie">${t("dc_pie")}</p></div>`;
+}
+function graficoDias(cont) {
+  const R = estado.riesgo, P = porcentajesDias(), idx = indicesVista();
+  grafApiladas(cont, {
+    alto: 168, unidad: t("dc_unidad"), formatoEje: (v) => `${fmt(v)}`,
+    etiquetas: R.dias.map((d, i) => (i ? fmtDia(d, { day: "numeric" }) : t("hoy"))),
+    series: [1, 2, 3, 4, 5].map((n) => ({ valores: P[n - 1], color: `var(--r${n})` })),
+    activos: [Math.min(...idx), Math.max(...idx)],
+    tip: (i) => `<span class="tip-titulo">${capitalizar(fmtDia(R.dias[i], { weekday: "long", day: "numeric", month: "long" }))}</span>${[5, 4, 3, 2, 1]
+      .filter((n) => P[n - 1][i] >= 0.05).map((n) => `<span class="tip-fila"><i style="background:var(--r${n})"></i>${t("niveles_cortos")[n - 1]}: <b>${fmt(P[n - 1][i], P[n - 1][i] < 10 ? 1 : 0)} %</b></span>`).join("")}<span class="tip-fila tip-ayuda">${t("dc_tocar")}</span>`,
+    onClick: (i) => { detenerReproduccion(false); estado.rangoRiesgo = [i, i]; if (estado.capa !== "riesgo") elegirCapa("riesgo"); else actualizarTodo(); },
+  });
 }
 
 // ---------- Fuentes de datos por tipo (ventana) ----------

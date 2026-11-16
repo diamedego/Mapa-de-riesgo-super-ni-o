@@ -69,7 +69,7 @@ function agregarCapas() {
   if (!SIN_TESELAS) { mapaBaseLiso(); agregarRelieve(); }
   const antesLineas = SIN_TESELAS ? undefined : primeraCapa(["line", "symbol"]);
   const antesNombres = SIN_TESELAS ? undefined : primeraCapa(["symbol"]);
-  const meses = mesesVista();
+  const meses = diasVista();
   const D = estado.datos;
 
   mapa.addSource("provincias", { type: "geojson", data: D.provincias });
@@ -431,23 +431,24 @@ function filtroBordes(meses) {
   return ["!=", nivel("na"), nivel("nb")];
 }
 function estiloEstaciones() {
-  if (estado.modo === "actual") {
+  if (vistaHoy()) {
     return { paint: {
       "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, ["match", ["get", "estado"], "normal", 2.2, 4], 8, 6.5, 12, 9],
       "circle-color": ["match", ["get", "estado"], "evacuacion", css("--critico"), "alerta", css("--serio"), "normal", css("--rio-normal"), "#9aa6b2"],
       "circle-stroke-color": "#ffffff", "circle-stroke-width": 1.5 } };
   }
-  const pe = ["max", ...mesesVista().map((m) => ["coalesce", ["get", `pe_${m}`], 0])];
-  return { filter: ["==", ["get", "conf"], true], paint: {
-    "circle-radius": ["interpolate", ["linear"], pe, 0, 3, 1, 11],
-    "circle-color": ["interpolate", ["linear"], pe, 0, css("--rio-normal"), 0.5, css("--serio"), 0.8, css("--critico")],
-    "circle-opacity": 0.85, "circle-stroke-color": "#ffffff", "circle-stroke-width": 1.2 } };
+  // Días por venir: nivel pronosticado (GloFAS en altura con la curva de cada estación): 0 normal, 1 alerta, 2-3 evacuación
+  const D = diasVista(), nd = D.length === 1 ? ["get", `nd_${D[0]}`] : ["max", ...D.map((d) => ["coalesce", ["get", `nd_${d}`], 0])];
+  return { filter: ["has", `nd_${D[0]}`], paint: {
+    "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, ["match", nd, 0, 2.2, 4], 8, 6.5, 12, 9],
+    "circle-color": ["match", nd, 0, css("--rio-normal"), 1, css("--serio"), css("--critico")],
+    "circle-stroke-color": "#ffffff", "circle-stroke-width": 1.5 } };
 }
 
 // Actualiza colores y visibilidad según capa, modo y período
 function aplicarCapaEnMapa() {
   if (!mapa?.getLayer("riesgo-mun")) return;
-  const riesgo = estado.capa === "riesgo", meses = mesesVista();
+  const riesgo = estado.capa === "riesgo", meses = diasVista();
   const vis = (id, v) => mapa.getLayer(id) && mapa.setLayoutProperty(id, "visibility", v ? "visible" : "none");
   for (const id of ["riesgo-mun", "riesgo-radio"]) {
     mapa.setPaintProperty(id, "fill-color-transition", { duration: movimientoReducido() ? 0 : 700, delay: 0 });
@@ -473,7 +474,7 @@ function aplicarCapaEnMapa() {
   const tipos = { lluvia: ["tormentas", "lluvias"], viento: ["viento", "zonda"], temp: ["calor", "frio"] }[estado.capa];
   const filtroAlertas = tipos ? ["in", ["get", "tipo"], ["literal", tipos]] : null;
   for (const id of ["alertas-relleno", "alertas-borde"]) {
-    vis(id, estado.modo === "actual" && estado.verAlertas);
+    vis(id, (riesgo || estado.modo === "actual") && estado.verAlertas);
     mapa.setFilter(id, filtroAlertas);
   }
   mapa.setPaintProperty("alertas-relleno", "fill-opacity", riesgo ? 0.06 : 0.16);
@@ -547,15 +548,15 @@ function enlazarEventosMapa() {
 }
 
 function tooltipCapa(f) {
-  const p = f.properties, meses = mesesVista();
+  const p = f.properties, meses = diasVista();
   if (f.layer.id === "estaciones") {
     const estadoTxt = p.estado && p.estado !== "null" ? t(`rio_${p.estado}`) : t("sin_dato");
-    const peor = Math.max(...meses.map((m) => Number(p[`pe_${m}`]) || 0));
+    const nPron = Math.max(-1, ...meses.map((m) => (p[`nd_${m}`] == null ? -1 : Number(p[`nd_${m}`]))));
     return `<span class="tip-titulo">${escapar(p.estacion)}${nombreRio(p.rio) ? ` · ${escapar(nombreRio(p.rio))}` : ""}</span>
       ${p.h != null && p.h !== "null" ? `<span class="tip-fila"><b>${fmt(Number(p.h), 2)} m</b> ${estadoTxt} · ${fmtDia(String(p.hf).slice(0, 10))} ${fmtHora(p.hf)}</span>
       <span class="tip-fila">${t("nivel_alerta")} ${fmt(Number(p.nivel_alerta), 2)} m · ${t("nivel_evac")} ${fmt(Number(p.nivel_evacuacion), 2)} m</span>
       ${p.dh != null && p.dh !== "null" ? `<span class="tip-fila">${t("cambio_24h")}: ${Number(p.dh) > 0 ? "+" : ""}${fmt(Number(p.dh), 2)} m</span>` : ""}` : ""}
-      ${p.conf === true || p.conf === "true" ? `<span class="tip-fila">${t("prob_evac_periodo")}: <b>${fmt(peor * 100)} %</b> <em>${t("escenario_glofas")}</em></span>` : ""}`;
+      ${!vistaHoy() && nPron >= 0 ? `<span class="tip-fila">${t("rio_pron_periodo")}: <b>${t("rio_nivel_pron")[nPron]}</b> <em>${t("escenario_glofas")}</em></span>` : ""}`;
   }
   if (f.layer.id === "alertas-relleno") {
     return `<span class="tip-titulo">${t("alerta")} ${t(`nivel_${p.nivel}`)} · ${t(`alerta_${p.tipo}`)}</span>
@@ -607,13 +608,13 @@ async function cargarRadiosVisibles() {
   const b = mapa.getBounds();
   await cargarRadiosEn([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]);
 }
-// Radio censal: riesgo = cbrt(amenaza del municipio en el mes × exposición del radio × vulnerabilidad del radio)
+// Radio censal: riesgo = ∛(amenaza del municipio ese día × exposición del radio × vulnerabilidad del radio)
 function riesgoRadios(features) {
   features.forEach((f) => {
     const d = estado.riesgo.cmu[f.properties.cmu];
     f.properties._c = centroDe(f.geometry);
     if (!d) return;
-    estado.riesgo.meses.forEach((m, i) => {
+    estado.riesgo.dias.forEach((m, i) => {
       f.properties[`r_${m}`] = Math.round(Math.cbrt(d.h[i] * f.properties.E * f.properties.V) * 10) / 10;
     });
   });
@@ -686,7 +687,7 @@ async function cargarMapaBaseVisible() {
 function unirBordes(bordes, riesgo) {
   const nivel = (cmu, i) => { const d = riesgo.cmu[cmu]; return d && d.r[i] != null ? nivelRiesgo(d.r[i]) : 0; };
   bordes.features.forEach((f) => {
-    riesgo.meses.forEach((m, i) => {
+    riesgo.dias.forEach((m, i) => {
       f.properties[`na_${m}`] = nivel(f.properties.a, i);
       f.properties[`nb_${m}`] = f.properties.b ? nivel(f.properties.b, i) : 0;
     });
@@ -697,6 +698,14 @@ function unirRiesgo(geo, riesgo) {
     estado.porCmu.set(f.properties.cmu, f.properties);
     const d = riesgo.cmu[f.properties.cmu];
     if (!d) return;
-    riesgo.meses.forEach((m, i) => { f.properties[`r_${m}`] = d.r[i]; });
+    const pob = Number(f.properties.poblacion) || 0;
+    riesgo.dias.forEach((m, i) => { f.properties[`r_${m}`] = d.r[i]; d.p[i] = nivelRiesgo(d.r[i]) >= 4 ? pob : 0; });   // personas en riesgo alto
+  });
+}
+// Estaciones de río: nivel pronosticado de cada día (0-3) para pintarlas en los días por venir
+function unirEstaciones(geo, riesgo) {
+  geo.features.forEach((f) => {
+    const e = riesgo.est[String(f.properties.estacion_id)];
+    if (e) riesgo.dias.forEach((d, i) => { f.properties[`nd_${d}`] = e.n[i]; f.properties[`pd_${d}`] = e.p[i]; });
   });
 }

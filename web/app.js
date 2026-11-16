@@ -5,8 +5,8 @@
 
 const estado = {
   idioma: "es", capa: "riesgo", modo: "actual", sel: null, km: 1,
-  iMesActual: 0, rangoMeses: [0, 0], rangoDias: [0, 6], paso3h: null,
-  mesReproduciendo: null, diaReproduciendo: null, semanaReproduciendo: null, reproduciendo: null,
+  rangoRiesgo: [0, 0], rangoDias: [0, 6], paso3h: null,
+  diaRiesgo: null, diaReproduciendo: null, reproduciendo: null,
   verRios: true, verAlertas: false, verReferencias: true, verHidro: true, verInundadas: false, verInundHoy: false, verDensidad: false,
   verBarrios: false, verSuelo: false, verInfra: false, verRutas: false, riesgo3d: false, relieve3d: false, relieve: false, ranking: "r",
   datos: {}, riesgo: null, porCmu: new Map(), radios: [], cargasRadios: new Map(), tiempo: null,
@@ -26,7 +26,7 @@ function alcanceKpis() {
 // no el promedio del municipio). Si los radios de la zona todavía no se bajaron, se piden y se vuelve a pintar.
 let pedidoRadiosKpi = "";
 function circuloKpis(s) {
-  const R = estado.riesgo, M = R.meses, idx = indicesVista(), radios = (estado.radios ?? []).filter((f) => f.properties._c && f.properties[`r_${M[0]}`] != null);
+  const R = estado.riesgo, M = R.dias, idx = indicesVista(), radios = (estado.radios ?? []).filter((f) => f.properties._c && f.properties[`r_${M[0]}`] != null);
   let dentro = radios.filter((f) => distanciaKm(s.punto, f.properties._c) <= s.km);
   if (!dentro.length) {   // círculo chico: el radio que contiene el punto
     const c = radios.find((f) => cajasSeTocan(cajaCirculo(s.punto, 0.01), cajaDe(f.geometry)) && contiene(f.geometry, s.punto));
@@ -85,16 +85,11 @@ function pintarKpis() {
       { k: "temp", ico: "temp", etq: t("kpi_temp"), valor: fmt(tmx?.v), unidad: " °C", sub: lugar(tmx), sev: tmx?.v >= 38 ? "critico" : tmx?.v >= 34 ? "atencion" : "ok", ir: irA("temp", tmx, h6) },
     );
   }
-  // Camino al pico y mes pico: en todo el país, las estaciones de río con 50 % o más de probabilidad de evacuación (resumen);
-  // con un lugar elegido, las estaciones cercanas o, si no hay ninguna, el riesgo del lugar mes a mes
-  const res = estado.datos.resumen;
-  let pico;
-  if (!estado.sel) pico = { meses: res?.meses ?? [], vals: (res?.meses ?? []).map((m) => res.por_mes?.[m]?.estaciones_prob_evacuacion_50 ?? 0), tipo: "est" };
-  else if (ests.length) pico = { meses: res?.meses ?? [], vals: (res?.meses ?? []).map((m) => ests.filter((e) => (e[`pe_${m}`] ?? 0) >= 0.5).length), tipo: "est_cerca" };
-  else pico = { meses: R.meses, vals: R.meses.map((_, i) => Math.round((Z.riesgo[i] ?? 0) * 10) / 10), tipo: "riesgo" };
-  if (pico.tipo !== "riesgo" && estado.sel && !pico.vals.some((v) => v > 0)) pico = { meses: R.meses, vals: R.meses.map((_, i) => Math.round((Z.riesgo[i] ?? 0) * 10) / 10), tipo: "riesgo" };
-  const mp = !estado.sel ? res?.mes_pico : pico.vals.length ? pico.meses[pico.vals.indexOf(Math.max(...pico.vals))] : null;
-  if (mp) kpis.push({ k: "pico", ico: "calendario", etq: t("kpi_pico"), valor: mesAbrev(mp), unidad: ` ${mp.slice(0, 4)}`, sub: t("kpi_pico_sub"), sev: "ok", ir: () => { elegirCapa("riesgo"); elegirModo("futuro"); } });
+  // Día más comprometido de los próximos 14 días: el de más personas en riesgo alto o muy alto (con un círculo, el de más riesgo)
+  const pico = picoDias(A, C, Z);
+  kpis.push({ k: "pico", ico: "calendario", etq: t("kpi_pico"), valor: pico ? fmtDia(R.dias[pico.i], { day: "numeric", month: "short" }).replace(".", "") : "–",
+    sub: pico ? t("kpi_pico_sub")(pico.i, C ? null : fmtPersonas(pico.v)) : t("kpi_pico_no"), sev: pico && pico.i > 0 ? "atencion" : "ok",
+    ir: () => { if (!pico) return; detenerReproduccion(false); estado.rangoRiesgo = [pico.i, pico.i]; elegirCapa("riesgo"); } });
   document.getElementById("kpis-alcance").textContent = t("kpis_de")(A.nombre);
   const cont = document.getElementById("kpis");
   cont.innerHTML = kpis.map((k, i) => `<button class="kpi" data-i="${i}" data-sev="${k.sev}"${k.nivelAl ? ` data-alerta="${k.nivelAl}"` : ""} type="button" data-ayuda="${escapar(t(`kpi_ayuda_${k.k}`))}">
@@ -102,7 +97,7 @@ function pintarKpis() {
       <span class="kpi-v">${k.valor}${k.unidad ? `<small>${k.unidad.trim()}</small>` : ""}</span>
       <span class="kpi-f">${escapar(k.sub)}</span></button>`).join("");
   cont.querySelectorAll(".kpi").forEach((b) => { b.onclick = () => kpis[+b.dataset.i].ir(); });
-  pintarCabezaLectura(A, rV, pobAlto, evac, mp, pico);
+  pintarCabezaLectura(A, rV, pobAlto, evac, pico);
   pintarRadioLectura(A.circulo ?? (estado.sel ? null : { km: estado.km }));   // sin nada elegido: el radio que tendrá el próximo punto
 }
 
@@ -124,16 +119,23 @@ function pintarRadioLectura(s) {
   document.getElementById("lec-radio-v").textContent = txt(+inp.value);
 }
 
-// ---------- Cabeza de la lámina 01: titular, bajada, escala de riesgo y camino al pico ----------
-const mesAbrev = (m) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString(loc(), { month: "short", timeZone: "UTC" }).replace(".", "");
-const mesLargo = (m) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString(loc(), { month: "long", year: "numeric", timeZone: "UTC" });
-function pintarCabezaLectura(A, rV, pobAlto, evac, mp, pico) {
-  const pais = A.nombre === "Argentina", h = hoyLocal(), hoy = `${+h.slice(8, 10)} ${mesAbrev(h.slice(0, 7))} ${h.slice(0, 4)}`;
+// Día de los próximos 14 con más personas en riesgo alto o muy alto (zona o país) o con más riesgo (círculo). null si ninguno llega.
+function picoDias(A, C, Z) {
+  const D = estado.riesgo.dias;
+  const vals = C ? D.map((_, i) => C.riesgo[i] ?? 0) : D.map((_, i) => Z.personas?.[i] ?? 0);
+  const v = Math.max(...vals), i = vals.indexOf(v);
+  return (C ? nivelRiesgo(v) >= 4 : v > 0) ? { i, v } : null;
+}
+
+// ---------- Cabeza de la lámina 01: titular, bajada y escala de riesgo ----------
+function pintarCabezaLectura(A, rV, pobAlto, evac, pico) {
+  const pais = A.nombre === "Argentina", hoy = fmtDia(hoyLocal(), { day: "numeric", month: "short", year: "numeric" }).replace(".", "");
   const nivel = nombreNivel(rV).toLowerCase(), c = A.circulo ? "_c" : "";
   document.getElementById("lec-etq").textContent = t("lec_etq")(pais ? t("lec_pais") : A.nombre, hoy);
   document.getElementById("lec-titular").innerHTML = `${escapar(capitalizar(t("lec_titular")(nivel)))} <span>${t("sobre_10")(fmtRiesgo(rV))}</span>`;
   const pers = pobAlto >= 1e6 ? t("personas_txt")(fmt(pobAlto / 1e6, 1), true) : t("personas_txt")(fmt(Math.round(pobAlto)), false);
-  document.getElementById("lec-bajada").textContent = mp ? (evac ? t(`lec_bajada${c}`)(capitalizar(pers), evac, mesLargo(mp)) : t(`lec_bajada_sin${c}`)(capitalizar(pers), mesLargo(mp))) : "";
+  const diaPico = pico ? fmtDiaFrase(estado.riesgo.dias[pico.i], { weekday: "long", day: "numeric", month: "long" }).replace(",", "") : null;
+  document.getElementById("lec-bajada").textContent = t(`lec_bajada${c}`)(capitalizar(pers), evac, pico ? pico.i : null, diaPico);
   document.getElementById("escala-sub").textContent = t("escala_sub")(pais ? t("el_pais") : A.nombre);
   // Indicador de aguja de 0 a 10: un tramo por nivel del índice y la aguja en el valor de hoy
   const cortes = [0, ...CORTES, 10], nombres = t("niveles_cortos"), cx = 115, cy = 108, R = 82, v = limitar(rV, 0, 10);
@@ -148,79 +150,31 @@ function pintarCabezaLectura(A, rV, pobAlto, evac, mp, pico) {
   ag += `<line x1="${cx}" y1="${cy}" x2="${punta[0]}" y2="${punta[1]}" stroke-width="2.5" stroke-linecap="round" style="stroke:var(--tinta-1)"/><circle cx="${cx}" cy="${cy}" r="5.5" style="fill:var(--tinta-1)"/>`;
   ag += `<text class="v" x="${cx}" y="${cy + 34}" text-anchor="middle">${fmtRiesgo(rV)} / 10 · ${escapar(nombreNivel(rV))}</text>`;
   document.getElementById("lec-escala").innerHTML = `<svg class="aguja" viewBox="0 0 230 150" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${fmtRiesgo(rV)} / 10 · ${escapar(nombreNivel(rV))}">${ag}</svg>`;
-  // Camino al pico: estaciones con 50 % o más de probabilidad de evacuación, mes a mes
-  const meses = pico.meses, vals = pico.vals;
-  document.getElementById("pico-sub").textContent = t(`pico_sub_${pico.tipo}`);
-  if (!vals.length) { document.getElementById("lec-pico").innerHTML = ""; return; }
-  const W = 230, H = 150, iz = 6, ab = 36, ar = 20, n = vals.length, max = Math.max(1, ...vals) * 1.05, bw = (W - iz * 2) / n;
-  const imax = vals.indexOf(Math.max(...vals)), mHoy = hoyLocal().slice(0, 7);
-  let g = `<line x1="${iz}" x2="${W - iz}" y1="${H - ab}" y2="${H - ab}" stroke="var(--borde-fuerte)"/>`;
-  vals.forEach((v, i) => {
-    const h = (v / max) * (H - ab - ar), x = iz + i * bw + bw * 0.16, w = bw * 0.68, esHoy = meses[i] === mHoy;
-    const color = i === imax ? "var(--cian)" : esHoy ? "var(--ocre)" : "var(--pico-resto)";
-    g += `<rect x="${x.toFixed(1)}" y="${(H - ab - h).toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(h, 1.5).toFixed(1)}" style="fill:${color}"><title>${mesLargo(meses[i])}: ${pico.tipo === "riesgo" ? fmtRiesgo(v) : v}</title></rect>`;
-    g += `<text class="v" x="${(x + w / 2).toFixed(1)}" y="${(H - ab - h - 5).toFixed(1)}" text-anchor="middle">${pico.tipo === "riesgo" ? fmtRiesgo(v) : v}</text>`;
-    g += `<text x="${(x + w / 2).toFixed(1)}" y="${H - 21}" text-anchor="middle">${mesAbrev(meses[i])}</text>`;
-    if (esHoy || i === imax) g += `<text class="v" x="${(x + w / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle">${esHoy ? t("pico_hoy") : t("pico_max")}</text>`;
-  });
-  document.getElementById("lec-pico").innerHTML = `<svg class="pico" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img">${g}</svg>`;
 }
 
-// ---------- Modo, presets y línea de tiempo ----------
-function presets() {
-  const M = estado.riesgo.meses, i = estado.iMesActual, ult = M.length - 1;
-  if (estado.capa === "riesgo") {
-    if (estado.modo === "actual") return [];
-    const pico = M.indexOf(estado.datos.resumen.mes_pico);
-    return [
-      { etq: t("pr_prox_mes"), r: [Math.min(i + 1, ult), Math.min(i + 1, ult)] },
-      { etq: t("pr_3_meses"), r: [Math.min(i + 1, ult), Math.min(i + 3, ult)] },
-      { etq: t("pr_temporada"), r: [Math.min(i + 1, ult), ult] },
-      ...(pico > i ? [{ etq: t("pr_pico")(nombreMes(M[pico])), r: [pico, pico] }] : []),
-    ].map((p) => ({ ...p, activo: p.r[0] === estado.rangoMeses[0] && p.r[1] === estado.rangoMeses[1], ir: () => { estado.rangoMeses = p.r; actualizarTodo(); } }));
-  }
-  const T = estado.tiempo;
-  if (!T) return [];
-  if (estado.modo === "actual") {
-    const k0 = pasoAhora(T), u = T.horas.length - 1;
-    return [[t("pr_ahora"), k0], [t("pr_6h"), Math.min(u, k0 + 2)], [t("pr_24h"), Math.min(u, k0 + 8)], [t("pr_48h"), u]]
-      .map(([etq, k]) => ({ etq, activo: (estado.paso3h ?? k0) === k, ir: () => { estado.paso3h = k; actualizarTodo(); } }));
-  }
-  const h = diaHoy(T), u = T.dias.length - 1;
-  return [[t("pr_hoy"), [h, h]], [t("pr_manana"), [Math.min(u, h + 1), Math.min(u, h + 1)]], [t("pr_3_dias"), [h, Math.min(u, h + 2)]],
-    [t("pr_7_dias"), [h, Math.min(u, h + 6)]], [t("pr_16_dias"), [h, u]]]
-    .map(([etq, r]) => ({ etq, r, activo: r[0] === estado.rangoDias[0] && r[1] === estado.rangoDias[1], ir: () => { estado.rangoDias = r; actualizarTodo(); } }));
-}
-
-// Fila de condiciones: en "futuras", dos casilleros (meses para el riesgo, días para lluvia, viento y temperatura) limitados
-// al horizonte del pronóstico, y el texto "16/11/2026 – Dentro de 7 días" (el período se muestra solo acá)
+// ---------- Modo, período y línea de tiempo ----------
+// Riesgo: días (hoy y los próximos 14); el modo «Ahora / Pronóstico» queda solo para lluvia, viento y temperatura.
+// Fila de condiciones: dos casilleros de fecha limitados al horizonte del pronóstico y el texto «16/11/2026 – Dentro de 7 días»
 function pintarControles() {
   document.querySelectorAll("#modo [data-modo]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.modo === estado.modo)));
   document.querySelectorAll(".capas-tabs [data-capa]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.capa === estado.capa)));
+  const riesgo = estado.capa === "riesgo";
+  document.getElementById("modo").hidden = riesgo;
   const caja = document.getElementById("periodo-futuro"), de = document.getElementById("f-desde"), ha = document.getElementById("f-hasta");
-  const futuro = estado.modo === "futuro", T = estado.tiempo, M = estado.riesgo.meses;
-  caja.hidden = !futuro;
-  if (futuro) {
-    if (estado.capa === "riesgo") {
-      for (const x of [de, ha]) { x.type = "month"; x.min = M[Math.min(estado.iMesActual + 1, M.length - 1)]; x.max = M[M.length - 1]; }
-      de.value = M[estado.rangoMeses[0]]; ha.value = M[estado.rangoMeses[1]];
-      caja.dataset.ayuda = t("limite_meses")(capitalizar(nombreMes(M[M.length - 1], true)));
-      de.onchange = ha.onchange = () => {
-        let a = M.indexOf(de.value), b = M.indexOf(ha.value);
-        if (a < 0) a = estado.rangoMeses[0]; if (b < 0) b = estado.rangoMeses[1]; if (b < a) b = a;
-        detenerReproduccion(false); estado.rangoMeses = [a, b]; actualizarTodo();
-      };
-    } else if (T) {
-      const h = diaHoy(T);
-      for (const x of [de, ha]) { x.type = "date"; x.min = T.dias[h]; x.max = T.dias[T.dias.length - 1]; }
-      de.value = T.dias[estado.rangoDias[0]]; ha.value = T.dias[estado.rangoDias[1]];
-      caja.dataset.ayuda = t("limite_dias")(fechaCorta(T.dias[T.dias.length - 1]));
-      de.onchange = ha.onchange = () => {
-        let a = T.dias.indexOf(de.value), b = T.dias.indexOf(ha.value);
-        if (a < 0) a = estado.rangoDias[0]; if (b < 0) b = estado.rangoDias[1]; if (b < a) b = a;
-        detenerReproduccion(false); estado.rangoDias = [a, b]; actualizarTodo();
-      };
-    }
+  const T = estado.tiempo, D = estado.riesgo.dias;
+  caja.hidden = !riesgo && estado.modo !== "futuro";
+  const fechas = riesgo ? D : T?.dias, rango = riesgo ? estado.rangoRiesgo : estado.rangoDias, h = riesgo ? 0 : T ? diaHoy(T) : 0;
+  if (!caja.hidden && fechas) {
+    for (const x of [de, ha]) { x.type = "date"; x.min = fechas[h]; x.max = fechas[fechas.length - 1]; }
+    de.value = fechas[rango[0]]; ha.value = fechas[rango[1]];
+    caja.dataset.ayuda = t(riesgo ? "limite_riesgo" : "limite_dias")(fechaCorta(fechas[fechas.length - 1]));
+    de.onchange = ha.onchange = () => {
+      let a = fechas.indexOf(de.value), b = fechas.indexOf(ha.value);
+      if (a < 0) a = rango[0]; if (b < 0) b = rango[1]; if (b < a) b = a;
+      detenerReproduccion(false);
+      if (riesgo) estado.rangoRiesgo = [a, b]; else estado.rangoDias = [a, b];
+      actualizarTodo();
+    };
   }
   document.getElementById("periodo-texto").textContent = textoPeriodoFila();
   actualizarBorrar();
@@ -228,22 +182,20 @@ function pintarControles() {
 const fechaCorta = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 function diasDesdeHoy(iso) { const hoy = hoyLocal(); return Math.round((Date.parse(`${iso}T12:00:00Z`) - Date.parse(`${hoy}T12:00:00Z`)) / 86400e3); }
 function textoPeriodoFila() {
-  const T = estado.tiempo, M = estado.riesgo.meses;
-  if (estado.modo === "actual") return t("hoy_fecha")(fechaCorta(hoyLocal()));
-  if (estado.capa === "riesgo") {
-    const [a, b] = estado.rangoMeses, n = (k) => k - estado.iMesActual;
-    return a === b ? t("mes_dentro")(capitalizar(nombreMes(M[a], true)), n(a)) : t("meses_dentro")(capitalizar(nombreMes(M[a], true)), nombreMes(M[b], true), n(a), n(b));
-  }
-  if (!T) return "";
-  const [a, b] = estado.rangoDias, da = diasDesdeHoy(T.dias[a]), db = diasDesdeHoy(T.dias[b]);
-  if (a !== b && da <= 0) return t("dias_desde_hoy")(fechaCorta(T.dias[a]).slice(0, 5), fechaCorta(T.dias[b]), db);
-  return a === b ? t("dia_dentro")(fechaCorta(T.dias[a]), da) : t("dias_dentro")(fechaCorta(T.dias[a]).slice(0, 5), fechaCorta(T.dias[b]), da, db);
+  const T = estado.tiempo, riesgo = estado.capa === "riesgo";
+  if (!riesgo && estado.modo === "actual") return t("hoy_fecha")(fechaCorta(hoyLocal()));
+  const fechas = riesgo ? estado.riesgo.dias : T?.dias;
+  if (!fechas) return "";
+  const [a, b] = riesgo ? estado.rangoRiesgo : estado.rangoDias, da = diasDesdeHoy(fechas[a]), db = diasDesdeHoy(fechas[b]);
+  if (a === b && da <= 0) return t("hoy_fecha")(fechaCorta(fechas[a]));
+  if (a !== b && da <= 0) return t("dias_desde_hoy")(fechaCorta(fechas[a]).slice(0, 5), fechaCorta(fechas[b]), db);
+  return a === b ? t("dia_dentro")(fechaCorta(fechas[a]), da) : t("dias_dentro")(fechaCorta(fechas[a]).slice(0, 5), fechaCorta(fechas[b]), da, db);
 }
 
-// La línea de tiempo vive abajo del mapa: meses (riesgo), pasos de 3 h (tiempo, actual) o días (tiempo, futuro)
+// La línea de tiempo: días del riesgo, pasos de 3 h (tiempo, ahora) o días (tiempo, pronóstico)
 function itemsLinea() {
-  const M = estado.riesgo.meses, T = estado.tiempo;
-  if (estado.capa === "riesgo") return { tipo: "mes", items: M.map((m, i) => ({ etq: nombreMes(m), sub: i === estado.iMesActual ? t("ahora") : "", pasado: i < estado.iMesActual })) };
+  const T = estado.tiempo;
+  if (estado.capa === "riesgo") return { tipo: "rdia", items: estado.riesgo.dias.map((d, i) => ({ etq: fmtDia(d, { day: "numeric" }), sub: i ? fmtDia(d, { weekday: "narrow" }) : t("ahora"), pasado: false })) };
   if (!T) return { tipo: "nada", items: [] };
   if (estado.modo === "actual") {
     const k0 = pasoAhora(T);
@@ -253,26 +205,20 @@ function itemsLinea() {
   return { tipo: "dia", items: T.dias.map((d, i) => ({ etq: fmtDia(d, { day: "numeric" }), sub: fmtDia(d, { weekday: "narrow" }), pasado: i < h })) };
 }
 function seleccionLinea(tipo) {
-  if (tipo === "mes") return estado.mesReproduciendo != null ? [estado.mesReproduciendo, estado.mesReproduciendo]
-    : estado.modo === "actual" ? [estado.iMesActual, estado.iMesActual] : estado.rangoMeses;
+  if (tipo === "rdia") return estado.diaRiesgo != null ? [estado.diaRiesgo, estado.diaRiesgo] : estado.rangoRiesgo;
   if (tipo === "hora") { const k = estado.paso3h ?? pasoAhora(estado.tiempo); return [k, k]; }
   return estado.diaReproduciendo != null ? [estado.diaReproduciendo, estado.diaReproduciendo] : estado.rangoDias;
 }
 
 function pintarLineaTiempo() { const c = document.getElementById("linea-tiempo"); if (c) c.hidden = true; }   // ahora vive en el panel izquierdo
 
-// Índices que recorre ▶: meses (riesgo), pasos de 3 h (tiempo, condiciones actuales) o días (tiempo, futuras)
+// Índices que recorre ▶: días del riesgo (el tramo elegido o, con un solo día, de hoy a 14 días), pasos de 3 h o días del tiempo
 function listaReproduccion() {
   const { tipo } = itemsLinea(), T = estado.tiempo;
-  if (tipo === "mes") {
-    const [a, b] = estado.modo === "actual" ? [estado.iMesActual, estado.riesgo.meses.length - 1] : estado.rangoMeses;
-    return { tipo, lista: Array.from({ length: b - a + 1 }, (_, k) => a + k) };
-  }
+  const tramo = (r, desde, hasta) => { const [a, b] = r[0] === r[1] ? [desde, hasta] : r; return Array.from({ length: b - a + 1 }, (_, k) => a + k); };
+  if (tipo === "rdia") return { tipo, lista: tramo(estado.rangoRiesgo, 0, estado.riesgo.dias.length - 1) };
   if (tipo === "hora") return { tipo, lista: Array.from({ length: T.horas.length - pasoAhora(T) }, (_, k) => pasoAhora(T) + k) };
-  if (tipo === "dia") {
-    const [a, b] = estado.rangoDias[0] === estado.rangoDias[1] ? [diaHoy(T), T.dias.length - 1] : estado.rangoDias;
-    return { tipo, lista: Array.from({ length: b - a + 1 }, (_, k) => a + k) };
-  }
+  if (tipo === "dia") return { tipo, lista: tramo(estado.rangoDias, diaHoy(T), T.dias.length - 1) };
   return { tipo, lista: [] };
 }
 // Refresca solo el bloque de la línea de tiempo (mientras corre ▶, sin redibujar todo el panel)
@@ -286,42 +232,28 @@ function actualizarEvolucion() {
   nuevo.querySelector('[data-accion="evol"]').onclick = () => (estado.reproduciendo != null ? detenerReproduccion() : reproducir());
   enlazarInfo(nuevo);
 }
-// Bloque del panel izquierdo: ▶ y una línea de tiempo. Hitos grandes = todos los meses (riesgo) o el comienzo de cada semana (tiempo);
-// marcas chicas = cada semana. Mientras avanza, la línea se pinta con el color del riesgo de ese momento y un cartelito dice dónde estamos.
+// Bloque del panel izquierdo: ▶ y una línea de tiempo con hitos al comienzo de cada semana (lunes). Mientras avanza, en el riesgo
+// la línea se pinta con el color del nivel de ese día y un cartelito dice dónde estamos.
 function bloqueEvolucion() {
   const { tipo, lista } = listaReproduccion();
   if (!lista.length || lista.length < 2) return "";
-  const T = estado.tiempo, M = estado.riesgo.meses, jugando = estado.reproduciendo != null;
-  const semMes = tipo === "mes" ? semanasDeMeses(lista) : [], n1 = lista.length - 1;
-  let hitos, semanas, pct = 0, cartel = "", color = "var(--cian)", tinta = "var(--cian-tinta)";
-  if (tipo === "mes") {
-    // A escala de calendario: arranca el día 1 del primer mes y termina el día 1 del mes siguiente al último (se muestra ese mes)
-    const dia = (iso) => Date.parse(`${iso}T12:00:00Z`) / 864e5, ini = dia(`${M[lista[0]]}-01`);
-    const sig = new Date(`${M[lista[n1]]}-01T12:00:00Z`); sig.setUTCMonth(sig.getUTCMonth() + 1);
-    const fin = sig.getTime() / 864e5, x = (d) => (100 * (d - ini)) / (fin - ini);
-    hitos = [...lista.map((mi) => ({ x: x(dia(`${M[mi]}-01`)), etq: mesCorto(M[mi]), activo: false })), { x: 100, etq: mesCorto(sig.toISOString().slice(0, 7)), activo: false }];
-    semanas = semMes.map((w) => x(dia(w.iso)));
-    const w = estado.semanaReproduciendo != null ? semMes[estado.semanaReproduciendo] : null;
-    if (w && jugando) {
-      pct = x(dia(w.iso));
-      const r = riesgoDelMes(w.mes), niv = nivelRiesgo(r) || 1;
-      color = `var(--r${niv})`; tinta = niv === 1 || niv === 5 ? "#fff" : "#1b2430";
-      cartel = t("sem_cartel")(w.n, mesCorto(M[w.mes]));
-      hitos.forEach((h) => { h.activo = h.x <= pct + 0.01; });
-    }
-  } else {
-    const x = (j) => (100 * j) / n1, etq = (k) => (tipo === "dia" ? fechaCorta(T.dias[k]).slice(0, 5) : fmtHora(T.horas[k]));
-    const lunes = lista.map((k, j) => ({ j, k })).filter(({ k }) => tipo === "dia" && new Date(`${T.dias[k]}T12:00:00Z`).getUTCDay() === 1);
-    hitos = [{ j: 0 }, ...lunes.filter(({ j }) => j > 0), { j: n1 }].filter((h, i, a) => a.findIndex((q) => q.j === h.j) === i)
-      .filter((h, i, a) => i === 0 || (h.j - a[i - 1].j) / n1 > 0.14)
-      .map(({ j }) => ({ x: x(j), etq: etq(lista[j]), activo: false, j }));
-    semanas = lunes.map(({ j }) => x(j));
-    const actual = tipo === "dia" ? estado.diaReproduciendo : jugando ? estado.paso3h : null, pos = actual == null ? -1 : lista.indexOf(actual);
-    if (pos >= 0) {
-      pct = x(pos);
-      cartel = tipo === "dia" ? t("sem_cartel_dia")(Math.floor(pos / 7) + 1, fmtDia(T.dias[actual], { day: "numeric", month: "short" })) : `${fmtDia(T.horas[actual].slice(0, 10), { weekday: "short", day: "numeric" })} ${fmtHora(T.horas[actual])}`;
-      hitos.forEach((h) => { h.activo = h.x <= pct + 0.01; });
-    }
+  const T = estado.tiempo, jugando = estado.reproduciendo != null, n1 = lista.length - 1;
+  const fechas = tipo === "rdia" ? estado.riesgo.dias : T.dias;
+  let pct = 0, cartel = "", color = "var(--cian)", tinta = "var(--cian-tinta)";
+  const x = (j) => (100 * j) / n1, etq = (k) => (tipo === "hora" ? fmtHora(T.horas[k]) : fechaCorta(fechas[k]).slice(0, 5));
+  const lunes = lista.map((k, j) => ({ j, k })).filter(({ k }) => tipo !== "hora" && new Date(`${fechas[k]}T12:00:00Z`).getUTCDay() === 1);
+  const hitos = [{ j: 0 }, ...lunes.filter(({ j }) => j > 0), { j: n1 }].filter((h, i, a) => a.findIndex((q) => q.j === h.j) === i)
+    .filter((h, i, a) => i === 0 || (h.j - a[i - 1].j) / n1 > 0.14)
+    .map(({ j }) => ({ x: x(j), etq: etq(lista[j]), activo: false, j }));
+  const semanas = lunes.map(({ j }) => x(j));
+  const actual = tipo === "rdia" ? estado.diaRiesgo : tipo === "dia" ? estado.diaReproduciendo : jugando ? estado.paso3h : null, pos = actual == null ? -1 : lista.indexOf(actual);
+  if (pos >= 0) {
+    pct = x(pos);
+    cartel = tipo === "hora" ? `${fmtDia(T.horas[actual].slice(0, 10), { weekday: "short", day: "numeric" })} ${fmtHora(T.horas[actual])}`
+      : tipo === "rdia" ? `${fmtDia(fechas[actual], { weekday: "short", day: "numeric", month: "short" })}${actual ? ` · ${t("dentro_n")(actual)}` : ` · ${t("hoy")}`}`
+      : t("sem_cartel_dia")(Math.floor(pos / 7) + 1, fmtDia(fechas[actual], { day: "numeric", month: "short" }));
+    if (tipo === "rdia") { const niv = nivelRiesgo(riesgoDelDia(actual)) || 1; color = `var(--r${niv})`; tinta = niv === 1 || niv === 5 ? "#fff" : "#1b2430"; }
+    hitos.forEach((h) => { h.activo = h.x <= pct + 0.01; });
   }
   return `<div class="tb-evol"><button type="button" class="lt-play" data-accion="evol" aria-label="${jugando ? t("pausar") : t("reproducir")}">${icono(jugando ? "pausa" : "play")}</button>
     <div class="tb-evol-cuerpo"><div class="tb-evol-cab"><span>${t("evolucion")}${infoIcono("evolucion", infoTexto("evolucion"))}</span></div>
@@ -333,60 +265,42 @@ function bloqueEvolucion() {
 }
 
 function elegirEnLinea(tipo, a, b, extender = false) {
-  if (tipo === "mes") {
-    if (a < estado.iMesActual) return;
-    if (estado.modo === "actual" && a === estado.iMesActual && b === a) return;
-    estado.modo = "futuro";
-    estado.rangoMeses = extender ? [Math.min(estado.rangoMeses[0], a), Math.max(estado.rangoMeses[1], b)] : [a, b];
-  } else if (tipo === "hora") estado.paso3h = a;
+  if (tipo === "rdia") estado.rangoRiesgo = extender ? [Math.min(estado.rangoRiesgo[0], a), Math.max(estado.rangoRiesgo[1], b)] : [a, b];
+  else if (tipo === "hora") estado.paso3h = a;
   else estado.rangoDias = extender ? [Math.min(estado.rangoDias[0], a), Math.max(estado.rangoDias[1], b)] : [a, b];
   actualizarTodo({ ligero: true });
 }
 
-// Semanas (lunes) de una lista de meses: la reproducción del riesgo avanza semana a semana; el mapa cambia cuando cambia el mes
-function semanasDeMeses(lista) {
-  const M = estado.riesgo.meses, d0 = new Date(`${M[lista[0]]}-01T12:00:00Z`), d1 = new Date(`${M[lista[lista.length - 1]]}-01T12:00:00Z`), out = [];
-  d1.setUTCMonth(d1.getUTCMonth() + 1);
-  for (let d = new Date(d0); d < d1; d.setUTCDate(d.getUTCDate() + 1)) {
-    if (d.getUTCDay() !== 1) continue;
-    const mi = lista[(d.getUTCFullYear() - d0.getUTCFullYear()) * 12 + d.getUTCMonth() - d0.getUTCMonth()];
-    out.push({ mes: mi, n: Math.ceil(d.getUTCDate() / 7), iso: d.toISOString().slice(0, 10) });
-  }
-  return out;
-}
-const mesCorto = (m) => `${capitalizar(t("meses")[m.slice(5, 7)])}'${m.slice(2, 4)}`;
-// Riesgo del lugar elegido en un mes (para pintar la línea con el color del momento)
-function riesgoDelMes(i) {
+// Riesgo del lugar elegido en un día (para pintar la línea con el color del momento)
+function riesgoDelDia(i) {
   const s = estado.sel, R = estado.riesgo;
   if (s?.tipo === "punto" && s.cmu && R.cmu[s.cmu]) return R.cmu[s.cmu].r[i];
   const cmus = cmusSel(), pob = cmus.map((c) => Math.max(1, Number(estado.porCmu.get(c)?.poblacion) || 1));
   return sumar(cmus.map((c, k) => (R.cmu[c].r[i] ?? 0) * pob[k])) / sumar(pob);
 }
 
-// Reproducción: avanza semana a semana (riesgo), de a 3 h o día a día y se detiene al final
+// Reproducción: avanza día a día (riesgo y tiempo) o de a 3 h, y se detiene al final
 function reproducir() {
   detenerReproduccion(false);
   const { tipo, lista } = listaReproduccion();
-  const semanas = tipo === "mes" ? semanasDeMeses(lista) : null, total = semanas ? semanas.length : lista.length;
   let k = 0;
   const paso = () => {
-    let cambia = true;
-    if (tipo === "mes") { const w = semanas[k]; cambia = estado.mesReproduciendo !== w.mes; estado.mesReproduciendo = w.mes; estado.semanaReproduciendo = k; }
+    if (tipo === "rdia") estado.diaRiesgo = lista[k];
     else if (tipo === "hora") estado.paso3h = lista[k];
     else estado.diaReproduciendo = lista[k];
-    if (cambia) actualizarTodo({ ligero: true, cuadro: true });
+    actualizarTodo({ ligero: true, cuadro: true });
     actualizarEvolucion();
-    if (++k >= total) detenerReproduccion(true);
+    if (++k >= lista.length) detenerReproduccion(true);
   };
-  estado.reproduciendo = setInterval(paso, tipo === "mes" ? 420 : 1100);
+  estado.reproduciendo = setInterval(paso, tipo === "rdia" ? 900 : 1100);
   paso();
 }
 function detenerReproduccion(repintar = true) {
-  if (estado.reproduciendo == null && estado.mesReproduciendo == null && estado.diaReproduciendo == null) return;
+  if (estado.reproduciendo == null && estado.diaRiesgo == null && estado.diaReproduciendo == null) return;
   clearInterval(estado.reproduciendo);
   estado.reproduciendo = null;
-  const habia = estado.mesReproduciendo != null || estado.diaReproduciendo != null;
-  estado.mesReproduciendo = null; estado.diaReproduciendo = null; estado.semanaReproduciendo = null;
+  const habia = estado.diaRiesgo != null || estado.diaReproduciendo != null;
+  estado.diaRiesgo = null; estado.diaReproduciendo = null;
   if (repintar) actualizarTodo();
   else if (habia) pintarLineaTiempo();
 }
@@ -452,9 +366,9 @@ function pintarLeyenda() {
     // Como la lámina aprobada: una fila por nivel con su rango, y las estaciones de río por estado
     const fila = (muestra, nombre, dato) => `<div>${muestra}<span>${nombre}</span><b>${dato}</b></div>`;
     cuerpo = `<div class="ley-lista">${[1, 2, 3, 4, 5].map((n) => fila(`<i style="background:var(--r${n})"></i>`, t("niveles")[n - 1], ["0 – 3", "3 – 4,5", "4,5 – 6", "6 – 7", "7 – 10"][n - 1])).join("")}</div>
-      ${estado.verHidro ? `<div class="ley-lista">${estado.modo === "actual"
+      ${estado.verHidro ? `<div class="ley-lista">${vistaHoy()
         ? fila('<i class="pto" style="background:var(--critico)"></i>', t("ley_rio_ev"), "") + fila('<i class="pto" style="background:var(--serio)"></i>', t("ley_rio_al"), "") + fila('<i class="pto" style="background:var(--rio-normal)"></i>', t("ley_rio_no"), "")
-        : fila('<i class="pto" style="background:var(--serio)"></i>', t("ley_rios_prob"), "")}</div>` : ""}
+        : fila('<i class="pto" style="background:var(--critico)"></i>', t("ley_rio_ev_pron"), "") + fila('<i class="pto" style="background:var(--serio)"></i>', t("ley_rio_al_pron"), "") + fila('<i class="pto" style="background:var(--rio-normal)"></i>', t("ley_rio_no_pron"), "")}</div>` : ""}
       <div class="ley-km" id="ley-km"><i></i><span></span></div>`;
   } else if (estado.campo) {
     const c = estado.campo, esc = c.escala, n = esc.length;
@@ -469,9 +383,10 @@ function pintarLeyenda() {
     ${cuerpo}${interruptores}`;
   cont.querySelector(".ley-plegar").onclick = () => { estado.leyendaPlegada = !estado.leyendaPlegada; pintarLeyenda(); };
   // Título de cada mapa con la última actualización de sus datos
-  const T = estado.tiempo, r = estado.datos.resumen;
+  const T = estado.tiempo;
   const gen = T?.generado ? new Date(T.generado.replace("Z", ":00Z")) : null;
-  const act = capa === "riesgo" ? t("act_riesgo")(fmtDia(r?.calculado))
+  const gR = estado.riesgo.generado ? new Date(estado.riesgo.generado.replace("Z", ":00Z")) : null;
+  const act = capa === "riesgo" ? (gR ? t("act_riesgo")(fmtDia(hoyDeFecha(gR)), gR.toLocaleTimeString(loc(), { hour: "2-digit", minute: "2-digit", timeZone: ZONA_HORARIA, hour12: false })) : t("sin_riesgo_diario"))
     : gen ? t("act_tiempo")(fmtDia(hoyDeFecha(gen)), gen.toLocaleTimeString(loc(), { hour: "2-digit", minute: "2-digit", timeZone: ZONA_HORARIA, hour12: false })) : "";
   document.getElementById("mapa-titulo").innerHTML = `${icono(capa)}<span><b>${t(`capa_${capa}_larga`)}</b><small>${escapar(act)}</small></span>`;
 }
@@ -487,7 +402,7 @@ const CAPAS_SUMAR = [
 function pintarCapasExtra() {
   const sinTeselas = new Set(SIN_TESELAS ? ["relieve", "verSuelo", "verRutas", "verInundadas", "verInundHoy"] : []);
   const botones = (lista) => lista.filter(([k]) => !sinTeselas.has(k)).map(([k, txt]) => {
-    const apagada = k === "verAlertas" && estado.modo !== "actual";
+    const apagada = k === "verAlertas" && estado.capa !== "riesgo" && estado.modo !== "actual";
     return `<button type="button" class="capa-chip" data-k="${k}" aria-pressed="${!!estado[k] && !apagada}"${apagada ? " disabled" : ""}
       data-ayuda="${escapar(t(`${txt}_ayuda`))}">${t(txt)}</button>`;
   }).join("");
@@ -612,6 +527,22 @@ function alternar3d() {
   mapa.easeTo({ pitch: estado.relieve3d ? 55 : 0, bearing: estado.relieve3d ? -12 : 0, duration: 900 });
 }
 
+// Riesgo de hoy y de los próximos 14 días (modelos/riesgo_diario.py) sobre los rasgos fijos de cada municipio del índice
+// (riesgo.json: exposición, vulnerabilidad y centro). Si el archivo del día falta, todo queda sin amenaza (nunca el índice mensual).
+// Por día: nivel de amenaza 0-3 (n) y el de cada fuente (lluvia, río, alerta del SMN), su probabilidad y el riesgo de 0 a 10.
+function armarRiesgo(fijo, diario) {
+  const todos = diario?.dias ?? [hoyLocal()], k0 = Math.max(0, todos.indexOf(hoyLocal())), dias = todos.slice(k0), nD = dias.length;
+  const H = diario?.h_nivel ?? [0, 4, 7, 10], digitos = (x) => (x ? [...x.slice(k0)].map(Number) : Array(nD).fill(0));
+  const cmu = {};
+  for (const [c, f] of Object.entries(fijo?.cmu ?? {})) {
+    const d = diario?.cmu?.[c], n = digitos(d?.n);
+    cmu[c] = { c: f.c, E: f.E, V: f.V, sr: f.sr, rob: f.rob, n, lluvia: digitos(d?.l), rio: digitos(d?.q), alerta: digitos(d?.a),
+      prob: (d?.p ?? []).slice(k0), r: d?.r ? d.r.slice(k0) : n.map(() => 0), h: n.map((v) => H[v]), p: Array(nD).fill(0) };
+  }
+  const est = Object.fromEntries(Object.entries(diario?.est ?? {}).map(([e, v]) => [e, { n: digitos(v.n), p: (v.p ?? []).slice(k0) }]));
+  return { dias, cmu, H, est, generado: diario?.generado ?? null, fuentes: diario?.fuentes ?? {} };
+}
+
 const hoyDeFecha = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: ZONA_HORARIA, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 
 // ---------- Inicio ----------
@@ -623,20 +554,19 @@ async function iniciar() {
   const q = new URLSearchParams(location.search);
   if (q.get("tema")) document.documentElement.dataset.theme = q.get("tema") === "oscuro" || q.get("tema") === "dark" ? "dark" : "light";
   if (q.get("lang") === "en") estado.idioma = "en";
-  const archivos = ["resumen.json", "municipios_geo.geojson", "riesgo.json", "estaciones.geojson", "radios/indice.json",
-    "provincias_geo.geojson", "bordes_geo.geojson", "buscador.json", "alertas.geojson", "riesgo_semanal.json"];
-  const [resumen, municipios, riesgo, estaciones, cajas, provincias, bordes, buscador, alertas, semanal] = await Promise.all(archivos.map((f) =>
+  const archivos = ["resumen.json", "municipios_geo.geojson", "riesgo.json", "riesgo_diario.json", "estaciones.geojson", "radios/indice.json",
+    "provincias_geo.geojson", "bordes_geo.geojson", "buscador.json", "alertas.geojson"];
+  const [resumen, municipios, fijo, diario, estaciones, cajas, provincias, bordes, buscador, alertas] = await Promise.all(archivos.map((f) =>
     fetch(`datos/${f}`, { cache: "no-cache" }).then((r) => r.json()).catch(() => (f === "alertas.geojson" ? { type: "FeatureCollection", features: [] } : null))));
+  const riesgo = armarRiesgo(fijo, diario);
   unirRiesgo(municipios, riesgo);
+  unirEstaciones(estaciones, riesgo);
   unirBordes(bordes, riesgo);
   estado.riesgo = riesgo;
-  estado.datos = { resumen, municipios, estaciones, cajas, provincias, bordes, buscador, alertas, semanal };
+  estado.datos = { resumen, municipios, estaciones, cajas, provincias, bordes, buscador, alertas };
   try { await cargarTiempo(); } catch (e) { estado.tiempo = null; }
-  // Mes en curso y períodos por defecto
-  const M = riesgo.meses, hoyM = mesLocal();
-  estado.iMesActual = M.indexOf(hoyM) >= 0 ? M.indexOf(hoyM) : hoyM < M[0] ? 0 : M.length - 1;
-  const i = estado.iMesActual, ult = M.length - 1;
-  estado.rangoMeses = [Math.min(i + 1, ult), Math.min(i + 3, ult)];
+  // Períodos por defecto: el riesgo de hoy y, en el tiempo, la semana que viene
+  estado.rangoRiesgo = [0, 0];
   if (estado.tiempo) { const h = diaHoy(); estado.rangoDias = [h, Math.min(estado.tiempo.dias.length - 1, h + 6)]; }
   prepararBuscador();
 
@@ -669,6 +599,7 @@ async function iniciar() {
   // Links directos (versión completa): ?capa=lluvia&modo=futuro&punto=lon,lat&radio=5&lugar=…&partido=…&dir=…
   if (CAPAS.includes(q.get("capa"))) estado.capa = q.get("capa");
   if (q.get("modo") === "futuro") estado.modo = "futuro";
+  if (q.get("dia")) estado.rangoRiesgo = [limitar(Number(q.get("dia")) || 0, 0, estado.riesgo.dias.length - 1), limitar(Number(q.get("dia")) || 0, 0, estado.riesgo.dias.length - 1)];
   if (q.get("radio")) estado.km = Number(q.get("radio")) || 2;
   cambiarRadioBarra();
   // Espera a que las capas del mapa existan (el evento "load" puede pasar antes de enganchar y en el celular tarda más)

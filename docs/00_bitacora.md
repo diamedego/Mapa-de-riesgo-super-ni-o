@@ -785,3 +785,17 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
   Señor). No está en OpenStreetMap ni en TomTom.
 - Riesgo diario (modelos/riesgo_diario.py): primera corrida falló al final (geometría de estaciones leída como bytes); corregido,
   y cada parte (ríos, lluvia) se guarda por separado para no volver a bajarla.
+
+## 15-nov-2026 (noche) — riesgo por día (hoy + 14 días) en lugar del mensual
+- La usuaria rechazó el riesgo mensual (la lluvia de un mes no se pronostica). Nuevo `modelos/riesgo_diario.py`: amenaza de cada
+  día = la mayor entre lluvia (50 miembros del ensamble del ECMWF, datos abiertos, 0,25°: lluvia de 3 días contra la de 2, 5 y 10
+  años de ERA5-Land 1995-2024, `earth_engine/umbrales_lluvia.py`; nivel si ≥ 30 % de los miembros la supera, criterio EFAS), ríos
+  (51 miembros de GloFAS con la curva de cada estación y el error reciente frente al INA: e15 + (e2 − e15)·exp(−d/5); hoy manda el
+  INA) y alertas del SMN por tormentas o lluvias. Riesgo = ∛(H·E·V) con H = 0/4/7/10. Salida `web/datos/riesgo_diario.json`.
+- Por Open-Meteo el ensamble para 1.345 celdas superaba el límite gratis por hora (429): se baja de data.ecmwf.int (~300 MB).
+- Ríos: con 10 días pasados el Paraná (desfase de 10 días) quedaba sin dato hoy y con el sesgo de calibración saltaba de normal a
+  evacuación; con 31 días pasados y la persistencia del error coincide con el INA.
+- Web: el riesgo trabaja por día (fechas, ▶ y línea de tiempo), «Ahora / Pronóstico» queda solo para el tiempo, KPI «Día más
+  crítico», bloque «Qué cambia en los próximos días» (suben / siguen altos / bajan, cuándo, causa, probabilidad y recomendación
+  del lugar) y gráfico «Riesgo día por día» (% de la superficie por nivel; una columna pinta el mapa con ese día). Workflow: el
+  cálculo corre con la grilla del tiempo (05:20 y 17:20 ART).

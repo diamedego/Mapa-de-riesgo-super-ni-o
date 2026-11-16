@@ -82,6 +82,11 @@ jobs:
         continue-on-error: true
         run: python earth_engine/agua_hoy_radar.py
 
+      - name: Riesgo de hoy y de los próximos 14 días (ensamble ECMWF, GloFAS, alturas INA y alertas SMN)
+        if: steps.tarea.outputs.tarea == 'tiempo'
+        continue-on-error: true
+        run: python modelos/riesgo_diario.py
+
       - name: Pronóstico de lluvia a 16 días (ECMWF)
         if: steps.tarea.outputs.tarea == 'ina'
         continue-on-error: true
@@ -117,7 +122,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f data/archivo data/gold web/datos/riesgo.json web/datos/estaciones.geojson web/datos/resumen.json web/datos/tiempo.json web/datos/alertas.geojson web/datos/lluvia_estacional.json web/datos/riesgo_semanal.json web/datos/radar_agua.json
+          git add -f data/archivo data/gold web/datos/riesgo.json web/datos/estaciones.geojson web/datos/resumen.json web/datos/tiempo.json web/datos/alertas.geojson web/datos/lluvia_estacional.json web/datos/riesgo_semanal.json web/datos/radar_agua.json web/datos/riesgo_diario.json
           git diff --cached --quiet || git commit -m "Datos automáticos: ${{ steps.tarea.outputs.tarea }} $(date -u +%F\ %H:%M) UTC"
           for i in 1 2 3 4; do   # si alguien subió algo justo antes, se rebasa dando prioridad a los datos de esta corrida y se reintenta
             git pull --rebase --autostash -X theirs && git push && exit 0

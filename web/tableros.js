@@ -10,13 +10,14 @@ function cmusSel() {
   if (s?.tipo === "punto") return s.cmu ? [s.cmu] : [];
   return todosLosCmus();
 }
-function mesesVista() {
-  const M = estado.riesgo.meses;
-  if (estado.mesReproduciendo != null) return [M[estado.mesReproduciendo]];
-  if (estado.modo === "actual") return [M[estado.iMesActual]];
-  return M.slice(estado.rangoMeses[0], estado.rangoMeses[1] + 1);
+// Días del riesgo a la vista: hoy por defecto, el día que pasa ▶ o el tramo elegido (el mapa pinta el máximo del tramo)
+function diasVista() {
+  const D = estado.riesgo.dias;
+  if (estado.diaRiesgo != null) return [D[estado.diaRiesgo]];
+  return D.slice(estado.rangoRiesgo[0], estado.rangoRiesgo[1] + 1);
 }
-const indicesVista = () => mesesVista().map((m) => estado.riesgo.meses.indexOf(m));
+const indicesVista = () => diasVista().map((m) => estado.riesgo.dias.indexOf(m));
+const vistaHoy = () => estado.diaRiesgo == null && estado.rangoRiesgo[0] === 0 && estado.rangoRiesgo[1] === 0;
 function valoresRiesgoVista() {
   const idx = indicesVista(), out = new Map();
   for (const [cmu, d] of Object.entries(estado.riesgo.cmu)) {
@@ -27,9 +28,9 @@ function valoresRiesgoVista() {
 }
 function textoPeriodo(capa = estado.capa) {
   if (capa === "riesgo") {
-    const M = mesesVista();
-    if (estado.modo === "actual") return t("periodo_mes_actual")(nombreMes(M[0], true));
-    return M.length === 1 ? capitalizar(nombreMes(M[0], true)) : `${capitalizar(nombreMes(M[0]))} – ${nombreMes(M[M.length - 1])}`;
+    const D = diasVista(), i0 = estado.riesgo.dias.indexOf(D[0]), largo = { weekday: "long", day: "numeric", month: "long" };
+    if (D.length === 1) return `${fmtDia(D[0], largo).replace(",", "")} · ${i0 ? t("dentro_n")(i0) : t("hoy")}`;
+    return `${fmtDia(D[0])} – ${fmtDia(D[D.length - 1])} · ${t("n_dias")(D.length)}`;
   }
   const T = estado.tiempo;
   if (!T) return "";
@@ -39,11 +40,11 @@ function textoPeriodo(capa = estado.capa) {
   return n === 1 ? fmtDia(T.dias[P.a], { weekday: "long", day: "numeric", month: "long" })
     : `${fmtDia(T.dias[P.a])} – ${fmtDia(T.dias[P.b])} · ${t("n_dias")(n)}`;
 }
-const textoPeriodoCorto = () => (estado.modo === "actual" ? t("ahora") : textoPeriodo("riesgo"));
+const textoPeriodoCorto = () => (vistaHoy() ? t("hoy") : diasVista().length === 1 ? fmtDia(diasVista()[0]) : `${fmtDia(diasVista()[0])} – ${fmtDia(diasVista().at(-1))}`);
 
 // ---------- Análisis de riesgo ----------
 function analisisRiesgoZona(cmus) {
-  const R = estado.riesgo, M = R.meses, items = cmus.map((c) => [c, R.cmu[c], estado.porCmu.get(c) || {}]).filter(([, d]) => d);
+  const R = estado.riesgo, M = R.dias, H = R.H, items = cmus.map((c) => [c, R.cmu[c], estado.porCmu.get(c) || {}]).filter(([, d]) => d);
   const pob = items.map(([, , p]) => Math.max(1, Number(p.poblacion) || 1)), total = sumar(pob);
   const pond = (fn) => M.map((_, i) => sumar(items.map((it, k) => (fn(it[1], i) ?? 0) * pob[k])) / total);
   const pondFijo = (campo) => { const v = items.map(([, , p], k) => [Number(p[campo]), pob[k]]).filter(([n]) => !Number.isNaN(n));
@@ -55,7 +56,7 @@ function analisisRiesgoZona(cmus) {
   const porNivel = [1, 2, 3, 4, 5].map((n) => sumar(items.map(([, , p], k) => (nivelRiesgo(rVista[k]) === n ? Number(p.poblacion) || 0 : 0))));
   return {
     tipo: "zona", n: items.length, poblacion, porNivel,
-    riesgo: pond((d, i) => d.r[i]), agua: pond((d, i) => d.ha[i]), rio: pond((d, i) => d.hr[i]), quebrada: pond((d, i) => d.hq[i]),
+    riesgo: pond((d, i) => d.r[i]), lluvia: pond((d, i) => H[d.lluvia[i]]), rio: pond((d, i) => H[d.rio[i]]), alerta: pond((d, i) => H[d.alerta[i]]),
     amenaza: pond((d, i) => d.h[i]), E: pondR("E"), V: pondR("V"), sinRio: items.length > 0 && items.every(([, d]) => d.sr === 1),
     personas: M.map((_, i) => sumar(items.map(([, d]) => d.p[i] ?? 0))),
     altos: M.map((_, i) => items.filter(([, d]) => (d.r[i] ?? 0) >= CORTES[2]).length),
@@ -74,7 +75,7 @@ async function analisisRiesgoCirculo(s) {
     if (!cerca) for (const f of estado.radios) { const d = distanciaKm(s.punto, f.properties._c); if (d < dmin) { dmin = d; cerca = f; } }
     dentro = cerca ? [cerca] : [];
   }
-  const R = estado.riesgo, M = R.meses, d = R.cmu[s.cmu];
+  const R = estado.riesgo, M = R.dias, d = R.cmu[s.cmu];
   const props = dentro.map((f) => f.properties), pob = props.map((p) => Math.max(1, Number(p.poblacion) || 0)), total = sumar(pob);
   const pond = (fn) => sumar(props.map((p, k) => (fn(p) ?? 0) * pob[k])) / total;
   const idx = indicesVista();
@@ -84,7 +85,7 @@ async function analisisRiesgoCirculo(s) {
   return {
     tipo: "circulo", n: props.length, poblacion: sumar(props.map((p) => Number(p.poblacion) || 0)), porNivel,
     riesgo: M.map((m) => (props.length ? pond((p) => Number(p[`r_${m}`])) : null)),
-    agua: zona?.agua ?? M.map(() => null), rio: zona?.rio ?? M.map(() => null), quebrada: zona?.quebrada ?? M.map(() => null), sinRio: zona?.sinRio ?? false, amenaza: zona?.amenaza ?? M.map(() => null),
+    lluvia: zona?.lluvia ?? M.map(() => null), rio: zona?.rio ?? M.map(() => null), alerta: zona?.alerta ?? M.map(() => null), sinRio: zona?.sinRio ?? false, amenaza: zona?.amenaza ?? M.map(() => null),
     bajo: props.length ? pond((p) => Number(p.pct_area_hand_2m)) : null,
     sinCloaca: props.length ? pond((p) => 100 - Number(p.pct_cloaca)) : null,
     E: pond((p) => Number(p.E)), V: pond((p) => Number(p.V)), municipio: zona, radios: dentro,
@@ -360,15 +361,15 @@ function enlacesCapas(actual) {
 
 // ---------- Tablero: riesgo ----------
 async function tableroRiesgo(cont) {
-  const s = estado.sel, M = estado.riesgo.meses, idx = indicesVista();
+  const s = estado.sel, M = estado.riesgo.dias, idx = indicesVista();
   const A = s?.tipo === "punto" ? await analisisRiesgoCirculo(s) : analisisRiesgoZona(cmusSel());
   if (estado.sel !== s) return;   // la selección cambió mientras se cargaban los radios
   const peor = idx.reduce((m, i) => (A.riesgo[i] > A.riesgo[m] ? i : m), idx[0]);
   const r = A.riesgo[peor];
-  const comps = [["agua", A.agua[peor]], ["rio", A.rio[peor]], ["quebrada", A.quebrada[peor]]];
+  const comps = [["lluvia", A.lluvia[peor]], ["rio", A.rio[peor]], ["alerta", A.alerta[peor]]];
   const motor = comps.slice().sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))[0];
   const ests = estacionesSel().filter((e) => e.estado && e.estado !== "null").sort((a, b) => (pesoEstado[b.estado] ?? 0) - (pesoEstado[a.estado] ?? 0) || (a.km ?? 0) - (b.km ?? 0));
-  const alertas = estado.modo === "actual" ? alertasSel() : [];
+  const alertas = alertasSel();
   const nivel = nivelRiesgo(r);
   const situacion = await situacionRiesgo({ s, A, M, idx, peor, r, nivel, motor, ests, alertas });
   if (estado.sel !== s) return;
@@ -387,21 +388,97 @@ async function tableroRiesgo(cont) {
         <div class="hero-lado">${pastillaNivel(r)}</div></div>
       <div class="medidor-caja">${medidorRiesgo(r)}</div>
     </section>
+    ${bloqueCambios(cmusSel())}
     ${situacion}
-    <section class="tb-bloque"><h3>${tit("que_lo_explica")}</h3><p class="tb-sub">${t("explica_nota")}</p>
+    <section class="tb-bloque"><h3>${tit("que_lo_explica")}</h3><p class="tb-sub">${t("explica_nota")(textoPeriodoCorto())}</p>
       <div class="tb-comps">${comps.map(([k, v]) => `<div class="comp"><span class="comp-etq">${t(`comp_${k}`)}</span>
         ${k === "rio" && A.sinRio ? `<span class="comp-pista"></span><b data-tip="${escapar(t("sin_info_rio"))}">${t("sin_info")}</b>` : `<span class="comp-pista"><span style="width:${limitar((v ?? 0) * 10, 0, 100)}%;background:${colorNivel(v)}"></span></span><b>${fmtRiesgo(v)}</b>`}</div>`).join("")}</div>
     </section>
     ${rios ? `<section class="tb-bloque"><h3>${icono("rio")} ${tit("rios_cercanos")}</h3><p class="tb-sub">${t("fuente_ina")}</p><ul class="rios">${rios}</ul></section>` : ""}
     ${enlacesCapas("riesgo")}`;
+  enlazarCambios(cont);
   tipsEn(cont);
+}
+
+// ---------- Qué cambia en los próximos días ----------
+// Para cada municipio de la selección: su nivel de riesgo de hoy y el mayor de los próximos N días (y el primer día en que llega),
+// con la amenaza que lo causa (lluvia, río o alerta del SMN), su probabilidad y una recomendación armada con los datos del lugar.
+// Tres grupos: suben de nivel, siguen en riesgo alto y bajan.
+function causaDia(d, i) {
+  const n = d.n[i];
+  return !n ? null : d.alerta[i] === n ? "alerta" : d.rio[i] === n ? "rio" : "lluvia";
+}
+function cambiosNivel(cmus, N) {
+  const R = estado.riesgo, u = Math.min(N, R.dias.length - 1), out = { sube: [], sigue: [], baja: [] };
+  for (const c of cmus) {
+    const d = R.cmu[c];
+    if (!d) continue;
+    const niv = (i) => nivelRiesgo(d.r[i]) || 1, n0 = niv(0), m = estado.porCmu.get(c) ?? {};
+    let iMax = 1;
+    for (let i = 2; i <= u; i++) if (niv(i) > niv(iMax)) iMax = i;
+    const base = { c, n0, nombre: m.nam ?? c, prov: ABREV_PROV[m.jur] ?? m.jur ?? "", pob: Number(m.poblacion) || 0 };
+    if (niv(iMax) > n0) out.sube.push({ ...base, n1: niv(iMax), i: iMax, causa: causaDia(d, iMax), prob: d.prob[iMax] ?? 0 });
+    else if (n0 >= 4 && niv(iMax) >= 4) out.sigue.push({ ...base, n1: niv(iMax), i: iMax, causa: causaDia(d, iMax) ?? causaDia(d, 0), prob: d.prob[iMax] ?? 0 });
+    else if (n0 >= 3) {
+      const iB = Array.from({ length: u }, (_, k) => k + 1).find((i) => niv(i) < n0);
+      if (iB) out.baja.push({ ...base, n1: niv(iB), i: iB, causa: causaDia(d, 0), prob: d.prob[0] ?? 0 });
+    }
+  }
+  out.sube.sort((a, b) => b.n1 - a.n1 || a.i - b.i || b.pob - a.pob);
+  out.sigue.sort((a, b) => b.n1 - a.n1 || b.pob - a.pob);
+  out.baja.sort((a, b) => b.n0 - a.n0 || a.i - b.i || b.pob - a.pob);
+  return out;
+}
+// Recomendación para un municipio que cambia de nivel: según la amenaza y el lugar (terreno bajo, cloacas), con el día límite
+function recCambio(it) {
+  const R = estado.riesgo, d = R.cmu[it.c], m = estado.porCmu.get(it.c) ?? {}, dia = fmtDiaFrase(R.dias[it.i]), pct = fmt(100 * (it.prob ?? 0));
+  let txt;
+  if (it.causa === "rio") {
+    const c0 = d.c, D = R.dias[it.i];
+    const e = estado.datos.estaciones.features.filter((f) => f.properties[`nd_${D}`] != null && c0 && distanciaKm(c0, f.geometry.coordinates) <= 30)
+      .sort((a, b) => b.properties[`nd_${D}`] - a.properties[`nd_${D}`])[0]?.properties;
+    txt = t("rec_rio")(e ? escapar(e.estacion) : null, t("rio_nivel_pron")[Math.min(2, d.rio[it.i])], pct, dia);
+  } else if (it.causa === "alerta") txt = t("rec_alerta")(t(`nivel_alerta_${["", "amarilla", "naranja", "roja"][d.alerta[it.i]]}`) ?? "", dia);
+  else if (it.causa === "lluvia") txt = t("rec_lluvia")([0, 2, 5, 10][d.lluvia[it.i]], pct, dia);
+  else txt = t("rec_baja");
+  const pob = Number(m.poblacion) || 0, bajo = pob ? (100 * (Number(m.pob_terreno_bajo) || 0)) / pob : 0, sinCl = m.pct_cloaca == null ? 0 : 100 - Number(m.pct_cloaca);
+  const extra = [bajo >= 15 ? t("rec_bajo")(fmt(bajo)) : "", sinCl >= 30 ? t("rec_cloaca")(fmt(sinCl)) : ""].filter(Boolean).join(" ");
+  return `${txt}${extra ? ` ${extra}` : ""}`;
+}
+function bloqueCambios(cmus) {
+  const N = estado.horizonte ?? 7, C = cambiosNivel(cmus, N), tab = estado.cambiosTab && C[estado.cambiosTab].length ? estado.cambiosTab : C.sube.length ? "sube" : C.sigue.length ? "sigue" : "baja";
+  const lista = C[tab], todos = !!estado.cambiosTodos, vis = todos ? lista : lista.slice(0, 6), R = estado.riesgo;
+  const chip = (n) => `<i class="cb-niv" style="--c:var(--r${n})">${t("niveles_cortos")[n - 1]}</i>`;
+  const cuando = (it) => (tab === "sigue" ? t("cb_sigue")(it.i) : `${t("dentro_n")(it.i)} · ${fmtDia(R.dias[it.i], { weekday: "short", day: "numeric" }).replace(".", "")}`);
+  const filas = vis.map((it) => `<li class="cb-fila" data-cmu="${it.c}" tabindex="0">
+      <div class="cb-cab"><span class="cb-nombre"><b>${escapar(it.nombre)}</b><small>${escapar(it.prov)}</small></span>
+        <span class="cb-niveles">${chip(it.n0)}<span class="cb-flecha" aria-hidden="true">→</span>${chip(it.n1)}</span>
+        <span class="cb-cuando">${cuando(it)}</span></div>
+      <p class="cb-rec">${it.causa ? `<b>${t(`cb_causa_${it.causa}`)}</b> · ` : ""}${recCambio(it)}</p></li>`).join("");
+  const pest = ["sube", "sigue", "baja"].map((k) => `<button type="button" role="tab" data-cb-tab="${k}" aria-selected="${k === tab}">${t(`cb_tab_${k}`)} <span class="cb-n">${fmt(C[k].length)}</span></button>`).join("");
+  const horiz = [3, 7, 14].map((n) => `<button type="button" role="radio" data-cb-h="${n}" aria-checked="${n === N}">${t("n_dias")(n)}</button>`).join("");
+  return `<section class="tb-bloque tb-cambios"><h3>${tit("cb_t")}</h3>
+    <div class="cb-controles"><span class="etq">${t("cb_horizonte")}</span><div class="seg cb-horiz" role="radiogroup" aria-label="${t("cb_horizonte")}">${horiz}</div></div>
+    <div class="pestanas cb-pest" role="tablist">${pest}</div>
+    ${lista.length ? `<ol class="cb-lista">${filas}</ol>${lista.length > 6 ? `<button type="button" class="btn-texto cb-todos" data-cb-todos>${todos ? t("cb_menos") : t("cb_todos")(fmt(lista.length))}</button>` : ""}`
+      : `<p class="tb-sub cb-vacio">${t(`cb_vacio_${tab}`)(N)}</p>`}
+    <p class="tb-sub">${t("cb_nota")}</p></section>`;
+}
+function enlazarCambios(cont) {
+  cont.querySelectorAll("[data-cb-h]").forEach((b) => { b.onclick = () => { estado.horizonte = +b.dataset.cbH; estado.cambiosTodos = false; pintarTablero(); }; });
+  cont.querySelectorAll("[data-cb-tab]").forEach((b) => { b.onclick = () => { estado.cambiosTab = b.dataset.cbTab; estado.cambiosTodos = false; pintarTablero(); }; });
+  cont.querySelector("[data-cb-todos]")?.addEventListener("click", () => { estado.cambiosTodos = !estado.cambiosTodos; pintarTablero(); });
+  cont.querySelectorAll(".cb-fila").forEach((li) => {
+    const ir = () => { const l = estado.lugares.find((x) => x.nivel === "gl" && x.cmus[0] === li.dataset.cmu); if (l) elegirLugar("localidad", l); };
+    li.onclick = ir; li.onkeydown = (ev) => { if (ev.key === "Enter") ir(); };
+  });
 }
 
 // Situación del riesgo en viñetas, con tortas de población y "Qué hacer" armado con los datos del lugar: amenaza que
 // domina, nivel y duración, terreno, suelo, cloacas, barrios populares, centros de salud, antecedentes de El Niño,
 // ríos, alertas, lluvia de los próximos días y cuánto falta para el peor mes
 async function situacionRiesgo({ s, A, M, idx, peor, r, nivel, motor, ests, alertas }) {
-  const actual = estado.modo === "actual", iHoy = estado.iMesActual, circulo = s?.tipo === "punto";
+  const actual = vistaHoy(), iHoy = 0, circulo = s?.tipo === "punto", largo = { weekday: "long", day: "numeric", month: "long" };
   const cmus = circulo ? null : cmusSel(), muni = circulo && s.cmu ? estado.porCmu.get(s.cmu) : null;
   const Z = circulo ? rasgosRadios(A.radios) : rasgosZona(cmus);
   const ZM = circulo ? (s.cmu ? rasgosZona([s.cmu]) : null) : Z;   // los antecedentes de El Niño están por municipio
@@ -410,7 +487,8 @@ async function situacionRiesgo({ s, A, M, idx, peor, r, nivel, motor, ests, aler
   const pct = (a, b) => (b > 0 ? (100 * a) / b : null), fmtPct = (v) => (v > 0 && v < 1 ? "<1" : fmt(v));
   const bajoP = pct(Z.pobBajo, Z.pob), sinP = pct(Z.pobSinCloaca, Z.pobDatoCloaca);
   const e0 = ests[0], rioE0 = e0 ? escapar(nombreRio(e0.rio) || e0.estacion) : null;
-  const quebrada = motor[0] === "quebrada" && (motor[1] ?? 0) >= 3, crecida = motor[0] === "rio" && (motor[1] ?? 0) >= 3;
+  // Crecida: el río es la amenaza que manda; quebrada: lluvia fuerte sobre terreno empinado (crecidas repentinas)
+  const crecida = motor[0] === "rio" && (motor[1] ?? 0) >= 3, quebrada = motor[0] === "lluvia" && (motor[1] ?? 0) >= 3 && (Z.pend ?? 0) >= 8;
   const tiposAlerta = [...new Set(alertas.map((a) => t(`alerta_${a.tipo}`).toLowerCase()))].join(", ");
   const vin = [];
   // Situación: nivel, comparación y qué lo explica
@@ -426,13 +504,13 @@ async function situacionRiesgo({ s, A, M, idx, peor, r, nivel, motor, ests, aler
       alertas.length ? t("sit_alertas")(alertas.length, tiposAlerta, alertas.some((a) => a.nivel === "naranja" || a.nivel === "roja")) : ""].filter(Boolean);
     if (ahora.length) vin.push([t("v_ahora"), ahora.join(" ")]);
   }
-  // Período, duración y peor mes (en "condiciones actuales": del mes en curso al último del pronóstico)
-  const horiz = actual ? M.map((_, i) => i).filter((i) => i >= iHoy) : idx;
+  // Período, duración y día más comprometido (mirando hoy: de hoy a 14 días)
+  const horiz = actual ? M.map((_, i) => i) : idx;
   const altos = horiz.filter((i) => nivelRiesgo(A.riesgo[i]) >= 4);
   const iPeor = horiz.reduce((m, i) => ((A.riesgo[i] ?? -1) > (A.riesgo[m] ?? -1) ? i : m), horiz[0]);
   vin.push([t("v_periodo"), `${capitalizar(textoPeriodo("riesgo"))}. ${altos.length
-    ? t("meses_altos")(altos.length, horiz.length, actual, nombreMes(M[altos[0]]), nombreMes(M[altos[altos.length - 1]])) : t("sin_meses_altos")(actual)}`]);
-  vin.push([t("v_peor_mes"), `${capitalizar(nombreMes(M[iPeor], true))}: ${nombreNivel(A.riesgo[iPeor]).toLowerCase()} (${fmtRiesgo(A.riesgo[iPeor])}/10)`]);
+    ? t("dias_altos")(altos.length, horiz.length, actual, fmtDia(M[altos[0]]), fmtDia(M[altos[altos.length - 1]])) : t("sin_dias_altos")(actual)}`]);
+  vin.push([t("v_peor_dia"), `${fmtDia(M[iPeor], largo).replace(",", "")}${iPeor ? ` (${t("dentro_n")(iPeor)})` : ""}: ${nombreNivel(A.riesgo[iPeor]).toLowerCase()} (${fmtRiesgo(A.riesgo[iPeor])}/10)`]);
   // Motivo: por qué el agua no se absorbe ni se va
   const fac = [];
   if (crecida) fac.push(rioE0 ? t("mot_rio")(rioE0) : t("mot_rio_sin"));
@@ -480,15 +558,17 @@ async function situacionRiesgo({ s, A, M, idx, peor, r, nivel, motor, ests, aler
     for (let i = h0; i < Math.min(T.dias.length, h0 + 7); i++) if (S.lluvia[i] != null && (iMx < 0 || S.lluvia[i] > S.lluvia[iMx])) iMx = i;
     if (iMx >= 0 && S.lluvia[iMx] >= 20) prev.push([95, t("prev_lluvia_pronto")(fmtDiaFrase(T.dias[iMx]), fmt(S.lluvia[iMx]))]);
   }
-  if (!actual) {   // escenario de caudales: la estación con mayor probabilidad de evacuación en el período
-    const conProb = estacionesSel().filter((e) => e.conf === true || e.conf === "true")
-      .map((e) => ({ e, p: Math.max(...mesesVista().map((m) => Number(e[`pe_${m}`]) || 0)) })).sort((x, y) => y.p - x.p)[0];
-    if (conProb && conProb.p >= 0.5) prev.push([92, t("acc_rio_escenario")(escapar(conProb.e.estacion), fmt(conProb.p * 100))]);
+  {   // pronóstico de caudales (GloFAS en altura): la estación de la selección que primero llega a evacuación en los próximos días
+    const D = estado.riesgo.dias, conPron = estacionesSel().map((e) => {
+      const k = D.findIndex((d, i) => i > 0 && Number(e[`nd_${d}`]) >= 2);
+      return k > 0 ? { e, k, p: Number(e[`pd_${D[k]}`]) || 0 } : null;
+    }).filter(Boolean).sort((x, y) => x.k - y.k)[0];
+    if (conPron) prev.push([92, t("acc_rio_pron")(escapar(conPron.e.estacion), fmtDiaFrase(D[conPron.k]), fmt(conPron.p * 100))]);
   }
   if (e0 && (crecida || e0.estado === "alerta" || e0.estado === "evacuacion"))
     prev.push([88, t("prev_rio_seguir")(rioE0, escapar(e0.estacion), fmt(e0.h, 2), e0.nivel_alerta == null ? null : fmt(e0.nivel_alerta, 2), e0.nivel_evacuacion == null ? null : fmt(e0.nivel_evacuacion, 2))]);
   if (quebrada) prev.push([86, t("prev_quebrada")]);
-  if (iPeor > iHoy && nivelRiesgo(A.riesgo[iPeor]) >= 3) prev.push([70, t("prev_tiempo")(nombreMes(M[iPeor], true))]);
+  if (iPeor > iHoy && nivelRiesgo(A.riesgo[iPeor]) >= 3) prev.push([70, t("prev_tiempo")(fmtDiaFrase(M[iPeor]))]);
   if (bajoP >= 15) prev.push([50 + bajoP / 2, t("prev_bajo")(fmt(bajoP))]);
   if (sinP >= 20 && !quebrada) prev.push([45 + sinP / 2, t("prev_cloaca")(fmt(sinP))]);
   const nino = [["2015-16", ZM?.n16], ["2023-24", ZM?.n24]].filter(([, v]) => v != null).sort((a, b) => b[1] - a[1])[0];
@@ -501,9 +581,9 @@ async function situacionRiesgo({ s, A, M, idx, peor, r, nivel, motor, ests, aler
   if (nivel >= 3) prev.push([35, t("acc_kit")]);
   if (!prev.length) prev.push([1, t("acc_bajo")]);
   if (evac) { const ev = ests.find((e) => e.estado === "evacuacion"); emer.push([100, t("emer_rio_evac")(escapar(nombreRio(ev.rio) || ev.estacion), escapar(ev.estacion))]); }
-  if (actual && alertas.length) emer.push([96, t("emer_alerta")(tiposAlerta)]);
+  if (alertas.length) emer.push([96, t("emer_alerta")(tiposAlerta)]);
   if (quebrada) emer.push([90, t("emer_quebrada")]);
-  if (motor[0] === "agua" || bajoP >= 10) emer.push([80, t("emer_calles")]);
+  if (motor[0] === "lluvia" || bajoP >= 10) emer.push([80, t("emer_calles")]);
   if (crecida || e0?.estado === "alerta" || e0?.estado === "evacuacion") emer.push([78, t("emer_evacuar")]);
   if (bajoP >= 10 || nivel >= 3) emer.push([70, t("emer_luz")]);
   if (infra?.cercano) emer.push([66, t("emer_salud_cerca")(escapar(infra.cercano.n), fmt(infra.cercano.km, 1))]);
@@ -793,7 +873,7 @@ const elegirDia = (k) => { detenerReproduccion(false); estado.modo = "futuro"; e
 function chipsFiltros() {
   const chips = [];
   if (estado.sel) chips.push([t("filtro_lugar"), lugarTitulo(), "lugar"]);
-  if (estado.modo === "futuro") chips.push([t("filtro_periodo"), t("modo_futuro"), "periodo"]);
+  if (estado.capa === "riesgo" ? !vistaHoy() : estado.modo === "futuro") chips.push([t("filtro_periodo"), estado.capa === "riesgo" ? textoPeriodoCorto() : t("modo_futuro"), "periodo"]);
   if (!chips.length) return `<span class="an-sin-filtros">${t("sin_filtros")}</span>`;
   return `${chips.map(([etq, v, k]) => `<span class="filtro-activo"><span>${etq}: <b>${escapar(v)}</b></span>
     <button type="button" data-quitar="${k}" aria-label="${t("quitar_filtro")}: ${escapar(v)}" title="${t("quitar_filtro")}">${icono("cerrar")}</button></span>`).join("")}
@@ -814,13 +894,13 @@ function pintarAnalisis() {
       const k = b.dataset.quitar;
       if (k === "todo") return borrarTodo();
       if (k === "lugar") borrarFiltros();
-      if (k === "periodo") elegirModo("actual");
+      if (k === "periodo") { if (estado.capa === "riesgo") { detenerReproduccion(false); estado.rangoRiesgo = [0, 0]; actualizarTodo(); } else elegirModo("actual"); }
     };
   });
 }
 
 function analisisRiesgo(cont) {
-  const A = alcanceAnalisis(), M = estado.riesgo.meses, idx = indicesVista(), R = estado.riesgo;
+  const A = alcanceAnalisis(), M = estado.riesgo.dias, idx = indicesVista(), R = estado.riesgo;
   const filas = A.unidades.map((u) => {
     const cmus = u.cmus.filter((c) => R.cmu[c]);
     if (!cmus.length) return null;
@@ -846,7 +926,7 @@ function analisisRiesgo(cont) {
     if (!xs.length) return null;
     const pob = xs.map((c) => Math.max(1, Number(estado.porCmu.get(c)?.poblacion) || 1)), tot = sumar(pob);
     const pond = (fn) => sumar(xs.map((c, k) => (fn(R.cmu[c]) ?? 0) * pob[k])) / tot;
-    const iP = idx.reduce((m, i) => (pond((d) => d.r[i]) > pond((d) => d.r[m]) ? i : m), idx[0]);   // su peor mes
+    const iP = idx.reduce((m, i) => (pond((d) => d.r[i]) > pond((d) => d.r[m]) ? i : m), idx[0]);   // su peor día
     return { r: pond((d) => d.r[iP]), h: pond((d) => d.h[iP]), e: pond((d) => d.E), v: pond((d) => d.V) };
   };
   const grupos = [[A.nombre, hev(A.cmus), "var(--s-1)"], ...(A.contexto && A.contexto.nombre !== "Argentina" ? [[A.contexto.nombre, hev(A.contexto.cmus), "var(--tinta-3)"]] : []),
@@ -856,7 +936,7 @@ function analisisRiesgo(cont) {
     <div class="explica">${medidas.map(([k, etq, sub]) => `<div class="explica-fila"><span class="explica-etq">${etq}${sub ? `<small>${sub}</small>` : ""}</span>
       <div class="explica-barras">${grupos.map(([n, g, c]) => `<div class="explica-barra" data-tip="${escapar(`<b>${escapar(n)}</b><span>${etq}: ${fmtRiesgo(g[k])}/10</span>`)}">
         <span class="explica-pista"><span style="width:${limitar(g[k] * 10, 0, 100)}%;background:${c}"></span></span><b>${fmtRiesgo(g[k])}</b></div>`).join("")}</div></div>`).join("")}</div>`;
-  cont.innerHTML = `${cabezaAnalisis(t("an_riesgo_t")(escapar(A.nombre)), t("an_riesgo_sub")(estado.datos.resumen?.calculado ? fechaSola(estado.datos.resumen.calculado) : "–"))}
+  cont.innerHTML = `${cabezaAnalisis(t("an_riesgo_t")(escapar(A.nombre)), t("an_riesgo_sub")(textoPeriodoCorto(), estado.riesgo.generado ? fechaHora(estado.riesgo.generado) : "–"))}
     <div class="an-grilla tres">
       <section class="an-bloque"><h3>${tit("pareto_t")}</h3><p class="tb-sub">${t("pareto_nota")}</p>
         <p class="hallazgo">${t("pareto_hallazgo")(n80, orden.length, t("niveles_zona")[A.nivel])}${iElegida >= 0 ? ` ${t("pareto_puesto")(escapar(orden[iElegida].u.nombre), iElegida + 1)}` : ""}</p>

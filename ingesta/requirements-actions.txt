@@ -7,3 +7,5 @@ scikit-learn
 scipy
 earthengine-api
 google-auth
+ecmwf-opendata
+eccodes
