@@ -75,3 +75,7 @@
 
 ## Clima de los Niños precalculado (16-nov-2026)
 - **ERA5-Land diario (Earth Engine `ECMWF/ERA5_LAND/DAILY_AGGR`)**: humedad del suelo 0-7 cm (mínimo y máximo de octubre a abril de los Niños 1997-2023), evapotranspiración de referencia de Hargreaves (FAO-56, ec. 52) con temperatura máxima y mínima, y la peor lluvia de 3 días de los Niños 1951-1996. `earth_engine/clima_ninos.py` → `web/datos/clima_ninos/`. Reemplaza los pedidos diarios al archivo de Open-Meteo que hacía el simulador al abrirse (~350 unidades del cupo por apertura).
+
+### Zonas rurales sin gobierno local (16-nov-2026)
+Departamentos del INDEC menos sus gobiernos locales (`ingesta/zonas_rurales.py`): 162 zonas, 1,02 millones de km² y 434.729
+habitantes (censo 2022). Mismas fuentes que los gobiernos locales; en Earth Engine con píxeles de 250-500 m.

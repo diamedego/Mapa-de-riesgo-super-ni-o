@@ -67,11 +67,12 @@ def ajustar() -> None:
     gumbel = lambda T: mu - alfa * (0.5772 + np.log(-np.log(1 - 1 / T)))
     U = np.stack([gumbel(2), gumbel(5), gumbel(10)]).astype(np.float32)
     np.save(RAIZ / "data" / "procesado" / "umbrales_lluvia.npy", U)
-    mun = gpd.read_file(RAIZ / "web" / "datos" / "municipios_geo.geojson").to_crs(4326)
-    c = mun.geometry.representative_point()
+    # El mismo punto de consulta que usa el riesgo diario (en las zonas rurales, el centro de su población)
+    mun = pd.read_csv(RAIZ / "data" / "referencia" / "puntos_gobiernos_locales.csv", dtype={"cmu": str})
+    c = gpd.GeoSeries(gpd.points_from_xy(mun["lon"], mun["lat"]), crs=4326)
     col = ((c.x - LN.OESTE) / LN.PASO).astype(int).clip(0, LN.ANCHO - 1).values
     fil = ((LN.NORTE - c.y) / LN.PASO).astype(int).clip(0, LN.ALTO - 1).values
-    cmu = mun["cmu"] if "cmu" in mun else mun.iloc[:, 0]
+    cmu = mun["cmu"]
     # Si el centro cae en una celda sin dato (costa, laguna), el promedio de las celdas con dato en 5 × 5 alrededor
     def valor(k, f, c):
         v = U[k, f, c]

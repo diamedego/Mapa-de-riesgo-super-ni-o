@@ -2,7 +2,7 @@
 const TEXTOS = {
   es: {
     titulo: "Argentina frente a El Niño 2026–27",
-    bajada: "Monitoreá el riesgo de inundación en los 2.282 municipios de Argentina.<br>Analizá las condiciones de hoy y su evolución en las próximas dos semanas.<br>Explorá mapas interactivos y visualizaciones 3D basados en datos públicos.",
+    bajada: "Monitoreá el riesgo de inundación en todo el territorio argentino: 2.282 municipios y 162 zonas rurales sin gobierno local.<br>Analizá las condiciones de hoy y su evolución en las próximas dos semanas.<br>Explorá mapas interactivos y visualizaciones 3D basados en datos públicos.",
     saltar: "Ir al análisis", recorrido: "Recorrido guiado", version_completa: "Versión completa",
     sim_boton: "Simulador en 3D", sim_desc: "Simulador de lluvia y zonas inundadas en maqueta 3D", sim_elegir_punto: "Primero elegí un punto: tocá el mapa o buscá una dirección", sel_radio: (km) => `Radio: ${km} km`, sim_boton_sub: "Relieve real: hasta dónde llega el agua según los milímetros",
     sim_boton_elegir: "Primero elegí un punto: tocá el mapa o buscá una dirección", sim_boton_elegir_ya: "Tocá un punto del mapa o buscá una dirección y volvé acá",
@@ -217,7 +217,7 @@ const TEXTOS = {
     meses_largos: { "01": "enero", "02": "febrero", "03": "marzo", "04": "abril", "05": "mayo", "06": "junio", "07": "julio", "08": "agosto", "09": "septiembre", "10": "octubre", "11": "noviembre", "12": "diciembre" },
     u_millones: "M", u_mil: "mil",
     // Tablero
-    sel_pais: "Todo el país", sel_zona: "Zona elegida", sel_circulo: (k) => `Círculo de ${k} km`, sub_pais: "2.282 gobiernos locales",
+    sel_pais: "Todo el país", sel_zona: "Zona elegida", sel_circulo: (k) => `Círculo de ${k} km`, sub_pais: "2.282 gobiernos locales y 162 zonas rurales",
     provincia: "Provincia", punto_en_mapa: "Punto en el mapa", punto_en: (m) => `Punto en ${m}`, radio_km: "Radio del círculo", radio_corto: "Radio",
     quitar_seleccion: "Quitar la selección", ver_municipio: (m) => `Ver todo ${m}`,
     que_hacer: "Qué hacer", nota_oficial: "Orientativo, no es un producto oficial. Ante una emergencia, seguí a Defensa Civil, el SMN y el INA.",
@@ -458,7 +458,7 @@ const TEXTOS = {
       { t: "Población y vivienda", items: [
         { n: "Población, cloacas, NBI y vivienda", f: "INDEC, Censo 2022 (radios censales)", tipo: "hist", cada: "fijo (censo)", u: "https://censo.gob.ar", d: "66.515 radios censales: personas, hogares sin cloaca, necesidades básicas insatisfechas y materiales de la vivienda." },
         { n: "Barrios populares", f: "Registro Nacional de Barrios Populares (RENABAP)", tipo: "hist", cada: "fijo", d: "6.467 barrios con su superficie, cantidad de viviendas y familias." },
-        { n: "Municipios, departamentos y localidades", f: "INDEC (gobiernos locales), IGN y Georef", tipo: "ref", cada: "fijo", u: "https://www.ign.gob.ar", d: "Los 2.282 gobiernos locales, las provincias, los departamentos y las localidades del buscador." },
+        { n: "Municipios, departamentos y localidades", f: "INDEC (gobiernos locales), IGN y Georef", tipo: "ref", cada: "fijo", u: "https://www.ign.gob.ar", d: "Los 2.282 gobiernos locales, las 162 zonas rurales sin gobierno local (lo que queda de cada departamento fuera de sus municipios), las provincias, los departamentos y las localidades del buscador." },
       ] },
       { t: "Infraestructura y mapa", items: [
         { n: "Hospitales, bombeo, plantas y subestaciones", f: "OpenStreetMap (ODbL)", tipo: "ref", cada: "fijo (descarga propia)", u: "https://www.openstreetmap.org", d: "Infraestructura crítica para las recomendaciones y la capa del mapa; la cobertura es despareja según la zona." },
@@ -546,7 +546,7 @@ const TEXTOS = {
   },
   en: {
     titulo: "Argentina facing El Niño 2026–27",
-    bajada: "Monitor flood risk across Argentina's 2,282 municipalities.<br>Analyze today's conditions and how they evolve over the next two weeks.<br>Explore interactive maps and 3D visualizations built on public data.",
+    bajada: "Monitor flood risk across all of Argentina: 2,282 municipalities and 162 rural areas without local government.<br>Analyze today's conditions and how they evolve over the next two weeks.<br>Explore interactive maps and 3D visualizations built on public data.",
     saltar: "Skip to analysis", recorrido: "Guided tour", version_completa: "Full version",
     sim_boton: "3D simulator", sim_desc: "Rain and flooded-area simulator on a 3D terrain model", sim_elegir_punto: "Pick a point first: tap the map or search an address", sel_radio: (km) => `Radius: ${km} km`, sim_boton_sub: "Real terrain: how far the water reaches by millimeters of rain",
     sim_boton_elegir: "Pick a point first: tap the map or search an address", sim_boton_elegir_ya: "Tap a point on the map or search an address, then come back",
@@ -760,7 +760,7 @@ const TEXTOS = {
     meses: { "01": "Jan", "02": "Feb", "03": "Mar", "04": "Apr", "05": "May", "06": "Jun", "07": "Jul", "08": "Aug", "09": "Sep", "10": "Oct", "11": "Nov", "12": "Dec" },
     meses_largos: { "01": "January", "02": "February", "03": "March", "04": "April", "05": "May", "06": "June", "07": "July", "08": "August", "09": "September", "10": "October", "11": "November", "12": "December" },
     u_millones: "M", u_mil: "k",
-    sel_pais: "Whole country", sel_zona: "Selected area", sel_circulo: (k) => `${k} km circle`, sub_pais: "2,282 local governments",
+    sel_pais: "Whole country", sel_zona: "Selected area", sel_circulo: (k) => `${k} km circle`, sub_pais: "2,282 local governments and 162 rural areas",
     provincia: "Province", punto_en_mapa: "Point on the map", punto_en: (m) => `Point in ${m}`, radio_km: "Circle radius", radio_corto: "Radius",
     quitar_seleccion: "Clear selection", ver_municipio: (m) => `See all of ${m}`,
     que_hacer: "What to do", nota_oficial: "Guidance only, not an official product. In an emergency, follow Civil Defense, SMN and INA.",
@@ -998,7 +998,7 @@ const TEXTOS = {
       { t: "Population and housing", items: [
         { n: "Population, sewers, unmet needs and housing", f: "INDEC, 2022 Census (census tracts)", tipo: "hist", cada: "fixed (census)", u: "https://censo.gob.ar", d: "66,515 census tracts: people, homes without sewers, unmet basic needs and housing materials." },
         { n: "Informal settlements", f: "National Registry of Informal Settlements (RENABAP)", tipo: "hist", cada: "fixed", d: "6,467 settlements with their area, number of homes and families." },
-        { n: "Municipalities, departments and towns", f: "INDEC (local governments), IGN and Georef", tipo: "ref", cada: "fixed", u: "https://www.ign.gob.ar", d: "The 2,282 local governments, provinces, departments and the search box's towns." },
+        { n: "Municipalities, departments and towns", f: "INDEC (local governments), IGN and Georef", tipo: "ref", cada: "fixed", u: "https://www.ign.gob.ar", d: "The 2,282 local governments, the 162 rural areas without local government (what is left of each department outside its municipalities), provinces, departments and the search box's towns." },
       ] },
       { t: "Infrastructure and map", items: [
         { n: "Hospitals, pumping, plants and substations", f: "OpenStreetMap (ODbL)", tipo: "ref", cada: "fixed (own download)", u: "https://www.openstreetmap.org", d: "Critical infrastructure for the recommendations and the map layer; coverage is uneven across areas." },

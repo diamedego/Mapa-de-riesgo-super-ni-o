@@ -1,11 +1,11 @@
 {
-  "filas_sql": 15974,
-  "filas_python": 15974,
-  "filas_cruzadas": 15974,
+  "filas_sql": 17108,
+  "filas_python": 17108,
+  "filas_cruzadas": 17108,
   "diferencia_maxima": {
     "amenaza": 4.999927256277292e-05,
     "h_agua": 4.9999272563328034e-05,
-    "h_rio": 4.976059872148497e-05,
+    "h_rio": 4.996688076630562e-05,
     "h_quebrada": 4.999528860105684e-05,
     "exposicion": 4.998273717937707e-05,
     "vulnerabilidad": 4.999999999988347e-05,
@@ -14,9 +14,9 @@
     "ranking_relativo_sql": 0.0,
     "silver_poblacion": 0.0,
     "silver_pob_terreno_bajo": 0.0,
-    "silver_pct_cloaca": 9.237055564881302e-14,
+    "silver_pct_cloaca": 7.105427357601002e-14,
     "silver_pct_nbi": 1.5987211554602254e-14,
-    "silver_pct_materiales_deficientes": 4.263256414560601e-14
+    "silver_pct_materiales_deficientes": 2.842170943040401e-14
   },
   "coincide": true
 }

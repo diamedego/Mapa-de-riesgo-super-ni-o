@@ -862,3 +862,17 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
   de la maqueta sin pisarse. Auditoría a 390 × 844: sin solapes, sin desborde horizontal, sin «…» nuevos.
 - Consulta de la usuaria: el 37 % del país aparece «sin datos». Causa: los 2.282 gobiernos locales del IGN cubren el 63 % del territorio
   (1,76 de 2,79 millones de km²); el resto son zonas rurales sin gobierno local. Método a decidir.
+
+## 16-nov-2026 — Zonas rurales sin gobierno local (el 37 % «sin datos» del mapa)
+- Decisión de la usuaria: calcularlas con el mismo método. `ingesta/zonas_rurales.py` arma, por departamento, lo que queda fuera de
+  sus gobiernos locales (partes < 2 km² y zonas < 25 km² se descartan; sin Antártida ni Islas del Atlántico Sur, que no tienen censo):
+  162 zonas, 1,02 millones de km², cmu = "R" + código de departamento. `gobiernos_locales.parquet` pasa a tener las dos cosas
+  (lo del INDEC queda en `gobiernos_locales_indec.parquet`; `limites.py` lo arma solo).
+- Earth Engine (`earth_engine/zonas_rurales_ee.py`): terreno, agua en los Niños, suelo, uso del suelo y lluvia, solo para las zonas
+  nuevas y con píxeles de 250-500 m (son enormes; los municipios siguen con 30-90 m).
+- Punto de consulta de cada zona (lluvia, alertas, río): centro de su población ponderado por habitantes de los radios rurales.
+- Resultado: 2.444 unidades, todas con riesgo; +434.729 personas que antes no entraban al índice; +95 localidades rurales en el
+  buscador. Zonas rurales con riesgo muy alto hoy: Santiago del Estero (llanura del Dulce y el Salado), coherentes con los
+  municipios vecinos (Icaño 7,3; Suncho Corral 7,1). Réplica SQL igual a Python.
+- Además: países vecinos con filete gris fino (límites y costas, Natural Earth 1:50 M) y, en el celular, la cuadrícula de 20 px de la
+  computadora.

@@ -1,7 +1,8 @@
 """Límites territoriales: base de todos los cruces (nación → provincia → departamento → gobierno local → radio).
 
 Fuentes:
-- INDEC GeoNode (WFS): departamentos, gobiernos locales, radios y fracciones censales 2022.
+- INDEC GeoNode (WFS): departamentos, gobiernos locales, radios y fracciones censales 2022. A los gobiernos locales se suman
+  las zonas rurales sin gobierno local de cada departamento (ingesta/zonas_rurales.py).
 - IGN GeoServer (WFS): provincias.
 - API Georef (datos.gob.ar): catálogo de municipios con centroides (sirve para consultar APIs por punto).
 """
@@ -17,7 +18,7 @@ CAPAS = [
     # (fuente, base WFS, capa, archivo destino, licencia)
     ("IGN", IGN_WFS, "ign:provincia", "provincias.parquet", "CC BY 4.0 (IGN)"),
     ("INDEC", INDEC_WFS, "geonode:departamentos", "departamentos.parquet", "INDEC, uso libre con cita"),
-    ("INDEC", INDEC_WFS, "geonode:gobiernos_locales4", "gobiernos_locales.parquet", "INDEC, uso libre con cita"),
+    ("INDEC", INDEC_WFS, "geonode:gobiernos_locales4", "gobiernos_locales_indec.parquet", "INDEC, uso libre con cita"),
     ("INDEC", INDEC_WFS, "geonode:fracciones_censales", "fracciones_censales.parquet", "INDEC, uso libre con cita"),
     ("INDEC", INDEC_WFS, "geonode:radios_censales2", "radios_censales.parquet", "INDEC, uso libre con cita"),
 ]
@@ -34,6 +35,10 @@ def main() -> None:
         except Exception as e:  # se registra el fallo y se sigue con la próxima capa
             registrar(fuente, capa, base, "", "GeoParquet", None, licencia, "error", str(e)[:200])
             print(f"  ERROR: {e}")
+
+    # Gobiernos locales + zonas rurales sin gobierno local (lo que queda de cada departamento): gobiernos_locales.parquet
+    import zonas_rurales
+    zonas_rurales.main()
 
     # Georef: municipios con centroide (todas las páginas)
     s = sesion()

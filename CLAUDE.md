@@ -3,7 +3,8 @@
 Proyecto de portfolio de Diamela (ingeniera química). Publicación única en LinkedIn ~1-dic-2026: video del mapa 3D + web + este repo. Bilingüe ES/EN. Solo datos de Argentina. Foco actual: **solo riesgo de inundación** (dengue, impacto agrícola y capa social quedan pospuestos).
 
 ## Estructura
-- `ingesta/` — un script por fuente (SMN, INA, Open-Meteo SEAS5/GloFAS/ECMWF, IGN, INDEC, Censo, OSM, RENABAP, BA Data, históricos). `comun.py`: sesión HTTP con reintentos, descarga WFS paginada, registro en `data/manifest.csv`.
+- `ingesta/` — un script por fuente (SMN, INA, Open-Meteo SEAS5/GloFAS/ECMWF, IGN, INDEC, Censo, OSM, RENABAP, BA Data, históricos).
+  `zonas_rurales.py`: 162 zonas rurales sin gobierno local (cmu «R» + departamento) sumadas a los 2.282 gobiernos locales (16-nov). `comun.py`: sesión HTTP con reintentos, descarga WFS paginada, registro en `data/manifest.csv`.
 - `earth_engine/` — terreno, agua histórica, MapBiomas, suelo, Dynamic World, lluvia ERA5. `lluvia_ninos.py`: peor tormenta de cada Niño
   (IMERG, 1997-98 ERA5-Land) y desagües de 2 años por celda de 0,1° → `web/datos/lluvia_ninos/`; `clima_ninos.py`: rango de humedad,
   ET0 y Niños 1951-96 por celda → `web/datos/clima_ninos/` (el simulador ya no pide series diarias a Open-Meteo); `validar_lluvia.py`: fuentes contra 482

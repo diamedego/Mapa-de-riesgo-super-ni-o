@@ -11,7 +11,7 @@ Herramienta experimental, orientativa y no oficial. Ante una emergencia, seguir 
 
 ## Qué hace
 
-- **Riesgo de inundación para hoy y cada uno de los próximos 14 días** en los 2.282 gobiernos locales y los 66.515 radios censales de la Argentina. Estructura INFORM (amenaza × exposición × vulnerabilidad) con umbrales físicos fijos. La amenaza de cada día combina la propensión del lugar a juntar agua con el pronóstico: lluvia de los 50 escenarios del ensamble del ECMWF frente a la lluvia de 2, 5 y 10 años del lugar, ríos (GloFAS corregido con lo que mide el INA) y alertas del SMN.
+- **Riesgo de inundación para hoy y cada uno de los próximos 14 días** en los 2.282 gobiernos locales, las 162 zonas rurales sin gobierno local y los 66.515 radios censales de la Argentina. Estructura INFORM (amenaza × exposición × vulnerabilidad) con umbrales físicos fijos. La amenaza de cada día combina la propensión del lugar a juntar agua con el pronóstico: lluvia de los 50 escenarios del ensamble del ECMWF frente a la lluvia de 2, 5 y 10 años del lugar, ríos (GloFAS corregido con lo que mide el INA) y alertas del SMN.
 - **Qué cambia en los próximos días:** zonas que suben o bajan de nivel, cuándo y por qué, con recomendaciones armadas con los datos de cada lugar.
 - **Simulador hidráulico 3D** en el navegador (ecuaciones de aguas poco profundas en forma inercial, infiltración de Green-Ampt) sobre relieve real:
   - repite la peor tormenta de cada Niño desde 1997–98 (satélite IMERG), con la humedad del suelo y el río de esos mismos días;
@@ -20,7 +20,7 @@ Herramienta experimental, orientativa y no oficial. Ante una emergencia, seguir 
 
 ## What it does
 
-- **Flood risk for today and each of the next 14 days** for Argentina's 2,282 municipalities and 66,515 census tracts, using the INFORM structure (hazard × exposure × vulnerability) with fixed physical thresholds. Each day's hazard combines the place's propensity to hold water with the forecast: rain from the 50-member ECMWF ensemble against the local 2-, 5- and 10-year rainfall, rivers (GloFAS corrected with INA gauges) and national weather warnings.
+- **Flood risk for today and each of the next 14 days** for Argentina's 2,282 municipalities, 162 rural areas without local government and 66,515 census tracts, using the INFORM structure (hazard × exposure × vulnerability) with fixed physical thresholds. Each day's hazard combines the place's propensity to hold water with the forecast: rain from the 50-member ECMWF ensemble against the local 2-, 5- and 10-year rainfall, rivers (GloFAS corrected with INA gauges) and national weather warnings.
 - **What changes in the coming days:** areas rising or falling in risk level, when and why, with advice built from local data.
 - **3D hydraulic simulator** running in the browser (local inertial shallow-water equations, Green-Ampt infiltration) on real terrain: it replays the worst storm of each El Niño since 1997–98 and simulates the next 15 days from today's conditions.
 - **Published validation** against rain gauges, Sentinel-1 radar and Dynamic World.
