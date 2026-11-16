@@ -70,6 +70,7 @@ jobs:
           python web/exportar_alertas.py || echo "::warning::No se pudieron exportar las alertas; se reintenta en 3 horas"
 
       - name: Identidad en Google Cloud para Earth Engine (cuenta de servicio, sin claves)
+        id: google
         if: steps.tarea.outputs.tarea == 'smn' || steps.tarea.outputs.tarea == 'tiempo'
         continue-on-error: true
         uses: google-github-actions/auth@v2
@@ -80,12 +81,20 @@ jobs:
       - name: Agua de hoy vista por radar (Sentinel-1; el mapa de Earth Engine vence a las horas)
         if: steps.tarea.outputs.tarea == 'smn' || steps.tarea.outputs.tarea == 'tiempo'
         continue-on-error: true
-        run: python earth_engine/agua_hoy_radar.py
+        # El resultado queda en data/archivo/diagnostico/ (se sube con los datos): así se ve el error sin entrar a GitHub
+        run: |
+          set +e   # que un error quede escrito en el diagnóstico en vez de cortar el paso
+          mkdir -p data/archivo/diagnostico
+          { echo "corrida $(date -u +%F\ %H:%M) UTC · identidad Google: ${{ steps.google.outcome }} · credenciales: ${GOOGLE_APPLICATION_CREDENTIALS:+sí}"
+            python earth_engine/agua_hoy_radar.py 2>&1 | tail -25; echo "salida: ${PIPESTATUS[0]}"; } > data/archivo/diagnostico/radar.txt
 
       - name: Riesgo de hoy y de los próximos 14 días (ensamble ECMWF, GloFAS, alturas INA y alertas SMN)
         if: steps.tarea.outputs.tarea == 'tiempo'
         continue-on-error: true
-        run: python modelos/riesgo_diario.py
+        run: |
+          set +e   # que un error quede escrito en el diagnóstico en vez de cortar el paso
+          mkdir -p data/archivo/diagnostico
+          { echo "corrida $(date -u +%F\ %H:%M) UTC"; python modelos/riesgo_diario.py 2>&1 | grep -av "%|" | tail -25; echo "salida: ${PIPESTATUS[0]}"; } > data/archivo/diagnostico/riesgo_diario.txt
 
       - name: Pronóstico de lluvia a 16 días (ECMWF)
         if: steps.tarea.outputs.tarea == 'ina'

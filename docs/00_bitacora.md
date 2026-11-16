@@ -828,3 +828,9 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 - Tenaris Siderca: el centro del polígono de OSM cae ~770 m al norte de la entrada; ahora va a la Portería 1 (Dr. Simini 250, Waze).
 - Simulador: al elegir otro Niño la maqueta vuelve enseguida a la imagen seca de hoy y queda así hasta ▶ (antes quedaban las
   lagunas de la corrida anterior).
+
+## 16-nov-2026 (mañana) — diagnóstico de la automatización
+- Las corridas programadas de GitHub salen con horas de atraso (la de 05:20 ART corre ~12:00; la de 17:20, ~21:00).
+- El agua por radar no se regeneró en ninguna corrida desde que se la sumó (radar_agua.json sigue siendo la de 15-nov 21:19 UTC). El mapa
+  de Earth Engine de esa hora seguía respondiendo 13 h después. Para ver el error sin entrar a GitHub, el flujo guarda ahora el
+  resultado de los pasos de radar y de riesgo diario en `data/archivo/diagnostico/` (se sube con los datos).
