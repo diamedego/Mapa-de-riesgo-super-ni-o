@@ -1610,7 +1610,9 @@ body[data-lamina="3"] .lec-1 { display: none; }
   .periodo-fila .periodo-texto { display: flex; align-items: center; min-height: 40px; padding: 0 8px; }
   .hoja-mapa #mapa, .hoja-mapa .reticula, .hoja-mapa #particulas, .hoja-mapa .ley-relieve, .hoja-mapa .linea-tiempo { grid-row: 2 / 3; grid-column: 1 / 2; }   /* lo absoluto, dentro de la fila del mapa */
   .hoja-mapa #mapa, .hoja-mapa .reticula { top: 0; bottom: 0; height: auto; }
-  .hoja-mapa .mapa-marco > #mapa { background-color: var(--superficie); background-image: linear-gradient(var(--cuadricula) 1px, transparent 1px), linear-gradient(90deg, var(--cuadricula) 1px, transparent 1px); background-size: 16px 16px; }
+  /* El mismo papel que en la computadora: cuadrícula de 20 px bajo el velo de la hoja */
+  .hoja-mapa .mapa-marco > #mapa { background: linear-gradient(var(--velo-hoja), var(--velo-hoja)), linear-gradient(var(--cuadricula) 1px, transparent 1px) 0 0 / 20px 20px,
+    linear-gradient(90deg, var(--cuadricula) 1px, transparent 1px) 0 0 / 20px 20px, var(--fondo); }
   .hoja-mapa .mapa-marco .maplibregl-ctrl-bottom-left { display: none; }   /* con dos dedos se acerca y se gira: los botones sobran */
   .hoja-mapa .refs { position: static; grid-row: 3; grid-column: 1; top: auto; right: auto; bottom: auto; transform: none; width: auto; padding: 16px; border: 0; border-top: 1px solid var(--borde-fuerte); }
   .hoja-mapa .refs .mapa-titulo small { display: block; }
