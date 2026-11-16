@@ -1940,7 +1940,8 @@ async function prepararPronostico() {
   const d = SIM.datos, cont = document.getElementById("sim-modo-pronostico");
   if (!d || !cont) return;
   if (SIM.pron?.clave !== SIM.clave) {
-    SIM.pron = { clave: SIM.clave, variante: "probable" };
+    const Rl = estado.riesgo.cmu[d.s.cmu], alto = Rl && Math.max(...Rl.r) >= CORTES[2];
+    SIM.pron = { clave: SIM.clave, variante: alto ? "pesimista" : "probable" };   // con riesgo alto, el escenario que usa el mapa para avisar
     cont.innerHTML = `<p class="sim-hint">${t("pron_cargando")}</p>`;
     avisoProgreso(t("pron_cargando"));
     const [met, ens, rad, clima] = await Promise.all([lluviaDelPunto(d.s.punto, sumarDias(hoyLocal(), DIAS_PRON)).catch(() => null), ensambleLluvia(d.s.punto),
@@ -2023,19 +2024,32 @@ function diasPronostico(P) {
   });
   return [...out.values()].sort((a, b) => a.off - b.off);
 }
-function graficoPronostico(dias) {
-  const W = 340, Hh = 128, iz = 40, de = 6, ar = 18, ab = 18, n = dias.length, max = Math.max(5, ...dias.map((x) => Math.max(x.real + x.pron, x.pes))),
-    bw = (W - iz - de) / n, y = (v) => ar + (Hh - ar - ab) * (1 - v / max);
-  const barras = dias.map((x, i) => {
-    const x0 = iz + i * bw + 1, w = Math.max(1, bw - 2), v = x.tramo === "pasado" ? x.real : x.tramo === "baja" ? x.prob : x.real + x.pron;
-    const pes = x.tramo === "baja" && x.pes > x.prob ? `<rect x="${x0}" y="${y(x.pes)}" width="${w}" height="${y(x.prob) - y(x.pes)}" class="pron-pes"/>` : "";
-    return `${pes}<rect x="${x0}" y="${y(v)}" width="${w}" height="${Math.max(0, Hh - ab - y(v))}" class="pron-b ${x.tramo}"><title>${fmtDia(x.iso)}: ${fmt(v)} mm${x.tramo === "baja" ? ` · ${t("pron_var_pesimista")} ${fmt(x.pes)} mm` : ""}</title></rect>`;
-  }).join("");
+// Gráfico de la lluvia de cada día: lo que pasó (14 días) y lo pronosticado (15), con los umbrales del SMN de este lugar (lluvia
+// diaria de alerta amarilla, naranja y roja: método de la Nota Técnica SMN 2021-109, ver earth_engine/umbrales_smn.py)
+function graficoPronostico(dias, umb, diaPico) {
+  const W = 640, Hh = 200, iz = 40, de = 72, ar = 16, ab = 32, n = dias.length;
+  const val = (x) => (x.tramo === "pasado" ? x.real : x.tramo === "baja" ? (SIM.pron.variante === "pesimista" ? x.pes : x.prob) : x.real + x.pron);
+  const lim = umb ? umb.filter((v) => v > 0) : [];
+  const max = Math.max(10, ...dias.map((x) => Math.max(val(x), x.pes)), ...(lim.length ? [lim[1] ?? lim[0]] : [])) * 1.08;
+  const bw = (W - iz - de) / n, y = (v) => ar + (Hh - ar - ab) * (1 - Math.min(v, max) / max);
   const iHoy = dias.findIndex((x) => x.off === 0), xh = iz + iHoy * bw;
-  const eje = [0, max / 2, max].map((v) => `<text x="${iz - 4}" y="${y(v) + 3}" text-anchor="end" class="pron-eje">${fmt(v)}</text>`).join("") + `<text x="2" y="8" class="pron-eje">${t("mm_dia")}</text>`;
-  const etq = [[0, "-14"], [iHoy, t("pr_hoy")], [n - 1, `+${DIAS_PRON}`]].map(([i, txt]) => `<text x="${iz + i * bw + bw / 2}" y="${Hh - 4}" text-anchor="middle" class="pron-eje">${txt}</text>`).join("");
-  return `<svg viewBox="0 0 ${W} ${Hh}" class="pron-graf" role="img" aria-label="${t("pron_graf_aria")}">${eje}<line x1="${xh}" x2="${xh}" y1="${ar - 4}" y2="${Hh - ab}" class="pron-hoy"/>${barras}${etq}</svg>`;
+  const barras = dias.map((x, i) => {
+    const x0 = iz + i * bw + 1, w = Math.max(1, bw - 2), v = val(x), pico = x.iso === diaPico ? " pico" : "";
+    const rango = x.tramo === "baja" && x.pes > x.prob ? `<rect x="${x0}" y="${y(x.pes)}" width="${w}" height="${Math.max(0, y(x.prob) - y(x.pes))}" class="pron-pes"/>` : "";
+    return `${rango}<rect x="${x0}" y="${y(v)}" width="${w}" height="${Math.max(0, Hh - ab - y(v))}" class="pron-b ${x.tramo}${pico}"><title>${fmtDia(x.iso)}: ${fmt(v)} mm${x.tramo === "baja" ? ` (${t("pron_var_probable").toLowerCase()} ${fmt(x.prob)} · ${t("pron_var_pesimista").toLowerCase()} ${fmt(x.pes)})` : ""}</title></rect>`;
+  }).join("");
+  const nivUmb = ["amarilla", "naranja", "roja"];
+  const lineas = (umb ?? []).map((v, k) => v > 0 && v <= max ? `<line x1="${iz}" x2="${W - de}" y1="${y(v)}" y2="${y(v)}" class="pron-umb ${nivUmb[k]}"/><text x="${W - de + 4}" y="${y(v) + 3}" class="pron-umb-t ${nivUmb[k]}">${t(`pron_umb_${nivUmb[k]}`)} ${fmt(v)}</text>` : "").join("");
+  const eje = [0, max / 2, max].map((v) => `<line x1="${iz}" x2="${W - de}" y1="${y(v)}" y2="${y(v)}" class="pron-grilla"/><text x="${iz - 6}" y="${y(v) + 3}" text-anchor="end" class="pron-eje">${fmt(v)}</text>`).join("") + `<text x="0" y="10" class="pron-eje">mm</text>`;
+  const etq = dias.map((x, i) => (x.off % 7 === 0 || i === n - 1) ? `<text x="${iz + i * bw + bw / 2}" y="${Hh - ab + 14}" text-anchor="middle" class="pron-eje${x.off === 0 ? " fuerte" : ""}">${x.off === 0 ? t("pr_hoy") : fmtDia(x.iso, { day: "numeric", month: "short" }).replace(".", "")}</text>` : "").join("");
+  const tramos = [["pasado", -14, -1], ["alta", 0, 2], ["media", 3, 6], ["baja", 7, DIAS_PRON]].map(([c, a, b]) => {
+    const i0 = dias.findIndex((x) => x.off >= a), i1 = dias.findLastIndex((x) => x.off <= b);
+    return i0 >= 0 && i1 >= i0 ? `<rect x="${iz + i0 * bw}" y="${Hh - 10}" width="${(i1 - i0 + 1) * bw - 2}" height="4" class="pron-tramo-b ${c}"/>` : "";
+  }).join("");
+  return `<svg viewBox="0 0 ${W} ${Hh}" class="pron-graf" role="img" aria-label="${t("pron_graf_aria")}">${eje}<line x1="${xh}" x2="${xh}" y1="${ar - 6}" y2="${Hh - ab}" class="pron-hoy"/>${barras}${lineas}${etq}${tramos}</svg>`;
 }
+// Barrita de 0 a 1 (con marcas opcionales, p. ej. alerta y evacuación del río)
+const barrita = (f, marcas = []) => `<span class="pr-barra"><i style="width:${(100 * limitar(f, 0, 1)).toFixed(1)}%"></i>${marcas.map(([m, c]) => `<b class="${c}" style="left:${(100 * limitar(m, 0, 1)).toFixed(1)}%"></b>`).join("")}</span>`;
 function pintarPronostico() {
   const cont = document.getElementById("sim-modo-pronostico"), P = SIM.pron, d = SIM.datos;
   if (!cont || !P || !d) return;
@@ -2049,17 +2063,38 @@ function pintarPronostico() {
   d.celdas.forEach((i, k) => { if (d.radioDe[k]) cuenta.set(d.radioDe[k], (cuenta.get(d.radioDe[k]) ?? 0) + 1); });
   let pTot = 0, pSin = 0;
   for (const [r, nC] of cuenta) { const pr = d.radios[r - 1]?.properties; if (!pr) continue; const pob = ((Number(pr.poblacion) || 0) * nC) / Math.max(1, d.celdasRadio[r]); pTot += pob; pSin += (pob * (100 - (Number(pr.pct_cloaca) || 0))) / 100; }
-  const alertas = (estado.datos.alertas?.features ?? []).filter((f) => contiene(f.geometry, d.s.punto)).map((f) => f.properties);
-  const fila = (etq, valor, fuente) => `<li><span class="pron-c-etq">${etq}${fuente ? infoIcono("pron_c", fuente) : ""}</span><span class="pron-c-v">${valor}</span></li>`;
-  const cond = [
-    fila(t("pron_c_lluvia"), `${fmt(lluvia14)} mm`, t("pron_f_real")),
-    fila(t("pron_c_humedad"), tSup != null ? `${fmt(Math.min(100, (100 * tSup) / ts))} %${tProf != null ? ` · ${t("pron_c_a1m")} ${fmt(Math.min(100, (100 * tProf) / ts))} %` : ""}` : "–", t("pron_f_humedad")),
-    fila(t("pron_c_rio"), est ? `${fmt(est.h, 2)} m <small>${t("sim_v_evac")(fmt(est.ref, 2))}</small>` : t("pron_c_rio_sin"), est ? (P.rio?.pronostico ? t("pron_f_rio_pron")(est.estacion, fmt(P.rio.hMax, 2), fmtDiaFrase(P.rio.diaMax)) : t("pron_f_rio")(est.estacion)) : ""),
-    fila(t("pron_c_radar"), R ? (R.cobertura > 0.5 ? t("pron_c_radar_v")(fmt(R.haVista, 1), R.dias) : t("pron_c_radar_sin")) : P.rad === null ? t("pron_c_radar_no") : "…", t("pron_f_radar")),
-    fila(t("pron_c_desague"), `${fmt(Math.round(SIM.hist?.H?.desague ?? SIM.desague))} mm/h`, t("pron_f_desague")),
-    fila(t("pron_c_cloaca"), pTot ? `${fmt((100 * pSin) / pTot)} %` : "–", t("pron_f_cloaca")),
-    fila(t("pron_c_napas"), tProf != null ? `${t("pron_c_a1m")} ${fmt(Math.min(100, (100 * tProf) / ts))} %` : "–", t("pron_f_napas")),
-    fila(t("pron_c_alertas"), alertas.length ? alertas.map((x) => `${x.evento} (${x.nivel})`).join(", ") : t("pron_c_alertas_no"), t("pron_f_alertas")),
+  const alertas = [...new Set((estado.datos.alertas?.features ?? []).filter((f) => contiene(f.geometry, d.s.punto)).map((f) => `${f.properties.evento}|${f.properties.nivel}`))].map((x) => x.split("|"));
+  // Resumen: lluvia de los próximos 7 días, de los días 8 a 15 (probable y pesimista) y el riesgo del lugar en el mapa
+  const dias = diasPronostico(P), suma = (f) => dias.reduce((a, x) => a + f(x), 0);
+  const l7 = suma((x) => (x.off >= 0 && x.off <= 6 ? (x.off === 0 ? x.real + x.pron : x.pron) : 0));
+  const l15p = suma((x) => (x.off >= 7 ? x.prob || x.pron : 0)), l15s = suma((x) => (x.off >= 7 ? x.pes || x.pron : 0));
+  const Rl = estado.riesgo.cmu[d.s.cmu], Dr = estado.riesgo.dias;
+  let kMax = 0;
+  if (Rl) Rl.r.forEach((v, k) => { if (v > Rl.r[kMax]) kMax = k; });
+  const nivMax = Rl ? nivelRiesgo(Rl.r[kMax]) : 0, diaPico = Rl ? Dr[kMax] : null;
+  const tarjeta = (etq, valor, sub, extra = "") => `<div class="pr-kpi">${extra}<span class="pr-kpi-v">${valor}</span><span class="pr-kpi-l">${etq}</span>${sub ? `<span class="pr-kpi-s">${sub}</span>` : ""}</div>`;
+  const resumen = `<div class="pr-resumen">
+    ${tarjeta(t("pron_k_7"), `${fmt(l7)}<small>mm</small>`, t("pron_k_7_s"))}
+    ${tarjeta(t("pron_k_15"), `${fmt(l15p)}–${fmt(l15s)}<small>mm</small>`, t("pron_k_15_s"))}
+    ${tarjeta(t("pron_k_riesgo"), Rl ? `${fmtRiesgo(Rl.r[kMax])}<small>/ 10</small>` : "–", Rl ? `${nombreNivel(Rl.r[kMax])} · ${kMax ? fmtDiaFrase(diaPico, { weekday: "short", day: "numeric", month: "short" }) : t("pr_hoy").toLowerCase()}` : "", Rl ? `<i class="pr-sem" style="background:var(--r${nivMax})"></i>` : "")}
+  </div>`;
+  // Escenario de lluvia: probable o pesimista (el que usa el mapa de riesgo para avisar)
+  const varBtn = (v) => `<button type="button" role="radio" data-var="${v}" aria-checked="${P.variante === v}"${P.ens ? "" : " disabled"}><b>${t(`pron_var_${v}`)}</b><small>${t(`pron_var_${v}_s`)}</small></button>`;
+  const variante = `<div class="pr-var" role="radiogroup" aria-label="${t("pron_var_t")}">${varBtn("probable")}${varBtn("pesimista")}</div>`;
+  // Condiciones de hoy: tarjetas con su barrita
+  const cond = (etq, valor, fuente, barra = "") => `<div class="pr-c"><span class="pr-c-l">${etq}${fuente ? infoIcono("pron_c", fuente) : ""}</span><span class="pr-c-v">${valor}</span>${barra}</div>`;
+  const hs = tSup != null ? Math.min(1, tSup / ts) : null, hp = tProf != null ? Math.min(1, tProf / ts) : null;
+  const rioTxt = est ? (P.rio?.pronostico ? t("pron_f_rio_pron")(est.estacion, fmt(P.rio.hMax, 2), fmtDiaFrase(P.rio.diaMax)) : t("pron_f_rio")(est.estacion)) : "";
+  const rioBarra = est && est.ref ? barrita((est.h - est.ref * 0.7) / (est.ref * 0.4), [[(est.ref - est.ref * 0.7) / (est.ref * 0.4), "evac"]]) : "";
+  const condiciones = [
+    cond(t("pron_c_humedad"), hs != null ? `${fmt(100 * hs)}<small>%</small>` : "–", t("pron_f_humedad"), hs != null ? barrita(hs) : ""),
+    cond(t("pron_c_napas"), hp != null ? `${fmt(100 * hp)}<small>%</small>` : "–", t("pron_f_napas"), hp != null ? barrita(hp) : ""),
+    cond(t("pron_c_lluvia"), `${fmt(lluvia14)}<small>mm</small>`, t("pron_f_real")),
+    cond(t("pron_c_rio"), est ? `${fmt(est.h, 2)}<small>m</small>` : "–", est ? `${rioTxt} · ${t("sim_v_evac")(fmt(est.ref, 2))}` : t("pron_c_rio_sin"), rioBarra),
+    cond(t("pron_c_radar"), R ? (R.cobertura > 0.5 ? `${fmt(R.haVista, 1)}<small>ha</small>` : "–") : "…", R && R.cobertura <= 0.5 ? t("pron_c_radar_sin") : P.rad === null ? t("pron_c_radar_no") : t("pron_f_radar")),
+    cond(t("pron_c_desague"), `${fmt(Math.round(SIM.hist?.H?.desague ?? SIM.desague))}<small>mm/h</small>`, t("pron_f_desague")),
+    cond(t("pron_c_cloaca"), pTot ? `${fmt((100 * pSin) / pTot)}<small>%</small>` : "–", t("pron_f_cloaca"), pTot ? barrita(pSin / pTot) : ""),
+    cond(t("pron_c_alertas"), alertas.length ? alertas.map(([e, n]) => `<span class="pr-alerta ${n}">${escapar(e)} · ${escapar(n)}</span>`).join("") : `<span class="pr-c-nada">${t("pron_c_alertas_no")}</span>`, t("pron_f_alertas")),
   ].join("");
   const tramo = (cls, tit, txt) => `<span class="${cls}">${tit}${infoIcono("pron_tramo", txt)}</span>`;
   const met3 = (k) => pp[k] ? t("pron_medido")(fmt(pp[k].correlacion, 2), fmt(100 * pp[k].deteccion_20mm), Vp.dias) : t("pron_sin_medir");
@@ -2067,22 +2102,27 @@ function pintarPronostico() {
     tramo("alta", t("pron_ley_alta"), `<b>${t("pron_tr_alta_t")}</b><br>${t("pron_tr_det")} ${met3("0-3")}`),
     tramo("media", t("pron_ley_media"), `<b>${t("pron_tr_media_t")}</b><br>${t("pron_tr_det")} ${met3("4-7")}`),
     tramo("baja", t("pron_ley_baja"), `<b>${t("pron_tr_baja_t")}</b><br>${P.ens ? t("pron_tr_ens")(P.ens.miembros.length) : t("pron_tr_ens_no")} ${met3("8-15")}`)].join("");
-  // Meses: lluvia del mes según SEAS5 (frente a lo normal, si hay climatología) y probabilidad de evacuación del río
+  // Meses: lluvia del mes según SEAS5 frente a lo normal, en barras (y la probabilidad de evacuación del río)
   const E = lluviaEstacional, mm = E?.cmu[d.s.cmu], mesHoy = hoyLocal().slice(0, 7);
   const meses = (E?.meses ?? []).map((m, i) => ({ m, v: mm?.[i] })).filter((x) => x.m > mesHoy && x.v != null);
   const nombreMes = (m) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString(loc(), { month: "short", year: "2-digit" });
+  const maxMes = Math.max(1, ...meses.map(({ m, v }) => Math.max(v, P.clima?.media?.[+m.slice(5) - 1] ?? 0)));
   const filasMes = meses.map(({ m, v }) => {
     const normal = P.clima?.media?.[+m.slice(5) - 1], pe = est ? Number(est[`pe_${m}`]) : NaN;
-    return `<tr><td>${nombreMes(m)}</td><td>${fmt(v)} mm${normal ? ` <small>(${v >= normal ? "+" : ""}${fmt((100 * (v - normal)) / normal)} % ${t("pron_vs_normal")})</small>` : ""}</td>${est ? `<td>${Number.isFinite(pe) ? `${fmt(100 * pe)} %` : "–"}</td>` : ""}</tr>`;
+    const dif = normal ? `${v >= normal ? "+" : ""}${fmt((100 * (v - normal)) / normal)} %` : "";
+    return `<div class="pr-mes"><span class="pr-mes-n">${nombreMes(m)}</span><span class="pr-mes-b"><i style="width:${(100 * v / maxMes).toFixed(1)}%"></i>${normal ? `<b style="left:${(100 * normal / maxMes).toFixed(1)}%" title="${t("pron_normal")}"></b>` : ""}</span>
+      <span class="pr-mes-v">${fmt(v)} mm${dif ? `<small>${dif}</small>` : ""}</span>${est && Number.isFinite(pe) ? `<span class="pr-mes-r">${t("pron_mes_rio_c")} ${fmt(100 * pe)} %</span>` : ""}</div>`;
   }).join("");
-  const varBtn = (v) => `<button type="button" class="chip" data-var="${v}" aria-pressed="${P.variante === v}"${P.ens ? "" : " disabled"}>${t(`pron_var_${v}`)}</button>`;
+  const umb = Rl?.u ?? null;
   SIM.kpisEl?.remove();
-  cont.innerHTML = `<div id="sim-kpis-lugar-pron"></div><h3 class="tit esc-tit">${t("pron_hoy_t")}${infoIcono("pron_intro", t("pron_intro"))}</h3><ul class="pron-cond">${cond}</ul>
-    <h3 class="tit esc-tit">${t("pron_tramos_t")}</h3>${graficoPronostico(diasPronostico(P))}
-    <div class="pron-leyenda">${tramos}</div>
-    <div class="pron-var"><span class="etq">${t("pron_var_t")}</span>${varBtn("probable")}${varBtn("pesimista")}</div>
+  cont.innerHTML = `${resumen}
+    <h3 class="tit esc-tit">${t("pron_esc_t")}${infoIcono("pron_intro", t("pron_intro"))}</h3>${variante}
+    <div id="sim-kpis-lugar-pron"></div>
+    <h3 class="tit esc-tit">${t("pron_tramos_t")}</h3>${graficoPronostico(dias, umb, diaPico)}
+    <div class="pron-leyenda">${tramos}</div>${umb ? `<p class="pr-nota">${t("pron_umb_nota")}</p>` : ""}
+    <h3 class="tit esc-tit">${t("pron_hoy_t")}</h3><div class="pr-conds">${condiciones}</div>
     <h3 class="tit esc-tit">${t("pron_meses_t")}${infoIcono("pron_meses", t("pron_meses_sub"))}</h3>
-    ${meses.length ? `<div class="tabla-ninos"><table><thead><tr><th>${t("pron_mes")}</th><th>${t("pron_mes_lluvia")}</th>${est ? `<th>${t("pron_mes_rio")(est.estacion)}</th>` : ""}</tr></thead><tbody>${filasMes}</tbody></table></div>` : `<p class="sim-hint">${t("pron_meses_no")}</p>`}`;
+    ${meses.length ? `<div class="pr-meses">${filasMes}</div><p class="pr-nota"><i class="pr-ley-normal"></i>${t("pron_normal")}</p>` : `<p class="sim-hint">${t("pron_meses_no")}</p>`}`;
   enlazarInfo(cont);
   if (SIM.kpisEl && SIM.modoSim === "pronostico") document.getElementById("sim-kpis-lugar-pron")?.replaceWith(SIM.kpisEl);
   cont.querySelectorAll("[data-var]").forEach((b) => { b.onclick = () => { if (P.variante !== b.dataset.var) { simularPronostico(b.dataset.var); pintarPronostico(); } }; });
@@ -2125,6 +2165,7 @@ function pintarPanelSimulador(d) {
           <div class="ctrls">
           <div class="ctrl"><span class="etq">${t("sim_lluvia_etq")}</span><div class="seg"><button type="button" id="sim-reiniciar" aria-label="${t("sim_reiniciar")}" data-ayuda="${t("sim_reiniciar")}">${icono("repetir")}</button><button type="button" id="sim-play" aria-label="${t("sim_reproducir")}">${icono("play")}</button></div></div>
         </div>
+    <div class="sim-modos" role="tablist" aria-label="${t("sim_modos")}">${["escenario", "pronostico"].map((m) => `<button type="button" role="tab" class="sim-modo" data-modo="${m}" aria-selected="${(SIM.modoSim ?? "escenario") === m}">${t(`sim_modo_${m}`)}</button>`).join("")}</div>
     <p class="sim-progreso" id="sim-progreso" role="status" hidden></p>
     <div class="sim-ahora"><span class="sim-ahora-fecha" id="sim-fecha">–</span><span class="sim-ahora-tipo" id="sim-tipo"></span>
       <span class="sim-ahora-lluvia" id="sim-acum"></span></div>
@@ -2134,7 +2175,7 @@ function pintarPanelSimulador(d) {
     <div class="sim-vel" id="sim-vel" role="group" aria-label="${t("sim_velocidad")}"><span class="sim-dur-etq">${t("sim_velocidad")}</span>${[0.5, 1, 2, 4].map((v) => `<button type="button" class="chip" data-v="${v}" aria-pressed="${SIM.velocidad === v}">×${String(v).replace(".", ",")}</button>`).join("")}</div>
     <div class="sim-linea" id="sim-linea"></div>
       </div>
-      <div><div class="sim-modos" role="tablist" aria-label="${t("sim_modos")}">${["escenario", "pronostico"].map((m) => `<button type="button" role="tab" class="sim-modo" data-modo="${m}" aria-selected="${(SIM.modoSim ?? "escenario") === m}">${t(`sim_modo_${m}`)}</button>`).join("")}</div>
+      <div>
         <div id="sim-modo-escenario"${SIM.modoSim === "pronostico" ? " hidden" : ""}><p class="bajada">${t("sim_bajada_lam")}</p>
         <h3 class="tit esc-tit">${t("sim_esc_t")}${infoIcono("sim_esc", t("info_esc"))}</h3>
         <div class="esc" id="sim-esc"><p class="sim-hint">${t("sim_hist_cargando")}</p></div></div>

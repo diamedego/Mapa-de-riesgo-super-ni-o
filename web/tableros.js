@@ -298,6 +298,12 @@ function puntoSel() {
 function usarSimulador() {
   const sel = estado.sel, btn = document.getElementById("btn-sim-top");
   if (sel?.tipo === "punto") return abrirSimulador();
+  // Provincia: el lugar de mayor riesgo del día elegido dentro de ella, con el círculo más grande (20 km) en su centro poblado
+  if (sel?.tipo === "zona" && sel.lugar.nivel === "prov") {
+    const d = estado.rangoRiesgo?.[0] ?? 0, R = estado.riesgo.cmu;
+    const c = sel.lugar.cmus.filter((x) => R[x]?.c).sort((a, b) => (R[b].r[d] ?? 0) - (R[a].r[d] ?? 0))[0];
+    if (c) { cambiarRadio(20); seleccionarPunto(R[c].c, { nombre: `${estado.porCmu.get(c)?.nam ?? ""} · ${sel.lugar.nombre}`, origen: "zona", volar: true }); return abrirSimulador(); }
+  }
   if (sel?.tipo === "zona" && sel.lugar.nivel !== "prov") {
     const [x0, y0, x1, y1] = sel.lugar.caja, centro = [(x0 + x1) / 2, (y0 + y1) / 2];
     cambiarRadio(limitar(Math.ceil(distanciaKm(centro, [x1, y1]) * 2) / 2, 1, 20));   // el círculo cubre toda la zona

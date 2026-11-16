@@ -351,6 +351,9 @@ async function sugerenciasLibres(texto) {
   const c = coordenadasDe(q);
   if (c?.punto) return [{ tipo: "coords", nombre: t("sug_coords"), detalle: `${c.punto[1].toFixed(5)}, ${c.punto[0].toFixed(5)}`, punto: c.punto }];
   if (/[,;]/.test(q) && q.length > 12) items.push({ tipo: "buscar", nombre: t("sug_buscar")(q), detalle: t("sug_buscar_sub") });   // dirección completa pegada
+  // El país entero: «Argentina», «país», «todo el país»
+  const qn = normalizar(q);
+  if (qn.length >= 3 && ["argentina", "pais", "todo el pais", "republica argentina"].some((x) => x.startsWith(qn))) items.push({ tipo: "pais", nombre: "Argentina", detalle: t("sug_pais") });
   // Localidades, partidos y provincias propios (solo si el texto no parece una dirección con número)
   if (!/\d/.test(q) && !q.includes(",")) {
     for (const nivel of ["localidad", "partido", "provincia"]) for (const l of candidatos(nivel, q).slice(0, nivel === "localidad" ? 2 : 1)) {
@@ -383,7 +386,7 @@ function autocompletarDireccion(input) {
   listaSugerencias(input, {
     buscarItems: sugerenciasLibres,
     pintarItem: (it) => {
-      const ic = it.tipo === "lugar" ? "pin" : it.tipo === "coords" ? "objetivo" : it.tipo === "buscar" ? "buscar" : "pin";
+      const ic = it.tipo === "pais" ? "objetivo" : it.tipo === "lugar" ? "pin" : it.tipo === "coords" ? "objetivo" : it.tipo === "buscar" ? "buscar" : "pin";
       const etiqueta = it.tipo === "osm" ? t(it.cat) : it.tipo === "lugar" ? "" : "";
       return `<span class="sug-nombre">${icono(ic, "ico ico-sug")}<span>${resaltar(it.nombre, input.value)}</span></span>
         <span class="sug-tipo">${etiqueta ? `<b class="sug-cat">${escapar(etiqueta)}</b> · ` : ""}${escapar(it.detalle ?? "")}</span>`;
@@ -396,6 +399,11 @@ function elegirSugerencia(input, it) {
   const aviso = document.getElementById("aviso-busqueda");
   aviso.hidden = true;
   if (it.tipo === "buscar") return buscarDireccion(input.value.trim());
+  if (it.tipo === "pais") {   // vuelve a todo el país: sin filtros ni punto elegido
+    input.value = "";
+    for (const n of ["provincia", "partido", "localidad"]) { estado.filtros[n] = null; document.getElementById(`b-${n}`).value = ""; }
+    return seleccionar(null, { volar: true, origen: "buscador" });
+  }
   if (it.tipo === "lugar") { input.value = ""; return elegirLugar(it.nivel, it.lugar); }
   if (it.tipo === "calle") {
     input.value = `${it.nombre}${it.numero ? "" : " "}`;

@@ -60,7 +60,7 @@ function irALamina(n) {
     const s = estado.sel, clave = s?.tipo === "punto" ? JSON.stringify([s.punto, s.km]) : null;
     const abierto = !document.getElementById("sim").hidden;
     if (abierto && clave && clave !== SIM.clave) cerrarSimulador();   // se eligió otro punto: se vuelve a simular
-    if (document.getElementById("sim").hidden && (s?.tipo === "punto" || (s?.tipo === "zona" && s.lugar.nivel !== "prov"))) usarSimulador();
+    if (document.getElementById("sim").hidden && (s?.tipo === "punto" || s?.tipo === "zona")) usarSimulador();
   }
   if (n === 3) pintarValidacionLamina();
 }
