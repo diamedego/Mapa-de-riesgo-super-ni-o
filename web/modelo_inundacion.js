@@ -169,6 +169,27 @@ async function lluviaNinosEn(punto) {
   return out;
 }
 
+// Humedad del suelo (rango de los Niños), evapotranspiración y Niños de 1951 a 1996, precalculados por celda con ERA5-Land
+// (earth_engine/clima_ninos.py; mismas teselas): antes se pedían al archivo de Open-Meteo en cada apertura del simulador y gastaban
+// unas 350 unidades del cupo diario gratis de la IP (10.000, compartido por toda una red, como una oficina)
+let cargaIndiceClima = null;
+const teselasClima = new Map();
+async function climaNinosEn(punto) {
+  const I = await (cargaIndiceClima ??= fetch("datos/clima_ninos/indice.json").then((r) => (r.ok ? r.json() : null)).catch(() => null));
+  if (!I) return null;
+  const col = Math.floor((punto[0] - I.oeste) / I.paso), fila = Math.floor((I.norte - punto[1]) / I.paso);
+  if (col < 0 || fila < 0 || col >= I.ancho || fila >= I.alto) return null;
+  const n = I.tesela, nombre = `${Math.floor(col / n)}_${Math.floor(fila / n)}`;
+  if (!I.teselas.includes(nombre)) return null;
+  if (!teselasClima.has(nombre)) teselasClima.set(nombre, fetch(`datos/clima_ninos/${nombre}.bin`).then((r) => (r.ok ? r.arrayBuffer() : null)).then((b) => (b ? new Int16Array(b) : null)).catch(() => null));
+  const A = await teselasClima.get(nombre);
+  if (!A) return null;
+  const c = (fila % n) * n + (col % n), v = (b) => A[I.bandas.indexOf(b) * n * n + c];
+  if (v("hmin") < 0 || v("hmax") <= 0) return null;   // celda sin dato de ERA5-Land (mar, grandes lagos)
+  return { humedad: { min: v("hmin") / I.escala.hmin, max: v("hmax") / I.escala.hmax }, et0: v("et0") >= 0 ? v("et0") / I.escala.et0 : null,
+    antiguos: I.antiguos.map((anio) => ({ anio, t3: v(`t3_${anio}`) / I.escala.t3, d0: v(`d0_${anio}`) })) };
+}
+
 // Lluvia hora por hora de unos días (con un reintento: el archivo limita las consultas por minuto)
 async function lluviaHoraria(lat, lon, desde, hasta) {
   const u = `${ARCHIVO}?latitude=${lat}&longitude=${lon}&start_date=${desde}&end_date=${hasta}&hourly=precipitation,soil_moisture_0_to_7cm${ZONA}`;
@@ -254,8 +275,9 @@ function historicoNino(punto) {
       return fetch(u).then((r) => (r.ok ? r.json() : null)).catch(() => null)
         .then(async (x) => x ?? (await new Promise((ok) => setTimeout(ok, 2000)), await fetch(u).then((r) => (r.ok ? r.json() : null)).catch(() => null)));   // un reintento
     };
-    const [d, sat] = await Promise.all([pedirDiario(`${DESDE_COMPLETO}-10-01`, "2024-04-30", "precipitation_sum,soil_moisture_0_to_7cm_mean,et0_fao_evapotranspiration_sum"),
-      lluviaNinosEn(punto)]);
+    const [clima, sat] = await Promise.all([climaNinosEn(punto), lluviaNinosEn(punto)]);
+    // Con lo precalculado no hace falta el archivo diario de Open-Meteo; solo fuera de la grilla (o si faltan las teselas)
+    const d = clima && sat ? null : await pedirDiario(`${DESDE_COMPLETO}-10-01`, "2024-04-30", "precipitation_sum,soil_moisture_0_to_7cm_mean,et0_fao_evapotranspiration_sum");
     // Sin el archivo de Open-Meteo (sin conexión o sin cupo del día) igual quedan los Niños desde 1997-98, que vienen precalculados
     const D = d?.daily?.time?.length ? d.daily : null;
     if (!D && !sat) { cacheHistorico.delete(clave); return null; }
@@ -287,10 +309,17 @@ function historicoNino(punto) {
       const a = idx.get(`${n.anio}-10-01`), b = idx.get(`${n.anio + 1}-04-30`), p = D ? D.precipitation_sum.slice(a, b + 1).map((v) => v ?? 0) : [0];
       return { temporada: n.temporada, p1: 0, p24: Math.max(...p), p72: n.evento.total };
     });
-    const R = { temporadas: ninos.length, ninos, lluvia: maximosPorDuracion(anclas), humedad: hum.length ? { min: Math.min(...hum), max: Math.max(...hum) } : null,
-      et0h: nEt ? sEt / nEt / 24 : 0.15, lat, lon, desague: sat?.desague > 0 ? sat.desague : null, fuenteLluvia: sat ? "imerg" : "era5" };
-    // Niños de 1951 a 1996 (solo el cuadro informativo): su peor ventana de 3 días de la lluvia diaria de ERA5
-    R.antiguos = pedirDiario("1951-10-01", `${DESDE_COMPLETO}-04-30`, "precipitation_sum").then((x) => {
+    const R = { temporadas: ninos.length, ninos, lluvia: maximosPorDuracion(anclas),
+      humedad: clima?.humedad ?? (hum.length ? { min: Math.min(...hum), max: Math.max(...hum) } : null),
+      et0h: clima?.et0 != null ? clima.et0 / 24 : nEt ? sEt / nEt / 24 : 0.15, lat, lon, desague: sat?.desague > 0 ? sat.desague : null, fuenteLluvia: sat ? "imerg" : "era5" };
+    // Niños de 1951 a 1996 (solo el cuadro informativo): su peor ventana de 3 días de lluvia (ERA5-Land precalculado o, si falta, el
+    // archivo diario de ERA5 de Open-Meteo)
+    const viejosDe = (lista) => { R.ninos.unshift(...lista); R.temporadas = R.ninos.length; };
+    R.antiguos = clima ? Promise.resolve().then(() => viejosDe(clima.antiguos.map(({ anio, t3, d0 }) => {
+      const intensidad = NINOS.find(([a]) => a === anio)?.[1], ini = sumarDiasISO(`${anio}-10-01`, d0);
+      return { temporada: `${anio}-${String(anio + 1).slice(2)}`, anio, intensidad, completo: false,
+        evento: t3 > 0 ? { total: t3, dias: [ini, sumarDiasISO(ini, 2)], era5: t3, imerg: null, fuente: "era5" } : null };
+    }))) : pedirDiario("1951-10-01", `${DESDE_COMPLETO}-04-30`, "precipitation_sum").then((x) => {
       const A = x?.daily;
       if (!A?.time?.length) return;
       const ia = new Map(A.time.map((t, i) => [t, i])), viejos = [];
@@ -303,8 +332,7 @@ function historicoNino(punto) {
         viejos.push({ temporada: `${anio}-${String(anio + 1).slice(2)}`, anio, intensidad, completo: false,
           evento: mejor > 0 ? { total: mejor, dias: [A.time[a + k0], A.time[a + k0 + 2]], era5: mejor, imerg: null, fuente: "era5" } : null });
       }
-      R.ninos.unshift(...viejos);
-      R.temporadas = R.ninos.length;
+      viejosDe(viejos);
     });
     // En segundo plano: la peor tormenta de cada Niño hora por hora (de a 9 consultas chicas)
     R.horarias = (async () => {

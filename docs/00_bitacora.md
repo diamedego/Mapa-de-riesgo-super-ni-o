@@ -778,7 +778,7 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
   6 km ~127 m en z 12; …). Medido en Zárate: 1 vs 1,5 km coinciden 100 %, 2 vs 3 km 99,9 %; cálculo ≤ 9 s en todos los radios
   (con 32 m fijos, 3 km tardaba 93 s y 5 km 301 s).
 - Indicadores del simulador en dos filas de tres (retícula de 8 px, sin barrita de color sin significado). Guía de diseño de la
-  usuaria guardada en docs/05_constitucion_grafica.md: se aplica a todos los cambios visuales.
+  usuaria guardada en docs/06_constitucion_grafica.md: se aplica a todos los cambios visuales.
 - Detalle A: círculo velado en gris, dibujo de la maqueta, «Hacé clic acá · Mirá la lluvia en 3D», pulso en el punto y clic en
   todo el círculo; el título largo pasa a segunda línea en vez de cortarse con «…».
 - Buscador: Toyota Boshoku Argentina con el punto del lugar cargado en Waze (-34.169283, -59.002897; Camino 014-04 a Capilla del
@@ -838,3 +838,13 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 - Réplica SQL: la amenaza de ríos usa el peso de la distancia (1 hasta 15 km, 0 a los 30 km) como Python; DuckDB vs Python coinciden (diferencia máxima 5e-5 en todos los componentes).
 - Versión privada en claude.ai republicada (v24-v25): página nueva, riesgo diario, barrios, infraestructura, industrias, validaciones y radios censales (los publicados eran del ~7-nov). Probada en local con UTF-8 y SIN_TESELAS: sin errores.
 - Simulación del pronóstico: el río sigue la altura pronosticada de cada día (mediana de GloFAS en altura, guardada en riesgo_diario.json → est.h) en vez de quedar fijo en la de hoy. El error del río se ancla a la medición de hoy (antes, salto de 30-40 cm entre hoy y mañana). Paraná: +0,64 m sobre evacuación hoy → −0,21 m el día 15.
+
+## 16-nov-2026 (mañana) — el simulador deja de pedir series diarias a Open-Meteo
+- Cada apertura del simulador pedía al archivo de Open-Meteo la lluvia diaria 1951-2024 y la humedad y ET0 diarias desde 1997: ~350
+  unidades del cupo gratis de 10.000 por día y por IP. Las pruebas de la mañana y la validación agotaron el cupo de la red de la casa
+  (429 hasta las 21:00 ART). En una oficina, ~30 aperturas bastarían para dejar a todos sin datos.
+- `earth_engine/clima_ninos.py` precalcula por celda de 0,1° (las mismas 113 teselas de lluvia_ninos, 3,5 MB): humedad 0-7 cm mínima
+  y máxima de los Niños 1997-2023 (ERA5-Land), ET0 de Hargreaves de esos meses y la peor lluvia de 3 días de los 18 Niños de 1951 a
+  1996. El simulador los lee de `web/datos/clima_ninos/`; solo fuera de la grilla vuelve al archivo de Open-Meteo. Quedan las 9
+  tormentas hora por hora (~2 unidades por apertura). Zárate: humedad 0,25-0,50, ET0 4,2 mm/día.
+- La validación contra Dynamic World guarda la lluvia horaria de cada ciudad en disco (se reintenta después de las 21:00 ART).
