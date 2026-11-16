@@ -805,10 +805,23 @@ function aguaFina(i) {
   if (c < 0) return 0;
   if (g.tipo2[c] === 2) { const sube = M.seco ? 0 : M.lagos[M.hora]?.[g.lago[c]] ?? 0; return sube > 0.05 ? sube : 0; }
   if (g.tipo2[c] !== 1) return 0;
-  const h = frameVista(M)[c] / 1000;
-  if (h < 0.01) return 0;
-  const zf = Number.isFinite(d.hs[i]) ? d.hs[i] : g.z[c];
-  return Math.max(0, Math.min(g.z[c] + h - zf, h * 3));
+  // Nivel del agua interpolado entre los centros de las 4 celdas vecinas (no un bloque por celda): el borde del charco sigue el
+  // relieve fino y se redondea en vez de verse en escalones de 30-120 m. Hacia las celdas secas el agua se afina hasta 0.
+  const F = frameVista(M), W = d.D.W, fx = ((i % W) - g.bx0) / g.f - 0.5, fy = (((i / W) | 0) - g.by0) / g.f - 0.5;
+  const x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0;
+  let sl = 0, sw = 0, hMax = 0;
+  for (let k = 0; k < 4; k++) {
+    const x = x0 + (k & 1), y = y0 + (k >> 1);
+    if (x < 0 || y < 0 || x >= g.nx || y >= g.ny) continue;
+    const v = y * g.nx + x, w = (k & 1 ? tx : 1 - tx) * (k >> 1 ? ty : 1 - ty);
+    if (g.tipo2[v] !== 1 || w <= 0) continue;
+    const h = F[v] / 1000;
+    if (h < 0.01) continue;
+    sl += w * (g.z[v] + h); sw += w; if (h > hMax) hMax = h;
+  }
+  if (sw < 0.2) return 0;
+  const zf = Number.isFinite(d.hs[i]) ? d.hs[i] : g.z[c], borde = Math.min(1, (sw - 0.2) / 0.5);
+  return Math.max(0, Math.min(sl / sw - zf, hMax * 3)) * borde;
 }
 
 // Calle cortada en el píxel: su celda tiene calle (no puente) y 30 cm de agua o más en la hora que se ve
