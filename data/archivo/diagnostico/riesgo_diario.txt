@@ -1,0 +1,12 @@
+corrida 2026-11-16 18:39 UTC
+To ensure the stability of our systems and to preserve resources for our operational activities (network, compute, etc.), access to the open-data portal is limited to 500 simultaneous connections. This limit helps us guarantee reliable service for our operational users, especially during periods of high demand. For added reliability, the open-data is replicated across AWS, Azure, and Google Cloud. If you experience difficulties accessing the portal directly, you can also retrieve the data from these cloud platforms.
+  ensamble ECMWF 16-11 00 UTC, paso 24 h
+  error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
+  error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
+  error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
+  error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
+  error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
+  error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
+  error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
+riesgo_diario: 2282 gobiernos locales, 43 estaciones, sin lluvia 0; nivel máximo en 14 días: {'0': 780, '1': 929, '2': 559, '3': 14}
+salida: 0
