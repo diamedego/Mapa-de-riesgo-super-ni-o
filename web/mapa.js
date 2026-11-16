@@ -104,7 +104,7 @@ function agregarCapas() {
   mapa.addLayer({ id: "bordes-riesgo", type: "line", source: "bordes", maxzoom: 10.2, filter: filtroBordes(meses), layout: { visibility: "none" },
     paint: { "line-color": css("--borde-riesgo"), "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.35, 8, 0.8, 10, 1.1], "line-opacity": 0.85 } });
   mapa.addLayer({ id: "provincias-borde", type: "line", source: "provincias",
-    paint: { "line-color": css("--borde-prov"), "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.7, 10, 1.4] } });
+    paint: { "line-color": css("--borde-prov"), "line-opacity": 0.55, "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.6, 10, 1.2] } });   // país y provincias: más claros que los límites de los vecinos
 
   // Alertas vigentes del SMN (condiciones actuales)
   mapa.addSource("alertas", { type: "geojson", data: D.alertas });
