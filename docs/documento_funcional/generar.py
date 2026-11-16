@@ -74,8 +74,20 @@ def valores() -> dict:
     fz, cz = int((LN.NORTE + 34.10) / LN.PASO), int((-59.03 - LN.OESTE) / LN.PASO)
     q25, q75 = np.percentile(p1, [25, 75])
     desague = {"mediana": f"{np.median(D2[llanura]):.0f}", "zarate": f"{D2[fz, cz]:.0f}", "p1_rango": f"{5 * round(q25 / 5):.0f} a {5 * round(q75 / 5):.0f}"}
+    # Riesgo por día (modelos/riesgo_diario.py): municipios en riesgo alto hoy, el día más comprometido y la propensión
+    rd = json.loads((RAIZ / "web" / "datos" / "riesgo_diario.json").read_text())
+    cortes = [3, 4.5, 6, 7]
+    niv = lambda v: 1 + sum(v >= x for x in cortes)
+    por_dia = [sum(niv(m["r"][i]) >= 4 for m in rd["cmu"].values()) for i in range(len(rd["dias"]))]
+    ip = int(np.argmax(por_dia))
+    dp = dt.date.fromisoformat(rd["dias"][ip])
+    gen = (dt.datetime.fromisoformat(rd["generado"]) - dt.timedelta(hours=3)).date()
+    diario = {"fecha": f"{gen.day} de {MESES[gen.month - 1]} de {gen.year}", "hoy_alto": por_dia[0],
+              "dia_pico": f"{['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'][dp.weekday()]} {dp.day} de {MESES[dp.month - 1]}",
+              "n_pico": f"{por_dia[ip]} municipios en riesgo alto o muy alto" if por_dia[ip] != 1 else "1 municipio en riesgo alto o muy alto",
+              "prop_alta": f"{sum((m.get('pr') or 0) >= 6 for m in rd['cmu'].values()):,}".replace(",", ".")}
     tes = sorted((RAIZ / "web" / "datos" / "lluvia_ninos").glob("*.bin"))
-    return {"lluvia": L, "rio": R, "dw": D, "verif": verif, "indice": indice, "desague": desague,
+    return {"lluvia": L, "rio": R, "dw": D, "verif": verif, "indice": indice, "diario": diario, "desague": desague,
             "teselas": len(tes), "teselas_mb": f"{sum(x.stat().st_size for x in tes) / 1e6:.1f}".replace(".", ",")}
 
 

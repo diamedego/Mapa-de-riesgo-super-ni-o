@@ -1,4 +1,4 @@
-"""Texto del documento funcional (HTML), versión 4. Las figuras, los números de página y las cifras de las validaciones entran
+"""Texto del documento funcional (HTML), versión 5. Las figuras, los números de página y las cifras de las validaciones entran
 como parámetros (generar.py los lee de los archivos de resultados), así el texto siempre coincide con los datos."""
 
 LOGO = '''<svg viewBox="0 0 40 40" class="logo"><rect width="40" height="40" rx="10" fill="#0e7490"/><path d="M8 24c3 0 3-2 6-2s3 2 6 2 3-2 6-2 3 2 6 2" fill="none" stroke="#22d3ee" stroke-width="2.4" stroke-linecap="round"/><path d="M8 30c3 0 3-2 6-2s3 2 6 2 3-2 6-2 3 2 6 2" fill="none" stroke="#a5f3fc" stroke-width="2.4" stroke-linecap="round" opacity=".7"/><path d="M20 8c3 3.6 5 6.3 5 8.8a5 5 0 0 1-10 0c0-2.5 2-5.2 5-8.8Z" fill="#ecfeff"/></svg>'''
@@ -22,16 +22,15 @@ ARQUITECTURA = '''<svg viewBox="0 0 640 262" xmlns="http://www.w3.org/2000/svg" 
 INDICE = '''<svg viewBox="0 0 640 190" xmlns="http://www.w3.org/2000/svg" font-family="Avenir Next, Gill Sans, Helvetica Neue, Arial, sans-serif" font-size="9">
 <defs><marker id="g" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0L7 3.5L0 7Z" fill="#5b6675"/></marker></defs>
 <g text-anchor="middle">
-<rect x="6" y="8" width="150" height="48" rx="8" fill="#e6f3f6" stroke="#9cc9d3"/><text x="81" y="26" font-weight="700" fill="#0a1c28">Agua en superficie</text><text x="81" y="40" fill="#0e7490">propensión física × lluvia</text>
-<rect x="6" y="66" width="150" height="48" rx="8" fill="#e6f3f6" stroke="#9cc9d3"/><text x="81" y="84" font-weight="700" fill="#0a1c28">Crecida de ríos</text><text x="81" y="98" fill="#0e7490">prob. de alerta / evacuación</text>
-<rect x="6" y="124" width="150" height="48" rx="8" fill="#e6f3f6" stroke="#9cc9d3"/><text x="81" y="142" font-weight="700" fill="#0a1c28">Quebradas</text><text x="81" y="156" fill="#0e7490">pendiente × arcilla × lluvia</text>
-<g stroke="#5b6675" stroke-width="1.2" fill="none" marker-end="url(#g)"><path d="M156 32H184"/><path d="M156 90H184"/><path d="M156 148H184"/><path d="M304 90H330"/></g>
-<rect x="184" y="56" width="120" height="68" rx="8" fill="#0a1c28"/><text x="244" y="80" font-weight="700" fill="#fff">AMENAZA</text><text x="244" y="94" fill="#a5f3fc">H = 10 − Π(10−Hᵢ)/100</text><text x="244" y="108" fill="#7fa6b8">por mes</text>
-<rect x="330" y="8" width="120" height="48" rx="8" fill="#eef3f7" stroke="#c7d0da"/><text x="390" y="26" font-weight="700" fill="#0a1c28">EXPOSICIÓN</text><text x="390" y="40" fill="#5b6675">gente en terreno bajo</text>
+<rect x="6" y="10" width="150" height="66" rx="8" fill="#e6f3f6" stroke="#9cc9d3"/><text x="81" y="28" font-weight="700" fill="#0a1c28">Amenaza fija del lugar</text><text x="81" y="42" fill="#0e7490">agua en superficie y quebradas</text><text x="81" y="55" fill="#0e7490">con lluvia normal (f = 0,5)</text><text x="81" y="68" fill="#5b6675">nunca 0 donde junta agua</text>
+<rect x="6" y="96" width="150" height="84" rx="8" fill="#e6f3f6" stroke="#9cc9d3"/><text x="81" y="114" font-weight="700" fill="#0a1c28">Amenaza pronosticada</text><text x="81" y="128" fill="#0e7490">nivel 0 a 3 → 0, 4, 7 o 10</text><text x="81" y="142" fill="#5b6675">lluvia: 50 pronósticos ECMWF</text><text x="81" y="155" fill="#5b6675">ríos: GloFAS + INA</text><text x="81" y="168" fill="#5b6675">alertas del SMN</text>
+<g stroke="#5b6675" stroke-width="1.2" fill="none" marker-end="url(#g)"><path d="M156 43H184"/><path d="M156 138H184"/><path d="M304 90H330"/></g>
+<rect x="184" y="52" width="120" height="76" rx="8" fill="#0a1c28"/><text x="244" y="72" font-weight="700" fill="#fff">AMENAZA DEL DÍA</text><text x="244" y="87" fill="#a5f3fc">10 − (10 − fija) ×</text><text x="244" y="99" fill="#a5f3fc">(10 − pron.) / 10</text><text x="244" y="115" fill="#7fa6b8">hoy y 14 días</text>
+<rect x="330" y="8" width="120" height="48" rx="8" fill="#eef3f7" stroke="#c7d0da"/><text x="390" y="26" font-weight="700" fill="#0a1c28">EXPOSICIÓN</text><text x="390" y="40" fill="#5b6675">habitantes en terreno bajo</text>
 <rect x="330" y="66" width="120" height="48" rx="8" fill="#0a1c28"/><text x="390" y="86" font-weight="700" fill="#fff">∛( H × E × V )</text><text x="390" y="101" fill="#a5f3fc">media geométrica</text>
 <rect x="330" y="124" width="120" height="48" rx="8" fill="#eef3f7" stroke="#c7d0da"/><text x="390" y="142" font-weight="700" fill="#0a1c28">VULNERABILIDAD</text><text x="390" y="156" fill="#5b6675">cloacas · NBI · vivienda</text>
 <g stroke="#5b6675" stroke-width="1.2" fill="none" marker-end="url(#g)"><path d="M390 56V66"/><path d="M390 124V114"/><path d="M450 90H486"/></g>
-<rect x="486" y="52" width="148" height="76" rx="10" fill="#e6f3f6" stroke="#0e7490" stroke-width="1.4"/><text x="560" y="76" font-weight="700" fill="#0a1c28">RIESGO 0 – 10</text><text x="560" y="92" fill="#5b6675">umbrales físicos fijos</text><text x="560" y="105" fill="#5b6675">5 niveles, verde a rojo</text><text x="560" y="118" fill="#5b6675">y su robustez (Monte Carlo)</text>
+<rect x="486" y="46" width="148" height="88" rx="10" fill="#e6f3f6" stroke="#0e7490" stroke-width="1.4"/><text x="560" y="68" font-weight="700" fill="#0a1c28">RIESGO 0 – 10</text><text x="560" y="84" fill="#5b6675">hoy y cada uno de 14 días</text><text x="560" y="97" fill="#5b6675">5 niveles, verde a rojo</text><text x="560" y="110" fill="#5b6675">+ propensión con su semáforo</text><text x="560" y="123" fill="#5b6675">robustez (Monte Carlo)</text>
 </g></svg>'''
 
 HIDRAULICA = '''<svg viewBox="0 0 640 170" xmlns="http://www.w3.org/2000/svg" font-family="Avenir Next, Gill Sans, Helvetica Neue, Arial, sans-serif" font-size="9">
@@ -80,13 +79,13 @@ def capitulos(F, P, V):
     return {
 "portada": f'''<section class="portada"><div class="contenido">{LOGO}<div class="tipo">Documento funcional y registro del proceso</div>
 <h1>Argentina frente a El Niño 2026–27</h1><div class="sub">Mapa de riesgo de inundación para los 2.282 gobiernos locales del país, con tablero de situación y simulador hidráulico 3D de escenarios históricos</div>
-<div class="datos"><b>Autora:</b> Diamela, ingeniera química (UTN)<br><b>Desarrollo:</b> con la asistencia de Claude (Anthropic)<br><b>Versión:</b> 4.0 · <b>Fecha:</b> 15 de noviembre de 2026<br><b>Sitio:</b> mapa-de-riesgo-super-nino.diamedego.workers.dev<br><b>Repositorio:</b> github.com/diamedego/Mapa-de-riesgo-super-ni-o</div></div>{OLAS}
+<div class="datos"><b>Autora:</b> Diamela, ingeniera química (UTN)<br><b>Desarrollo:</b> con la asistencia de Claude (Anthropic)<br><b>Versión:</b> 5.0 · <b>Fecha:</b> 16 de noviembre de 2026<br><b>Sitio:</b> mapa-de-riesgo-super-nino.diamedego.workers.dev<br><b>Repositorio:</b> github.com/diamedego/Mapa-de-riesgo-super-ni-o</div></div>{OLAS}
 <div class="pie">Proyecto personal con datos públicos. No es un producto oficial: ante una emergencia, seguir a Defensa Civil, el SMN y el INA.</div></section>''',
 
 "resumen": f'''<section class="resumen"><h1><span class="num">Resumen</span>Resumen ejecutivo</h1>
 <p>Este documento describe el sistema <em>Argentina frente a El Niño 2026–27</em>: un tablero web que estima y muestra el riesgo de inundación en los 2.282 gobiernos locales y los 66.515 radios censales de la Argentina durante el evento El Niño 2026–27, y un simulador hidráulico 3D que reproduce en un punto elegido las tormentas reales de los Niños anteriores, o una tormenta definida por el usuario. Todo se construyó con datos públicos y servicios gratuitos, se actualiza solo varias veces por día y se publica de forma automática.</p>
-<p>El índice de riesgo sigue la estructura INFORM (amenaza × exposición × vulnerabilidad, media geométrica, escala de 0 a 10) y se calcula por mes, de octubre de 2026 a abril de 2027. Desde esta versión cada indicador se lleva a la escala 0–1 con <b>umbrales físicos fijos</b> en sus propias unidades y no con rangos entre municipios: un lugar queda «alto» por lo que tiene, no por estar peor que los demás.</p>
-<p>El simulador resuelve las ecuaciones de aguas poco profundas en forma inercial (Bates y otros, 2010) con infiltración de Green-Ampt, desagües, lagunas y ríos. Sus barras de escenario van del mínimo al máximo registrado en los Niños desde 1997–98 en ese lugar. Al elegir un Niño se repite su peor tormenta <b>tal como ocurrió</b>: la lluvia del satélite IMERG, la humedad del suelo de ese momento y la altura del río <b>de esos mismos días</b>. Una fórmula, sin simular el agua, estima en milisegundos qué Niño dejó a más personas con agua.</p>
+<p>El riesgo sigue la estructura INFORM (amenaza × exposición × vulnerabilidad, media geométrica, escala de 0 a 10) y se calcula <b>para hoy y para cada uno de los próximos 14 días</b>. La amenaza de cada día combina la propensión fija del lugar a juntar agua con la amenaza pronosticada: la lluvia de 3 días de los 50 pronósticos del ensamble del ECMWF frente a la lluvia habitual del lugar, la crecida de los ríos (GloFAS corregido con lo que mide el INA) y las alertas del SMN. Cada indicador se lleva a la escala 0–1 con <b>umbrales físicos fijos</b> en sus propias unidades: un lugar queda «alto» por lo que tiene, no por estar peor que los demás. La versión anterior calculaba el riesgo por mes con el pronóstico estacional; la autora lo descartó porque la lluvia de un mes no se puede pronosticar con una precisión útil.</p>
+<p>El simulador resuelve las ecuaciones de aguas poco profundas en forma inercial (Bates y otros, 2010) con infiltración de Green-Ampt, desagües, lagunas y ríos. Sus barras de escenario van del mínimo al máximo registrado en los Niños desde 1997–98 en ese lugar. Al elegir un Niño se repite su peor tormenta <b>tal como ocurrió</b>: la lluvia del satélite IMERG, la humedad del suelo de ese momento y la altura del río <b>de esos mismos días</b>. Una fórmula, sin simular el agua, estima en milisegundos qué Niño dejó a más personas con agua. Una segunda solapa simula los próximos 15 días desde las condiciones de hoy: la lluvia real de las últimas dos semanas, el agua que vio el radar y el pronóstico, con su rango probable y pesimista.</p>
 <div class="caja-clave"><b>Qué tan bien funciona, medido.</b>
 <ul>
 <li><b>Lluvia.</b> Contra {L["tormentas"]} tormentas medidas en {L["pluviometros"]} pluviómetros del INA y del SMN, el reanálisis ERA5, que usaban las versiones anteriores, daba el {pc(L["era5_100"]["mediana_cociente"])} de las tormentas de 100 mm o más (error mediano {pc(L["era5_100"]["error_mediano"])}). El satélite IMERG da el {pc(L["imerg_100"]["mediana_cociente"])} (error {pc(L["imerg_100"]["error_mediano"])}) y por eso pasó a ser la fuente.</li>
@@ -94,15 +93,15 @@ def capitulos(F, P, V):
 <li><b>Agua que dura semanas.</b> Contra Dynamic World, en {D["n"]} casos con agua suficiente, el simulador obtiene un CSI mediano de {n2(D["csi"])}, contra {n2(D["jrc"])} de la referencia «donde ya hubo agua».</li>
 </ul>
 Conclusión: el sistema es una herramienta <b>orientativa</b>, fuerte en las crecidas de ríos con estación cercana y débil en el anegamiento urbano de pocas horas, que ningún satélite registra.</div>
-<div class="kpis"><div class="kpi"><b>2.282</b><span>gobiernos locales con índice mensual</span></div><div class="kpi"><b>{L["tormentas"]}</b><span>tormentas medidas para elegir la fuente de lluvia</span></div><div class="kpi"><b>{n2(R["ahora"]["csi"])}</b><span>CSI del río contra el radar (Concordia 2023)</span></div><div class="kpi"><b>$ 0</b><span>costo: servicios y herramientas gratuitas</span></div></div>
-<p class="palabras"><b>Palabras clave:</b> riesgo de inundación · El Niño · INFORM · inundación compuesta · número de curva · modelo hidráulico 2D · IMERG · validación · Argentina.</p></section>''',
+<div class="kpis"><div class="kpi"><b>2.282</b><span>gobiernos locales con riesgo para hoy y 14 días</span></div><div class="kpi"><b>{L["tormentas"]}</b><span>tormentas medidas para elegir la fuente de lluvia</span></div><div class="kpi"><b>{n2(R["ahora"]["csi"])}</b><span>CSI del río contra el radar (Concordia 2023)</span></div><div class="kpi"><b>$ 0</b><span>costo: servicios y herramientas gratuitas</span></div></div>
+<p class="palabras"><b>Palabras clave:</b> riesgo de inundación · El Niño · INFORM · pronóstico por ensamble · inundación compuesta · número de curva · modelo hidráulico 2D · IMERG · validación · Argentina.</p></section>''',
 
 "indice": f'''<section class="indice"><h1><span class="num">Contenido</span>Índice</h1><ol>
 <li><span class="n">1</span><span class="t">Introducción, objetivos y alcance</span><span class="p">{p(1)}</span></li>
 <li><span class="n">2</span><span class="t">Marco conceptual y antecedentes</span><span class="p">{p(2)}</span></li>
 <li><span class="n">3</span><span class="t">Datos: fuentes, cobertura y actualización</span><span class="p">{p(3)}</span></li>
 <li><span class="n">4</span><span class="t">Arquitectura del sistema</span><span class="p">{p(4)}</span></li>
-<li><span class="n">5</span><span class="t">Modelos analíticos del índice</span><span class="p">{p(5)}</span></li>
+<li><span class="n">5</span><span class="t">Modelos analíticos del riesgo</span><span class="p">{p(5)}</span></li>
 <li><span class="n">6</span><span class="t">Simulador hidráulico y escenarios de los Niños</span><span class="p">{p(6)}</span></li>
 <li><span class="n">7</span><span class="t">El peor Niño para la población: método rápido</span><span class="p">{p(7)}</span></li>
 <li><span class="n">8</span><span class="t">Validación</span><span class="p">{p(8)}</span></li>
@@ -134,9 +133,9 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <li><b>Específicos.</b>
 <ol type="a">
 <li>Integrar las fuentes públicas en una arquitectura por capas reproducible.</li>
-<li>Calcular un índice por mes con estructura estándar y umbrales físicos, y medir su robustez.</li>
+<li>Calcular el riesgo de hoy y de cada uno de los próximos 14 días con estructura estándar y umbrales físicos, y medir su robustez.</li>
 <li>Anticipar crecidas de ríos a partir de caudales pronosticados.</li>
-<li>Ofrecer un simulador de lluvia y escurrimiento sobre relieve real, con escenarios que repitan tormentas y crecidas reales.</li>
+<li>Ofrecer un simulador de lluvia y escurrimiento sobre relieve real, con escenarios que repitan tormentas y crecidas reales, y una simulación de los próximos 15 días que arranque de las condiciones de hoy.</li>
 <li>Elegir cada fuente midiendo su error contra observaciones independientes.</li>
 <li>Medir qué tan bien funciona el simulador y decirlo en la propia aplicación.</li>
 <li>Mantener todo gratuito, abierto y en dos idiomas.</li>
@@ -146,19 +145,22 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <h2><span class="n">1.4</span>Usuarios previstos</h2>
 <table><thead><tr><th>Usuario</th><th>Qué necesita</th><th>Cómo lo resuelve el sistema</th></tr></thead><tbody>
 <tr><td>Vecina o vecino</td><td>Saber si su zona es riesgosa y qué hacer</td><td>Buscador de direcciones, barrios y empresas; indicadores del círculo elegido; «Situación» y «Qué hacer»</td></tr>
-<tr><td>Equipos municipales y de Defensa Civil</td><td>Priorizar zonas y personas expuestas</td><td>Rankings por nivel y por personas; simulador con el peor Niño del lugar, calles cortadas y centros de salud sin acceso</td></tr>
-<tr><td>Periodistas y público general</td><td>Entender el panorama del país</td><td>Lámina «Panorama y mapa», alertas y ríos, recorrido guiado</td></tr>
+<tr><td>Equipos municipales y de Defensa Civil</td><td>Priorizar zonas y personas expuestas, con tiempo para prepararse</td><td>«Qué cambia en los próximos días» (zonas que suben de nivel, cuándo y por qué); rankings; simulador con el peor Niño del lugar y con el pronóstico, calles cortadas y centros de salud sin acceso</td></tr>
+<tr><td>Empresas e industrias</td><td>Saber si su predio junta agua</td><td>Buscador de plantas y sedes; propensión a juntar agua; indicador de industrias con agua en el simulador</td></tr>
+<tr><td>Periodistas y público general</td><td>Entender el panorama del país</td><td>Lámina «Panorama y mapa», gráfico «Riesgo día por día», inundación de hoy por satélite, recorrido guiado</td></tr>
 <tr><td>Colegas técnicos y comunidad de datos</td><td>Evaluar y reutilizar la metodología</td><td>Fórmulas con unidades, validaciones publicadas, trabajos de referencia y repositorio abierto</td></tr></tbody></table>
 <h2><span class="n">1.5</span>Alcance de cada producto</h2>
 <p>Cada resultado responde a una pregunta distinta, a una escala distinta y con una precisión distinta. La tabla los separa para que ninguno se lea como más de lo que es.</p>
 <div class="tabla-t">Tabla 1. Productos del sistema: pregunta, escala, precisión medida y lo que no afirman</div>
 <table><thead><tr><th>Producto</th><th>Pregunta que responde</th><th>Escala y horizonte</th><th>Precisión medida</th><th>Lo que no afirma</th></tr></thead><tbody>
-<tr><td>Índice de riesgo</td><td>¿Dónde hay más riesgo estructural, sumado al pronóstico del mes?</td><td>Municipio y radio censal; oct-2026 a abr-2027</td><td>Robustez a pesos por Monte Carlo (cap. 5); umbrales físicos explícitos</td><td>Daños, pérdidas ni la probabilidad de una inundación puntual</td></tr>
-<tr><td>Crecida de ríos</td><td>¿Qué probabilidad hay de superar alerta o evacuación?</td><td>43 estaciones del INA; 7 meses</td><td>Error medio verificado de {n2(V["verif"]["rio_error"])} m</td><td>Ríos sin estación (noroeste, Cuyo, Patagonia)</td></tr>
+<tr><td>Riesgo por día</td><td>¿Dónde y cuándo hay riesgo en las próximas dos semanas?</td><td>Municipio y radio censal; hoy y 14 días</td><td>Sin verificar todavía: cada corrida se archiva para compararla con lo ocurrido; robustez de pesos por Monte Carlo</td><td>Daños, pérdidas ni que un barrio se inunde en una fecha</td></tr>
+<tr><td>Propensión a juntar agua</td><td>¿Es un lugar que junta agua, aunque hoy no haya amenaza?</td><td>Municipio; fija</td><td>Umbrales físicos explícitos (tabla 3)</td><td>Los desagües de un predio o de una calle</td></tr>
+<tr><td>Crecida de ríos</td><td>¿Qué probabilidad hay de superar alerta o evacuación?</td><td>43 estaciones del INA; 15 días (y 7 meses para los escenarios)</td><td>Error medio verificado de {n2(V["verif"]["rio_error"])} m</td><td>Ríos sin estación (noroeste, Cuyo, Patagonia)</td></tr>
 <tr><td>Tiempo a 16 días</td><td>¿Cuánto va a llover, soplar y hacer calor?</td><td>Grilla de 0,5°; 16 días</td><td>Correlación {n2(V["verif"]["c03"])} a 0–3 días; {n2(V["verif"]["c815"])} a 8–15 días</td><td>Tormentas de una hora en un barrio</td></tr>
-<tr><td>Simulador 3D</td><td>Con esta lluvia y este río, ¿dónde se junta el agua?</td><td>Círculo de 0,5 a 20 km; celdas de 20 a 130 m; horas a días</td><td>Río: acierto {pc(R["ahora"]["pod"])} contra el radar; agua de semanas: CSI {n2(D["csi"])}</td><td>El anegamiento urbano de pocas horas (no validable con satélites); la red pluvial real</td></tr>
+<tr><td>Simulador 3D</td><td>Con esta lluvia y este río, ¿dónde se junta el agua?</td><td>Círculo de 0,5 a 20 km; celdas de 32 m hasta 1,5 km de radio, que se duplican por tramo; horas a días</td><td>Río: acierto {pc(R["ahora"]["pod"])} contra el radar; agua de semanas: CSI {n2(D["csi"])}</td><td>El anegamiento urbano de pocas horas (no validable con satélites); la red pluvial real</td></tr>
 <tr><td>Escenarios de los Niños</td><td>¿Qué pasaría hoy con la peor tormenta de cada Niño?</td><td>Celda de 0,1° (~11 km); Niños desde 1997–98</td><td>Tormentas de 100 mm o más: {pc(L["imerg_100"]["mediana_cociente"])} de lo medido, error {pc(L["imerg_100"]["error_mediano"])}</td><td>La lluvia exacta de una manzana; los picos de minutos</td></tr>
-<tr><td>Peor Niño (fórmula)</td><td>¿Cuál de esos Niños dejó a más personas con agua?</td><td>El mismo círculo; estimación estática</td><td>Río: igual al modelo 3D en equilibrio; lluvia: sin validar contra daños reales</td><td>Cuántas personas se inundaron de verdad</td></tr></tbody></table></section>''',
+<tr><td>Peor Niño (fórmula)</td><td>¿Cuál de esos Niños dejó a más personas con agua?</td><td>El mismo círculo; estimación estática</td><td>Río: igual al modelo 3D en equilibrio; lluvia: sin validar contra daños reales</td><td>Cuántas personas se inundaron de verdad</td></tr>
+<tr><td>Simulación del pronóstico</td><td>Con lo que ya llovió y lo que se pronostica, ¿dónde va a haber agua?</td><td>El mismo círculo; 14 días pasados y 15 de pronóstico</td><td>Lluvia pronosticada: correlación {n2(V["verif"]["c03"])} a 0–3 días y {n2(V["verif"]["c815"])} a 8–15 días</td><td>La lluvia de cada hora más allá de una semana; el río más allá de su altura de hoy</td></tr></tbody></table></section>''',
 
 2: f'''<section><h1><span class="num">Capítulo 2</span>Marco conceptual y antecedentes</h1>
 <p>Antes de cambiar el modelo se revisaron trabajos de otros autores que estudiaron y midieron problemas parecidos, no solo para El Niño. Los 17 trabajos de acceso abierto se guardaron en la carpeta del proyecto; su índice, con la cita, el enlace y qué aporta cada uno, está en <code>docs/03_investigacion_trabajos.md</code>. Este capítulo resume los conceptos que se usan después.</p>
@@ -209,20 +211,22 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <table><thead><tr><th>Fuente</th><th>Aporta</th><th>Tipo</th><th>Actualización</th></tr></thead><tbody>
 <tr><td>Open-Meteo (modelos ECMWF y otros)</td><td>Lluvia, viento, ráfagas y temperatura a 16 días; humedad del suelo de hoy</td><td>Pronóstico</td><td>2 veces por día</td></tr>
 <tr><td>SMN (alertas CAP)</td><td>Alertas vigentes con nivel y vencimiento</td><td>Observado</td><td>Cada 3 horas</td></tr>
-<tr><td>ECMWF SEAS5 vía Open-Meteo</td><td>Lluvia mensual esperada a 6 meses por municipio</td><td>Pronóstico</td><td>Mensual (día 6)</td></tr>
+<tr><td>Ensamble del ECMWF (IFS, datos abiertos, CC BY 4.0)</td><td>Lluvia diaria de 50 pronósticos a 15 días, celdas de 0,25°: base del riesgo por día</td><td>Pronóstico</td><td>2 veces por día</td></tr>
+<tr><td>ECMWF SEAS5 vía Open-Meteo</td><td>Lluvia mensual esperada a 6 meses por municipio (referencia del simulador; ya no entra al riesgo)</td><td>Pronóstico</td><td>Mensual (día 6)</td></tr>
 <tr><td>INA (sistema de alerta, API a5)</td><td>Alturas de ríos en 175 estaciones con niveles de alerta y evacuación; lluvia diaria de 366 pluviómetros (red RHN-SAT, desde 2019)</td><td>Observado</td><td>Diaria</td></tr>
-<tr><td>GloFAS v4 (Copernicus) vía Open-Meteo</td><td>Pronóstico de caudales a 7 meses; reanálisis diario desde 1997</td><td>Pronóstico / histórico</td><td>Semanal (lunes)</td></tr>
+<tr><td>GloFAS v4 (Copernicus) vía Open-Meteo</td><td>Ensamble de 51 caudales a 15 días (riesgo por día); pronóstico a 7 meses; reanálisis diario desde 1997</td><td>Pronóstico / histórico</td><td>2 veces por día / semanal</td></tr>
 <tr><td>IMERG V07 Final (NASA) en Earth Engine</td><td>Lluvia de satélites calibrada con pluviómetros, celdas de 0,1° cada 30 minutos, desde junio de 2000</td><td>Histórico</td><td>Precalculada</td></tr>
-<tr><td>ERA5 y ERA5-Land (ECMWF)</td><td>Reanálisis horario: lluvia (forma de cada tormenta, Niños antes de 2000) y humedad del suelo</td><td>Histórico</td><td>Al usar / precalculada</td></tr>
+<tr><td>ERA5 y ERA5-Land (ECMWF)</td><td>Reanálisis horario: lluvia (forma de cada tormenta, Niños antes de 2000), humedad del suelo y la lluvia de 3 días de 2, 5 y 10 años de cada celda (1995–2024)</td><td>Histórico</td><td>Al usar / precalculada</td></tr>
 <tr><td>GHCN-Daily (NOAA)</td><td>Lluvia diaria de 75 estaciones argentinas (validación)</td><td>Observado</td><td>Fijo</td></tr>
-<tr><td>Sentinel-1 (ESA) en Earth Engine</td><td>Radar que ve el agua a través de las nubes (validación del río)</td><td>Observado</td><td>Fijo</td></tr>
+<tr><td>Sentinel-1 (ESA) en Earth Engine</td><td>Radar que ve el agua a través de las nubes: validación del río y agua de hoy para la simulación del pronóstico</td><td>Observado</td><td>Cada 3 horas (en revisión)</td></tr>
+<tr><td>MODIS (NASA LANCE, vía GIBS)</td><td>Inundación de hoy y de ayer vista por satélite, 250 m (capa del mapa)</td><td>Observado</td><td>Diaria</td></tr>
 <tr><td>INDEC, Censo 2022</td><td>Población, cloacas, NBI y vivienda en 66.515 radios censales</td><td>Histórico</td><td>Fijo</td></tr>
 <tr><td>MERIT Hydro, Copernicus DEM, FABDEM</td><td>Altura sobre el cauce (HAND), pendiente y relieve de 30 m sin edificios ni árboles en 20 ciudades</td><td>Histórico</td><td>Fijo</td></tr>
 <tr><td>JRC Global Surface Water y Dynamic World</td><td>Frecuencia de agua 1984–2021 y agua observada en los Niños 2015–16 y 2023–24</td><td>Histórico</td><td>Fijo</td></tr>
 <tr><td>MapBiomas, SoilGrids 2.0, OpenLandMap</td><td>Superficie construida y humedales; textura del suelo y arcilla</td><td>Histórico</td><td>Anual / fijo</td></tr>
 <tr><td>RENABAP, IGN, OpenStreetMap</td><td>Barrios populares, límites y localidades, infraestructura crítica, calles y agua</td><td>Referencia</td><td>Fijo / descarga propia</td></tr>
 <tr><td>Photon, Nominatim, Georef y TomTom Search</td><td>Búsqueda de direcciones, lugares y empresas (TomTom: 2.500 consultas diarias gratis)</td><td>Referencia</td><td>Al usar</td></tr>
-<tr><td>Cálculo propio</td><td>Índice de riesgo, probabilidades de crecida, tormentas de los Niños, simulador</td><td>Estimación / simulación</td><td>Diaria / al usar</td></tr></tbody></table>
+<tr><td>Cálculo propio</td><td>Riesgo por día, propensión, probabilidades de crecida, tormentas de los Niños, simulador</td><td>Estimación / simulación</td><td>2 veces por día / al usar</td></tr></tbody></table>
 {fig(F["cobertura"], 1, "Cobertura de los datos principales sobre los 2.282 gobiernos locales. Los datos de ríos con niveles de alerta existen solo en el Litoral y el Área Metropolitana; el noroeste, Cuyo y la Patagonia no tienen estaciones con alerta definida.")}
 <h2><span class="n">3.1</span>La lluvia de las tormentas históricas: por qué IMERG</h2>
 <p>Las versiones anteriores tomaban la lluvia de los Niños del reanálisis ERA5. La validación del capítulo 8, con {L["tormentas"]} tormentas medidas en {L["pluviometros"]} pluviómetros, mostró que ERA5 se queda con el {pc(L["era5_100"]["mediana_cociente"])} de las tormentas de 100 mm o más. Para las mismas tormentas, IMERG da el {pc(L["imerg_100"]["mediana_cociente"])}, con la mitad del error que el promedio de las dos fuentes.</p>
@@ -244,10 +248,11 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <ul>
 <li>alertas del SMN cada 3 horas;</li>
 <li>alturas de ríos y pronóstico de 16 días a diario;</li>
-<li>la grilla del tiempo a las 05:20 y las 17:20 (hora argentina);</li>
-<li>GloFAS los lunes y SEAS5 el día 6 de cada mes.</li>
+<li>la grilla del tiempo y el riesgo de hoy y de los próximos 14 días a las 05:20 y las 17:20 (hora argentina);</li>
+<li>el agua de hoy vista por radar, con las alertas;</li>
+<li>GloFAS a 7 meses los lunes y SEAS5 el día 6 de cada mes.</li>
 </ul>
-<p>Después de cada ingesta se recalcula el índice y se regeneran los archivos que lee la web. Las tormentas de los Niños, los desagües de 2 años y las alturas diarias de los ríos en cada temporada son datos fijos y se precalculan una sola vez (sección 4.3).</p></section>''',
+<p>GitHub ejecuta las tareas programadas con horas de atraso (la de las 05:20 suele correr cerca del mediodía), por eso cada capa muestra en pantalla la fecha y hora de su dato. Los pasos que dependen de servicios externos dejan su resultado en <code>data/archivo/diagnostico/</code>, que se sube con los datos. Después de cada ingesta se recalcula el índice y se regeneran los archivos que lee la web. Las tormentas de los Niños, los desagües de 2 años y las alturas diarias de los ríos en cada temporada son datos fijos y se precalculan una sola vez (sección 4.3).</p></section>''',
 
 4: f'''<section><h1><span class="num">Capítulo 4</span>Arquitectura del sistema</h1>
 {fig(F["arquitectura"], 2, "Flujo de datos de punta a punta: de las fuentes públicas a la web publicada. El procesamiento pesado ocurre fuera del navegador (Python, SQL y Earth Engine); el simulador es lo único que se calcula en el navegador.")}
@@ -256,31 +261,32 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <ul>
 <li><b>Bronze:</b> lo descargado, tal cual.</li>
 <li><b>Silver:</b> lo limpio, con claves comunes (códigos de gobierno local y de radio censal).</li>
-<li><b>Gold:</b> los resultados finales, es decir, el índice por municipio y mes, las probabilidades de crecida y las verificaciones.</li>
+<li><b>Gold:</b> los resultados finales: el índice por municipio (exposición, vulnerabilidad y propensión), el riesgo por día, las probabilidades de crecida y las verificaciones.</li>
 </ul>
 <p>Las capas se construyen con SQL y se validaron con DuckDB en forma local, con resultados idénticos a los de Python en los componentes de exposición y vulnerabilidad. La ejecución en Databricks quedó preparada y pendiente del inicio de sesión de la autora.</p>
 <h2><span class="n">4.2</span>Aplicación web</h2>
-<p>La interfaz es una aplicación estática con MapLibre GL como única librería de mapas, más maplibre-contour para las curvas de nivel y three.js, que se carga solo con la maqueta 3D. Se organiza en cuatro láminas (Panorama y mapa · Simulador 3D · Alertas y ríos · Análisis y validación) y en módulos de responsabilidad única.</p>
+<p>La interfaz es una aplicación estática con MapLibre GL como única librería de mapas, más maplibre-contour para las curvas de nivel y three.js, que se carga solo con la maqueta 3D. Se organiza en tres láminas (Panorama y mapa · Simulador 3D · Análisis y validación) y en módulos de responsabilidad única. Los cambios visuales siguen una guía de diseño propia (retícula de 8 px, filetes de 1 px, cifras en tipografía monoespaciada, el semáforo reservado para el nivel de riesgo y una revisión de cinco puntos antes de publicar: <code>docs/05_constitucion_grafica.md</code>).</p>
 <table><thead><tr><th>Módulo</th><th>Responsabilidad</th></tr></thead><tbody>
 <tr><td><code>textos.js</code></td><td>Todos los textos en español e inglés; los que dependen de datos son funciones</td></tr>
 <tr><td><code>utiles.js</code>, <code>graficos.js</code></td><td>Formatos, geometría, íconos y gráficos propios en SVG, sin librerías</td></tr>
 <tr><td><code>tiempo.js</code></td><td>Campos del tiempo, partículas de viento y miniaturas</td></tr>
-<tr><td><code>mapa.js</code>, <code>buscador.js</code>, <code>claves.js</code></td><td>Mapa, capas, curvas de nivel con altura; búsqueda de provincia, partido, localidad, dirección, barrio popular, empresa (TomTom) o coordenadas</td></tr>
-<tr><td><code>tableros.js</code>, <code>laminas.js</code>, <code>guia.js</code></td><td>Tablero de cada capa y análisis; las cuatro láminas y el cuadro de detalle; encabezado, fuentes por tipo y recorrido guiado</td></tr>
-<tr><td><code>app.js</code></td><td>Estado, indicadores del círculo elegido, modos actual y futuro</td></tr>
+<tr><td><code>mapa.js</code>, <code>buscador.js</code>, <code>claves.js</code></td><td>Mapa, capas, curvas de nivel con altura; búsqueda de provincia, partido, localidad, dirección, barrio popular, empresa (TomTom y lugares cargados a mano, como refinerías y plantas) o coordenadas</td></tr>
+<tr><td><code>tableros.js</code>, <code>laminas.js</code>, <code>guia.js</code></td><td>Tablero de cada capa, «Qué cambia en los próximos días» y análisis; las tres láminas y el cuadro de detalle; encabezado, gráfico «Riesgo día por día», fuentes por tipo y recorrido guiado</td></tr>
+<tr><td><code>app.js</code></td><td>Estado, riesgo por día (armado con el archivo diario y los rasgos fijos), indicadores del círculo elegido, fechas y línea de tiempo</td></tr>
 <tr><td><code>modelo_inundacion.js</code>, <code>hidraulica.js</code>, <code>simulador.js</code></td><td>Datos del lugar y base de tormentas de los Niños; motor hidráulico (en un Web Worker); escenario, peor Niño y maqueta 3D</td></tr></tbody></table>
 <h2><span class="n">4.3</span>Datos precalculados del simulador</h2>
 <p>Para que el simulador responda en segundos en cualquier punto, lo que no cambia se calcula una sola vez:</p>
 <ul>
 <li><code>earth_engine/lluvia_ninos.py</code> calcula en Earth Engine, para cada celda de 0,1° de la Argentina y cada Niño desde 1997–98, la peor tormenta de 3 días, su total, su hora más lluviosa y la de la temporada, y la lluvia de 1 hora de 2 años. Se guarda en {V["teselas"]} teselas binarias de 2° × 2° ({V["teselas_mb"]} MB en total); la web baja solo la del punto.</li>
+<li><code>earth_engine/umbrales_lluvia.py</code> calcula, para cada celda de 0,1°, la lluvia de 3 días seguidos que se supera una vez cada 2, 5 y 10 años, con los máximos anuales de ERA5-Land de 1995 a 2024 y un ajuste de Gumbel. El riesgo por día compara el pronóstico con esos umbrales.</li>
 <li><code>web/preparar_rios_ninos.py</code> guarda, por estación, la altura de cada día de octubre a mayo de cada Niño: medida por el INA cuando existe y, si no, estimada con GloFAS y la curva caudal-altura de la estación.</li>
 </ul>
 <h2><span class="n">4.4</span>Publicación y costo</h2>
 <p>El sitio público se publica automáticamente en Cloudflare Workers con cada cambio en el repositorio (unas 11 publicaciones por día frente a un cupo gratuito de 500 por mes). No hay base de datos ni servidor propios: el costo operativo es nulo.</p></section>''',
 
-5: f'''<section><h1><span class="num">Capítulo 5</span>Modelos analíticos del índice</h1>
-<h2><span class="n">5.1</span>Índice de riesgo de inundación</h2>
-{fig(F["indice"], 3, "Estructura del índice. Cada componente se expresa de 0 a 10; el riesgo es la raíz cúbica de su producto.")}
+5: f'''<section><h1><span class="num">Capítulo 5</span>Modelos analíticos del riesgo</h1>
+<h2><span class="n">5.1</span>Riesgo de inundación de hoy y de los próximos 14 días</h2>
+{fig(F["indice"], 3, "Estructura del riesgo por día. Cada componente se expresa de 0 a 10; el riesgo es la raíz cúbica de su producto.")}
 <div class="formula">Riesgo = ∛( Amenaza × Exposición × Vulnerabilidad )<span class="eq">(1)</span></div>
 <p><b>Escala física.</b> Cada indicador x se lleva a 0–1 con dos umbrales fijos en sus propias unidades: u(x) = clip((x − x<sub>0</sub>) / (x<sub>1</sub> − x<sub>0</sub>); 0; 1), donde x<sub>0</sub> es el valor que vale 0 y x<sub>1</sub> el que vale 1. Las versiones anteriores usaban rangos entre municipios: con ellos, siempre había un 10 % «muy alto» aunque el país entero estuviera seco.</p>
 <div class="tabla-t">Tabla 3. Umbrales físicos de cada indicador</div>
@@ -294,20 +300,34 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <tr><td>Hogares sin cloaca · materiales deficientes</td><td class="num">0 %</td><td class="num">100 %</td><td>Rango natural</td></tr>
 <tr><td>Hogares con NBI</td><td class="num">0 %</td><td class="num">25 %</td><td>El país tiene 6,5 %; los peores municipios, 30 a 50 %</td></tr>
 <tr><td>Barrios populares cada 10.000 habitantes</td><td class="num">0</td><td class="num">10</td><td>Valor extremo elegido: por encima, la vulnerabilidad por este indicador se considera completa</td></tr></tbody></table>
-<p><b>Amenaza.</b> Para cada mes se combinan tres amenazas con la regla multi-amenaza de INFORM, H = 10 − Π(10 − Hᵢ) / 10², de modo que cualquiera que sea alta eleva el total sin pasar de 10.</p>
-<ul><li><i>Agua en superficie</i> = 10 × P × f. La propensión P es el promedio de u(agua alguna vez), u(agua en los Niños) y u(superficie a menos de 2 m del cauce). El factor f = clip(r/2; 0; 1) usa r, la relación entre la lluvia pronosticada (SEAS5) y la normal, ajustada por la precisión medida del pronóstico (5.4).</li>
-<li><i>Crecida de ríos</i> = 10 × máx(P<sub>evac</sub>; ½ P<sub>alerta</sub>) de la estación del INA confiable más cercana. El peso es completo hasta 15 km y baja en línea recta hasta 0 a los 30 km. Sin estación a esa distancia el tablero escribe «Sin información».</li>
-<li><i>Quebradas</i> = 10 × s × f × (½ + ½ u(arcilla)), con s = clip((pendiente p90 − 5°) / 20°; 0; 1).</li></ul>
-<p><b>Exposición</b> = 10 × promedio de u(log₁₀ de las personas en terreno bajo) y u(su proporción). Un radio censal está en terreno bajo si más de la mitad de su superficie está a menos de 2 m sobre el curso de agua más cercano. <b>Vulnerabilidad</b> = 10 × promedio de u(sin cloaca), u(NBI), u(materiales deficientes) y u(barrios populares por habitante).</p>
-<p>Con un punto elegido, los indicadores de la lámina 01 se calculan con los radios censales dentro del círculo, ponderados por población, y no con el municipio entero.</p>
-<p>Con el cálculo del {V["indice"]["fecha"]}, el mes pico es {V["indice"]["mes_pico"]}. Ese mes el riesgo medio del país es {V["indice"]["riesgo_medio"]} y {V["indice"]["alto"]} municipios quedan en riesgo alto.</p>
+<p><b>Amenaza del día.</b> Combina la amenaza fija del lugar con la pronosticada para ese día, con la regla multi-amenaza de INFORM, de modo que cualquiera de las dos que sea alta eleva el total sin pasar de 10:</p>
+<div class="formula">H<sub>d</sub> = 10 − ( 10 − H<sub>fija</sub> ) · ( 10 − H<sub>pron,d</sub> ) / 10<span class="eq">(1b)</span></div>
+<ul><li><i>Amenaza fija</i>: el agua en superficie y las quebradas con lluvia normal (factor f = 0,5), combinadas con la misma regla. Agua en superficie = 10 × P × f, donde la propensión P es el promedio de u(agua alguna vez), u(agua en los Niños) y u(superficie a menos de 2 m del cauce). Quebradas = 10 × s × f × (½ + ½ u(arcilla)), con s = clip((pendiente p90 − 5°) / 20°; 0; 1). Gracias a ella, un lugar que junta agua nunca da riesgo 0, aunque ese día no haya amenaza pronosticada.</li>
+<li><i>Amenaza pronosticada</i>: un nivel de 0 a 3, que vale 0, 4, 7 o 10, el mayor de tres:
+<ul>
+<li><b>Lluvia.</b> Para cada uno de los 50 pronósticos del ensamble del ECMWF se suma la lluvia de los 3 días que terminan ese día y se compara con la que en ese lugar se supera una vez cada 2, 5 y 10 años. Esos umbrales salen del clima del mismo centro (ERA5-Land, 1995–2024), como hace el ECMWF con su índice de pronósticos extremos: comparar el modelo con su propio clima evita exagerar o achicar las probabilidades. Nivel 1, 2 o 3 si al menos el 30 % de los pronósticos supera la lluvia de 2, 5 o 10 años; es el criterio con que el sistema europeo de alerta de inundaciones avisa una crecida. Donde el terreno casi no junta agua (P &lt; 0,15), un nivel menos.</li>
+<li><b>Ríos.</b> Los 51 pronósticos de caudal de GloFAS se pasan a altura con la curva de cada estación (5.2). Nivel 1 si el 30 % llega a alerta, 2 si el 30 % llega a evacuación y 3 si el 70 % llega a evacuación. Hoy manda la altura medida por el INA. El nivel vale completo hasta 15 km de la estación y uno menos entre 15 y 30 km.</li>
+<li><b>Alertas del SMN</b> por tormentas o lluvias que cubren el lugar, mientras están vigentes: amarilla 1, naranja 2, roja 3. Las de calor, viento, nieve o zonda no cuentan.</li>
+</ul></li></ul>
+<div class="formula">x<sub>T</sub> = μ − σ · (√6 / π) · ( 0,5772 + ln( −ln( 1 − 1/T ) ) )<span class="eq">(1c)</span></div>
+<p>La ecuación 1c es el ajuste de Gumbel por momentos: μ y σ son la media y el desvío de los 30 máximos anuales de la lluvia de 3 días de cada celda, y T el período de retorno en años. La lluvia de 2 años es casi la mediana de esos máximos.</p>
+<p><b>Exposición</b> = 10 × promedio de u(log₁₀ de los habitantes en terreno bajo) y u(su proporción). Un radio censal está en terreno bajo si más de la mitad de su superficie está a menos de 2 m sobre el curso de agua más cercano. El Censo cuenta dónde vive la gente, no dónde trabaja. <b>Vulnerabilidad</b> = 10 × promedio de u(sin cloaca), u(NBI), u(materiales deficientes) y u(barrios populares por habitante).</p>
+<p>Con un punto elegido, los indicadores de la lámina 01 se calculan con los radios censales dentro del círculo, ponderados por población: riesgo = ∛(H<sub>d</sub> del municipio × exposición del radio × vulnerabilidad del radio).</p>
+<p><b>Propensión a juntar agua.</b> Es la misma amenaza fija con f = 1, de 0 a 10, y se muestra como subindicador con su propio semáforo, debajo del riesgo y en «Qué lo explica». No depende del pronóstico: un lugar puede tener hoy riesgo verde y propensión amarilla o roja. {V["diario"]["prop_alta"]} municipios tienen propensión alta o muy alta.</p>
+<p><b>Qué cambia en los próximos días.</b> Para cada municipio se compara el nivel de riesgo de hoy con el mayor de los próximos 3, 7 o 14 días, a elección. Se listan los que suben (con el día en que llegan, la amenaza que manda y su probabilidad), los que siguen en riesgo alto y los que bajan. Cada uno lleva una recomendación armada con sus datos: la amenaza y la fecha límite, y si corresponde, la parte de la población en terreno bajo o sin cloaca. Un gráfico de columnas muestra, para cada día, qué parte de la superficie queda en cada nivel; al tocar una columna el mapa se pinta con ese día.</p>
+<p>Con el cálculo del {V["diario"]["fecha"]}, hoy {V["diario"]["hoy_alto"]} municipios están en riesgo alto o muy alto, y el día más comprometido de las dos semanas es el {V["diario"]["dia_pico"]}, con {V["diario"]["n_pico"]}.</p>
+<div class="nota"><b>Por qué se dejó el riesgo mensual.</b> La versión anterior combinaba la propensión con el pronóstico estacional de lluvia (SEAS5) mes a mes, de octubre a abril. La autora lo descartó: la lluvia de un mes no se puede pronosticar con una precisión útil, y la verificación propia lo confirma (5.4). Ese cálculo se sigue haciendo solo para producir la exposición, la vulnerabilidad y la propensión de cada municipio.</div>
+<div class="nota"><b>Error corregido en esta versión.</b> Al pasar a días, la primera versión tomaba la amenaza pronosticada sola: sin pronóstico, el riesgo daba 0,0 incluso en lugares que se inundan, como el predio de Toyota Boshoku en Campana, donde el simulador mostraba lagunas. Con la amenaza fija, ese lugar da 3,3 (bajo) en un día sin amenaza y su propensión es 4,5 (media).</div>
 <h3>Sensibilidad de los pesos</h3>
 <p>Para no depender de una elección arbitraria, se sortean 1.000 combinaciones de pesos (distribución de Dirichlet) entre los indicadores de exposición y vulnerabilidad y entre los exponentes de los tres componentes. La <i>robustez</i> mide la sensibilidad del ranking a esas elecciones; no mide la calidad de los datos ni del modelo. Es el porcentaje de simulaciones en que un municipio queda en el 10 % de mayor riesgo.</p>
 <div class="decision"><b>Decisión metodológica</b>Se probó un modelo de aprendizaje automático para la amenaza. Entrenado con El Niño 2015–16 y evaluado con 2023–24, no superó a la regla simple de propensión histórica, y al invertir los eventos el resultado fue igual. Con un solo evento de entrenamiento, aprender no agrega información que 40 años de historia no tengan.</div>
 {fig(F["ml"], 4, "Correlación de Spearman entre el agua observada y la predicha en 2023–24 para distintos métodos entrenados con 2015–16.")}
-{alcance("Ordena municipios y radios por riesgo estructural más el pronóstico del mes, con umbrales que se pueden discutir porque están escritos en unidades físicas. No estima daños ni la probabilidad de que un barrio se inunde en una fecha; tampoco reemplaza una alerta.")}
+{alcance("Indica dónde y cuándo hay más riesgo en las próximas dos semanas, con umbrales escritos en unidades físicas que se pueden discutir. Cuanto más lejos el día, más incierto el pronóstico. Todavía no está verificado: cada corrida se archiva para compararla con lo que ocurra. No estima daños ni que un barrio se inunde en una fecha; tampoco reemplaza una alerta oficial.")}
 <h2><span class="n">5.2</span>Modelo de ríos</h2>
-<p>El caudal pronosticado por GloFAS se convierte en altura en cada estación con una curva caudal-altura ajustada a las mediciones del INA (regresión isotónica, desfase y sesgo reciente). Con eso se obtiene la probabilidad mensual de superar el nivel de alerta y el de evacuación.</p>
+<p>El caudal pronosticado por GloFAS se convierte en altura en cada estación con una curva caudal-altura ajustada a las mediciones del INA (regresión isotónica, desfase y sesgo reciente). Con eso se obtiene la probabilidad de superar el nivel de alerta y el de evacuación cada día de los próximos 15 (riesgo por día) y cada mes de los próximos 7 (escenarios).</p>
+<p>Para el riesgo por día, el error de la curva frente a lo medido por el INA se mide en los días pasados de la misma corrida. El de los últimos 2 días pesa más al principio y se diluye hacia el de los últimos 15, con una escala de unos 5 días:</p>
+<div class="formula">sesgo(d) = e<sub>15</sub> + ( e<sub>2</sub> − e<sub>15</sub> ) · exp( −d / 5 )<span class="eq">(1d)</span></div>
+<p>Así el pronóstico arranca donde está el río hoy. Antes, el Paraná podía pasar de «normal» medido hoy a «evacuación» mañana: su altura depende del caudal de 10 días antes, que quedaba fuera de la consulta, y se usaba el sesgo fijo de la calibración.</p>
 <ul>
 <li>De 91 estaciones evaluadas, 43 superaron un coeficiente de validación de 0,7 y son las que se muestran.</li>
 <li>La verificación continua contra lo medido da un error medio de {n2(V["verif"]["rio_error"])} m y un sesgo de {n2(V["verif"]["rio_sesgo"])} m en {V["verif"]["rio_pares"]} pares.</li>
@@ -322,12 +342,12 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <li>En los 58 días con 20 mm o más, el modelo reproduce 659 de los 1.165 reclamos observados, frente a 335 de la línea base: capta la forma pero subestima la magnitud.</li>
 </ul>
 <h2><span class="n">5.4</span>Verificación del pronóstico y retroalimentación</h2>
-<p>Cada pronóstico de lluvia se archiva y se compara con lo ocurrido. Con {V["verif"]["dias"]} días verificados, la correlación cae de {n2(V["verif"]["c03"])} a 0–3 días a {n2(V["verif"]["c47"])} a 4–7 días y a {n2(V["verif"]["c815"])} a 8–15 días. Esa precisión define el peso del pronóstico frente a la historia (hoy {n2(V["verif"]["peso"])}): la lluvia relativa r se reemplaza por 1 + {n2(V["verif"]["peso"])}·(r − 1).</p>
+<p>Cada pronóstico de lluvia se archiva y se compara con lo ocurrido. Con {V["verif"]["dias"]} días verificados, la correlación cae de {n2(V["verif"]["c03"])} a 0–3 días a {n2(V["verif"]["c47"])} a 4–7 días y a {n2(V["verif"]["c815"])} a 8–15 días. Esa caída justifica tratar el riesgo de cada día como un pronóstico cada vez más incierto, y es el motivo por el que el riesgo mensual se descartó. En el cálculo mensual que se conserva, esa precisión define el peso del pronóstico frente a la historia (hoy {n2(V["verif"]["peso"])}). El riesgo por día también se archiva (<code>data/archivo/riesgo_diario/</code>) para medir, con el tiempo, cuántas veces un nivel pronosticado se cumplió.</p>
 {fig(F["verif"], 5, "Verificación del pronóstico de lluvia por plazo.")}
 </section>''',
 
 6: f'''<section><h1><span class="num">Capítulo 6</span>Simulador hidráulico y escenarios de los Niños</h1>
-<p>El simulador responde a una pregunta concreta: <i>si cae esta tormenta con el río a esta altura, ¿dónde se junta el agua, hacia dónde corre y qué queda cortado?</i> Se calcula en el navegador, para un círculo de 0,5 a 20 km alrededor del punto elegido, y se muestra en una maqueta 3D sobre la imagen satelital. Al abrirlo, la maqueta está seca: no hay agua de hoy medida por satélite para el lugar, y el modelo recién calcula cuando se mueve una barra o se elige un Niño.</p>
+<p>El simulador responde a una pregunta concreta: <i>si cae esta tormenta con el río a esta altura, ¿dónde se junta el agua, hacia dónde corre y qué queda cortado?</i> Se calcula en el navegador, para un círculo de 0,5 a 20 km alrededor del punto elegido, y se muestra en una maqueta 3D sobre la imagen satelital. Tiene dos solapas: «Simular un escenario» (los Niños o una tormenta a mano) y «Simular pronóstico» (desde hoy, 6.9). Al abrirlo, la maqueta está seca, como en la imagen satelital: el modelo corre de fondo el peor Niño del lugar y el agua se ve al tocar ▶. Al elegir otro Niño, la maqueta vuelve a la imagen seca de hoy hasta que se toca ▶.</p>
 {fig(F["hidraulica"], 6, "Balance de agua de cada celda del modelo.")}
 <h2><span class="n">6.1</span>Formulación</h2>
 <p>El agua se mueve entre celdas vecinas con la ecuación inercial local de Bates y otros (2010). El caudal por unidad de ancho q en una cara entre dos celdas se actualiza con el gradiente de la superficie libre η y la fricción de Manning:</p>
@@ -351,11 +371,12 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 </ul>
 <p>Los parámetros salen de la clase textural del suelo (SoilGrids 2.0, 0–30 cm). El balance de masa cierra con error de 0,00 %.</p>
 <h2><span class="n">6.2</span>Terreno, cuerpos de agua y condiciones de borde</h2>
-<ul><li><b>Relieve.</b> FABDEM de 30 m (sin edificios ni árboles) en las 20 ciudades con más personas en riesgo; en el resto, AWS Terrain Tiles. Celdas de 20 a 130 m según el tamaño del círculo.</li>
+<ul><li><b>Relieve.</b> FABDEM de 30 m (sin edificios ni árboles) en las 20 ciudades con más personas en riesgo; en el resto, AWS Terrain Tiles.</li>
+<li><b>Grilla.</b> Las celdas están alineadas a una cuadrícula común del mapa y su tamaño va por tramos de radio: unos 32 m hasta 1,5 km, 63 m hasta 3 km, 127 m hasta 6 km, y así. Cada celda de un tramo son exactamente 2 × 2 celdas del anterior. Dentro de un tramo, un mismo lugar cae siempre en la misma celda y el agua no cambia al agrandar o achicar el círculo; cada corrida tarda 9 segundos o menos.</li>
 <li><b>Arroyos y canales</b> se graban en el terreno (1 m los arroyos y zanjas; 2 m los canales). Su agua no se cuenta como inundación.</li>
 <li><b>Lagunas</b>: cada una guarda agua con un único nivel; las conectadas a un río son parte del río.</li>
 <li><b>Ríos</b>: tienen el nivel impuesto, atado al nivel de evacuación de la estación del INA más cercana (a menos de 15 km). En ese nivel, el agua llega a la orilla del cuantil 40 % de las orillas, y cada metro de más o de menos se suma o se resta. Los bordes tienen salida libre.</li></ul>
-<div class="nota"><b>Error corregido en esta versión.</b> El motor arrancaba «quieto» y solo movía el agua con lluvia o cuando cambiaba el río. Con el río alto y sin lluvia no inundaba nada. Lo descubrió la validación contra el radar (8.3); ahora el agua arranca en movimiento siempre que hay río o mar.</div>
+<div class="nota"><b>Errores corregidos en esta versión.</b> El motor arrancaba «quieto» y solo movía el agua con lluvia o cuando cambiaba el río: con el río alto y sin lluvia no inundaba nada. Lo descubrió la validación contra el radar (8.3); ahora el agua arranca en movimiento siempre que hay río o mar. Además, las lagunas cambiaban al mover el radio: la grilla tenía siempre unas 100 celdas por lado, que arrancaban donde empezaba cada círculo, y el detalle del relieve cambiaba con el radio. Con la grilla alineada y por tramos, 1 y 1,5 km dan el mismo agua en la zona que comparten.</div>
 <h2><span class="n">6.3</span>Escenario: las barras y sus límites</h2>
 <p>Cada barra representa un factor que cambia cuánto se inunda con una lluvia, y va del mínimo al máximo registrado <b>en los Niños desde 1997–98 en ese lugar</b>. Si no hay registro de un Niño se usa todo el registro, y si no hay ninguno, un rango supuesto, avisado en pantalla. El viento no figura: no cambia cuánta agua se junta; solo importaría como sudestada, que ya es la altura del río o del mar.</p>
 <div class="tabla-t">Tabla 4. Barras del escenario</div>
@@ -387,13 +408,24 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <p>La mediana nacional de D es {V["desague"]["mediana"]} mm/h, y en Zárate, {V["desague"]["zarate"]} mm/h. La barra permite probar desagües tapados (0) o más grandes.</p>
 <h2><span class="n">6.7</span>Resultados que informa</h2>
 <table><thead><tr><th>Resultado</th><th>Definición</th></tr></thead><tbody>
-<tr><td>Superficie con agua y personas</td><td>Celdas de tierra del círculo con 10 cm o más; las personas se reparten por celda a partir de los radios censales</td></tr>
-<tr><td>Profundidad máxima</td><td>Mayor lámina en el bajo más hondo, sin el agua dentro de arroyos o canales</td></tr>
+<tr><td>Superficie con agua y profundidad máxima</td><td>Celdas de tierra del círculo con 10 cm o más; abajo, la mayor lámina en el bajo más hondo, sin el agua dentro de arroyos o canales</td></tr>
+<tr><td>Habitantes</td><td>Quienes viven (Censo 2022) en celdas con 10 cm o más, repartidos por celda a partir de los radios censales. No cuenta a quienes trabajan en el lugar</td></tr>
+<tr><td>Industrias</td><td>Hectáreas de zonas industriales y comerciales de OpenStreetMap con 10 cm o más, sobre el total de esas zonas en el círculo. No conoce los desagües de cada predio</td></tr>
 <tr><td>Calles cortadas, personas aisladas y salud sin acceso</td><td>Calles con 30 cm o más (los puentes siguen pasables); quienes en seco llegaban a la salida del área y con agua no; centros de salud con agua o con sus calles cortadas</td></tr>
 </tbody></table>
 <h2><span class="n">6.8</span>Visualización y reproducción</h2>
-<p>Arriba del panel están el ▶, la hora, la barra de tiempo, la velocidad (×0,5 a ×4) y el gráfico de lluvia y agua. La maqueta 3D usa imagen satelital de alta resolución (hasta nivel 18, unos 0,6 m por píxel en un círculo de 0,5 km) y muestra solo las acumulaciones de 2 cm o más. Mientras llueve, unas líneas blancas siguen la pendiente de la superficie calculada: su dirección sale del cálculo, y su velocidad y su largo son ilustrativos.</p>
-{alcance(f"Muestra dónde se acumula el agua con una tormenta y un río dados, en un círculo de hasta 20 km y con horas de detalle. En crecidas de río con estación cercana acierta el {pc(R['ahora']['pod'])} del agua vista por radar. No representa la red pluvial real (se supone pareja) ni el agua que entra al círculo desde fuera de él, y no fue posible validar el anegamiento urbano de pocas horas. Las tormentas son reales pero vistas a 11 km de resolución: los picos de minutos quedan suavizados.")}</section>''',
+<p>Arriba del panel están el ▶, la hora, la barra de tiempo, la velocidad (×0,5 a ×4) y el gráfico de lluvia y agua. La maqueta 3D usa imagen satelital de alta resolución (hasta nivel 18, unos 0,6 m por píxel en un círculo de 0,5 km) y muestra solo las acumulaciones de 2 cm o más. Mientras llueve, unas líneas blancas siguen la pendiente de la superficie calculada: su dirección sale del cálculo, y su velocidad y su largo son ilustrativos. Los indicadores se muestran en dos filas de tres, para el momento de más agua de la corrida.</p>
+<p>La preparación pide en paralelo el relieve y los datos del lugar (Niños, ríos, humedad y suelo). El relieve en 3D y el sombreado del mapa 2D, que queda debajo de la maqueta como respaldo, se piden solo si se abre esa vista. Así el peor Niño queda elegido en unos 3,5 segundos, frente a unos 18 antes.</p>
+<h2><span class="n">6.9</span>Simulación del pronóstico (15 días)</h2>
+<p>La segunda solapa responde otra pregunta: <i>con lo que ya llovió y lo que se pronostica, ¿dónde va a haber agua en los próximos días?</i> La corrida arranca de las condiciones de hoy:</p>
+<ul>
+<li><b>Lluvia pasada.</b> La lluvia hora por hora de los últimos 14 días en el punto (análisis de los modelos, Open-Meteo) moja el suelo y llena los bajos como están hoy.</li>
+<li><b>Agua vista por radar.</b> Donde Sentinel-1 vio agua en su última pasada (hasta 12 días; VV &lt; −16 dB, sin el agua permanente), cada bajo arranca con el nivel que cubre exactamente esas celdas, a la hora de la pasada.</li>
+<li><b>Lluvia pronosticada.</b> De 1 a 7 días, el pronóstico hora por hora. De 8 a 15 días, uno de los 51 miembros del ensamble del ECMWF, elegido por su total: el probable (la mediana) o el pesimista (el percentil 90).</li>
+<li><b>Río.</b> La altura medida hoy por el INA se mantiene los 15 días.</li>
+</ul>
+<p>La pantalla separa con colores la lluvia real, la pronosticada con confianza alta (0–2 días), media (3–6) y baja (7–15).</p>
+{alcance(f"Muestra dónde se acumula el agua con una tormenta y un río dados, en un círculo de hasta 20 km y con horas de detalle. En crecidas de río con estación cercana acierta el {pc(R['ahora']['pod'])} del agua vista por radar. No representa la red pluvial real (se supone pareja) ni el agua que entra al círculo desde fuera de él, y no fue posible validar el anegamiento urbano de pocas horas. Las tormentas son reales pero vistas a 11 km de resolución: los picos de minutos quedan suavizados. La simulación del pronóstico hereda la incertidumbre del pronóstico, que crece con los días, y mantiene el río en su altura de hoy.")}</section>''',
 
 7: f'''<section><h1><span class="num">Capítulo 7</span>El peor Niño para la población: método rápido</h1>
 <p>El selector de Niños marca en rojo el que dejó a más personas con agua en el círculo. Correr el modelo hidráulico para cada Niño tardaba minutos, y la autora pidió un cálculo inmediato, con todas las variables y sin simular los charcos. La solución es una fórmula física estática, que se evalúa en milisegundos sobre la misma grilla del modelo.</p>
@@ -489,23 +521,24 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 9: f'''<section><h1><span class="num">Capítulo 9</span>Requerimientos funcionales y guía de uso</h1>
 <div class="tabla-t">Tabla 5. Requerimientos funcionales implementados</div>
 <table><thead><tr><th style="width:11mm">Código</th><th>Función</th><th>Descripción</th></tr></thead><tbody>
-<tr><td>RF-01</td><td>Láminas</td><td>Cuatro láminas con solapas: Panorama y mapa · Simulador 3D · Alertas y ríos · Análisis y validación</td></tr>
+<tr><td>RF-01</td><td>Láminas</td><td>Tres láminas con solapas: Panorama y mapa · Simulador 3D · Análisis y validación</td></tr>
 <tr><td>RF-02</td><td>Lectura del lugar</td><td>Titular de riesgo con escala de aguja, radio del círculo (1 km por defecto), evolución en el período y el tiempo en el lugar arriba de todo</td></tr>
-<tr><td>RF-03</td><td>Indicadores del círculo</td><td>Personas en riesgo alto y radios en riesgo alto dentro del círculo, ríos a ≤ 15 km, alertas que cubren el punto; ícono con el color del indicador al 80 % de transparencia; método y fuente al pasar el mouse</td></tr>
-<tr><td>RF-04</td><td>Buscador</td><td>Provincia, partido, localidad, dirección, barrio popular (RENABAP), empresa (TomTom), lugares propios y coordenadas; si nada coincide con lo buscado, ofrece opciones en vez de llevar a un lugar parecido</td></tr>
-<tr><td>RF-05</td><td>Mapa</td><td>Riesgo, lluvia, viento y temperatura; capas sumables (hidrografía, alertas del SMN, apagadas por defecto, zonas que ya se inundaron, densidad, barrios, suelo, infraestructura, rutas); curvas de nivel con su altura en metros; océano con retícula y continentes lisos</td></tr>
-<tr><td>RF-06</td><td>Detalle del lugar</td><td>Recuadro que sigue la selección, con el punto, el círculo y un botón «Simulador 3D»; visible también en el celular</td></tr>
-<tr><td>RF-07</td><td>Situación y «Qué hacer»</td><td>Viñetas con nivel, período, motivo, antecedentes y población; tortas; recomendaciones de prevención y de emergencia armadas con los datos del lugar</td></tr>
-<tr><td>RF-08</td><td>Alertas y ríos</td><td>Alertas vigentes del SMN y estado de los ríos con sus niveles</td></tr>
+<tr><td>RF-03</td><td>Indicadores del círculo</td><td>Habitantes en riesgo alto y radios en riesgo alto dentro del círculo, ríos a ≤ 15 km, alertas que cubren el punto y día más crítico de las dos semanas; ícono con el color del indicador; método y fuente al pasar el mouse</td></tr>
+<tr><td>RF-04</td><td>Buscador</td><td>Provincia, partido, localidad, dirección, barrio popular (RENABAP), empresa (TomTom), lugares cargados a mano y coordenadas; si nada coincide, ofrece opciones en vez de llevar a un lugar parecido. Con el nombre de una petrolera lleva a sus refinerías y sedes, no a sus estaciones de servicio</td></tr>
+<tr><td>RF-05</td><td>Mapa</td><td>Riesgo, lluvia, viento y temperatura; capas sumables (hidrografía, alertas del SMN, apagadas por defecto, zonas que ya se inundaron, inundación de hoy por satélite, densidad, barrios, suelo, infraestructura, rutas); curvas de nivel con su altura en metros; océano con retícula y continentes lisos</td></tr>
+<tr><td>RF-06</td><td>Detalle del lugar</td><td>Recuadro que sigue la selección, con el punto, el círculo velado en gris y un llamado «Hacé clic acá · Mirá la lluvia en 3D»; todo el círculo abre el simulador; visible también en el celular</td></tr>
+<tr><td>RF-07</td><td>Situación y «Qué hacer»</td><td>Viñetas con nivel, período, día más comprometido, motivo, antecedentes y población; tortas; recomendaciones de prevención y de emergencia armadas con los datos del lugar; propensión a juntar agua con su semáforo</td></tr>
+<tr><td>RF-08</td><td>Riesgo por día</td><td>Fechas, ▶ y línea de tiempo de hoy a 14 días; gráfico «Riesgo día por día» que pinta el mapa al tocar una columna; «Qué cambia en los próximos días» (suben, siguen altos, bajan) con recomendaciones; alertas y ríos como capas e indicadores</td></tr>
 <tr><td>RF-09</td><td>Análisis y validación</td><td>Gráficos que siguen los filtros, al estilo de Power BI, y la validación del simulador</td></tr>
-<tr><td>RF-10</td><td>Simulador: reproducción</td><td>▶, hora, barra de tiempo, velocidad y gráfico arriba de todo; maqueta seca al abrir; imagen de alta resolución; animación de desagües</td></tr>
+<tr><td>RF-10</td><td>Simulador: reproducción</td><td>▶, hora, barra de tiempo, velocidad y gráfico arriba de todo; maqueta seca al abrir y al elegir otro Niño; imagen de alta resolución; animación de desagües</td></tr>
 <tr><td>RF-11</td><td>Simulador: escenario</td><td>Barras de lluvia, duración (1–72 h), humedad, lagunas, río y desagües con sus límites y fuentes; al abrir, cargadas con el peor Niño del lugar</td></tr>
 <tr><td>RF-12</td><td>Simulador: Niños</td><td>Selector con los Niños desde 1997–98, su tormenta, su fecha y el río de esos días; el peor para la población marcado con ▲; cuadro informativo con los 27 Niños desde 1951</td></tr>
-<tr><td>RF-13</td><td>Simulador: resultados</td><td>Superficie con agua, personas, profundidad, calles cortadas, aislados y salud sin acceso</td></tr>
+<tr><td>RF-13</td><td>Simulador: resultados</td><td>Superficie con agua y profundidad máxima, habitantes, industrias, calles cortadas, aislados y salud sin acceso, en el momento de más agua</td></tr>
+<tr><td>RF-16</td><td>Simulador: pronóstico</td><td>Solapa «Simular pronóstico»: 14 días reales, agua de hoy por radar y 15 días de pronóstico, probable o pesimista</td></tr>
 <tr><td>RF-14</td><td>Fuentes y recorrido</td><td>Ventana de fuentes por tipo de dato y recorrido guiado</td></tr>
 <tr><td>RF-15</td><td>Transversales</td><td>Español e inglés; tema claro y oscuro; adaptación a celular y tableta; separador de miles con punto; atribución del mapa plegada detrás del ícono «i»</td></tr></tbody></table>
 <h2><span class="n">9.1</span>Guía rápida</h2>
-<ol><li><b>Ver el país.</b> La lámina 01 resume la situación y el riesgo del mes en curso.</li><li><b>Elegir un lugar.</b> Escribir una dirección, un barrio o una empresa, o tocar el mapa. El radio define el círculo.</li><li><b>Leer el lugar.</b> Los indicadores muestran lo que pasa dentro del círculo; «Situación» explica el nivel y «Qué hacer» separa prevención y emergencia.</li><li><b>Simular.</b> «Simulador 3D» abre la maqueta seca. Se elige un Niño (el ▲ es el peor para la población) o se mueven las barras, y ▶ reproduce la tormenta.</li></ol></section>''',
+<ol><li><b>Ver el país.</b> La lámina 01 resume la situación de hoy y de los próximos 14 días; «Qué cambia en los próximos días» lista las zonas que suben de nivel.</li><li><b>Elegir un lugar.</b> Escribir una dirección, un barrio o una empresa, o tocar el mapa. El radio define el círculo.</li><li><b>Leer el lugar.</b> Los indicadores muestran lo que pasa dentro del círculo; «Situación» explica el nivel y «Qué hacer» separa prevención y emergencia.</li><li><b>Simular.</b> «Simulador 3D» abre la maqueta seca. Se elige un Niño (el ▲ es el peor para la población) o se mueven las barras, y ▶ reproduce la tormenta.</li></ol></section>''',
 
 10: f'''<section><h1><span class="num">Capítulo 10</span>Calidad, pruebas y trazabilidad</h1>
 <h2><span class="n">10.1</span>Principios</h2>
@@ -531,10 +564,17 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <tr><td>Escenarios con un río que no coincidía con la tormenta</td><td>Se usaba la crecida máxima de la temporada</td><td>El río de los días de la tormenta (ecuación 5)</td></tr>
 <tr><td>Tormentas con la mitad de la lluvia real</td><td>ERA5 diluye las tormentas convectivas</td><td>IMERG, elegido con {L["tormentas"]} tormentas medidas</td></tr>
 <tr><td>Modelo 3D sin inundación con río alto y sin lluvia</td><td>El motor arrancaba «quieto»</td><td>Arranca en movimiento si hay río o mar</td></tr>
-<tr><td>Ubicaciones de empresas estimadas de capturas</td><td>Los enlaces de Google Maps no traen coordenadas</td><td>Se quitaron; se agregó TomTom y la regla de no llevar a un lugar parecido</td></tr></tbody></table></section>''',
+<tr><td>Ubicaciones de empresas estimadas de capturas</td><td>Los enlaces de Google Maps no traen coordenadas</td><td>Se quitaron; se agregó TomTom y la regla de no llevar a un lugar parecido; luego se cargaron con el punto del lugar en Waze (Toyota Boshoku, Tenaris Siderca) o con el polígono de OpenStreetMap (refinerías)</td></tr>
+<tr><td>Lagunas distintas al cambiar el radio del círculo</td><td>Grilla de unas 100 celdas por lado que arrancaba en cada círculo y relieve con otro detalle según el radio</td><td>Grilla alineada y por tramos encajados (6.2)</td></tr>
+<tr><td>Simulador lento con radios grandes</td><td>Al fijar celdas de 32 m para todos los radios, 3 km tardaba 1,5 minutos y 5 km, 5</td><td>Tramos de radio: 9 s o menos</td></tr>
+<tr><td>Riesgo 0,0 en lugares que se inundan</td><td>Al pasar a días, sin pronóstico la amenaza valía 0</td><td>Amenaza fija del lugar y subindicador de propensión (5.1)</td></tr>
+<tr><td>Río que saltaba de normal a evacuación en un día</td><td>Faltaban los caudales de 10 días antes y se usaba el sesgo de calibración</td><td>31 días pasados y persistencia del error (ecuación 1d)</td></tr>
+<tr><td>Límite gratuito de Open-Meteo superado</td><td>El ensamble para 1.345 celdas pesa más que el cupo por hora</td><td>Datos abiertos del ECMWF, sin cupo</td></tr>
+<tr><td>Simulador que tardaba en prepararse</td><td>Esperaba al mapa 2D oculto y pedía los datos del lugar en serie</td><td>Todo en paralelo: peor Niño en unos 3,5 s</td></tr>
+<tr><td>Buscador que llevaba a estaciones de servicio o a una calle parecida</td><td>Las estaciones caían como «comercio»; el servicio de calles iba antes que las empresas</td><td>Categoría propia, fuera de los resultados salvo que se pida; empresas antes que calles</td></tr></tbody></table></section>''',
 
 11: f'''<section><h1><span class="num">Capítulo 11</span>Registro cronológico del proceso</h1>
-<p>El proyecto se desarrolló entre el 27 de septiembre y el 15 de noviembre de 2026 en conversación continua entre la autora y el asistente. Cada paso quedó en una bitácora fechada del repositorio (<code>docs/00_bitacora.md</code>) y en los commits. La autora tomó las decisiones de alcance, método y diseño; el asistente investigó, programó y verificó.</p>
+<p>El proyecto se desarrolló entre el 27 de septiembre y el 16 de noviembre de 2026 en conversación continua entre la autora y el asistente. Cada paso quedó en una bitácora fechada del repositorio (<code>docs/00_bitacora.md</code>) y en los commits. La autora tomó las decisiones de alcance, método y diseño; el asistente investigó, programó y verificó.</p>
 {fig(F["crono"], 11, "Cronología de los hitos principales.")}
 <div class="tabla-t">Tabla 6. Hitos y decisiones</div>
 <table class="cronologia"><thead><tr><th>Fecha</th><th>Hito y decisiones</th></tr></thead><tbody>
@@ -544,7 +584,8 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <tr><td>10–12 nov</td><td>Pedido de 28 puntos; modelo hidráulico 2D; FABDEM; validación contra Dynamic World y su mejora; documento funcional v1 a v3.</td></tr>
 <tr><td>13 nov</td><td>Revisión de una crítica externa: confianza baja sin validación, «Sin información» en ríos sin estación, límites explícitos. Rediseño en «láminas».</td></tr>
 <tr><td>14 nov</td><td>Índice con umbrales físicos; indicadores del círculo; radio arriba; imagen de alta resolución; escenarios con los Niños; peor Niño por fórmula; solo Niños completos; buscador con TomTom y barrios; revisión visual automática.</td></tr>
-<tr><td>15 nov</td><td>Investigación de 17 trabajos; validación de la lluvia ({L["tormentas"]} tormentas) y elección de IMERG; río de los días de la tormenta; validación del río contra el radar, regla de tierra conectada y corrección del motor; λ = 0,05, humedad relativa, bajos con relieve y desagües de 2 años; documento v4.</td></tr></tbody></table>
+<tr><td>15 nov</td><td>Investigación de 17 trabajos; validación de la lluvia ({L["tormentas"]} tormentas) y elección de IMERG; río de los días de la tormenta; validación del río contra el radar, regla de tierra conectada y corrección del motor; λ = 0,05, humedad relativa, bajos con relieve y desagües de 2 años; simulación del pronóstico con ensamble y radar; agua de hoy por satélite (NASA); documento v4 (sin generar).</td></tr>
+<tr><td>15–16 nov</td><td>Riesgo por día en lugar del mensual (decisión de la autora) con ensamble del ECMWF, GloFAS corregido con el INA y alertas del SMN; «Qué cambia en los próximos días» y «Riesgo día por día»; grilla del simulador por tramos de radio; propensión con semáforo; habitantes e industrias; buscador de petroleras y plantas; preparación del simulador en paralelo; guía de diseño; diagnóstico de la automatización; documento v5.</td></tr></tbody></table>
 </section>''',
 
 12: f'''<section><h1><span class="num">Capítulo 12</span>Cumplimiento de los pedidos</h1>
@@ -557,7 +598,7 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <li><b>25 a 28, la revisión integral,</b> que es continua.</li>
 </ul>
 <p>El punto 21, la comparación histórica, pasó a cumplido con los escenarios de los Niños.</p>
-<h2><span class="n">12.2</span>Pedidos del 13 al 15 de noviembre</h2>
+<h2><span class="n">12.2</span>Pedidos del 13 al 16 de noviembre</h2>
 <table><thead><tr><th>Pedido</th><th style="width:19mm">Estado</th><th>Cómo se resolvió</th></tr></thead><tbody>
 <tr><td>Indicadores sin texto encimado y con el ícono del color del indicador</td><td class="ok">Cumplido</td><td>Revisión con detector automático en computadora y celular</td></tr>
 <tr><td>Escala de riesgo de aguja; sin «riesgo semana a semana» ni «camino al pico»</td><td class="ok">Cumplido</td><td>Evolución y tiempo del lugar arriba de todo</td></tr>
@@ -571,7 +612,14 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <tr><td>El río debe ser el del período de la tormenta</td><td class="ok">Cumplido</td><td>Ecuación 5 y sección 6.5</td></tr>
 <tr><td>Investigar trabajos de otros, guardarlos y mejorar los puntos débiles</td><td class="ok">Cumplido</td><td>17 trabajos con índice; lluvia, río, λ, humedad, bajos y desagües</td></tr>
 <tr><td>Buscador: Master Bus, barrios y que no vuelva a fallar</td><td class="ok">Cumplido</td><td>Lugares propios, RENABAP, TomTom y opciones si no coincide</td></tr>
-<tr><td>Toyota Boshoku y Padilla Logística</td><td class="parcial">Pendiente</td><td>Faltan sus coordenadas exactas: no están en OSM ni en TomTom</td></tr>
+<tr><td>Toyota Boshoku y Padilla Logística</td><td class="parcial">Parcial</td><td>Toyota Boshoku con el punto de Waze; Padilla Logística sin coordenadas exactas</td></tr>
+<tr><td>Riesgo mensual sin sustento: hoy y las próximas dos semanas, con listas de zonas que cambian de nivel, recomendaciones y columnas que pintan el mapa</td><td class="ok">Cumplido</td><td>Sección 5.1</td></tr>
+<tr><td>Inundaciones reales de hoy por satélite</td><td class="ok">Cumplido</td><td>Capa diaria de la NASA (MODIS)</td></tr>
+<tr><td>Simular el pronóstico desde las condiciones de hoy</td><td class="ok">Cumplido</td><td>Sección 6.9</td></tr>
+<tr><td>Lagunas que cambiaban con el radio, y que el simulador tarde como antes</td><td class="ok">Cumplido</td><td>Grilla por tramos y preparación en paralelo</td></tr>
+<tr><td>Riesgo 0,0 con charcos en el simulador; quienes trabajan en una fábrica</td><td class="ok">Cumplido</td><td>Propensión con semáforo; habitantes e industrias</td></tr>
+<tr><td>Petroleras: plantas y sedes, no estaciones de servicio; Pan American Energy en Campana; Siderca bien ubicada</td><td class="ok">Cumplido</td><td>Lugares cargados a mano y nueva categoría</td></tr>
+<tr><td>Maqueta seca al cambiar de Niño</td><td class="ok">Cumplido</td><td>Vuelve a la imagen de hoy hasta ▶</td></tr>
 <tr><td>Documento funcional con seriedad de tesis</td><td class="ok">Cumplido</td><td>Esta versión</td></tr></tbody></table></section>''',
 
 13: f'''<section><h1><span class="num">Capítulo 13</span>Limitaciones, riesgos y trabajo futuro</h1>
@@ -585,9 +633,11 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <li>No entra agua desde fuera del círculo.</li>
 <li>Los cauces se graban con un ancho supuesto.</li>
 <li>El anegamiento urbano de horas no se pudo validar.</li>
-<li>La validación con Dynamic World usó celdas de 150 m, cuando el simulador usa de 20 a 130 m.</li>
+<li>La validación con Dynamic World usó celdas de 150 m, cuando el simulador usa desde 32 m.</li>
+<li>La simulación del pronóstico mantiene el río en su altura de hoy.</li>
 </ul></li>
-<li><b>El índice</b> usa umbrales físicos discutibles, explícitos en la tabla 3. No mide pérdidas ni daños.</li>
+<li><b>El riesgo por día</b> usa umbrales físicos discutibles, explícitos en la tabla 3, y todavía no se verificó contra lo ocurrido. No mide pérdidas ni daños. La propensión es la del municipio, no la de un predio. El Censo cuenta a quienes viven en un lugar, no a quienes trabajan.</li>
+<li><b>Automatización.</b> GitHub corre las tareas con horas de atraso. El agua de hoy por radar no se estaba regenerando sola: su diagnóstico quedó automatizado y se está revisando.</li>
 <li><b>Ríos sin estación con alerta</b> (noroeste, Cuyo, Patagonia): no tienen estimación.</li></ul>
 <h2><span class="n">13.2</span>Riesgos del proyecto</h2>
 <table><thead><tr><th>Riesgo</th><th>Mitigación</th></tr></thead><tbody>
@@ -597,6 +647,8 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <tr><td>Fecha de lanzamiento (antes del 30 de noviembre)</td><td>Lo que falta se muestra como faltante</td></tr></tbody></table>
 <h2><span class="n">13.3</span>Trabajo futuro</h2>
 <ol>
+<li>Verificar el riesgo por día contra lo ocurrido: alertas, agua vista por satélite y reportes.</li>
+<li>Usar el pronóstico de altura de los ríos (ya calculado para el riesgo por día) en la simulación del pronóstico.</li>
 <li>Medir la sensibilidad del escenario a la ventana del río (1, 3 y 7 días) con crecidas de 2015–16.</li>
 <li>Repetir la validación con radar en otras crecidas: Paraná 2015–16 y la propia 2026–27.</li>
 <li>Incorporar la sudestada (Servicio de Hidrografía Naval) en el Delta.</li>
@@ -613,18 +665,23 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <dt>CN (Número de Curva)</dt><dd>Número de 0 a 100 que resume cuánto escurre un suelo según su tipo, su uso y su humedad; con 100 todo escurre.</dd>
 <dt>CSI, POD, FAR</dt><dd>Índice de acierto, proporción de aciertos y proporción de falsas alarmas al comparar mapas de agua.</dd>
 <dt>D8</dt><dd>Regla que manda el agua de cada celda a la vecina (de las ocho) con mayor pendiente hacia abajo.</dd>
+<dt>Ensamble (pronóstico por ensamble)</dt><dd>Conjunto de pronósticos del mismo modelo con condiciones iniciales apenas distintas; la proporción que supera un umbral es la probabilidad de superarlo.</dd>
 <dt>ERA5, ERA5-Land</dt><dd>Reanálisis del ECMWF: reconstrucción horaria del tiempo desde 1940 combinando un modelo con observaciones.</dd>
 <dt>GloFAS</dt><dd>Sistema Global de Alerta de Inundaciones de Copernicus: pronostica y reconstruye caudales de ríos.</dd>
 <dt>HAND</dt><dd>Altura sobre el cauce más cercano.</dd>
 <dt>Hietograma</dt><dd>Lluvia de cada hora de una tormenta.</dd>
 <dt>IMERG</dt><dd>Lluvia estimada por la constelación de satélites GPM de la NASA, calibrada con pluviómetros; celdas de 0,1° cada 30 minutos.</dd>
 <dt>Inundación compuesta</dt><dd>La que ocurre porque dos causas, como la lluvia y un río alto, coinciden en el tiempo.</dd>
+<dt>Período de retorno (T años)</dt><dd>Valor que se supera en promedio una vez cada T años; la lluvia de 2 años es casi la mediana de los máximos anuales.</dd>
+<dt>Persistencia del error</dt><dd>Suponer que el error de un pronóstico de hoy sigue los próximos días y se va perdiendo de a poco.</dd>
 <dt>Priority-flood</dt><dd>Algoritmo que rellena las depresiones de un relieve desde sus bordes, siempre por el punto más bajo.</dd>
+<dt>Propensión a juntar agua</dt><dd>Cuánto tiende un lugar a acumular agua por su relieve, su historia de agua y sus quebradas, de 0 a 10, independiente del pronóstico.</dd>
 <dt>Recurrencia de 2 años</dt><dd>Valor que se supera en promedio una vez cada 2 años; es la mediana de los máximos anuales.</dd>
 <dt>Sentinel-1</dt><dd>Satélite de radar de la ESA; ve el agua a través de las nubes.</dd>
 <dt>Validación cruzada</dt><dd>Ajustar un método sin una parte de los datos y medir su error justamente en esa parte.</dd></dl></section>''',
 
 "refs": '''<section class="referencias"><h1><span class="num">Anexo B</span>Referencias</h1>
+<p>Alfieri, L., Burek, P., Dutra, E., Krzeminski, B., Muraro, D., Thielen, J. y Pappenberger, F. (2013). GloFAS – global ensemble streamflow forecasting and flood early warning. <i>Hydrology and Earth System Sciences</i>, 17, 1161–1175.</p>
 <p>Aristizabal, F., Chegini, T., Petrochenkov, G., Salas, F. y Judge, J. (2024). Effects of high-quality elevation data and explanatory variables on the accuracy of flood inundation mapping via Height Above Nearest Drainage. <i>Hydrology and Earth System Sciences</i>, 28, 1287–1315.</p>
 <p>Barnes, R., Lehman, C. y Mulla, D. (2014). Priority-flood: An optimal depression-filling and watershed-labeling algorithm for digital elevation models. <i>Computers &amp; Geosciences</i>, 62, 117–127.</p>
 <p>Bates, P. D., Horritt, M. S. y Fewtrell, T. J. (2010). A simple inertial formulation of the shallow water equations for efficient two-dimensional flood inundation modelling. <i>Journal of Hydrology</i>, 387(1–2), 33–45.</p>
@@ -635,7 +692,9 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <p>Chow, V. T., Maidment, D. R. y Mays, L. W. (1988). <i>Applied Hydrology</i>. Nueva York: McGraw-Hill.</p>
 <p>Couasnon, A., Eilander, D., Muis, S., Veldkamp, T. I. E., Haigh, I. D., Wahl, T., Winsemius, H. C. y Ward, P. J. (2020). Measuring compound flood potential from river discharge and storm surge extremes at the global scale. <i>Natural Hazards and Earth System Sciences</i>, 20, 489–504.</p>
 <p>FCAG-UNLP, Grupo de Pronóstico Meteorológico (2025). <i>Precipitaciones en la región central del país entre el 16 y 18 de mayo de 2025</i>. La Plata.</p>
+<p>ECMWF (2026). <i>Open data: IFS ensemble forecasts (ENS)</i>. Centro Europeo de Pronósticos Meteorológicos a Plazo Medio, licencia CC BY 4.0.</p>
 <p>Green, W. H. y Ampt, G. A. (1911). Studies on soil physics. <i>The Journal of Agricultural Science</i>, 4(1), 1–24.</p>
+<p>Gumbel, E. J. (1958). <i>Statistics of Extremes</i>. Nueva York: Columbia University Press.</p>
 <p>Gudmundsson, L., Bremnes, J. B., Haugen, J. E. y Engen-Skaugen, T. (2012). Technical Note: Downscaling RCM precipitation to the station scale using statistical transformations – a comparison of methods. <i>Hydrology and Earth System Sciences</i>, 16, 3383–3390.</p>
 <p>Guizzardi, S., Bianchi, J. y Sabarots Gerbec, M. (2025). Actualización de un sistema de pronóstico hidrodinámico en el Delta del Paraná. <i>XXVIII Congreso Nacional del Agua (CONAGUA)</i>.</p>
 <p>Harrigan, S., Zsoter, E., Alfieri, L. y otros (2020). GloFAS-ERA5 operational global river discharge reanalysis 1979–present. <i>Earth System Science Data</i>, 12, 2043–2060.</p>
@@ -665,15 +724,16 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 "anexo": f'''<section><h1><span class="num">Anexo C</span>Estructura del repositorio y comandos</h1>
 <table><thead><tr><th>Carpeta</th><th>Contenido</th></tr></thead><tbody>
 <tr><td><code>ingesta/</code></td><td>Un script por fuente; sesión HTTP con reintentos y registro en <code>data/manifest.csv</code></td></tr>
-<tr><td><code>earth_engine/</code></td><td>Terreno, agua histórica, MapBiomas, suelo, Dynamic World; <code>lluvia_ninos.py</code> (tormentas y desagües) y <code>validar_lluvia.py</code></td></tr>
+<tr><td><code>earth_engine/</code></td><td>Terreno, agua histórica, MapBiomas, suelo, Dynamic World; <code>lluvia_ninos.py</code> (tormentas y desagües), <code>umbrales_lluvia.py</code> (lluvia de 2, 5 y 10 años), <code>agua_hoy_radar.py</code> y <code>validar_lluvia.py</code></td></tr>
 <tr><td><code>transformacion/</code>, <code>sql/</code></td><td>Capas silver y modelo medallón; DuckDB local y preparado para Databricks</td></tr>
-<tr><td><code>modelos/</code></td><td>Ríos, reclamos de CABA, índice de riesgo con Monte Carlo y verificación del pronóstico</td></tr>
+<tr><td><code>modelos/</code></td><td>Ríos, reclamos de CABA, índice con Monte Carlo, riesgo por día (<code>riesgo_diario.py</code>) y verificación del pronóstico</td></tr>
 <tr><td><code>web/</code></td><td>Aplicación web, preparación de datos fijos (<code>preparar_rios_ninos.py</code> y otros) y diarios</td></tr>
 <tr><td><code>herramientas/</code></td><td>Pruebas en Chrome sin ventana; validación del simulador contra Dynamic World y del río contra el radar</td></tr>
 <tr><td><code>docs/</code></td><td>Bitácora, fuentes, trabajos de referencia (<code>03_investigacion_trabajos.md</code>), validación y este documento</td></tr></tbody></table>
 <div class="tabla-t">Comandos frecuentes</div>
 <table><tbody>
 <tr><td>Índice completo</td><td><code>modelos/rios.py pronostico</code> → <code>modelos/verificacion.py</code> → <code>modelos/indice_riesgo.py</code> → <code>web/actualizar_datos_web.py</code></td></tr>
+<tr><td>Riesgo por día</td><td><code>earth_engine/umbrales_lluvia.py anios 1995 2024</code> → <code>ajustar</code> (una vez) · <code>modelos/riesgo_diario.py</code> (dos veces por día)</td></tr>
 <tr><td>Tormentas de los Niños</td><td><code>earth_engine/lluvia_ninos.py temporadas</code> → <code>desagues</code> → <code>teselas</code></td></tr>
 <tr><td>Validaciones</td><td><code>earth_engine/validar_lluvia.py</code> · <code>herramientas/validacion/validar_rio_radar.py</code> · <code>herramientas/validacion/validar.py simular | resumir</code></td></tr>
 <tr><td>Web local</td><td><code>cd web &amp;&amp; python3 -m http.server 8765</code></td></tr></tbody></table></section>''',

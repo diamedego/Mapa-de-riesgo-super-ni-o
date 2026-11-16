@@ -78,7 +78,8 @@ def cronograma() -> str:
              ("Rediseño «sala de situación» y sitio público", "2026-11-05", "2026-11-06", VERDE), ("Simulador: llenado de bajos", "2026-11-06", "2026-11-08", NARANJA),
              ("Modelo hidráulico 2D y terreno FABDEM", "2026-11-10", "2026-11-11", NARANJA), ("Tandas 1 a 9 (28 puntos del pedido)", "2026-11-10", "2026-11-12", ROJO),
              ("Validación del simulador (Dynamic World)", "2026-11-11", "2026-11-12", ROJO), ("Láminas, índice físico y escenarios", "2026-11-13", "2026-11-14", VERDE),
-             ("Investigación y validación de lluvia y río", "2026-11-15", "2026-11-15", ROJO)]
+             ("Investigación y validación de lluvia y río", "2026-11-15", "2026-11-15", ROJO),
+             ("Riesgo por día, pronóstico y propensión", "2026-11-15", "2026-11-16", CIAN)]
     fig, ax = plt.subplots(figsize=(6.8, 3.2))
     for i, (n, a, b, c) in enumerate(hitos[::-1]):
         a_, b_ = pd.Timestamp(a), pd.Timestamp(b) + pd.Timedelta(days=1)
