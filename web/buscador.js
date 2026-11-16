@@ -158,7 +158,8 @@ const CATEGORIAS_OSM = [
   [/^amenity:(university|college|school|kindergarten)/, "cat_educacion"],
   [/^amenity:(townhall|police|fire_station|courthouse)|^office:government/, "cat_gobierno"],
   [/^(railway:(station|halt)|amenity:bus_station|aeroway:aerodrome|public_transport:station)/, "cat_transporte"],
-  [/^(shop:|amenity:(restaurant|cafe|fast_food|bank|fuel|pharmacy|bar))/, "cat_comercio"],
+  [/^amenity:fuel$/, "cat_combustible"],
+  [/^(shop:|amenity:(restaurant|cafe|fast_food|bank|pharmacy|bar))/, "cat_comercio"],
   [/^highway:(bus_stop|platform)/, "cat_parada"],
   [/^highway:/, "cat_calle"],
   [/^place:(city|town|village|hamlet|suburb|neighbourhood|quarter|locality)/, "cat_lugar"],
@@ -176,7 +177,29 @@ const LUGARES_PROPIOS = [
   { alias: ["masterbus", "master bus"], nombre: "MasterBus · oficina", detalle: "Doctor Salk 243 · Campana · Buenos Aires", cat: "cat_transporte", punto: [-58.948364, -34.1869741], lugar: "campana" },
   // Campana: Camino 014-04 a Capilla del Señor, a 500 m de la RN 9 km 80. Punto del lugar cargado en Waze (no está en OpenStreetMap ni en TomTom)
   { alias: ["toyota boshoku", "boshoku"], nombre: "Toyota Boshoku Argentina", detalle: "Camino a Capilla del Señor (014-04), a 500 m de la RN 9 km 80 · Campana · Buenos Aires", cat: "cat_industria", punto: [-59.002897, -34.169283], lugar: "campana" },
+  // Campana: la portería 1 (Dr. Simini 250), punto de Waze. El centro del polígono de OpenStreetMap cae unos 770 m al norte, dentro de la planta
+  { alias: ["tenaris siderca", "siderca", "tenaris"], nombre: "Tenaris Siderca", detalle: "Portería 1 · Dr. Jorge A. Simini 250 · Campana · Buenos Aires", cat: "cat_industria", punto: [-58.977242, -34.159136], lugar: "campana" },
+  // Petroleras: con su nombre se buscan las refinerías y las sedes, no las estaciones de servicio (que quedan como referencias del mapa).
+  // Puntos: polígonos de OpenStreetMap (refinerías) y Waze (Dock Sud)
+  { alias: ["pan american energy", "pan american", "pae", "axion", "axion energy", "refineria axion", "refineria campana", "refineria pan american", "esso campana"],
+    nombre: "Pan American Energy · Refinería Campana", detalle: "Refinería de la marca Axion · Campana · Buenos Aires", cat: "cat_industria", punto: [-58.94571, -34.16072], lugar: "campana" },
+  { alias: ["pan american energy", "pan american", "pae", "pae sede", "pan american energy sede"], nombre: "Pan American Energy · Sede", detalle: "Av. Leandro N. Alem 1180 · Ciudad de Buenos Aires",
+    cat: "cat_edificio", punto: [-58.373868, -34.593942], lugar: "buenos aires" },
+  { alias: ["ypf", "refineria ypf", "refineria la plata", "destileria ypf", "ypf ensenada", "ypf la plata", "complejo industrial la plata"],
+    nombre: "YPF · Complejo Industrial La Plata (refinería)", detalle: "Ensenada · Buenos Aires", cat: "cat_industria", punto: [-57.91305, -34.88611], lugar: "ensenada" },
+  { alias: ["ypf", "refineria ypf", "refineria lujan de cuyo", "ypf lujan de cuyo", "complejo industrial lujan de cuyo"],
+    nombre: "YPF · Complejo Industrial Luján de Cuyo (refinería)", detalle: "Luján de Cuyo · Mendoza", cat: "cat_industria", punto: [-68.97394, -33.06319], lugar: "lujan de cuyo" },
+  { alias: ["ypf", "refineria ypf", "refineria plaza huincul", "ypf plaza huincul"],
+    nombre: "YPF · Refinería Plaza Huincul", detalle: "Plaza Huincul · Neuquén", cat: "cat_industria", punto: [-69.14691, -38.93095], lugar: "plaza huincul" },
+  { alias: ["ypf", "torre ypf", "ypf sede", "ypf oficinas"], nombre: "YPF · Torre YPF (sede)", detalle: "Macacha Güemes 515 · Puerto Madero · Ciudad de Buenos Aires", cat: "cat_edificio", punto: [-58.36222, -34.60547], lugar: "buenos aires" },
+  { alias: ["shell", "raizen", "refineria shell", "refineria dock sud", "refineria raizen", "shell dock sud"],
+    nombre: "Refinería Shell Dock Sud", detalle: "Dock Sud · Avellaneda · Buenos Aires", cat: "cat_industria", punto: [-58.327617, -34.654459], lugar: "avellaneda" },
+  { alias: ["puma", "puma energy", "trafigura", "refineria bahia blanca", "refineria puma"],
+    nombre: "Refinería Ricardo Elicabe (Puma Energy / Trafigura)", detalle: "Bahía Blanca · Buenos Aires", cat: "cat_industria", punto: [-62.29814, -38.74641], lugar: "bahia blanca" },
+  { alias: ["refinor", "refineria campo duran", "campo duran"], nombre: "Refinor · Complejo Campo Durán", detalle: "Aguaray · Salta", cat: "cat_industria", punto: [-63.66472, -22.20316], lugar: "aguaray" },
 ];
+// Estaciones de servicio: solo si se las pide («estación», «nafta», «GNC»…); con el nombre de una petrolera se busca la planta o la sede
+const pideEstacion = (q) => /estaci[oó]n|servicentro|nafta|combustible|gnc|surtidor|gasolinera/i.test(q);
 // Barrios populares del RENABAP (6.467, con su localidad): «barrio San Cayetano zárate», «san cayetano, zarate». Con un lugar
 // en el texto, los barrios a menos de 25 km de ese lugar (algunos figuran en la localidad vecina); el nombre admite errores.
 let indiceBarrios = null;
@@ -192,9 +215,10 @@ async function buscarBarrios(texto) {
 }
 function lugaresPropios(texto) {
   const { nombre, lugar } = separarLugar(texto), q = normalizar(nombre ?? texto).replace(/(\p{L})\1+/gu, "$1").replace(/[^\p{L}\p{N}]/gu, "");
-  if (q.length < 4) return [];
-  const pegado = (a) => a.replace(/[^\p{L}\p{N}]/gu, "");
-  return LUGARES_PROPIOS.filter((x) => x.alias.some((a) => { const b = pegado(a); return (b.startsWith(q) && q.length >= 0.6 * b.length) || distanciaEdicion(q, b) <= 2 || (q.length > b.length && distanciaEdicion(q.slice(0, b.length + 1), b) <= 2); }))
+  if (q.length < 3) return [];
+  const pegado = (a) => a.replace(/[^\p{L}\p{N}]/gu, "").replace(/(\p{L})\1+/gu, "$1");
+  return LUGARES_PROPIOS.filter((x) => x.alias.some((a) => { const b = pegado(a); if (q.length < 4) return b === q;   // «YPF», «PAE»: enteros
+    return (b.startsWith(q) && q.length >= 0.6 * b.length) || (b.length >= 4 && distanciaEdicion(q, b) <= 2) || (b.length >= 5 && q.length > b.length && distanciaEdicion(q.slice(0, b.length + 1), b) <= 2); }))
     .map((x) => ({ tipo: "osm", nombre: x.nombre, detalle: x.detalle, cat: x.cat, punto: x.punto, orden: lugar && lugar.clave.includes(x.lugar) ? -1 : 0 }))
     .sort((a, b) => a.orden - b.orden);
 }
@@ -247,7 +271,8 @@ async function consultaTomTom(texto, centro, cerca) {
   const d = await fetch(`https://api.tomtom.com/search/2/search/${encodeURIComponent(texto)}.json?${p}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
   return (d?.results ?? []).filter((r) => r.position).map((r) => {
     const cat = (r.poi?.categories ?? []).join(" "), a = r.address ?? {};
-    const [key, value] = /industr|factor|manufact|compan|business|warehouse|logist|transport/i.test(cat) ? ["office", "company"]
+    const [key, value] = /petrol|gas station|fuel/i.test(cat) ? ["amenity", "fuel"]   // estación de servicio
+      : /industr|factor|manufact|compan|business|warehouse|logist|transport/i.test(cat) ? ["office", "company"]
       : r.type === "Street" ? ["highway", "residential"] : r.type === "Geography" ? ["place", "town"] : ["tomtom", cat.split(" ")[0] ?? ""];
     return { geometry: { coordinates: [r.position.lon, r.position.lat] }, properties: { name: r.poi?.name ?? a.freeformAddress, osm_key: key, osm_value: value,
       street: a.streetName, housenumber: a.streetNumber, city: a.municipality, state: a.countrySubdivision, countrycode: "AR" } };
@@ -309,7 +334,7 @@ async function buscarPhoton(texto, { limite = 8 } = {}) {
     return { tipo: "osm", nombre: nom, cat, punto: f.geometry.coordinates,
       detalle: [p.name ? calle : "", lugarP && lugarP[0].toUpperCase() + lugarP.slice(1), p.state].filter(Boolean).filter((v, k, a) => a.indexOf(v) === k).join(" · "),
       orden: cat === "cat_parada" ? 2 : 0, parecido: parecido(nom), km: centro ? distanciaKm(centro, f.geometry.coordinates) : 0 };
-  }).filter((x) => x.nombre && !vistos.has(`${normalizar(x.nombre)}|${x.detalle}`) && vistos.add(`${normalizar(x.nombre)}|${x.detalle}`))
+  }).filter((x) => x.nombre && (x.cat !== "cat_combustible" || pideEstacion(texto)) && !vistos.has(`${normalizar(x.nombre)}|${x.detalle}`) && vistos.add(`${normalizar(x.nombre)}|${x.detalle}`))
     .sort((a, b) => (b.parecido >= 0.5) - (a.parecido >= 0.5) || b.parecido - a.parecido || a.orden - b.orden || (lugar ? a.km - b.km : 0)).slice(0, limite);
 }
 
@@ -556,6 +581,16 @@ async function buscarDireccion(texto) {
     return l ? seleccionarZona(l, { volar: true }) : avisar(t("dir_no_encontrada"));
   }
   let punto = null, nombre = null, aproximada = false;
+  // Empresas cargadas a mano (refinerías, plantas): antes que el servicio de calles, que con un nombre parecido lleva a una calle
+  // («axion» → calle Arión)
+  if (!/\d/.test(calle)) {
+    const propios = lugaresPropios([calle, zona?.nombre].filter(Boolean).join(" "));
+    if (propios.length) {
+      elegirSugerencia(document.getElementById("b-direccion"), propios[0]);
+      if (propios.length > 1) mostrarOpciones(propios);
+      return;
+    }
+  }
   if (!SIN_TESELAS) {
     try {   // 1) servicio oficial de direcciones (versión completa)
       const params = new URLSearchParams({ direccion: calle, max: "10" });

@@ -818,3 +818,13 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
   «Industrias»: hectáreas de zonas industriales y comerciales de OpenStreetMap con 10 cm de agua o más (Toyota Boshoku, peor Niño:
   2,7 de 24 ha). La profundidad máxima pasa a la línea de abajo de «Superficie» (grilla de 2 × 3).
 - Toyota Boshoku en el buscador: listo (punto de Waze). Padilla Logística: sigue sin coordenadas exactas.
+
+## 16-nov-2026 — buscador de petroleras, Siderca y maqueta seca al cambiar de Niño
+- Regla del buscador: las estaciones de servicio (OSM amenity=fuel; TomTom «petrol station») no salen como resultado salvo que se
+  las pida («estación», «nafta», «GNC»…); siguen como referencias del mapa. Con el nombre de una petrolera salen sus plantas y sedes:
+  Pan American Energy (refinería Campana, marca Axion; sede Alem 1180), YPF (La Plata/Ensenada, Luján de Cuyo, Plaza Huincul,
+  Torre YPF), Refinería Shell Dock Sud (Waze), Puma/Trafigura Bahía Blanca, Refinor Campo Durán. Puntos: polígonos de OSM y Waze.
+- Al apretar Enter, los lugares cargados a mano van antes que el servicio de calles («axion» llevaba a la calle Arión).
+- Tenaris Siderca: el centro del polígono de OSM cae ~770 m al norte de la entrada; ahora va a la Portería 1 (Dr. Simini 250, Waze).
+- Simulador: al elegir otro Niño la maqueta vuelve enseguida a la imagen seca de hoy y queda así hasta ▶ (antes quedaban las
+  lagunas de la corrida anterior).

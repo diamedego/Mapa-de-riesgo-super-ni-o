@@ -143,7 +143,7 @@ async function aplicarNino(temporada, alInicio = false) {
     theta: ev.theta ?? (Lh.min + Lh.max) / 2, ...(rt ? { rio: rt.max } : mediana != null ? { rio: mediana } : {}) });
   E.mm = Math.round(ev.total);
   pintarEscenario();
-  simularEscenario(alInicio);
+  simularEscenario(true);   // al abrir o al elegir otro Niño: la maqueta vuelve a la imagen de hoy (seca) y la tormenta se ve con ▶
 }
 function aplicarPeorNino(alInicio = false) {
   const H = SIM.hist?.H;
@@ -691,6 +691,7 @@ function actualizarCarga() {
 const repartoTormenta = (h) => (h === 3 ? [0.4, 0.4, 0.2] : Array(h).fill(1 / h));
 // Corrida del escenario: 2 horas secas, la tormenta elegida y 36 horas más para que el agua escurra y se junte. Arranca con la
 // humedad del suelo, las lagunas y el río de las barras (no con la lluvia real de los días anteriores).
+// alInicio: la maqueta queda seca (la imagen satelital de hoy) mientras calcula y al terminar, hasta que se toca ▶
 async function simularEscenario(alInicio = false) {
   const d = SIM.datos, E = SIM.esc;
   if (!d || !E) return;
@@ -708,6 +709,10 @@ async function simularEscenario(alInicio = false) {
   const g = grillaModelo(d);   // celdas de ~30 m, las mismas para cualquier radio (el agua se dibuja sobre el relieve fino)
   await prepararCorrida(M, d, g, met);
   if (SIM.modelo !== M) return;
+  if (alInicio) {   // sin las lagunas de la corrida anterior: se vuelve enseguida a la maqueta seca
+    M.seco = true; M.vacio = new Uint16Array(g.N);
+    if (SIM.vista === "maqueta") { SIM.mapaSucio = true; actualizarMaqueta(true); } else dibujarAgua();
+  }
   pintarEscenario();   // con el suelo y la grilla del lugar ya se sabe dónde se satura y si hay lagunas o río en el círculo
   const w = (M.worker = new Worker("hidraulica.js"));
   w.onmessage = (e) => recibirHora(M, e.data);
