@@ -529,15 +529,18 @@ function alternar3d() {
 
 // Riesgo de hoy y de los próximos 14 días (modelos/riesgo_diario.py) sobre los rasgos fijos de cada municipio del índice
 // (riesgo.json: exposición, vulnerabilidad y centro). Si el archivo del día falta, todo queda sin amenaza (nunca el índice mensual).
-// Por día: nivel de amenaza 0-3 (n) y el de cada fuente (lluvia, río, alerta del SMN), su probabilidad y el riesgo de 0 a 10.
+// Por día: nivel de amenaza 0-3 (n) y el de cada fuente (lluvia, río, alerta del SMN), su probabilidad y el riesgo de 0 a 10. La
+// amenaza de cada día combina la pronosticada con la fija del lugar (hf, con lluvia normal): un lugar que junta agua nunca da 0.
+// pr: propensión del lugar a juntar agua (0 a 10), el subindicador con su propio semáforo.
 function armarRiesgo(fijo, diario) {
   const todos = diario?.dias ?? [hoyLocal()], k0 = Math.max(0, todos.indexOf(hoyLocal())), dias = todos.slice(k0), nD = dias.length;
   const H = diario?.h_nivel ?? [0, 4, 7, 10], digitos = (x) => (x ? [...x.slice(k0)].map(Number) : Array(nD).fill(0));
   const cmu = {};
   for (const [c, f] of Object.entries(fijo?.cmu ?? {})) {
     const d = diario?.cmu?.[c], n = digitos(d?.n);
-    cmu[c] = { c: f.c, E: f.E, V: f.V, sr: f.sr, rob: f.rob, n, lluvia: digitos(d?.l), rio: digitos(d?.q), alerta: digitos(d?.a),
-      prob: (d?.p ?? []).slice(k0), r: d?.r ? d.r.slice(k0) : n.map(() => 0), h: n.map((v) => H[v]), p: Array(nD).fill(0) };
+    const hf = d?.hf ?? 0;
+    cmu[c] = { c: f.c, E: f.E, V: f.V, sr: f.sr, rob: f.rob, n, lluvia: digitos(d?.l), rio: digitos(d?.q), alerta: digitos(d?.a), hf, pr: d?.pr ?? null,
+      prob: (d?.p ?? []).slice(k0), r: d?.r ? d.r.slice(k0) : n.map(() => 0), h: n.map((v) => 10 - ((10 - hf) * (10 - H[v])) / 10), p: Array(nD).fill(0) };
   }
   const est = Object.fromEntries(Object.entries(diario?.est ?? {}).map(([e, v]) => [e, { n: digitos(v.n), p: (v.p ?? []).slice(k0) }]));
   return { dias, cmu, H, est, generado: diario?.generado ?? null, fuentes: diario?.fuentes ?? {} };

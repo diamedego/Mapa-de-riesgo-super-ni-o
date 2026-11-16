@@ -59,8 +59,7 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
   recomendaciones, análisis tipo Power BI, encabezado con fuentes por tipo y recorrido guiado en `web/guia.js`) y tandas 7-8
   (calles cortadas, aislados, confianza, validación contra satélite en `herramientas/validacion/`, ver `docs/04_validacion_simulador.md`).
   13-nov: revisada una crítica externa (ver bitácora): confianza baja sin validación, «Sin información» en ríos sin estación, límites explícitos. Próximo: mejorar el modelo donde falla (nivel de referencia del río, lagunas) y volver a correr `validar.py`.
-- Buscador: TomTom activo (clave en `web/claves.js`; recomendar limitarla al dominio del sitio en el panel de TomTom). Toyota Boshoku y
-  Padilla Logística: faltan coordenadas exactas (clic derecho en Google Maps en la Mac).
+- Buscador: TomTom activo (clave en `web/claves.js`). Toyota Boshoku cargado (punto de Waze); Padilla Logística sin coordenadas exactas.
 - 15-nov (ver bitácora y documento v4): lluvia de los Niños con IMERG, río de los días de la tormenta (+3 días), fórmula del peor
   Niño con λ = 0,05, humedad relativa, bajos del relieve y río conectado; modelo 3D corregido (arrancaba quieto). Falta: sensibilidad
   de la ventana del río (1/3/7 días), radar en otras crecidas, republicar la versión privada con `datos/lluvia_ninos/*` y `datos/rios_ninos/*`.
@@ -72,7 +71,8 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
   (configuración en `wrangler.jsonc` y `web/.assetsignore`; ~11 publicaciones por día, plan gratis 500 por mes).
 - Riesgo por día (15-nov): `modelos/riesgo_diario.py` (ensamble ECMWF de datos abiertos + umbrales ERA5-Land, GloFAS con error
   reciente del INA, alertas SMN) → `web/datos/riesgo_diario.json`, 2 veces por día. El índice mensual se sigue calculando solo por
-  E y V. Falta: verificar el riesgo diario contra lo que pase (copias en `data/archivo/riesgo_diario/`), sumarlo al documento funcional.
+  E y V. Amenaza del día = combinación de la fija del lugar (propensión con lluvia normal) y la pronosticada; subindicador «Propensión a
+  juntar agua». Falta: verificar el riesgo diario contra lo que pase (copias en `data/archivo/riesgo_diario/`), sumarlo al documento funcional.
 - Diseño: todo cambio visual sigue `docs/05_constitucion_grafica.md` (retícula 8 px, sin «…», semáforo solo para riesgo, auditoría de 5 puntos).
 - Simulador: grilla por tramos de radio (≤1,5 km ~32 m z14; ≤3 km ~63 m z13; …), encajada y alineada: ≤ 9 s por corrida.
 - Simulador (versión pública): vista Mapa + Maqueta 3D con lluvia animada (estilo reel CutSheetRX). Posible mejora: relieve

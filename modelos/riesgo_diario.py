@@ -13,8 +13,12 @@ Amenaza de cada día (nivel 0 a 3) = el mayor entre:
 - ALERTAS DEL SMN vigentes por tormentas o lluvias que cubren el lugar (solo los días que dura cada alerta): amarilla 1, naranja 2,
   roja 3.
 
-Riesgo = ∛(H × E × V), con H = 0 / 4 / 7 / 10 según el nivel y E y V la exposición y la vulnerabilidad fijas del índice (escala
-física 0-10). Se pinta con los mismos cortes del sitio.
+Amenaza del día H = 10 − (10 − Hfija) × (10 − Hpron) / 10 (la combinación de amenazas del índice): Hpron = 0 / 4 / 7 / 10 según el
+nivel pronosticado y Hfija la propensión del lugar con lluvia normal, la misma del índice con el factor de lluvia f = 0,5: agua en
+superficie 10 × P_agua × f y quebradas 10 × s_quebrada × f × (½ + ½ arcilla), combinadas igual. Sin ella, un lugar que se inunda
+seguido daba 0,0 en cualquier día sin pronóstico de lluvia (por ejemplo Toyota Boshoku, en Campana).
+Riesgo = ∛(H × E × V), con E y V la exposición y la vulnerabilidad fijas del índice (escala física 0-10). Se pinta con los mismos
+cortes del sitio.
 
 Salida: web/datos/riesgo_diario.json
   {generado, dias, cmu: {cmu: {r: [15 riesgos], n: "nivel de amenaza por día", l / q / a: "nivel por lluvia / río / alerta",
@@ -38,6 +42,7 @@ import requests
 RAIZ = Path(__file__).resolve().parents[1]
 REF, WEB = RAIZ / "data" / "referencia", RAIZ / "web" / "datos"
 DIAS, P_UMBRAL, P_ALTA = 15, 0.30, 0.70
+F_NORMAL = 0.5   # factor de lluvia del índice con lluvia normal (f = lluvia / normal / 2)
 H_NIVEL = [0, 4, 7, 10]
 CRECIDA = "https://flood-api.open-meteo.com/v1/flood"
 
@@ -238,6 +243,19 @@ def alertas_smn(puntos: pd.DataFrame, dias: list) -> dict:
     return out
 
 
+def combinar(a: float, b: float) -> float:
+    """Dos amenazas de 0 a 10 combinadas como en el índice: 10 − (10 − a)(10 − b)/10."""
+    return 10 - (10 - a) * (10 - b) / 10
+
+
+def amenaza_fija(f, lluvia: float = F_NORMAL) -> float:
+    """Agua en superficie y quebradas del índice (0 a 10) con un factor de lluvia: con lluvia normal (0,5) es la amenaza fija que
+    entra al riesgo de cada día; con 1 es la propensión del lugar que se muestra como subindicador (cuánto junta agua el terreno)."""
+    ha = 10 * min(1.0, float(f["P_agua"])) * lluvia
+    hq = 10 * min(1.0, float(f["s_quebrada"])) * lluvia * (0.5 + 0.5 * min(1.0, float(f["arcilla_rel"])))
+    return combinar(ha, hq)
+
+
 def guardado(nombre: str, fn, valido=lambda v: True):
     """Resultado de fn guardado en data/procesado/riesgo_diario/<nombre>.pkl (cada parte por separado: si algo falla después,
     no se vuelve a bajar lo que ya estaba)."""
@@ -298,12 +316,15 @@ def main() -> None:
             if v > n[d]: n[d], p[d] = v, 1.0
         E = float(idx.loc[r.cmu, "E"]) if r.cmu in idx.index else 0.0
         V = float(idx.loc[r.cmu, "V"]) if r.cmu in idx.index else 0.0
-        riesgo = [round((H_NIVEL[v] * E * V) ** (1 / 3), 1) for v in n]
+        hf = amenaza_fija(idx.loc[r.cmu]) if r.cmu in idx.index else 0.0
+        prop = amenaza_fija(idx.loc[r.cmu], 1.0) if r.cmu in idx.index else 0.0
+        riesgo = [round((combinar(hf, H_NIVEL[v]) * E * V) ** (1 / 3), 1) for v in n]
         digitos = lambda xs: "".join(str(x) for x in xs)
-        salida[r.cmu] = {"r": riesgo, "n": digitos(n), **{k: digitos(v) for k, v in fuente.items()}, "p": p}
+        salida[r.cmu] = {"r": riesgo, "n": digitos(n), **{k: digitos(v) for k, v in fuente.items()}, "p": p, "hf": round(hf, 2), "pr": round(prop, 1)}
     res = {"generado": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"), "dias": dias, "umbral_p": P_UMBRAL, "h_nivel": H_NIVEL,
            "fuentes": {"lluvia": "Ensamble ECMWF IFS 0,25° (50 miembros, datos abiertos del ECMWF, CC BY 4.0)", "umbrales": "ERA5-Land 1995-2024, Gumbel",
-                       "rios": f"GloFAS (51 miembros) + curva de cada estación; hoy, INA ({len(rios)} estaciones)", "alertas": "SMN vigentes"},
+                       "rios": f"GloFAS (51 miembros) + curva de cada estación; hoy, INA ({len(rios)} estaciones)", "alertas": "SMN vigentes",
+                       "fija": "Propensión del índice con lluvia normal (agua en superficie y quebradas)"},
            "sin_lluvia": sin_lluvia, "cmu": salida,
            "est": {e: {"n": "".join(str(x) for x in R["n"]), "p": R["p"]} for e, R in rios.items()}}
     (WEB / "riesgo_diario.json").write_text(json.dumps(res, separators=(",", ":")))

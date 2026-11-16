@@ -415,7 +415,9 @@ function grillaModelo(d) {
     if (r && totalRadio[r]) pob[c] += (Number(d.radios[r - 1].properties.poblacion) || 0) / totalRadio[r];
   });
   const ruta = rasterizarRutas(aPx, bx0, by0, f, nx, ny);
-  return { nx, ny, dx, f, bx0, by0, N, z, tipo2, lago, cauce, nLagos: nl, nMan: cob.n, imp: cob.imp, pob, dentroC, celdaDe, ruta };
+  let actHa = 0;   // superficie industrial o comercial dentro del círculo (ha)
+  for (let c = 0; c < N; c++) if (dentroC[c]) actHa += (cob.act[c] * dx * dx) / 1e4;
+  return { nx, ny, dx, f, bx0, by0, N, z, tipo2, lago, cauce, nLagos: nl, nMan: cob.n, imp: cob.imp, act: cob.act, actHa, pob, dentroC, celdaDe, ruta };
 }
 
 // Calles y rutas del mapa base (OpenStreetMap): 1 = calle, 2 = puente (sigue pasable aunque abajo haya agua)
@@ -465,14 +467,16 @@ function rasterizarAgua(d, aPx, bx0, by0, f, nx, ny) {
   const cz = cauce.leer().map((v) => (v > 0.15 ? Math.round(v * 2 * 2) / 2 : 0));
   return { rio: rio.leer(), lago: lago.leer(), cauce: cz };
 }
-// Impermeable (0 a 1) y rugosidad de Manning por celda
+// Impermeable (0 a 1), rugosidad de Manning y parte industrial o comercial (0 a 1) por celda
 function rasterizarCobertura(d, aPx, bx0, by0, f, nx, ny) {
   const aCel = (lo, la) => { const [x, y] = aPx(lo, la); return [(x - bx0) / f, (y - by0) / f]; };
-  const imp = lienzoGrilla(nx, ny), monte = lienzoGrilla(nx, ny);
+  const imp = lienzoGrilla(nx, ny), monte = lienzoGrilla(nx, ny), act = lienzoGrilla(nx, ny);
   const urbano = { residential: 0.5, commercial: 0.75, retail: 0.75, industrial: 0.7, railway: 0.4, hospital: 0.55, school: 0.45 };
+  act.c.fillStyle = "#000";
   for (const ft of rasgosBase("landuse")) {
     const v = urbano[ft.properties.class];
     if (v) { imp.c.fillStyle = `rgba(0,0,0,${v})`; trazar(imp.c, ft.geometry, aCel); }
+    if (["industrial", "commercial", "retail"].includes(ft.properties.class)) trazar(act.c, ft.geometry, aCel);   // fábricas, depósitos y comercios (OpenStreetMap)
   }
   imp.c.fillStyle = "rgba(0,0,0,0.9)";
   for (const ft of rasgosBase("building")) trazar(imp.c, ft.geometry, aCel);
@@ -483,5 +487,5 @@ function rasterizarCobertura(d, aPx, bx0, by0, f, nx, ny) {
   for (const ft of rasgosBase("landcover", (x) => x.properties.class === "wood")) trazar(monte.c, ft.geometry, aCel);
   const fi = imp.leer(), fm = monte.leer(), n = new Float32Array(nx * ny);
   for (let i = 0; i < n.length; i++) n[i] = 0.035 + 0.045 * fi[i] + 0.065 * fm[i];   // pasto 0,035 · urbano ~0,08 · monte ~0,10
-  return { imp: fi, n };
+  return { imp: fi, n, act: act.leer() };
 }

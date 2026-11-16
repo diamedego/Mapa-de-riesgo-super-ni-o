@@ -761,16 +761,17 @@ function recibirHora(M, m) {
 
 function estadisticaHora(M, h) {
   const g = M.g;
-  let n = 0, maxP = 0, pers = 0, cortes = 0, n3 = 0;
+  let n = 0, maxP = 0, pers = 0, cortes = 0, n3 = 0, act = 0;
   for (let c = 0; c < g.N; c++) {
     if (!g.dentroC[c] || g.tipo2[c] !== 1) continue;
     if (h[c] >= 0.003) n3++;
     const p = h[c] - g.cauce[c];   // el agua dentro de un arroyo o canal no es inundación
-    if (p >= AGUA_MIN) { n++; pers += g.pob[c]; }
+    if (p >= AGUA_MIN) { n++; pers += g.pob[c]; act += g.act?.[c] ?? 0; }
     if (p > maxP) maxP = p;
     if (g.ruta[c] === 1 && p >= CORTE) cortes++;
   }
-  return { pct: (100 * n) / Math.max(1, g.nDentro), km2: (n * g.dx * g.dx) / 1e6, maxProf: maxP, personas: pers, cortesKm: (cortes * g.dx) / 1000, pct3: (100 * n3) / Math.max(1, g.nDentro) };
+  return { pct: (100 * n) / Math.max(1, g.nDentro), km2: (n * g.dx * g.dx) / 1e6, maxProf: maxP, personas: pers, cortesKm: (cortes * g.dx) / 1000, pct3: (100 * n3) / Math.max(1, g.nDentro),
+    actHa: (act * g.dx * g.dx) / 1e4 };
 }
 
 // Profundidad del agua en un píxel del relieve: el nivel del agua de su celda del modelo contra la altura fina del píxel
@@ -779,7 +780,7 @@ function estadisticaHora(M, h) {
 // Con el peor Niño cargado solo al abrir, la maqueta se ve seca (como la imagen satelital) hasta que se toca ▶ o la línea de
 // tiempo: el río del modelo ya mueve agua desde la primera hora y no tiene que aparecer antes de que se pida ver la tormenta
 const seco = (M) => (M.vacio ??= new Uint16Array(M.frames[0].length));
-const STAT_SECO = { pct: 0, km2: 0, maxProf: 0, personas: 0, cortesKm: 0, pct3: 0 };
+const STAT_SECO = { pct: 0, km2: 0, maxProf: 0, personas: 0, cortesKm: 0, pct3: 0, actHa: 0 };
 const statHora = (M, k = M.hora) => (M.seco ? STAT_SECO : M.stats[k]);
 function frameVista(M) {
   if (M.seco) return seco(M);
@@ -2076,7 +2077,7 @@ function pintarPanelSimulador(d) {
   // Indicadores del momento de más agua: en una fila debajo del selector de Niño (o arriba del pronóstico): primer pantallazo
   SIM.kpisEl = Object.assign(document.createElement("div"), { className: "sim-kpis", id: "sim-kpis" });
   SIM.kpisEl.innerHTML = `<p class="sim-kpis-cab" id="sim-kpis-cab"></p><div class="kpis sim-datos">
-    ${kpiSim(t("sim_k_area"), t("sim_k_area_a"))}${kpiSim(t("sim_k_prof"), t("sim_prof_sub"))}${kpiSim(t("sim_k_pers"), t("sim_personas_sub"))}
+    ${kpiSim(t("sim_k_area"), t("sim_k_area_a"))}${kpiSim(t("sim_k_pers"), t("sim_k_pers_a"))}${kpiSim(t("sim_k_ind"), t("sim_k_ind_a"))}
     ${kpiSim(t("sim_k_calles"), t("sim_k_calles_a"))}${kpiSim(t("sim_k_aisl"), t("sim_aisladas_sub"))}${kpiSim(t("sim_k_salud"), t("sim_salud_sub"))}</div>`;
   enlazarInfo(SIM.kpisEl);
   panel.innerHTML = `
@@ -2260,11 +2261,15 @@ function actualizarNumeros() {
     const tit0 = document.getElementById("sim-titular"); if (tit0) tit0.innerHTML = `${t("sim_tit_q")} <span>–</span>`;
     return;
   }
-  vals[0].innerHTML = conU(pctTxt, "%"); ext[0].textContent = t("sim_km2_corto")(fmt(P.km2, P.km2 < 10 ? 2 : 0));
-  vals[1].innerHTML = P.maxProf >= 0.01 ? conU(fmt(P.maxProf, 2), "m") : "–";
+  // Superficie (con la profundidad máxima abajo), habitantes y la parte industrial o comercial con agua
+  vals[0].innerHTML = conU(pctTxt, "%");
+  ext[0].textContent = [t("sim_km2_corto")(fmt(P.km2, P.km2 < 10 ? 2 : 0)), P.maxProf >= 0.01 ? t("sim_prof_corto")(fmt(P.maxProf, 2)) : ""].filter(Boolean).join(" · ");
+  const actTot = Mo.g?.actHa ?? 0;
+  vals[2].innerHTML = actTot >= 0.05 ? conU(fmt(P.actHa ?? 0, (P.actHa ?? 0) < 10 ? 1 : 0), "ha") : "–";
+  ext[2].textContent = actTot >= 0.05 ? t("sim_ind_de")(fmt(actTot, actTot < 10 ? 1 : 0)) : t("sim_ind_no");
   pintarCabezaSim();
   const tit = document.getElementById("sim-titular"); if (tit) tit.innerHTML = `${t("sim_tit_q")} <span>${t("sim_tit_pct")(pctTxt)}</span>`;
-  vals[2].textContent = fmtPersonas(P.personas);
+  vals[1].textContent = fmtPersonas(P.personas);
   const g = Mo.g;
   if (Mo.accesoK !== kp) { Mo.accesoK = kp; Mo.accesoPico = accesoHora(Mo, Mo.frames[kp]); }   // una vez por corrida (es una búsqueda en la red de calles)
   const ac = Mo.accesoPico;

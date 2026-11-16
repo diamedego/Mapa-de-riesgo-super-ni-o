@@ -57,6 +57,7 @@ function analisisRiesgoZona(cmus) {
   return {
     tipo: "zona", n: items.length, poblacion, porNivel,
     riesgo: pond((d, i) => d.r[i]), lluvia: pond((d, i) => H[d.lluvia[i]]), rio: pond((d, i) => H[d.rio[i]]), alerta: pond((d, i) => H[d.alerta[i]]),
+    terreno: pond((d) => d.pr ?? 0),
     amenaza: pond((d, i) => d.h[i]), E: pondR("E"), V: pondR("V"), sinRio: items.length > 0 && items.every(([, d]) => d.sr === 1),
     personas: M.map((_, i) => sumar(items.map(([, d]) => d.p[i] ?? 0))),
     altos: M.map((_, i) => items.filter(([, d]) => (d.r[i] ?? 0) >= CORTES[2]).length),
@@ -85,7 +86,8 @@ async function analisisRiesgoCirculo(s) {
   return {
     tipo: "circulo", n: props.length, poblacion: sumar(props.map((p) => Number(p.poblacion) || 0)), porNivel,
     riesgo: M.map((m) => (props.length ? pond((p) => Number(p[`r_${m}`])) : null)),
-    lluvia: zona?.lluvia ?? M.map(() => null), rio: zona?.rio ?? M.map(() => null), alerta: zona?.alerta ?? M.map(() => null), sinRio: zona?.sinRio ?? false, amenaza: zona?.amenaza ?? M.map(() => null),
+    lluvia: zona?.lluvia ?? M.map(() => null), rio: zona?.rio ?? M.map(() => null), alerta: zona?.alerta ?? M.map(() => null), terreno: zona?.terreno ?? M.map(() => null),
+    sinRio: zona?.sinRio ?? false, amenaza: zona?.amenaza ?? M.map(() => null),
     bajo: props.length ? pond((p) => Number(p.pct_area_hand_2m)) : null,
     sinCloaca: props.length ? pond((p) => 100 - Number(p.pct_cloaca)) : null,
     E: pond((p) => Number(p.E)), V: pond((p) => Number(p.V)), municipio: zona, radios: dentro,
@@ -366,8 +368,9 @@ async function tableroRiesgo(cont) {
   if (estado.sel !== s) return;   // la selección cambió mientras se cargaban los radios
   const peor = idx.reduce((m, i) => (A.riesgo[i] > A.riesgo[m] ? i : m), idx[0]);
   const r = A.riesgo[peor];
-  const comps = [["lluvia", A.lluvia[peor]], ["rio", A.rio[peor]], ["alerta", A.alerta[peor]]];
-  const motor = comps.slice().sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))[0];
+  // Amenazas del día (lluvia, río y alerta) y, aparte, la propensión fija del lugar: cada una con su semáforo
+  const comps = [["lluvia", A.lluvia[peor]], ["rio", A.rio[peor]], ["alerta", A.alerta[peor]], ["terreno", A.terreno[peor]]];
+  const motor = comps.slice(0, 3).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))[0], prop = A.terreno[peor];
   const ests = estacionesSel().filter((e) => e.estado && e.estado !== "null").sort((a, b) => (pesoEstado[b.estado] ?? 0) - (pesoEstado[a.estado] ?? 0) || (a.km ?? 0) - (b.km ?? 0));
   const alertas = alertasSel();
   const nivel = nivelRiesgo(r);
@@ -387,6 +390,8 @@ async function tableroRiesgo(cont) {
       <div class="hero-fila"><div class="hero-num"><span class="hero-valor">${fmtRiesgo(r)}</span></div>
         <div class="hero-lado">${pastillaNivel(r)}</div></div>
       <div class="medidor-caja">${medidorRiesgo(r)}</div>
+      ${prop != null ? `<div class="hero-prop" style="--c:${colorNivel(prop)}"><span class="hero-prop-etq">${t("prop_t")}${infoIcono("prop_t", infoTexto("prop_t"))}</span>
+        <span class="hero-prop-v"><i aria-hidden="true"></i><b>${fmtRiesgo(prop)}</b><small>/ 10</small><span>${nombreNivel(prop)}</span></span></div>` : ""}
     </section>
     ${bloqueCambios(cmusSel())}
     ${situacion}

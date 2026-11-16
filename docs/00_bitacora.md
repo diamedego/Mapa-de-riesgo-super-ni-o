@@ -806,3 +806,15 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 - Ahora: el relieve y el sombreado del mapa 2D se piden solo si se abre esa vista; los datos del lugar (Niños, ríos, humedad,
   suelo) se piden en paralelo con el relieve; la lluvia de 1951-1996 (solo el cuadro informativo) llega aparte; la humedad de hoy
   no frena (2 s máx.). Peor Niño elegido a los ~3,5 s (antes ~18 s); queda la corrida (8-12 s en Chrome sin GPU).
+
+## 16-nov-2026 — propensión del terreno en el riesgo diario, habitantes e industrias
+- Toyota Boshoku y Action Energy daban riesgo 0,0 con lagunas en el simulador: sin amenaza pronosticada, ∛(0 × E × V) = 0. Error
+  de diseño al pasar a días: se había dejado afuera la parte fija del terreno. Ahora la amenaza del día es
+  10 − (10 − fija)(10 − pronosticada)/10, con la fija = agua en superficie y quebradas del índice con lluvia normal (f = 0,5).
+  Toyota Boshoku: 0,0 → 3,3 (bajo). Elegido por la usuaria entre esta opción y un indicador aparte.
+- Subindicador «Propensión a juntar agua» (mismo cálculo con f = 1, 0 a 10) con su semáforo en el tablero y en «Qué lo explica»:
+  Campana 4,5 (medio). 531 municipios con propensión alta o muy alta.
+- El Censo cuenta dónde vive la gente: «Personas» pasa a «Habitantes» con la aclaración. Nuevo indicador del simulador
+  «Industrias»: hectáreas de zonas industriales y comerciales de OpenStreetMap con 10 cm de agua o más (Toyota Boshoku, peor Niño:
+  2,7 de 24 ha). La profundidad máxima pasa a la línea de abajo de «Superficie» (grilla de 2 × 3).
+- Toyota Boshoku en el buscador: listo (punto de Waze). Padilla Logística: sigue sin coordenadas exactas.

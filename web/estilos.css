@@ -1509,3 +1509,11 @@ body[data-lamina="3"] .lec-1 { display: none; }
 /* Riesgo día por día: columnas apiladas (% de la superficie en cada nivel) */
 .kpi-g.dc .dc-ley { margin: 0 0 8px; }
 .kpi-g.dc .dc-pie { margin: 8px 0 0; font-size: 11px; line-height: 16px; color: var(--tinta-3); }
+
+/* Propensión del lugar a juntar agua: subindicador fijo con su semáforo, debajo del riesgo del día (filete de 1 px, cifras en mono) */
+.hero-prop { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--borde-fuerte); }
+.hero-prop-etq { display: inline-flex; align-items: center; font: 500 10px/16px var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--tinta-2); }
+.hero-prop-v { display: inline-flex; align-items: baseline; gap: 4px; font: 500 16px/1 var(--f-mono); font-variant-numeric: tabular-nums; color: var(--tinta-1); }
+.hero-prop-v i { align-self: center; width: 16px; height: 8px; margin-right: 4px; background: var(--c); }
+.hero-prop-v small { font-size: 10px; color: var(--tinta-3); }
+.hero-prop-v span { margin-left: 8px; font: 500 10px/16px var(--f-mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--tinta-2); }
