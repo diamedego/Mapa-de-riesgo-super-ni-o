@@ -896,3 +896,8 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
   la variante pesimista. Además: provincia → 3D en su lugar de mayor riesgo (20 km), «Argentina» en el buscador, modo oscuro,
   solapa «Simular pronóstico» rediseñada, solapas arriba, agua de la maqueta interpolada (sin bloques).
 
+- Verificación del riesgo (`modelos/verificar_riesgo.py`, en Actions): DIARIO anota lo ocurrido (lluvia de anteayer del análisis del
+  ECMWF contra la probabilidad de cada pronóstico archivado; estado de los ríos del INA contra lo pronosticado y la persistencia);
+  SEMANAL (lunes) calcula aciertos, falsas alarmas, Brier y confiabilidad (`web/datos/verificacion_riesgo.json`) y ajusta
+  `data/referencia/parametros_riesgo.json` (probabilidad mínima para avisar y días de persistencia del río) de a pasos chicos, con
+  ≥ 30 eventos en ≥ 21 días; cada cambio queda en su historial y en esta bitácora. MENSUAL (pendiente): radar contra lo marcado en alto.
