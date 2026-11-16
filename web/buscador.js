@@ -174,6 +174,8 @@ const LUGARES_PROPIOS = [
   // en la esquina noreste del barrio Los Mirtillos, sobre el trazado de la RN 9 de OpenStreetMap
   { alias: ["masterbus", "master bus"], nombre: "MasterBus · terminal de micros", detalle: "Ruta Nacional 9, Colectora Sur km 87,5 · Zárate · Buenos Aires", cat: "cat_transporte", punto: [-59.077632, -34.128394], lugar: "zarate" },
   { alias: ["masterbus", "master bus"], nombre: "MasterBus · oficina", detalle: "Doctor Salk 243 · Campana · Buenos Aires", cat: "cat_transporte", punto: [-58.948364, -34.1869741], lugar: "campana" },
+  // Campana: Camino 014-04 a Capilla del Señor, a 500 m de la RN 9 km 80. Punto del lugar cargado en Waze (no está en OpenStreetMap ni en TomTom)
+  { alias: ["toyota boshoku", "boshoku"], nombre: "Toyota Boshoku Argentina", detalle: "Camino a Capilla del Señor (014-04), a 500 m de la RN 9 km 80 · Campana · Buenos Aires", cat: "cat_industria", punto: [-59.002897, -34.169283], lugar: "campana" },
 ];
 // Barrios populares del RENABAP (6.467, con su localidad): «barrio San Cayetano zárate», «san cayetano, zarate». Con un lugar
 // en el texto, los barrios a menos de 25 km de ese lugar (algunos figuran en la localidad vecina); el nombre admite errores.
