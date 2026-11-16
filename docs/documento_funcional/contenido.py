@@ -160,7 +160,7 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <tr><td>Simulador 3D</td><td>Con esta lluvia y este río, ¿dónde se junta el agua?</td><td>Círculo de 0,5 a 20 km; celdas de 32 m hasta 1,5 km de radio, que se duplican por tramo; horas a días</td><td>Río: acierto {pc(R["ahora"]["pod"])} contra el radar; agua de semanas: CSI {n2(D["csi"])}</td><td>El anegamiento urbano de pocas horas (no validable con satélites); la red pluvial real</td></tr>
 <tr><td>Escenarios de los Niños</td><td>¿Qué pasaría hoy con la peor tormenta de cada Niño?</td><td>Celda de 0,1° (~11 km); Niños desde 1997–98</td><td>Tormentas de 100 mm o más: {pc(L["imerg_100"]["mediana_cociente"])} de lo medido, error {pc(L["imerg_100"]["error_mediano"])}</td><td>La lluvia exacta de una manzana; los picos de minutos</td></tr>
 <tr><td>Peor Niño (fórmula)</td><td>¿Cuál de esos Niños dejó a más personas con agua?</td><td>El mismo círculo; estimación estática</td><td>Río: igual al modelo 3D en equilibrio; lluvia: sin validar contra daños reales</td><td>Cuántas personas se inundaron de verdad</td></tr>
-<tr><td>Simulación del pronóstico</td><td>Con lo que ya llovió y lo que se pronostica, ¿dónde va a haber agua?</td><td>El mismo círculo; 14 días pasados y 15 de pronóstico</td><td>Lluvia pronosticada: correlación {n2(V["verif"]["c03"])} a 0–3 días y {n2(V["verif"]["c815"])} a 8–15 días</td><td>La lluvia de cada hora más allá de una semana; el río más allá de su altura de hoy</td></tr></tbody></table></section>''',
+<tr><td>Simulación del pronóstico</td><td>Con lo que ya llovió y lo que se pronostica, ¿dónde va a haber agua?</td><td>El mismo círculo; 14 días pasados y 15 de pronóstico</td><td>Lluvia pronosticada: correlación {n2(V["verif"]["c03"])} a 0–3 días y {n2(V["verif"]["c815"])} a 8–15 días</td><td>La lluvia de cada hora más allá de una semana; el rango del río (usa su mediana)</td></tr></tbody></table></section>''',
 
 2: f'''<section><h1><span class="num">Capítulo 2</span>Marco conceptual y antecedentes</h1>
 <p>Antes de cambiar el modelo se revisaron trabajos de otros autores que estudiaron y midieron problemas parecidos, no solo para El Niño. Los 17 trabajos de acceso abierto se guardaron en la carpeta del proyecto; su índice, con la cita, el enlace y qué aporta cada uno, está en <code>docs/03_investigacion_trabajos.md</code>. Este capítulo resume los conceptos que se usan después.</p>
@@ -327,7 +327,7 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <p>El caudal pronosticado por GloFAS se convierte en altura en cada estación con una curva caudal-altura ajustada a las mediciones del INA (regresión isotónica, desfase y sesgo reciente). Con eso se obtiene la probabilidad de superar el nivel de alerta y el de evacuación cada día de los próximos 15 (riesgo por día) y cada mes de los próximos 7 (escenarios).</p>
 <p>Para el riesgo por día, el error de la curva frente a lo medido por el INA se mide en los días pasados de la misma corrida. El de los últimos 2 días pesa más al principio y se diluye hacia el de los últimos 15, con una escala de unos 5 días:</p>
 <div class="formula">sesgo(d) = e<sub>15</sub> + ( e<sub>2</sub> − e<sub>15</sub> ) · exp( −d / 5 )<span class="eq">(1d)</span></div>
-<p>Así el pronóstico arranca donde está el río hoy. Antes, el Paraná podía pasar de «normal» medido hoy a «evacuación» mañana: su altura depende del caudal de 10 días antes, que quedaba fuera de la consulta, y se usaba el sesgo fijo de la calibración.</p>
+<p>El error de partida e<sub>2</sub> es el de hoy (altura medida menos la curva) cuando hay medición, así el pronóstico arranca exactamente donde está el río hoy. Antes, el Paraná podía pasar de «normal» medido hoy a «evacuación» mañana: su altura depende del caudal de 10 días antes, que quedaba fuera de la consulta, y se usaba el sesgo fijo de la calibración.</p>
 <ul>
 <li>De 91 estaciones evaluadas, 43 superaron un coeficiente de validación de 0,7 y son las que se muestran.</li>
 <li>La verificación continua contra lo medido da un error medio de {n2(V["verif"]["rio_error"])} m y un sesgo de {n2(V["verif"]["rio_sesgo"])} m en {V["verif"]["rio_pares"]} pares.</li>
@@ -422,10 +422,10 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <li><b>Lluvia pasada.</b> La lluvia hora por hora de los últimos 14 días en el punto (análisis de los modelos, Open-Meteo) moja el suelo y llena los bajos como están hoy.</li>
 <li><b>Agua vista por radar.</b> Donde Sentinel-1 vio agua en su última pasada (hasta 12 días; VV &lt; −16 dB, sin el agua permanente), cada bajo arranca con el nivel que cubre exactamente esas celdas, a la hora de la pasada.</li>
 <li><b>Lluvia pronosticada.</b> De 1 a 7 días, el pronóstico hora por hora. De 8 a 15 días, uno de los 51 miembros del ensamble del ECMWF, elegido por su total: el probable (la mediana) o el pesimista (el percentil 90).</li>
-<li><b>Río.</b> La altura medida hoy por el INA se mantiene los 15 días.</li>
+<li><b>Río.</b> Hasta hoy, la altura medida por el INA; después, la altura pronosticada de cada día para la estación (la mediana de los 51 pronósticos de GloFAS pasados a altura y anclados a lo medido hoy, ecuación 1d), interpolada hora por hora. Si la estación no tiene curva validada, la altura de hoy se mantiene los 15 días.</li>
 </ul>
 <p>La pantalla separa con colores la lluvia real, la pronosticada con confianza alta (0–2 días), media (3–6) y baja (7–15).</p>
-{alcance(f"Muestra dónde se acumula el agua con una tormenta y un río dados, en un círculo de hasta 20 km y con horas de detalle. En crecidas de río con estación cercana acierta el {pc(R['ahora']['pod'])} del agua vista por radar. No representa la red pluvial real (se supone pareja) ni el agua que entra al círculo desde fuera de él, y no fue posible validar el anegamiento urbano de pocas horas. Las tormentas son reales pero vistas a 11 km de resolución: los picos de minutos quedan suavizados. La simulación del pronóstico hereda la incertidumbre del pronóstico, que crece con los días, y mantiene el río en su altura de hoy.")}</section>''',
+{alcance(f"Muestra dónde se acumula el agua con una tormenta y un río dados, en un círculo de hasta 20 km y con horas de detalle. En crecidas de río con estación cercana acierta el {pc(R['ahora']['pod'])} del agua vista por radar. No representa la red pluvial real (se supone pareja) ni el agua que entra al círculo desde fuera de él, y no fue posible validar el anegamiento urbano de pocas horas. Las tormentas son reales pero vistas a 11 km de resolución: los picos de minutos quedan suavizados. La simulación del pronóstico hereda la incertidumbre del pronóstico, que crece con los días; el río sigue la mediana de GloFAS, sin su rango.")}</section>''',
 
 7: f'''<section><h1><span class="num">Capítulo 7</span>El peor Niño para la población: método rápido</h1>
 <p>El selector de Niños marca en rojo el que dejó a más personas con agua en el círculo. Correr el modelo hidráulico para cada Niño tardaba minutos, y la autora pidió un cálculo inmediato, con todas las variables y sin simular los charcos. La solución es una fórmula física estática, que se evalúa en milisegundos sobre la misma grilla del modelo.</p>
@@ -570,6 +570,7 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <tr><td>Riesgo 0,0 en lugares que se inundan</td><td>Al pasar a días, sin pronóstico la amenaza valía 0</td><td>Amenaza fija del lugar y subindicador de propensión (5.1)</td></tr>
 <tr><td>Río que saltaba de normal a evacuación en un día</td><td>Faltaban los caudales de 10 días antes y se usaba el sesgo de calibración</td><td>31 días pasados y persistencia del error (ecuación 1d)</td></tr>
 <tr><td>Límite gratuito de Open-Meteo superado</td><td>El ensamble para 1.345 celdas pesa más que el cupo por hora</td><td>Datos abiertos del ECMWF, sin cupo</td></tr>
+<tr><td>Río del pronóstico con un salto de 30 a 40 cm entre hoy y mañana</td><td>La corrección se anclaba al error de los dos días anteriores, no al de hoy</td><td>Anclada a la altura medida hoy</td></tr>
 <tr><td>Simulador que tardaba en prepararse</td><td>Esperaba al mapa 2D oculto y pedía los datos del lugar en serie</td><td>Todo en paralelo: peor Niño en unos 3,5 s</td></tr>
 <tr><td>Buscador que llevaba a estaciones de servicio o a una calle parecida</td><td>Las estaciones caían como «comercio»; el servicio de calles iba antes que las empresas</td><td>Categoría propia, fuera de los resultados salvo que se pida; empresas antes que calles</td></tr></tbody></table></section>''',
 
@@ -634,7 +635,7 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <li>Los cauces se graban con un ancho supuesto.</li>
 <li>El anegamiento urbano de horas no se pudo validar.</li>
 <li>La validación con Dynamic World usó celdas de 150 m, cuando el simulador usa desde 32 m.</li>
-<li>La simulación del pronóstico mantiene el río en su altura de hoy.</li>
+<li>La simulación del pronóstico usa la mediana del río pronosticado, sin su rango; en estaciones sin curva validada, la altura de hoy.</li>
 </ul></li>
 <li><b>El riesgo por día</b> usa umbrales físicos discutibles, explícitos en la tabla 3, y todavía no se verificó contra lo ocurrido. No mide pérdidas ni daños. La propensión es la del municipio, no la de un predio. El Censo cuenta a quienes viven en un lugar, no a quienes trabajan.</li>
 <li><b>Automatización.</b> GitHub corre las tareas con horas de atraso. El agua de hoy por radar no se estaba regenerando sola: su diagnóstico quedó automatizado y se está revisando.</li>
@@ -648,7 +649,7 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <h2><span class="n">13.3</span>Trabajo futuro</h2>
 <ol>
 <li>Verificar el riesgo por día contra lo ocurrido: alertas, agua vista por satélite y reportes.</li>
-<li>Usar el pronóstico de altura de los ríos (ya calculado para el riesgo por día) en la simulación del pronóstico.</li>
+<li>Usar también el rango pesimista del río (percentil 90 de GloFAS) en la variante pesimista de la simulación del pronóstico.</li>
 <li>Medir la sensibilidad del escenario a la ventana del río (1, 3 y 7 días) con crecidas de 2015–16.</li>
 <li>Repetir la validación con radar en otras crecidas: Paraná 2015–16 y la propia 2026–27.</li>
 <li>Incorporar la sudestada (Servicio de Hidrografía Naval) en el Delta.</li>

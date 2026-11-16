@@ -542,7 +542,7 @@ function armarRiesgo(fijo, diario) {
     cmu[c] = { c: f.c, E: f.E, V: f.V, sr: f.sr, rob: f.rob, n, lluvia: digitos(d?.l), rio: digitos(d?.q), alerta: digitos(d?.a), hf, pr: d?.pr ?? null,
       prob: (d?.p ?? []).slice(k0), r: d?.r ? d.r.slice(k0) : n.map(() => 0), h: n.map((v) => 10 - ((10 - hf) * (10 - H[v])) / 10), p: Array(nD).fill(0) };
   }
-  const est = Object.fromEntries(Object.entries(diario?.est ?? {}).map(([e, v]) => [e, { n: digitos(v.n), p: (v.p ?? []).slice(k0) }]));
+  const est = Object.fromEntries(Object.entries(diario?.est ?? {}).map(([e, v]) => [e, { n: digitos(v.n), p: (v.p ?? []).slice(k0), h: (v.h ?? []).slice(k0) }]));
   return { dias, cmu, H, est, generado: diario?.generado ?? null, fuentes: diario?.fuentes ?? {} };
 }
 

@@ -1940,6 +1940,23 @@ async function prepararPronostico() {
   pintarPronostico();
   if (SIM.pron.met && SIM.modoSim === "pronostico") simularPronostico(SIM.pron.variante);
 }
+// Río de la simulación del pronóstico, hora por hora (metros sobre el nivel de evacuación): hasta hoy, la altura medida por el INA;
+// después, la altura pronosticada de cada día (GloFAS en altura, anclado a lo medido hoy; modelos/riesgo_diario.py), interpolada
+// entre los mediodías. Sin pronóstico para la estación, la altura de hoy se mantiene los 15 días.
+function rioPronosticado(e, met) {
+  const rel = new Float32Array(met.horas.length).fill(e.h - e.ref);
+  const P = estado.riesgo?.est?.[String(e.estacion_id)]?.h, D = estado.riesgo?.dias;
+  if (!P?.length || P.some((v) => v == null) || !D?.length) return { rel, pronostico: false };
+  const t0 = Date.parse(`${D[0]}T12:00:00-03:00`);
+  met.horas.forEach((ms, k) => {
+    const x = (ms - t0) / 864e5;
+    if (x <= 0) return;
+    const i = Math.min(Math.floor(x), P.length - 1), j = Math.min(i + 1, P.length - 1), f = Math.min(1, x - Math.floor(x));
+    rel[k] = P[i] + (P[j] - P[i]) * f - e.ref;
+  });
+  const hMax = Math.max(...P.slice(1)), iMax = P.indexOf(hMax, 1);
+  return { rel, pronostico: true, hMax, diaMax: D[iMax] };
+}
 async function simularPronostico(variante) {
   const d = SIM.datos, P = SIM.pron;
   if (!d || !P?.met) return;
@@ -1953,6 +1970,7 @@ async function simularPronostico(variante) {
   const hoy = Math.max(0, met.tipo.indexOf(1)), miembro = elegirMiembro(P.ens, met, hoy, variante);
   if (miembro) met.horas.forEach((ms, k) => { if (k - hoy > 168) { const j = P.ens.horas.indexOf(ms); if (j >= 0) met.lluvia[k] = miembro[j]; } });
   const M = (SIM.modelo = { frames: [], lagos: [], stats: [], hora: 0, corriendo: true, siguiendo: true, hasta: sumarDias(hoyLocal(), DIAS_PRON), tormenta: { mm: 0, horas: 3 }, corto: false, pronostico: true, verHoy: true });
+  P.rio = null;
   bloquearControles(true);
   avisoProgreso(t("pron_calculando"));
   M.hoy = hoy;
@@ -1967,14 +1985,14 @@ async function simularPronostico(variante) {
     P.radarHoy = { cobertura: R.cobertura, dias: R.dias, haVista: H.haVista, haAsignada: H.haAsignada };
     if (R.dias != null && H.haAsignada > 0) asimilar = { k: Math.max(0, hoy - R.dias * 24), h: H.h };
   }
+  if (M.estacion) P.rio = rioPronosticado(M.estacion, met);
   pintarPronostico();
   const w = (M.worker = new Worker("hidraulica.js"));
   w.onmessage = (e) => recibirHora(M, e.data);
   w.onerror = (e) => { avisoProgreso(t("sim_error")); console.error(e); };
   w.postMessage({ tipo: "iniciar", nx: g.nx, ny: g.ny, dx: g.dx, z: g.z, tipo2: g.tipo2, lago: g.lago, nMan: g.nMan, imp: g.imp,
     suelo: M.suelo, theta0: met.theta0, desague: Math.round(SIM.hist?.H?.desague ?? SIM.desague), crecida: 0, lluvia: Float32Array.from(met.lluvia), et0: Float32Array.from(met.et0),
-    // Río: la altura de hoy del INA durante los 15 días (no hay pronóstico diario de su altura en el sitio)
-    ...(M.estacion ? { relEvac: new Float32Array(n).fill(M.estacion.h - M.estacion.ref), relMed: relMedRio() } : {}), ...(asimilar ? { asimilar } : {}) });
+    ...(P.rio ? { relEvac: P.rio.rel, relMed: relMedRio() } : {}), ...(asimilar ? { asimilar } : {}) });
   pintarLineaSim();
 }
 // Lluvia de cada día (hora argentina): real, pronóstico de 1 a 7 días y, de 8 a 15, el probable y el pesimista del ensamble
@@ -2023,7 +2041,7 @@ function pintarPronostico() {
   const cond = [
     fila(t("pron_c_lluvia"), `${fmt(lluvia14)} mm`, t("pron_f_real")),
     fila(t("pron_c_humedad"), tSup != null ? `${fmt(Math.min(100, (100 * tSup) / ts))} %${tProf != null ? ` · ${t("pron_c_a1m")} ${fmt(Math.min(100, (100 * tProf) / ts))} %` : ""}` : "–", t("pron_f_humedad")),
-    fila(t("pron_c_rio"), est ? `${fmt(est.h, 2)} m <small>${t("sim_v_evac")(fmt(est.ref, 2))}</small>` : t("pron_c_rio_sin"), est ? t("pron_f_rio")(est.estacion) : ""),
+    fila(t("pron_c_rio"), est ? `${fmt(est.h, 2)} m <small>${t("sim_v_evac")(fmt(est.ref, 2))}</small>` : t("pron_c_rio_sin"), est ? (P.rio?.pronostico ? t("pron_f_rio_pron")(est.estacion, fmt(P.rio.hMax, 2), fmtDiaFrase(P.rio.diaMax)) : t("pron_f_rio")(est.estacion)) : ""),
     fila(t("pron_c_radar"), R ? (R.cobertura > 0.5 ? t("pron_c_radar_v")(fmt(R.haVista, 1), R.dias) : t("pron_c_radar_sin")) : P.rad === null ? t("pron_c_radar_no") : "…", t("pron_f_radar")),
     fila(t("pron_c_desague"), `${fmt(Math.round(SIM.hist?.H?.desague ?? SIM.desague))} mm/h`, t("pron_f_desague")),
     fila(t("pron_c_cloaca"), pTot ? `${fmt((100 * pSin) / pTot)} %` : "–", t("pron_f_cloaca")),

@@ -22,7 +22,8 @@ cortes del sitio.
 
 Salida: web/datos/riesgo_diario.json
   {generado, dias, cmu: {cmu: {r: [15 riesgos], n: "nivel de amenaza por día", l / q / a: "nivel por lluvia / río / alerta",
-                               p: [15 prob. del nivel que manda]}}, est: {estacion_id: {n: "nivel por día", p: [15 prob.]}}}
+                               p: [15 prob. del nivel que manda]}}, est: {estacion_id: {n: "nivel por día", p: [15 prob.],
+                               h: [15 alturas: hoy la medida, después la mediana de los pronósticos (m)]}}}
 (los niveles van como texto de 15 dígitos 0-3) y una copia con fecha en data/archivo/riesgo_diario/ (para verificar después
 contra lo que pasó). Lo bajado (ríos, lluvia) se guarda por día en data/procesado/riesgo_diario/ y se reusa si se corre de
 nuevo el mismo día.
@@ -169,8 +170,9 @@ def alturas_ina() -> pd.DataFrame:
 def niveles_rios(hoy: str, caudales: dict) -> dict:
     """estacion_id → niveles 0-3 por día y su probabilidad: GloFAS pasado a altura con la curva de cada estación, corrida por el
     sesgo reciente (como modelos/rios.py: diferencia media entre lo medido por el INA y la curva en los días pasados de la misma
-    corrida). El error de los últimos 2 días con dato pesa más al principio y se diluye hacia el de los últimos 15 días (persistencia
-    del error, que se pierde con unos 5 días de escala): sesgo(d) = e15 + (e2 − e15) × exp(−d / 5). Con menos de 5 días con dato,
+    corrida). El error de hoy (la altura medida contra la curva; si no hay medición, el de los últimos 2 días con dato) pesa más al
+    principio y se diluye hacia el de los últimos 15 días (persistencia del error, que se pierde con unos 5 días de escala):
+    sesgo(d) = e0 + … = e15 + (e0 − e15) × exp(−d / 5), así el pronóstico arranca en la altura de hoy. Con menos de 5 días con dato,
     el último; sin ninguno, el de calibración. Hoy manda la altura medida."""
     import geopandas as gpd
     curvas = pd.read_parquet(REF / "rios_curvas.parquet")
@@ -197,24 +199,29 @@ def niveles_rios(hoy: str, caudales: dict) -> dict:
         err = (m.loc[comun] - med.loc[comun]).astype(float)
         e15 = float(err.mean()) if len(comun) >= 5 else float(err.iloc[-1]) if len(comun) else float(c["sesgo_calibracion"])
         e2 = float(err.iloc[-2:].mean()) if len(comun) else e15
+        H = curva(Q)
+        i0 = int(np.searchsorted(fechas.values, np.datetime64(hoy)))
+        k0 = i0 - des
+        if ho is not None and 0 <= k0 < H.shape[1] and np.isfinite(H[:, k0]).any():   # anclado a lo medido hoy: sin salto entre hoy y mañana
+            e2 = ho - float(np.nanmedian(H[:, k0]))
         sesgo_dia = [e15 + (e2 - e15) * math.exp(-d / 5) for d in range(DIAS)]
         sesgo = e2
-        H = curva(Q)
         alerta, evac = float(e["nivel_alerta"]), e["nivel_evacuacion"]
         evac = float(evac) if pd.notna(evac) else None
-        i0 = int(np.searchsorted(fechas.values, np.datetime64(hoy)))
-        niv, prob = [], []
+        niv, prob, altura = [], [], []   # altura: la mediana de los pronósticos de cada día (hoy, la medida); la usa el simulador
         for d in range(DIAS):
             k = i0 + d - des
             h = H[:, k][~np.isnan(H[:, k])] + sesgo_dia[d] if 0 <= k < H.shape[1] else np.array([])
+            altura.append(round(float(np.median(h)), 2) if len(h) else None)
             pa = float((h >= alerta).mean()) if len(h) else 0.0
             pe = float((h >= evac).mean()) if len(h) and evac else 0.0
             n = 3 if pe >= P_ALTA else 2 if pe >= P_UMBRAL else 1 if pa >= P_UMBRAL else 0
             if d == 0 and ho is not None:   # hoy manda lo medido por el INA
                 n = 3 if evac and ho >= evac else 1 if ho >= alerta else 0
                 pe = pa = 1.0 if n else 0.0
+                altura[0] = round(ho, 2)
             niv.append(n); prob.append(round(pe if n >= 2 else pa, 2))
-        out[str(est)] = {"n": niv, "p": prob, "lat": e.geometry.y, "lon": e.geometry.x, "nombre": e["estacion"], "sesgo": round(sesgo, 2),
+        out[str(est)] = {"n": niv, "p": prob, "h": altura, "lat": e.geometry.y, "lon": e.geometry.x, "nombre": e["estacion"], "sesgo": round(sesgo, 2),
                          "sesgo_dias": int(len(comun))}
     return out
 
@@ -326,7 +333,7 @@ def main() -> None:
                        "rios": f"GloFAS (51 miembros) + curva de cada estación; hoy, INA ({len(rios)} estaciones)", "alertas": "SMN vigentes",
                        "fija": "Propensión del índice con lluvia normal (agua en superficie y quebradas)"},
            "sin_lluvia": sin_lluvia, "cmu": salida,
-           "est": {e: {"n": "".join(str(x) for x in R["n"]), "p": R["p"]} for e, R in rios.items()}}
+           "est": {e: {"n": "".join(str(x) for x in R["n"]), "p": R["p"], "h": R["h"]} for e, R in rios.items()}}
     (WEB / "riesgo_diario.json").write_text(json.dumps(res, separators=(",", ":")))
     arch = RAIZ / "data" / "archivo" / "riesgo_diario"
     arch.mkdir(parents=True, exist_ok=True)

@@ -532,6 +532,7 @@ const TEXTOS = {
     sim_ind_de: (t) => `de ${t} ha`,
     sim_ind_no: "Sin zonas industriales en el mapa",
     sim_prof_corto: (p) => `hasta ${p} m`,
+    pron_f_rio_pron: (e, h, d) => `medida hoy por el INA en ${e}; después, la altura pronosticada de cada día (GloFAS con la curva de la estación, anclado a lo medido hoy): hasta ${h} m el ${d}`,
   },
   en: {
     titulo: "Argentina facing El Niño 2026–27",
@@ -1061,5 +1062,6 @@ const TEXTOS = {
     sim_ind_de: (t) => `of ${t} ha`,
     sim_ind_no: "No industrial areas on the map",
     sim_prof_corto: (p) => `up to ${p} m`,
+    pron_f_rio_pron: (e, h, d) => `measured today by INA at ${e}; then each day's forecast stage (GloFAS with the station curve, anchored to today's reading): up to ${h} m on ${d}`,
   },
 };
