@@ -612,7 +612,7 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <tr><td>El río debe ser el del período de la tormenta</td><td class="ok">Cumplido</td><td>Ecuación 5 y sección 6.5</td></tr>
 <tr><td>Investigar trabajos de otros, guardarlos y mejorar los puntos débiles</td><td class="ok">Cumplido</td><td>17 trabajos con índice; lluvia, río, λ, humedad, bajos y desagües</td></tr>
 <tr><td>Buscador: Master Bus, barrios y que no vuelva a fallar</td><td class="ok">Cumplido</td><td>Lugares propios, RENABAP, TomTom y opciones si no coincide</td></tr>
-<tr><td>Toyota Boshoku y Padilla Logística</td><td class="parcial">Parcial</td><td>Toyota Boshoku con el punto de Waze; Padilla Logística sin coordenadas exactas</td></tr>
+<tr><td>Toyota Boshoku y Padilla Logística</td><td class="ok">Cumplido</td><td>Con el punto de cada lugar publicado en Waze y en un directorio de negocios</td></tr>
 <tr><td>Riesgo mensual sin sustento: hoy y las próximas dos semanas, con listas de zonas que cambian de nivel, recomendaciones y columnas que pintan el mapa</td><td class="ok">Cumplido</td><td>Sección 5.1</td></tr>
 <tr><td>Inundaciones reales de hoy por satélite</td><td class="ok">Cumplido</td><td>Capa diaria de la NASA (MODIS)</td></tr>
 <tr><td>Simular el pronóstico desde las condiciones de hoy</td><td class="ok">Cumplido</td><td>Sección 6.9</td></tr>

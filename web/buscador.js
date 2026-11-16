@@ -177,6 +177,9 @@ const LUGARES_PROPIOS = [
   { alias: ["masterbus", "master bus"], nombre: "MasterBus · oficina", detalle: "Doctor Salk 243 · Campana · Buenos Aires", cat: "cat_transporte", punto: [-58.948364, -34.1869741], lugar: "campana" },
   // Campana: Camino 014-04 a Capilla del Señor, a 500 m de la RN 9 km 80. Punto del lugar cargado en Waze (no está en OpenStreetMap ni en TomTom)
   { alias: ["toyota boshoku", "boshoku"], nombre: "Toyota Boshoku Argentina", detalle: "Camino a Capilla del Señor (014-04), a 500 m de la RN 9 km 80 · Campana · Buenos Aires", cat: "cat_industria", punto: [-59.002897, -34.169283], lugar: "campana" },
+  // Campana: RN 9 km 79,5, Camino Morejón 10. Punto del lugar publicado en near-place.com (ficha de Google del negocio); el punto de la
+  // dirección está a 250 m. No está en OpenStreetMap ni en TomTom
+  { alias: ["padilla logistica", "transportes padilla", "padilla"], nombre: "Transportes Padilla (Padilla Logística)", detalle: "RN 9 km 79,5, Camino Morejón 10 · Campana · Buenos Aires", cat: "cat_industria", punto: [-58.997509, -34.169397], lugar: "campana" },
   // Campana: la portería 1 (Dr. Simini 250), punto de Waze. El centro del polígono de OpenStreetMap cae unos 770 m al norte, dentro de la planta
   { alias: ["tenaris siderca", "siderca", "tenaris"], nombre: "Tenaris Siderca", detalle: "Portería 1 · Dr. Jorge A. Simini 250 · Campana · Buenos Aires", cat: "cat_industria", punto: [-58.977242, -34.159136], lugar: "campana" },
   // Petroleras: con su nombre se buscan las refinerías y las sedes, no las estaciones de servicio (que quedan como referencias del mapa).

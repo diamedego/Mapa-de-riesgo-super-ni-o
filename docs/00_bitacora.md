@@ -834,3 +834,4 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 - El agua por radar no se regeneró en ninguna corrida desde que se la sumó (radar_agua.json sigue siendo la de 15-nov 21:19 UTC). El mapa
   de Earth Engine de esa hora seguía respondiendo 13 h después. Para ver el error sin entrar a GitHub, el flujo guarda ahora el
   resultado de los pasos de radar y de riesgo diario en `data/archivo/diagnostico/` (se sube con los datos).
+- Padilla Logística (Transportes Padilla, Campana) en el buscador: punto del negocio publicado en near-place.com (-34.169397, -58.997509), a 250 m del punto de la dirección y a ~500 m de Toyota Boshoku.

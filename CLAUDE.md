@@ -60,7 +60,7 @@ Proyecto de portfolio de Diamela (ingeniera química, busca rol de datos). Publi
   (calles cortadas, aislados, confianza, validación contra satélite en `herramientas/validacion/`, ver `docs/04_validacion_simulador.md`).
   13-nov: revisada una crítica externa (ver bitácora): confianza baja sin validación, «Sin información» en ríos sin estación, límites explícitos. Próximo: mejorar el modelo donde falla (nivel de referencia del río, lagunas) y volver a correr `validar.py`.
 - Buscador: TomTom activo (clave en `web/claves.js`). Lugares cargados a mano en `LUGARES_PROPIOS` (`web/buscador.js`): Toyota Boshoku,
-  Tenaris Siderca, refinerías y sedes de petroleras. Estaciones de servicio fuera de los resultados salvo que se pidan. Padilla Logística sin coordenadas.
+  Tenaris Siderca, refinerías y sedes de petroleras. Estaciones de servicio fuera de los resultados salvo que se pidan. Padilla Logística cargada (near-place.com).
 - 15-nov (ver bitácora y documento v4): lluvia de los Niños con IMERG, río de los días de la tormenta (+3 días), fórmula del peor
   Niño con λ = 0,05, humedad relativa, bajos del relieve y río conectado; modelo 3D corregido (arrancaba quieto). Falta: sensibilidad
   de la ventana del río (1/3/7 días), radar en otras crecidas, republicar la versión privada con `datos/lluvia_ninos/*` y `datos/rios_ninos/*`.
