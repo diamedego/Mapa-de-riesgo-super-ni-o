@@ -147,7 +147,7 @@ function aplicarPeorNino(alInicio = false) {
 function rasgosLugar() {
   const h = SIM.hist, d = SIM.datos;
   if (h.lugar || !d) return h.lugar;
-  const g = SIM.modelo?.g ?? grillaModelo(d, 100, 100);
+  const g = SIM.modelo?.g ?? grillaModelo(d);
   let sImp = 0, nImp = 0;
   for (let c = 0; c < g.N; c++) if (g.dentroC[c] && g.tipo2[c] === 1) { sImp += g.imp[c]; nImp++; }
   // Nivel del río igual que en el modelo 3D (hidraulica.js): base = lo más bajo entre su superficie y su orilla; en el nivel de
@@ -444,11 +444,14 @@ const latDeY = (y, z) => (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / 2 ** z)))
 const xDeLon = (lon, z) => ((lon + 180) / 360) * 2 ** z;
 const yDeLat = (lat, z) => ((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** z;
 
-async function relieveDe(caja) {
+// Tramos de radio: hasta 1,5 km, celdas de ~32 m (relieve z 14); hasta 3 km, ~64 m (z 13); hasta 6 km, ~128 m (z 12); y así.
+// Dentro de un tramo, la grilla es la misma para cualquier radio (las lagunas coinciden); entre tramos, cada celda gruesa es
+// exactamente 2 × 2 de las finas (grillas encajadas). El cálculo queda en ~80-125 celdas por lado: unos segundos.
+const tramoRadio = (km) => Math.max(0, Math.ceil(Math.log2(km / 1.5) - 1e-9));
+async function relieveDe(caja, km) {
   const [x0, y0, x1, y1] = caja;
-  let z = 15;   // hasta ~4 m por píxel en radios chicos (el relieve de base es de ~30 m, pero así las líneas quedan finas);
-  // se baja de a un nivel mientras el área necesite más de 5 × 5 teselas (radio de 1 km: z 15; 2 km: z 14; 5 km o más: z 13 o menos)
-  while (z > 9 && (Math.floor(xDeLon(x1, z)) - Math.floor(xDeLon(x0, z)) > 4 || Math.floor(yDeLat(y0, z)) - Math.floor(yDeLat(y1, z)) > 4)) z--;
+  let z = Math.max(9, 14 - tramoRadio(km));   // solo si igual hacen falta más de 8 × 8 teselas, baja otro zoom
+  while (z > 9 && (Math.floor(xDeLon(x1, z)) - Math.floor(xDeLon(x0, z)) > 7 || Math.floor(yDeLat(y0, z)) - Math.floor(yDeLat(y1, z)) > 7)) z--;
   const tx0 = Math.floor(xDeLon(x0, z)), tx1 = Math.floor(xDeLon(x1, z)), ty0 = Math.floor(yDeLat(y1, z)), ty1 = Math.floor(yDeLat(y0, z));
   const W = (tx1 - tx0 + 1) * 256, H = (ty1 - ty0 + 1) * 256;
   const marco = { W, H, z, tx0, ty0, oeste: lonDeX(tx0, z), este: lonDeX(tx1 + 1, z), norte: latDeY(ty0, z), sur: latDeY(ty1 + 1, z) };
@@ -552,7 +555,7 @@ async function prepararSimulacion(s) {
   const est = document.getElementById("sim-estado");
   est.textContent = t("sim_cargando");
   const mapaListo = crearMapaSimulador(s);
-  const [D] = await Promise.all([relieveDe(cajaCirculo(s.punto, s.km * 1.25)), cargarRadiosEn(cajaCirculo(s.punto, s.km)), mapaListo]);
+  const [D] = await Promise.all([relieveDe(cajaCirculo(s.punto, s.km * 1.25), s.km), cargarRadiosEn(cajaCirculo(s.punto, s.km)), mapaListo]);
   if (estado.sel !== s || document.getElementById("sim").hidden) return;
   const { W, H } = D, N = W * H;
   const aPx = (lon, lat) => [(xDeLon(lon, D.z) - D.tx0) * 256, (yDeLat(lat, D.z) - D.ty0) * 256];
@@ -690,7 +693,7 @@ async function simularEscenario(alInicio = false) {
   const met = { horas: Array.from({ length: n }, (_, k) => t0 + k * 3600e3), lluvia: new Array(n).fill(0), et0: new Array(n).fill(et0), tipo: new Array(n).fill(2), theta0: E.theta };
   (E.perfil?.length === E.horas ? E.perfil : repartoTormenta(E.horas)).forEach((f, j) => { met.lluvia[2 + j] = E.mm * f; });   // la tormenta real (o su forma) o pareja
   M.hoy = 0;
-  const g = grillaModelo(d, n, 100);   // celdas de ~60 m como la tormenta de prueba (el agua se dibuja igual sobre el relieve fino)
+  const g = grillaModelo(d);   // celdas de ~30 m, las mismas para cualquier radio (el agua se dibuja sobre el relieve fino)
   await prepararCorrida(M, d, g, met);
   if (SIM.modelo !== M) return;
   pintarEscenario();   // con el suelo y la grilla del lugar ya se sabe dónde se satura y si hay lagunas o río en el círculo
@@ -1928,7 +1931,7 @@ async function simularPronostico(variante) {
   bloquearControles(true);
   avisoProgreso(t("pron_calculando"));
   M.hoy = hoy;
-  const g = grillaModelo(d, n, 100);
+  const g = grillaModelo(d);
   await prepararCorrida(M, d, g, met);
   if (SIM.modelo !== M) return;
   // El agua que vio el radar entra el día de su pasada (si el modelo tenía menos ahí)

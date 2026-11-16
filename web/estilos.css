@@ -1353,11 +1353,31 @@ body[data-lamina="3"] .lec-1 { display: none; }
 
 /* Detalle: acceso al simulador 3D en el centro del círculo elegido */
 .detalle { overflow: hidden; }
-.detalle-sim { position: absolute; z-index: 2; transform: translate(-50%, 10px); display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px;
-  border: 1px solid var(--tinta-1); background: var(--tinta-1); color: var(--superficie); font: 500 10.5px/1 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase;
-  white-space: nowrap; cursor: pointer; }
-.detalle-sim:hover { background: var(--cian); border-color: var(--cian); }
+/* Llamado al simulador: tarjeta plana con filete de 1 px, un dibujo de la maqueta (bloque de terreno con una laguna y lluvia)
+   y el pulso en el punto elegido. Retícula de 8 px. */
+.detalle-sim { position: absolute; z-index: 2; transform: translate(-50%, 16px); display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px 8px 8px;
+  border: 1px solid var(--tinta-1); border-radius: 2px; background: var(--superficie); color: var(--tinta-1); text-align: left; white-space: nowrap; cursor: pointer; }
+.detalle-sim:hover, .detalle-sim:focus-visible { background: var(--cian-suave); outline: none; border-color: var(--cian); }
 .detalle-sim[hidden] { display: none; }
+.detalle-sim::before { content: ""; position: absolute; left: 50%; top: -16px; width: 16px; height: 16px; margin: -8px 0 0 -8px; border: 2px solid var(--cian);
+  border-radius: 50%; pointer-events: none; animation: detalle-pulso 1.8s ease-out infinite; }
+@keyframes detalle-pulso { from { transform: scale(0.5); opacity: 0.9; } to { transform: scale(2.5); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .detalle-sim::before { animation: none; opacity: 0; } }
+.detalle-sim-dib { flex: none; width: 32px; height: 32px; }
+.detalle-sim-dib path, .detalle-sim-dib ellipse { stroke: var(--cian); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+.detalle-sim-dib .lluvia { fill: none; }
+.detalle-sim-dib .cara-sup { fill: color-mix(in srgb, var(--cian) 14%, var(--superficie)); }
+.detalle-sim-dib .cara-izq { fill: color-mix(in srgb, var(--cian) 38%, var(--superficie)); }
+.detalle-sim-dib .cara-der { fill: color-mix(in srgb, var(--cian) 62%, var(--superficie)); }
+.detalle-sim-dib .agua { fill: #3d8fd1; stroke: none; }
+.detalle-sim-txt { display: flex; flex-direction: column; gap: 0; }
+.detalle-sim-txt b { font: 600 13px/16px var(--f-ui); color: var(--tinta-1); }
+.detalle-sim-txt small { font: 500 10px/16px var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--cian); }
+/* Título del detalle sin «…»: los nombres largos pasan a una segunda línea */
+.detalle { grid-template-rows: auto 250px; }
+.detalle header { flex-direction: column; align-items: flex-start; justify-content: center; gap: 0; min-height: 32px; padding: 8px 16px; }
+.detalle header b { line-height: 16px; }
+.detalle header span { max-width: none; overflow: visible; text-overflow: clip; white-space: normal; line-height: 16px; }
 
 /* Lámina 02: reproducción arriba (play, hora, barra de tiempo, velocidad y gráfico) y selector de Niño */
 .sim-play { display: grid; gap: 10px; padding-bottom: 12px; border-bottom: 1.5px solid var(--marco); }
@@ -1444,19 +1464,20 @@ body[data-lamina="3"] .lec-1 { display: none; }
 .eje-unidad { font-weight: 600; }
 .paneles-escala { margin: 6px 0 0; font-size: 0.74rem; color: var(--tinta-3); }
 
-/* Indicadores del simulador: una fila compacta debajo del selector de Niño */
-.sim-kpis { margin: 10px 0 6px; }
-.sim-kpis-cab { margin: 0 0 4px; font: 500 10px/1.3 var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--tinta-3); }
-.sim-lec .sim-kpis .kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); border-top: 1px solid var(--borde-fuerte); border-bottom: 1px solid var(--borde-fuerte); }
-.sim-lec .sim-kpis .kpi, .sim-lec .sim-kpis .kpi:nth-child(2n) { min-height: 0; padding: 7px 4px 7px 7px; border: 0; border-left: 1px solid var(--borde-fuerte); }
-.sim-lec .sim-kpis .kpi:first-child { border-left: 0; padding-left: 0; }
-.sim-lec .sim-kpis .kpi-l { margin: 0 0 3px; font-size: 9px; letter-spacing: 0.05em; white-space: nowrap; }
-.sim-lec .sim-kpis .kpi-v { font-size: 17px; line-height: 1.1; }
-.sim-lec .sim-kpis .kpi-v small { font-size: 0.6em; }
-.sim-lec .sim-kpis .kpi-f { font-size: 9.5px; }
+/* Indicadores del simulador: dos filas de tres debajo del selector de Niño (retícula de 8 px, filetes de 1 px, sin cajas).
+   Sin barrita de color: acá no hay nivel ni umbral que señalar (el semáforo queda solo para el riesgo). */
+.sim-kpis { margin: 16px 0 8px; }
+.sim-kpis-cab { margin: 0 0 8px; font: 500 10px/1.6 var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--tinta-3); }
+.sim-lec .sim-kpis .kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--borde-fuerte); border-bottom: 1px solid var(--borde-fuerte); }
+.sim-lec .sim-kpis .kpi, .sim-lec .sim-kpis .kpi:nth-child(2n) { display: flex; flex-direction: column; gap: 8px; min-height: 0; padding: 16px; border: 0;
+  border-left: 1px solid var(--borde-fuerte); border-radius: 0; background: none; }
+.sim-lec .sim-kpis .kpi:nth-child(3n+1) { border-left: 0; padding-left: 0; }
+.sim-lec .sim-kpis .kpi:nth-child(3n) { padding-right: 0; }   /* los íconos de la última columna, en el riel derecho del panel */
+.sim-lec .sim-kpis .kpi:nth-child(-n+3) { border-bottom: 1px solid var(--borde-fuerte); }
+.sim-lec .sim-kpis .kpi::before { display: none; }
+.sim-lec .sim-kpis .kpi-l { display: flex; align-items: center; gap: 8px; margin: 0; padding: 0; font-size: 10px; line-height: 16px; letter-spacing: 0.05em; white-space: normal; }
+.sim-lec .sim-kpis .kpi-l .info { width: 16px; height: 16px; margin-left: auto; }
+.sim-lec .sim-kpis .kpi-v { display: flex; align-items: baseline; gap: 4px; font-size: 24px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.sim-lec .sim-kpis .kpi-v small { margin: 0; font-size: 14px; }
+.sim-lec .sim-kpis .kpi-f { margin: 0; font-size: 12px; line-height: 1.4; white-space: normal; overflow: visible; }
 .sim-lec .sim-kpis .kpi-f:empty { display: none; }
-@media (max-width: 560px) {
-  .sim-lec .sim-kpis .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .sim-lec .sim-kpis .kpi:nth-child(4) { border-left: 0; padding-left: 0; }
-  .sim-lec .sim-kpis .kpi:nth-child(-n+3) { border-bottom: 1px solid var(--borde-fuerte); }
-}

@@ -770,3 +770,18 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 - Se quitó la lámina «Alertas y ríos»: repetía lo que ya muestran la capa de alertas del SMN, las estaciones de ríos del mapa y los indicadores de la lámina 01. «Análisis y validación» pasa a ser la 03. Los indicadores de ríos y alertas de la 01 ahora encienden su capa en el mapa.
 - Riesgo replanteado con la usuaria: el riesgo mensual no tiene sustento fuera de los ríos grandes (la lluvia de SEAS5 pesa 0,106). Plan: (1) situación de hoy con datos de hoy, (2) qué zonas entran en criticidad en los próximos 1 a 14 días (probabilidades con ensamble y ríos), con listas de cambios de nivel, tiempo hasta el evento y recomendaciones, (3) columnas apiladas con el % de la superficie en cada nivel día a día que recolorean el mapa. El radar Sentinel-1 queda solo para validar (pasa cada 6-12 días).
 - Capa «Inundación hoy (satélite)»: producto diario NRT de NASA LANCE (MODIS Terra+Aqua, 250 m, compuesto de 2 días: exige más de una detección y descarta sombras de nubes), leído de NASA GIBS (teselas libres con CORS) y recoloreado en el navegador (azul fuerte inundación inusual, azul claro recurrente, gris tenue nubes; el agua de referencia no se pinta). Clases confirmadas en la guía de usuario rev. F (dic-2025): 0 sin agua, 1 agua de referencia, 2 inundación recurrente, 3 inundación inusual, 255 sin dato.
+
+## 15-nov-2026 (noche) — radio del simulador, indicadores, Detalle A, Toyota Boshoku
+- Causa de que las lagunas cambiaran al mover el radio: la grilla tenía siempre ~100 celdas por lado (28 m con 1 km, 79 m con 3 km)
+  y arrancaba donde empezaba cada círculo; además el zoom del relieve cambiaba con el radio. Arreglo: grilla alineada a una
+  cuadrícula común del mapa y tramos de radio con celdas encajadas (hasta 1,5 km ~32 m en z 14; hasta 3 km ~63 m en z 13; hasta
+  6 km ~127 m en z 12; …). Medido en Zárate: 1 vs 1,5 km coinciden 100 %, 2 vs 3 km 99,9 %; cálculo ≤ 9 s en todos los radios
+  (con 32 m fijos, 3 km tardaba 93 s y 5 km 301 s).
+- Indicadores del simulador en dos filas de tres (retícula de 8 px, sin barrita de color sin significado). Guía de diseño de la
+  usuaria guardada en docs/05_constitucion_grafica.md: se aplica a todos los cambios visuales.
+- Detalle A: círculo velado en gris, dibujo de la maqueta, «Hacé clic acá · Mirá la lluvia en 3D», pulso en el punto y clic en
+  todo el círculo; el título largo pasa a segunda línea en vez de cortarse con «…».
+- Buscador: Toyota Boshoku Argentina con el punto del lugar cargado en Waze (-34.169283, -59.002897; Camino 014-04 a Capilla del
+  Señor). No está en OpenStreetMap ni en TomTom.
+- Riesgo diario (modelos/riesgo_diario.py): primera corrida falló al final (geometría de estaciones leída como bytes); corregido,
+  y cada parte (ríos, lluvia) se guarda por separado para no volver a bajarla.

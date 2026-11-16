@@ -81,6 +81,10 @@ function iniciarLaminas() {
   document.querySelectorAll(".solapa").forEach((b) => { b.onclick = () => irALamina(+b.dataset.lamina); });
   document.getElementById("sim-ir-mapa").onclick = () => mostrarLamina(1);
   document.getElementById("detalle-sim").onclick = () => irALamina(2);   // igual que la solapa «Simulador 3D»
+  document.getElementById("detalle-lienzo").addEventListener("click", (ev) => {   // también un clic en cualquier parte del círculo
+    const k = detalleCirculo, r = ev.currentTarget.getBoundingClientRect();
+    if (k && Math.hypot(ev.clientX - r.left - k.x, ev.clientY - r.top - k.y) <= Math.max(k.r, 24)) irALamina(2);
+  });
   const deHash = (hash = location.hash) => { const m = /^#lamina-(\d)$/.exec(hash); if (m) irALamina(+m[1]); };
   addEventListener("hashchange", () => deHash());
   const inicial = location.hash;   // se guarda ahora: al pintar la lámina 01 el enlace queda sin ancla
@@ -156,6 +160,7 @@ function actualizarReticula() {
 // La retícula y el detalle se ven con el país entero en pantalla (sin zona elegida y con poco zoom)
 const verPlanoNacional = () => !estado.sel && mapa.getZoom() < 5.6;
 
+let detalleCirculo = null;   // círculo elegido en el lienzo del detalle (para abrir el simulador con un clic adentro)
 function dibujarDetalle() {
   const caja = document.getElementById("detalle"), cv = document.getElementById("detalle-lienzo");
   if (!caja || typeof mapa === "undefined" || !estado.riesgo) return;
@@ -203,14 +208,18 @@ function dibujarDetalle() {
   c.strokeStyle = css("--cian"); c.lineWidth = 2;
   const irSim = document.getElementById("detalle-sim");
   irSim.hidden = sel?.tipo !== "punto";
+  detalleCirculo = null;
   if (sel?.tipo === "punto") {
     const R = (sel.km / 111.32) * esc, px = X(sel.punto[0]), py = Y(sel.punto[1]);
-    c.beginPath(); c.arc(px, py, R, 0, 7); c.stroke();
-    // El punto elegido y, al centro, el acceso al simulador 3D (igual que la solapa 02)
+    // El círculo, velado en gris: es la zona que se simula; todo el círculo lleva al simulador 3D
+    c.beginPath(); c.arc(px, py, R, 0, 7); c.fillStyle = "rgba(38, 44, 43, 0.28)"; c.fill(); c.stroke();
+    detalleCirculo = { x: px, y: py, r: R };
+    // El punto elegido (con un pulso en CSS) y, debajo, el llamado al simulador 3D (igual que la solapa 02)
     c.beginPath(); c.arc(px, py, 4, 0, 7); c.fillStyle = css("--cian"); c.fill(); c.strokeStyle = "#fff"; c.lineWidth = 1.5; c.stroke();
     irSim.style.left = `${px.toFixed(0)}px`; irSim.style.top = `${(cv.offsetTop + py).toFixed(0)}px`;
   }
   else if (sel?.tipo === "zona") for (const f of estado.datos.municipios.features) if (sel.lugar.cmus.includes(f.properties.cmu)) { c.beginPath(); poligonos(f.geometry).forEach((p) => p.forEach(traza)); c.stroke(); }
+  cv.style.cursor = detalleCirculo ? "pointer" : "";
   c.strokeStyle = css("--tinta-1"); c.globalAlpha = 0.55; c.lineWidth = 0.9; c.lineJoin = "round";
   for (const f of estado.datos.provincias.features) { c.beginPath(); poligonos(f.geometry).forEach((p) => p.forEach(traza)); c.stroke(); }
   c.globalAlpha = 1;
