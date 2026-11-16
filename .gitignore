@@ -31,3 +31,4 @@ REELS/
 data/procesado/
 # Caché de la validación de la lluvia (se regenera con earth_engine/validar_lluvia.py)
 data/validacion/lluvia_fuentes_estaciones.json
+data/validacion/lluvia_horaria/

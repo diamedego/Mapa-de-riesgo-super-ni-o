@@ -20,10 +20,12 @@
   const fechaArt = (ms) => new Date(ms - 3 * 3600e3).toISOString().slice(0, 10);
   const out = { suelo: suelo.nombre, fuente: D.fuente, temporadas: {} };
   for (const T of P.temporadas) {
+    // La lluvia hora por hora la baja validar.py una sola vez y la guarda en disco (T.hourly); si no viene, se pide acá
     const [lo, la] = d.s.punto.map((v) => v.toFixed(3));
     const u = `https://archive-api.open-meteo.com/v1/archive?latitude=${la}&longitude=${lo}&start_date=${T.desde}&end_date=${T.hasta}`
       + "&hourly=precipitation,et0_fao_evapotranspiration,soil_moisture_0_to_7cm&timezone=America%2FArgentina%2FBuenos_Aires";
-    const a = await fetch(u).then((r) => r.json());
+    const a = T.hourly ? { hourly: T.hourly } : await fetch(u).then((r) => r.json());
+    if (!a.hourly) return JSON.stringify({ error: `sin lluvia horaria de Open-Meteo (${a.reason ?? "sin respuesta"})` });
     const horas = a.hourly.time.map((x) => Date.parse(`${x}:00-03:00`));
     const lluvia = Float32Array.from(a.hourly.precipitation, (v) => v ?? 0), et0 = Float32Array.from(a.hourly.et0_fao_evapotranspiration, (v) => v ?? 0);
     const theta0 = a.hourly.soil_moisture_0_to_7cm.find((v) => v != null) ?? 0.25;

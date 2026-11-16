@@ -78,12 +78,40 @@ def crecidas(lon: float, lat: float) -> tuple[dict, dict | None]:
     return {}, None
 
 
+def lluvia_horaria(c: dict, nombre: str, desde: str, hasta: str) -> dict | None:
+    """Lluvia, evapotranspiración y humedad hora por hora del punto (Open-Meteo, archivo ERA5), guardada en disco la primera vez:
+    es un dato histórico fijo y el cupo diario gratis de Open-Meteo es por IP (lo comparte el navegador)."""
+    import time
+    import urllib.request
+    f = RAIZ / "data" / "validacion" / "lluvia_horaria" / f"{c['cmu']}_{nombre}.json"
+    if f.exists():
+        return json.loads(f.read_text())
+    u = (f"https://archive-api.open-meteo.com/v1/archive?latitude={c['lat']:.3f}&longitude={c['lon']:.3f}&start_date={desde}&end_date={hasta}"
+         "&hourly=precipitation,et0_fao_evapotranspiration,soil_moisture_0_to_7cm&timezone=America%2FArgentina%2FBuenos_Aires")
+    try:
+        d = json.loads(urllib.request.urlopen(u, timeout=120).read())
+    except Exception as e:   # noqa: BLE001 (429 por cupo, red)
+        print(f"    lluvia horaria {c['nombre']} {nombre}: {e}")
+        return None
+    time.sleep(2)
+    if "hourly" not in d:
+        return None
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps(d["hourly"]))
+    return d["hourly"]
+
+
 def simular(c: dict) -> None:
     destino = SALIDA / "simulado" / f"{c['cmu']}.json"
     if destino.exists():
         return
     por, est = crecidas(c["lon"], c["lat"])
-    val = {"cuantil": float(os.environ.get("CUANTIL", 0.4)), "temporadas": [{"nombre": n, "desde": d, "hasta": h, "crecida": por.get(n), "relEvac": por.get(n + "_rel")} for n, d, h in TEMPORADAS]}
+    horaria = {n: lluvia_horaria(c, n, d, h) for n, d, h in TEMPORADAS}
+    if not all(horaria.values()):
+        print(f"  {c['nombre']}: sin lluvia horaria (cupo de Open-Meteo); se reintenta en la próxima corrida")
+        return
+    val = {"cuantil": float(os.environ.get("CUANTIL", 0.4)), "temporadas": [{"nombre": n, "desde": d, "hasta": h, "crecida": por.get(n), "relEvac": por.get(n + "_rel"),
+                                                                             "hourly": horaria[n]} for n, d, h in TEMPORADAS]}
     js = f"window.__VAL = {json.dumps(val)};\n" + (Path(__file__).parent / "correr_simulacion.js").read_text()
     url = f"http://localhost:8765/?punto={c['lon']:.4f},{c['lat']:.4f}&radio={RADIO_KM}"
     env = {**os.environ, "ABIERTO": "1", "LARGO": "20000000"}
