@@ -836,3 +836,4 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
   resultado de los pasos de radar y de riesgo diario en `data/archivo/diagnostico/` (se sube con los datos).
 - Padilla Logística (Transportes Padilla, Campana) en el buscador: punto del negocio publicado en near-place.com (-34.169397, -58.997509), a 250 m del punto de la dirección y a ~500 m de Toyota Boshoku.
 - Réplica SQL: la amenaza de ríos usa el peso de la distancia (1 hasta 15 km, 0 a los 30 km) como Python; DuckDB vs Python coinciden (diferencia máxima 5e-5 en todos los componentes).
+- Versión privada en claude.ai republicada (v24-v25): página nueva, riesgo diario, barrios, infraestructura, industrias, validaciones y radios censales (los publicados eran del ~7-nov). Probada en local con UTF-8 y SIN_TESELAS: sin errores.

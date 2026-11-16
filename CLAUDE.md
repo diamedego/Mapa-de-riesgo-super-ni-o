@@ -43,7 +43,8 @@ Proyecto de portfolio de Diamela (ingeniera química). Publicación única en Li
 - Re-medir consumo de IA (`consumo_ia/`) en 1-2 semanas.
 - Lanzamiento (antes del 30-nov): pulir web, video 30-60 s, post ES/EN, README, repo público + GitHub Pages.
 - Versión privada en claude.ai: https://claude.ai/artifact/2LcKXVqiZ3ZiGc9ZnnNbyU (actualizar con `web/construir_artifact.py`; publicar también
-  `datos/tiempo.json`, `alertas.geojson`, `estaciones.geojson`, `riesgo.json` y `resumen.json`, que cambian todos los días).
+  `datos/tiempo.json`, `alertas.geojson`, `estaciones.geojson`, `riesgo.json`, `riesgo_diario.json` y `resumen.json`, que cambian todos los días;
+  republicada el 16-nov, v25, con radios y capas nuevas).
   Al republicar subir también `datos/callejero/*` (`web/preparar_callejero.py`) y `datos/base/*` (`web/preparar_mapa_base.py`:
   calles y agua propias, no se commitea; en dos publicaciones porque supera 64 MB) si se regeneraron.
 - Reestructura pedida 14-nov (respaldo: etiqueta `respaldo-2026-11-14`): dos secciones, (1) situación de hoy + pronóstico en línea de
