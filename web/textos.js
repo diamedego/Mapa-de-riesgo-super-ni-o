@@ -533,6 +533,16 @@ const TEXTOS = {
     sim_ind_no: "Sin zonas industriales en el mapa",
     sim_prof_corto: (p) => `hasta ${p} m`,
     pron_f_rio_pron: (e, h, d) => `medida hoy por el INA en ${e}; después, la altura pronosticada de cada día (GloFAS con la curva de la estación, anclado a lo medido hoy): hasta ${h} m el ${d}`,
+    // Versión celular: barra de arriba, navegación de abajo e indicadores
+    nav1: "Panorama",
+    nav2: "Simulador",
+    nav3: "Análisis",
+    marca_m: "Observatorio",
+    buscar_abrir: "Buscar un lugar",
+    buscar_cerrar: "Cerrar la búsqueda",
+    kpis_principales: "Indicadores principales",
+    ver_todos: "Ver todos →",
+    ver_menos: "Ver menos ↑",
   },
   en: {
     titulo: "Argentina facing El Niño 2026–27",
@@ -1063,5 +1073,15 @@ const TEXTOS = {
     sim_ind_no: "No industrial areas on the map",
     sim_prof_corto: (p) => `up to ${p} m`,
     pron_f_rio_pron: (e, h, d) => `measured today by INA at ${e}; then each day's forecast stage (GloFAS with the station curve, anchored to today's reading): up to ${h} m on ${d}`,
+    // Versión celular: barra de arriba, navegación de abajo e indicadores
+    nav1: "Overview",
+    nav2: "Simulator",
+    nav3: "Analysis",
+    marca_m: "Observatory",
+    buscar_abrir: "Search for a place",
+    buscar_cerrar: "Close search",
+    kpis_principales: "Key indicators",
+    ver_todos: "See all →",
+    ver_menos: "See less ↑",
   },
 };

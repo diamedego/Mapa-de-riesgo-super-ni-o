@@ -18,13 +18,38 @@ function mostrarLamina(n) {
   document.querySelectorAll(".solapa").forEach((b) => b.setAttribute("aria-selected", String(+b.dataset.lamina === n)));
   document.getElementById("lamina-titulo").textContent = `${t("lamina")} ${dosCifras(n)} · ${t(`lam${n}`)}`;
   document.getElementById("caj-lamina").textContent = `${dosCifras(n)} / ${dosCifras(N_LAMINAS)}`;
+  document.getElementById("rotulo-movil").textContent = `${dosCifras(n)} · ${t(`lam${n}`)}`;
   if (location.hash !== "#fuentes") history.replaceState(null, "", n === 1 ? location.pathname + location.search : `#lamina-${n}`);
   if (!cambia) return;
   // Los mapas y los gráficos se miden al dibujarse: al volver a verse hay que avisarles el tamaño nuevo
   if (typeof mapa !== "undefined") mapa?.resize();
   SIM.mapa?.resize();
   dispatchEvent(new Event("resize"));
-  if (!matchMedia("(min-width: 1101px)").matches) document.querySelector(".marco").scrollIntoView({ block: "start" });
+  if (esMovil()) { cerrarBusquedaMovil(); scrollTo({ top: 0 }); }   // celular: cada lámina arranca arriba, debajo de la barra
+  else if (!matchMedia("(min-width: 1101px)").matches) document.querySelector(".marco").scrollIntoView({ block: "start" });
+}
+
+// ---------- Celular: barra de arriba con la lupa, navegación de abajo e indicadores principales ----------
+// La lupa despliega el buscador debajo de la barra; al elegir un lugar se cierra y la página baja hasta el mapa.
+function abrirBusquedaMovil(abrir = true) {
+  const btn = document.getElementById("btn-lupa");
+  document.body.classList.toggle("buscando", abrir);
+  btn.setAttribute("aria-expanded", String(abrir));
+  btn.setAttribute("aria-label", t(abrir ? "buscar_cerrar" : "buscar_abrir"));
+  if (abrir) document.getElementById("b-direccion").focus();
+}
+const cerrarBusquedaMovil = () => { if (document.body.classList.contains("buscando")) abrirBusquedaMovil(false); };
+function irAlMapaMovil() {
+  cerrarBusquedaMovil();
+  document.activeElement?.blur();
+  if (laminaActual !== 1) mostrarLamina(1);
+  const vista = document.querySelector(".hoja-mapa .vista"), barra = document.querySelector(".franja").offsetHeight;
+  requestAnimationFrame(() => scrollTo({ top: vista.getBoundingClientRect().top + scrollY - barra - 8, behavior: movimientoReducido() ? "auto" : "smooth" }));
+}
+function pintarVerTodos() {
+  const todos = document.getElementById("kpis").classList.contains("todos"), btn = document.getElementById("kpis-todos");
+  btn.textContent = t(todos ? "ver_menos" : "ver_todos");
+  btn.setAttribute("aria-expanded", String(todos));
 }
 
 // Elegir una lámina desde las solapas o un indicador: además de mostrarla, prepara lo que necesita
@@ -71,6 +96,7 @@ async function pintarValidacionLamina() {
 // Lo que depende del idioma o de los datos: título de la franja, fecha del cajetín y las láminas 03 y 04 si están a la vista
 function refrescarLaminas() {
   mostrarLamina(laminaActual);
+  pintarVerTodos();
   const cal = String(estado.datos.resumen?.calculado ?? "");
   document.getElementById("caj-fecha").textContent = /^\d{4}-\d{2}-\d{2}/.test(cal) ? `${cal.slice(8, 10)}-${cal.slice(5, 7)}-${cal.slice(2, 4)}` : "–";
   if (laminaActual === 3) pintarValidacionLamina();
@@ -80,6 +106,9 @@ function refrescarLaminas() {
 function iniciarLaminas() {
   document.querySelectorAll(".solapa").forEach((b) => { b.onclick = () => irALamina(+b.dataset.lamina); });
   document.getElementById("sim-ir-mapa").onclick = () => mostrarLamina(1);
+  document.getElementById("btn-lupa").onclick = () => abrirBusquedaMovil(!document.body.classList.contains("buscando"));
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") cerrarBusquedaMovil(); });
+  document.getElementById("kpis-todos").onclick = () => { document.getElementById("kpis").classList.toggle("todos"); pintarVerTodos(); };
   document.getElementById("detalle-sim").onclick = () => irALamina(2);   // igual que la solapa «Simulador 3D»
   document.getElementById("detalle-lienzo").addEventListener("click", (ev) => {   // también un clic en cualquier parte del círculo
     const k = detalleCirculo, r = ev.currentTarget.getBoundingClientRect();

@@ -96,7 +96,8 @@ function pintarKpis() {
       <span class="kpi-l">${k.etq}</span><span class="kpi-i">${icono(k.ico)}</span>
       <span class="kpi-v">${k.valor}${k.unidad ? `<small>${k.unidad.trim()}</small>` : ""}</span>
       <span class="kpi-f">${escapar(k.sub)}</span></button>`).join("");
-  cont.querySelectorAll(".kpi").forEach((b) => { b.onclick = () => kpis[+b.dataset.i].ir(); });
+  // (en el celular, si el indicador cambia el mapa y no la lámina, la página baja hasta el mapa)
+  cont.querySelectorAll(".kpi").forEach((b) => { b.onclick = () => { kpis[+b.dataset.i].ir(); if (esMovil() && laminaActual === 1) irAlMapaMovil(); }; });
   pintarCabezaLectura(A, rV, pobAlto, evac, pico);
   pintarRadioLectura(A.circulo ?? (estado.sel ? null : { km: estado.km }));   // sin nada elegido: el radio que tendrá el próximo punto
 }
@@ -132,7 +133,7 @@ function pintarCabezaLectura(A, rV, pobAlto, evac, pico) {
   const pais = A.nombre === "Argentina", hoy = fmtDia(hoyLocal(), { day: "numeric", month: "short", year: "numeric" }).replace(".", "");
   const nivel = nombreNivel(rV).toLowerCase(), c = A.circulo ? "_c" : "";
   document.getElementById("lec-etq").textContent = t("lec_etq")(pais ? t("lec_pais") : A.nombre, hoy);
-  document.getElementById("lec-titular").innerHTML = `${escapar(capitalizar(t("lec_titular")(nivel)))} <span>${t("sobre_10")(fmtRiesgo(rV))}</span>`;
+  document.getElementById("lec-titular").innerHTML = `${escapar(capitalizar(t("lec_titular")(nivel)))} <span>${t("sobre_10")(`<b>${fmtRiesgo(rV)}</b>`)}</span>`;
   const pers = pobAlto >= 1e6 ? t("personas_txt")(fmt(pobAlto / 1e6, 1), true) : t("personas_txt")(fmt(Math.round(pobAlto)), false);
   const diaPico = pico ? fmtDiaFrase(estado.riesgo.dias[pico.i], { weekday: "long", day: "numeric", month: "long" }).replace(",", "") : null;
   document.getElementById("lec-bajada").textContent = t(`lec_bajada${c}`)(capitalizar(pers), evac, pico ? pico.i : null, diaPico);
@@ -422,7 +423,7 @@ function pintarCapasExtra() {
 }
 
 // ---------- Selección ----------
-function seleccionar(sel, { volar = false } = {}) {
+function seleccionar(sel, { volar = false, origen = null } = {}) {
   estado.sel = sel;
   aplicarSeleccionEnMapa();
   aplicarCapaEnMapa();
@@ -431,6 +432,8 @@ function seleccionar(sel, { volar = false } = {}) {
   if (volar && sel?.tipo === "zona") volarAZona(sel.lugar);
   if (volar && sel?.tipo === "punto") volarAPunto(sel.punto, sel.km);
   if (!sel && volar !== false) mapa.flyTo({ ...vistaPais(), duration: movimientoReducido() ? 0 : 1400 });
+  // Celular: lo elegido en el buscador se ve en el mapa (la página baja hasta él, en la lámina 01)
+  if (esMovil() && ["buscador", "direccion"].includes(origen)) irAlMapaMovil();
 }
 function seleccionarZona(lugar, opciones = {}) { seleccionar({ tipo: "zona", lugar }, opciones); }
 function municipioEn(punto) {
@@ -444,8 +447,7 @@ function seleccionarPunto(punto, { nombre = null, origen = "mapa", volar = false
     document.getElementById("b-direccion").value = "";
   }
   seleccionar({ tipo: "punto", punto, km: estado.km, cmu: muni?.properties.cmu ?? null,
-    nombre: nombre ?? (muni ? t("punto_en")(muni.properties.nam) : t("punto_en_mapa")) }, { volar });
-  if (esMovil() && origen !== "mapa") document.getElementById("tablero").scrollIntoView({ behavior: "smooth", block: "start" });
+    nombre: nombre ?? (muni ? t("punto_en")(muni.properties.nam) : t("punto_en_mapa")) }, { volar, origen });
 }
 function cambiarRadioBarra() { document.getElementById("b-radio").value = String(estado.km); document.getElementById("b-radio-v").textContent = `${fmt(estado.km, estado.km % 1 ? 1 : 0)} km`; }
 function cambiarRadio(km) {
@@ -488,7 +490,8 @@ const VISTA_PAIS = { center: [-63.6, -38.6], zoom: 3.55, pitch: 0, bearing: 0 };
 function vistaPais() {
   const refs = document.getElementById("refs"), marco = document.querySelector(".mapa-marco");
   const der = refs && marco && !refs.hidden ? marco.getBoundingClientRect().right - refs.getBoundingClientRect().left + 16 : 40;
-  const c = mapa.cameraForBounds([[-73.6, -55.2], [-53.5, -21.7]], { padding: { top: 70, bottom: 24, left: 70, right: Math.max(40, der) } });
+  const pad = esMovil() ? { top: 24, bottom: 24, left: 24, right: 24 } : { top: 70, bottom: 24, left: 70, right: Math.max(40, der) };   // celular: las referencias quedan sobre el mar
+  const c = mapa.cameraForBounds([[-73.6, -55.2], [-53.5, -21.7]], { padding: pad });
   return c ? { center: c.center, zoom: c.zoom, pitch: 0, bearing: 0 } : VISTA_PAIS;
 }
 

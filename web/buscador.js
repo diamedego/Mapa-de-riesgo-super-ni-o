@@ -85,12 +85,16 @@ function listaSugerencias(input, { buscarItems, pintarItem, elegir }) {
     else if (e.key === "Enter" && items[pos]) { e.preventDefault(); const it = items[pos]; cerrar(); elegir(it); }
     else if (e.key === "Escape") cerrar();
   });
-  lista.addEventListener("pointerdown", (e) => {
+  // Con el mouse se elige al apretar (antes de que el campo pierda el foco). Con el dedo, al soltar sin haber deslizado:
+  // si no, al querer recorrer la lista se elegía el primer lugar que se tocaba.
+  const elegirLi = (e) => {
     const li = e.target.closest("li[data-k]");
     if (!li) return;
     e.preventDefault();
     const it = items[+li.dataset.k]; cerrar(); elegir(it);
-  });
+  };
+  lista.addEventListener("pointerdown", (e) => { if (e.pointerType === "mouse") elegirLi(e); });
+  lista.addEventListener("click", (e) => { if (!lista.hidden) elegirLi(e); });
   input.addEventListener("blur", () => setTimeout(cerrar, 120));
   return { cerrar };
 }
@@ -120,7 +124,7 @@ function elegirLugar(nivel, l, { volar = true } = {}) {
   }
   const dir = campo("direccion").value.trim();
   if (estado.dirPendiente && dir) return buscarDireccion(dir);   // la dirección esperaba este dato: se busca sola
-  seleccionarZona(l, { volar });
+  seleccionarZona(l, { volar, origen: "buscador" });
 }
 
 // ---------- Dirección: calles del callejero propio ----------
@@ -430,7 +434,7 @@ function buscar() {
   const dir = document.getElementById("b-direccion").value.trim();
   if (dir) return buscarDireccion(dir);
   const l = estado.filtros.localidad || estado.filtros.partido || estado.filtros.provincia;
-  if (l) seleccionarZona(l, { volar: true });
+  if (l) seleccionarZona(l, { volar: true, origen: "buscador" });
 }
 
 // ---------- Texto libre: coordenadas, links de Google Maps y direcciones completas ----------
@@ -581,7 +585,7 @@ async function buscarDireccion(texto) {
   const zona = zonaDireccion();
   if (!calle) {   // solo lugares: se muestra la zona
     const l = estado.filtros.localidad || estado.filtros.partido || estado.filtros.provincia;
-    return l ? seleccionarZona(l, { volar: true }) : avisar(t("dir_no_encontrada"));
+    return l ? seleccionarZona(l, { volar: true, origen: "buscador" }) : avisar(t("dir_no_encontrada"));
   }
   let punto = null, nombre = null, aproximada = false;
   // Empresas cargadas a mano (refinerías, plantas): antes que el servicio de calles, que con un nombre parecido lleva a una calle
@@ -641,7 +645,7 @@ async function buscarDireccion(texto) {
     else if (zona || estado.filtros.provincia) {   // 4) no se encontró la calle: se muestra el lugar, avisando
       const l = zona || estado.filtros.provincia;
       avisar(t("dir_solo_lugar")(calle, l.nombre));
-      return seleccionarZona(l, { volar: true });
+      return seleccionarZona(l, { volar: true, origen: "buscador" });
     } else {
       estado.dirPendiente = loc?.error === "elegir_partido";   // al elegir el lugar, la búsqueda sigue sola
       return avisar(t(estado.dirPendiente ? "dir_elegir_partido" : "dir_no_encontrada"));

@@ -1517,3 +1517,161 @@ body[data-lamina="3"] .lec-1 { display: none; }
 .hero-prop-v i { align-self: center; width: 16px; height: 8px; margin-right: 4px; background: var(--c); }
 .hero-prop-v small { font-size: 10px; color: var(--tinta-3); }
 .hero-prop-v span { margin-left: 8px; font: 500 10px/16px var(--f-mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--tinta-2); }
+
+/* ================= Versión celular (≤ 760 px), aparte de la de computadora =================
+   Barra de arriba fija (marca, lupa e idioma), navegación fija abajo (las tres láminas), y en el Panorama el orden de la maqueta
+   aprobada: titular, mapa en una tarjeta, indicadores principales en 2 × 2 y después el resto. Retícula de 8 px, filetes de 1 px. */
+.marca-movil, .btn-lupa, .rotulo-movil, .kpis-cab-movil, .solapa-ico, .solapa-corta, .ico-capas { display: none; }
+.titular span b { font-weight: inherit; }
+@media (max-width: 760px) {
+  :root { --alto-barra: calc(56px + env(safe-area-inset-top, 0px)); --alto-nav: calc(64px + env(safe-area-inset-bottom, 0px)); --alto-mapa: clamp(360px, 56svh, 480px); }
+  html { scroll-padding-top: calc(var(--alto-barra) + 8px); }
+  body { background: var(--superficie); padding-bottom: var(--alto-nav); }
+  .obra { display: block; height: auto; min-height: 0; padding: 0; }
+  .marco { display: block; border: 0; background: none; }
+
+  /* Barra de arriba */
+  .franja { position: sticky; top: 0; z-index: 40; flex-wrap: nowrap; gap: 8px; height: var(--alto-barra); min-height: 0; padding: env(safe-area-inset-top, 0px) 8px 0 16px;
+    border-bottom: 1px solid var(--borde-fuerte); background: var(--superficie); }
+  .franja-tit { display: none; }
+  .marca-movil { display: flex; flex-direction: column; flex: 1; min-width: 0; font: 600 12px/16px var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-1); }
+  .marca-movil small { font: 500 10px/16px var(--f-mono); letter-spacing: 0.08em; color: var(--tinta-3); }
+  .btn-lupa { display: inline-grid; place-items: center; flex: none; width: 40px; height: 40px; padding: 0; border: 1px solid var(--borde-fuerte); background: var(--superficie); color: var(--tinta-1); }
+  .btn-lupa .ico { width: 16px; height: 16px; }
+  .btn-lupa .ico-x, body.buscando .btn-lupa .ico:not(.ico-x) { display: none; }
+  body.buscando .btn-lupa .ico-x { display: block; }
+  body.buscando .btn-lupa { border-color: var(--tinta-1); background: var(--tinta-1); color: var(--superficie); }
+  .idioma { height: 40px; }
+  .idioma b, .idioma span { display: flex; align-items: center; padding: 0 12px; }
+  #enlace-completo { min-height: 40px; padding: 0 12px; }
+  #enlace-completo span { display: none; }
+  /* Buscador: una fila debajo de la barra, que se abre con la lupa (letra de 16 px: el iPhone no agranda la página al tocarlo) */
+  .buscar-franja { display: none; position: absolute; z-index: 2; left: 16px; right: 16px; top: calc(100% + 8px); width: auto; height: 48px; padding: 0 16px; border-color: var(--cian); }
+  body.buscando .buscar-franja { display: flex; }
+  body.buscando .franja::after { content: ""; position: absolute; z-index: 1; left: 0; right: 0; top: 100%; height: 64px; border-bottom: 1px solid var(--borde-fuerte); background: var(--superficie); }
+  .buscar-franja input { font-size: 16px; }
+  .buscar-franja .sugerencias { left: -1px; right: -1px; top: calc(100% + 8px); width: auto; min-width: 0; max-width: none; max-height: 56svh; overflow-y: auto; }
+  .buscar-franja .aviso { left: -1px; right: -1px; top: calc(100% + 8px); width: auto; }
+  /* Rótulo de la lámina (en la 01 lo hace el rótulo del lugar, con la misma línea) */
+  .rotulo-movil { display: flex; align-items: center; gap: 8px; margin: 0; padding: 16px 16px 0; font: 500 10px/16px var(--f-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--tinta-3); }
+  .rotulo-movil::after { content: ""; flex: 1; height: 1px; background: var(--borde-fuerte); }
+  body[data-lamina="1"] .rotulo-movil { display: none; }
+
+  /* Navegación de abajo: las tres láminas */
+  .riel { display: block; position: fixed; z-index: 40; left: 0; right: 0; bottom: 0; padding-bottom: env(safe-area-inset-bottom, 0px); border-top: 1px solid var(--borde-fuerte); background: var(--superficie); }
+  .riel > * { border-right: 0; }
+  .marca, .riel-etq, .cajetin { display: none; }
+  .solapas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin-top: -1px; padding: 0; overflow: visible; }
+  .solapa, .solapa[aria-selected="true"], .solapa + .solapa { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 64px; margin: 0; padding: 0;
+    border: 0; border-top: 2px solid transparent; background: none; box-shadow: none; color: var(--tinta-3); font-weight: 500; }
+  .solapa[aria-selected="true"] { border-top-color: var(--cian); color: var(--cian); }
+  .solapa > i, .solapa > span { display: none; }
+  .solapa-ico { display: block; width: 24px; height: 24px; }
+  .solapa-corta { display: block; font: 500 10px/16px var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+
+  /* Lámina 01: titular → mapa → indicadores → lo demás */
+  .hoja-mapa > .cuerpo { display: flex; flex-direction: column; height: auto; background: none; }
+  .hoja-mapa .lec-cabeza { display: contents; }
+  .hoja-mapa .lec-cabeza > div:first-child { order: 1; margin: 0; padding: 16px 16px 0; }
+  .hoja-mapa .lec-pie { order: 2; display: block; margin: 0; padding: 8px 16px 16px; }
+  .hoja-mapa .lec-pie > div { display: none; }   /* la escala de aguja: en el celular la dice el titular */
+  .lec-fila-etq { gap: 8px; }
+  .lec-fila-etq > .etq { display: flex; flex: 1 1 auto; align-items: center; gap: 8px; white-space: normal; overflow: visible; }
+  .lec-fila-etq > .etq::after { content: ""; flex: 1; min-width: 16px; height: 1px; background: var(--borde-fuerte); }
+  .lectura .etq { font-size: 10px; line-height: 16px; letter-spacing: 0.1em; }
+  .lectura .titular { margin: 8px 0 0; font: 600 22px/1.25 var(--f-ui); letter-spacing: -0.02em; }
+  .lectura .titular span { display: block; margin-top: 8px; font: 500 22px/1 var(--f-mono); letter-spacing: -0.02em; color: var(--tinta-2); }
+  .lectura .titular span b { margin-right: 4px; font: 500 40px/1 var(--f-mono); letter-spacing: -0.04em; color: var(--cian); }
+  .lec-pie > .bajada { font-size: 14px; line-height: 1.5; }
+
+  /* Tarjeta del mapa: controles arriba, mapa, referencias debajo (no tapan el país) y el detalle con un punto elegido */
+  .hoja-mapa .vista { order: 3; height: auto; min-height: 0; margin: 0 16px; border: 1px solid var(--borde-fuerte); overflow: visible; background: var(--superficie); }
+  .hoja-mapa .mapa-marco { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto var(--alto-mapa) auto auto; height: auto; padding: 0;
+    background: var(--superficie); }
+  .hoja-mapa .plano-cab { position: relative; z-index: 5; grid-row: 1; grid-column: 1; top: auto; left: auto; right: auto; gap: 8px; padding: 8px; border-bottom: 1px solid var(--borde-fuerte); pointer-events: auto; }
+  /* Fila 1: capa en grande y el botón de capas (solo el ícono); fila 2: ahora o pronóstico y el período */
+  .hoja-mapa .plano-cab .capas-tabs { order: 1; display: flex; flex: 1 1 calc(100% - 48px); min-width: 0; }
+  .hoja-mapa .plano-cab .capas-tabs button { flex: 1 1 auto; justify-content: center; min-height: 40px; padding: 0 4px; }
+  .hoja-mapa .plano-cab .seg-btn { order: 2; justify-content: center; width: 40px; min-height: 40px; padding: 0; }
+  .hoja-mapa .plano-cab .seg-btn > :not(.ico-capas) { display: none; }
+  .hoja-mapa .plano-cab .ico-capas { display: block; width: 16px; height: 16px; }
+  .hoja-mapa .plano-cab #modo { order: 3; flex: 1 1 auto; }
+  .hoja-mapa .plano-cab #modo button { flex: 1; justify-content: center; min-height: 40px; }
+  .hoja-mapa .plano-cab .periodo-fila { order: 4; flex: 1 1 auto; }
+  .hoja-mapa .panel-capas { top: 100%; left: 0; right: 0; width: auto; border-width: 1px; }
+  .periodo-fila .periodo-futuro { flex: 1 1 100%; gap: 8px; }
+  .periodo-fila .periodo-futuro label { flex: 1 1 0; min-width: 0; min-height: 40px; padding: 0 8px; gap: 8px; }
+  .hoja-mapa .plano-cab .periodo-fila { min-width: 0; }
+  .hoja-mapa .plano-cab .periodo-fila:has(.periodo-futuro:not([hidden])) { flex-basis: 100%; }   /* con fechas: su propia fila */
+  .periodo-fila .periodo-futuro { min-width: 0; }
+  .periodo-fila .periodo-futuro input { flex: 1 1 0; width: 0; min-width: 0; font: 500 16px var(--f-ui); }
+  .periodo-fila .periodo-futuro input::-webkit-calendar-picker-indicator { margin-left: 0; }
+  .periodo-fila .periodo-futuro:not([hidden]) + .periodo-texto { display: none; }   /* las fechas ya están en los campos */
+  .periodo-fila .periodo-texto { display: flex; align-items: center; min-height: 40px; padding: 0 8px; }
+  .hoja-mapa #mapa, .hoja-mapa .reticula, .hoja-mapa #particulas, .hoja-mapa .ley-relieve, .hoja-mapa .linea-tiempo { grid-row: 2 / 3; grid-column: 1 / 2; }   /* lo absoluto, dentro de la fila del mapa */
+  .hoja-mapa #mapa, .hoja-mapa .reticula { top: 0; bottom: 0; height: auto; }
+  .hoja-mapa .mapa-marco > #mapa { background-color: var(--superficie); background-image: linear-gradient(var(--cuadricula) 1px, transparent 1px), linear-gradient(90deg, var(--cuadricula) 1px, transparent 1px); background-size: 16px 16px; }
+  .hoja-mapa .mapa-marco .maplibregl-ctrl-bottom-left { display: none; }   /* con dos dedos se acerca y se gira: los botones sobran */
+  .hoja-mapa .refs { position: static; grid-row: 3; grid-column: 1; top: auto; right: auto; bottom: auto; transform: none; width: auto; padding: 16px; border: 0; border-top: 1px solid var(--borde-fuerte); }
+  .hoja-mapa .refs .mapa-titulo small { display: block; }
+  /* Escala de riesgo en una fila: un color por nivel con su nombre y su rango; las estaciones de río, de a tres */
+  .hoja-mapa .refs .ley-lista { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 16px; padding-top: 16px; }
+  .hoja-mapa .refs .ley-lista div { grid-template-columns: 12px minmax(0, 1fr); gap: 8px; white-space: normal; font-size: 11px; line-height: 16px; }
+  .hoja-mapa .refs .ley-lista b:empty { display: none; }
+  .hoja-mapa .refs .ley-lista:has(> div:nth-child(5)) { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+  .hoja-mapa .refs .ley-lista:has(> div:nth-child(5)) div { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
+  .hoja-mapa .refs .ley-lista:has(> div:nth-child(5)) i { width: auto; height: 8px; }
+  .hoja-mapa .refs .ley-lista:has(> div:nth-child(5)) b { font-size: 10px; line-height: 16px; white-space: nowrap; }
+  .hoja-mapa .detalle { grid-row: 4; grid-column: 1; position: relative; right: auto; bottom: auto; width: auto; border-width: 1px 0 0; border-color: var(--borde-fuerte); }
+  .hoja-mapa .detalle:not(:has(.detalle-sim:not([hidden]))) { display: none; }   /* el Litoral ampliado solo con un punto elegido (lleva al simulador) */
+
+  /* Indicadores principales: tarjetas 2 × 2, valor grande y rótulo debajo; «Ver todos» muestra los 8 */
+  .hoja-mapa .lec-cabeza > .kpis-cab-movil { order: 4; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 24px 16px 8px; font: 500 10px/16px var(--f-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--tinta-3); }
+  .kpis-cab-movil button { min-height: 32px; padding: 0; border: 0; background: none; color: var(--cian); font: inherit; letter-spacing: inherit; text-transform: inherit; }
+  .hoja-mapa .lec-cabeza > .kpis { order: 4; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 16px; border: 0; }
+  .hoja-mapa .kpis:not(.todos) > .kpi:nth-child(n+5) { display: none; }
+  .hoja-mapa .lec-cabeza .kpi, .hoja-mapa .lec-cabeza .kpi:nth-child(2n) { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; align-content: start; gap: 8px; min-height: 0;
+    padding: 16px; border: 1px solid var(--borde-fuerte); background: var(--superficie); }
+  .hoja-mapa .lec-cabeza .kpi::before, .hoja-mapa .lec-cabeza .kpi:nth-child(2n)::before { left: -1px; top: 16px; width: 4px; height: 24px; }
+  .hoja-mapa .lec-cabeza .kpi-v { grid-row: 1; font-size: 24px; line-height: 24px; }
+  .hoja-mapa .lec-cabeza .kpi-v small { margin-left: 4px; font-size: 14px; }
+  .hoja-mapa .lec-cabeza .kpi-l { grid-row: 2; margin: 0; padding: 0; font-size: 10px; line-height: 16px; letter-spacing: 0.06em; }
+  .hoja-mapa .lec-cabeza .kpi-i, .hoja-mapa .lec-cabeza .kpi-f { display: none; }
+  .hoja-mapa .kpi[data-ayuda]::after { display: none; }
+
+  /* Lo demás, en una columna con filetes */
+  .hoja-mapa .lec-arriba, .hoja-mapa .lec-mas, .hoja-mapa .lec-1 > .tablero, .hoja-mapa .lec-1 > .miniaturas { margin: 24px 16px 0; padding: 16px 0 0; border-top: 1px solid var(--borde-fuerte); background: none; }
+  .hoja-mapa .lec-arriba { order: 5; } .hoja-mapa .lec-mas { order: 6; } .hoja-mapa .lec-1 > .tablero { order: 7; } .hoja-mapa .lec-1 > .miniaturas { order: 8; margin-bottom: 24px; }
+  .hoja-mapa .lec-1 > .miniaturas { padding-bottom: 8px; }
+  .hoja-mapa .miniaturas { flex-direction: row; }
+  .mini { flex: 0 0 72%; }
+
+  /* Lámina 02: la maqueta primero, y abajo los controles en tarjetas */
+  .hoja-sim .sim-mapa-marco { height: clamp(320px, 52svh, 440px); min-height: 0; margin: 8px 16px 0; border: 1px solid var(--borde-fuerte); }
+  .hoja-sim .sim-panel { padding: 16px 16px 24px; }
+  .sim-lec { gap: 16px; }
+  .sim-lec .titular { font: 600 22px/1.25 var(--f-ui); letter-spacing: -0.02em; }
+  .sim-lec .lec-radio { margin: 0; padding: 8px 0; }
+  /* Tarjeta «¿Hasta dónde llega el agua?»: el título, el lugar debajo y la reproducción (play, hora, barra, velocidad y gráfico) */
+  .sim-lec > div:nth-child(2) { display: flex; flex-direction: column-reverse; gap: 8px; margin-bottom: -16px; padding: 16px 16px 0; border: 1px solid var(--borde-fuerte); border-bottom: 0; }
+  .sim-lec > div:nth-child(2) .titular { margin: 0; }
+  .sim-play { gap: 16px; padding: 16px; border: 1px solid var(--borde-fuerte); border-top: 0; }
+  /* Carteles sobre la maqueta: la carga al centro; ayuda y créditos, cada uno en su mitad de abajo */
+  .hoja-sim .sim-carga { top: 50%; transform: translate(-50%, -50%); }
+  .hoja-sim .sim-maqueta-ayuda { left: 8px; bottom: 8px; max-width: calc(50% - 16px); font-size: 10px; line-height: 16px; }
+  .hoja-sim .sim-pie-maqueta { right: 8px; bottom: 8px; max-width: calc(50% - 16px); }
+  .sim-play .ctrl .seg button { min-width: 40px; min-height: 40px; justify-content: center; }
+  .sim-vel .chip { min-height: 32px; padding: 0 12px; }
+  .sim-lec .sim-kpis .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sim-lec .sim-kpis .kpi, .sim-lec .sim-kpis .kpi:nth-child(2n), .sim-lec .sim-kpis .kpi:nth-child(3n+1), .sim-lec .sim-kpis .kpi:nth-child(3n) { padding: 16px; border: 0; border-left: 1px solid var(--borde-fuerte); border-bottom: 1px solid var(--borde-fuerte); }
+  .sim-lec .sim-kpis .kpi:nth-child(2n+1) { border-left: 0; padding-left: 0; }
+  .sim-lec .sim-kpis .kpi:nth-child(2n) { padding-right: 0; }
+  .sim-lec .sim-kpis .kpi:nth-last-child(-n+2) { border-bottom: 0; }
+  .sim-modo { min-height: 48px; }
+  .esc-nino select { min-height: 40px; font-size: 16px; }
+  .sim-mas { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--borde-fuerte); }
+  .hoja-sim .sim-vacio { min-height: calc(100svh - var(--alto-barra) - var(--alto-nav) - 48px); }
+
+  /* Lámina 03 */
+  .analisis { padding: 16px 16px 8px; } .lam-validacion { margin: 8px 16px 16px; } .pie { padding: 16px 16px 24px; }
+}

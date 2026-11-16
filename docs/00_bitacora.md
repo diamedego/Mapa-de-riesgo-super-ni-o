@@ -848,3 +848,17 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
   1996. El simulador los lee de `web/datos/clima_ninos/`; solo fuera de la grilla vuelve al archivo de Open-Meteo. Quedan las 9
   tormentas hora por hora (~2 unidades por apertura). Zárate: humedad 0,25-0,50, ET0 4,2 mm/día.
 - La validación contra Dynamic World guarda la lluvia horaria de cada ciudad en disco (se reintenta después de las 21:00 ART).
+
+## 16-nov-2026 — Versión celular separada (≤ 760 px)
+- Pedido: en el celular el mapa no era lo primero y el buscador no llevaba al mapa. Se armó un bloque aparte de estilos (al final de
+  `web/estilos.css`) que solo actúa en pantallas de 760 px o menos; la computadora no cambia (verificado a 1440 px).
+- Barra de arriba fija (marca, lupa que despliega el buscador, ES/EN) y navegación fija abajo (Panorama, Simulador, Análisis: las
+  mismas solapas, con ícono y nombre corto).
+- Panorama: titular con el número grande → tarjeta del mapa (capas en dos filas, mapa de 360-480 px, referencias debajo para no tapar
+  el país ni Malvinas, Detalle A solo con un punto elegido) → indicadores principales en tarjetas 2 × 2 con «Ver todos» → resto.
+- Buscador: al elegir un lugar (desde cualquier lámina) se cierra, vuelve al Panorama y baja hasta el mapa. Arreglo de fondo: con el
+  dedo, la sugerencia se elegía al tocar la lista (al querer deslizarla se elegía cualquiera); ahora se elige al soltar sin deslizar.
+- Simulador: maqueta arriba (320-440 px), tarjeta «¿Hasta dónde llega el agua?» con la reproducción, indicadores en 2 × 3, carteles
+  de la maqueta sin pisarse. Auditoría a 390 × 844: sin solapes, sin desborde horizontal, sin «…» nuevos.
+- Consulta de la usuaria: el 37 % del país aparece «sin datos». Causa: los 2.282 gobiernos locales del IGN cubren el 63 % del territorio
+  (1,76 de 2,79 millones de km²); el resto son zonas rurales sin gobierno local. Método a decidir.
