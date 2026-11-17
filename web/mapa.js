@@ -77,7 +77,7 @@ function agregarGrilla(antes) {
   cv.width = 1200; cv.height = Math.round((1200 * (mercY(y0) - mercY(y1))) / ((x1 - x0) * Math.PI / 180));
   mapa.addSource("riesgo-grilla", { type: "canvas", canvas: cv, animate: false, coordinates: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]] });
   mapa.addLayer({ id: "riesgo-grilla", type: "raster", source: "riesgo-grilla",
-    paint: { "raster-opacity": ["interpolate", ["linear"], ["zoom"], 5.5, 0, 6.5, 0.86, 9.6, 0.86, 10.2, 0], "raster-resampling": "linear", "raster-fade-duration": 0 } }, antes);
+    paint: { "raster-opacity": ["interpolate", ["linear"], ["zoom"], 5.5, 0, 6.5, 0.86]   /* sigue debajo de los radios: donde no hay radio con habitantes (campo, monte) se ve la celda */, "raster-resampling": "linear", "raster-fade-duration": 0 } }, antes);
   fetch("datos/riesgo_grilla.bin", { cache: "no-cache" }).then((r) => (r.ok ? r.arrayBuffer() : null)).then((b) => { if (b) { grillaBytes = new Uint8Array(b); dibujarGrilla(); riesgoRadios(estado.radios ?? []); mapa.getSource("radios")?.setData({ type: "FeatureCollection", features: estado.radios ?? [] }); if (typeof pintarKpis === "function") pintarKpis(); } }).catch(() => {});
 }
 // Riesgo de la grilla en un punto y un día (el mismo valor interpolado que se ve en el mapa); null si no hay grilla
