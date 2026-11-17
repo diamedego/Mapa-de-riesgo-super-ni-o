@@ -126,7 +126,19 @@ let cargaTopo = null;
 const cargarTopojson = () => (cargaTopo ??= window.topojson ? Promise.resolve() : new Promise((ok, mal) => {
   const sc = document.createElement("script"); sc.src = "https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"; sc.onload = ok; sc.onerror = mal; document.head.appendChild(sc);
 }));
+// Capas del plano (retícula, países vecinos y recuadro A). Se vuelven a agregar al cambiar de tema (el estilo nuevo las borra),
+// con los colores del tema elegido
+let topoMundo = null;
 function iniciarPlano() {
+  capasPlano();
+  if (estado.planoListo) return;
+  estado.planoListo = true;
+  mapa.on("move", actualizarReticula);
+  mapa.on("moveend", dibujarDetalle);
+  mapa.on("resize", () => { actualizarReticula(); dibujarDetalle(); });
+  actualizarReticula();
+}
+function capasPlano() {
   if (mapa.getSource("reticula")) return;
   const [o, s, e, n] = CAJA_A;
   // Retícula idéntica a la lámina aprobada: cada 5°, petróleo al 30 %, 0,6 px, rayas de 3 px y huecos de 3 px (MapLibre mide las
@@ -136,7 +148,7 @@ function iniciarPlano() {
     mapa.getLayer("sin-datos") ? "sin-datos" : undefined);
   // Continentes con fondo liso (Natural Earth 1:50 M, del color de la hoja), encima de la retícula y debajo de la Argentina:
   // la cuadrícula y la retícula quedan solo en el océano. Los países vecinos, bordeados con un filete gris fino (límites y costas)
-  Promise.all([fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json").then((r) => r.json()), cargarTopojson()]).then(([tp]) => {
+  Promise.all([topoMundo ??= fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json").then((r) => r.json()), cargarTopojson()]).then(([tp]) => {
     if (mapa.getSource("tierra")) return;
     const debajo = mapa.getLayer("sin-datos") ? "sin-datos" : undefined;
     mapa.addSource("tierra", { type: "geojson", data: topojson.feature(tp, tp.objects.land) });
@@ -147,10 +159,6 @@ function iniciarPlano() {
   }).catch((e) => console.warn("tierra", e));
   mapa.addSource("caja-a", { type: "geojson", data: { type: "Feature", geometry: { type: "LineString", coordinates: [[o, n], [e, n], [e, s], [o, s], [o, n]] }, properties: {} } });
   mapa.addLayer({ id: "caja-a", type: "line", source: "caja-a", paint: { "line-color": css("--tinta-1"), "line-width": 1.2, "line-dasharray": [4, 2.5] } });
-  mapa.on("move", actualizarReticula);
-  mapa.on("moveend", dibujarDetalle);
-  mapa.on("resize", () => { actualizarReticula(); dibujarDetalle(); });
-  actualizarReticula();
 }
 function actualizarReticula() {
   const cont = document.getElementById("reticula");
