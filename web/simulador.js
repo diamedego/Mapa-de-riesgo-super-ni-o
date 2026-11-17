@@ -11,7 +11,7 @@
 // Solo en la versión completa (las teselas de relieve vienen de un servidor externo).
 
 const SIM = { mapa: null, mm: 0, reproduciendo: 0, datos: null,
-  capas: { colores: true, curvas: true, drenaje: true, cortes: false, flujo: true, corte: true, x5: false, refs3d: true }, vista: "mapa", maqueta: null,
+  capas: { colores: true, curvas: true, drenaje: true, cortes: false, flujo: false, corte: false, x5: false, refs3d: true }, vista: "mapa", maqueta: null,
   modelo: null, desague: 10, crecida: 0, tormenta: { mm: 0, horas: 3 }, velocidad: 1 };   // desagües pluviales supuestos: 10 mm/h en superficies impermeables (no hay datos)
 const AGUA_MIN = 0.1;   // desde 10 cm se cuenta como zona con agua (superficie, personas)
 const AGUA_VER = 0.05;  // se dibuja desde 5 cm (menos es solo suelo mojado)
@@ -19,9 +19,10 @@ const CORTE = 0.3;      // desde 30 cm una calle queda cortada para un auto (el 
 const TERRARIUM = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
 // Agua: de celeste translúcido a azul profundo. Altura: del verde azulado de los bajos al marrón de las lomas.
 // Escala del agua: cada escalón más oscuro y más opaco que el anterior (de celeste a azul marino)
-const COLOR_AGUA = [[0.05, [158, 207, 240, 0.6]], [0.15, [110, 176, 230, 0.68]], [0.3, [70, 145, 215, 0.74]], [0.6, [40, 110, 195, 0.8]], [1, [25, 75, 165, 0.86]], [2, [14, 45, 120, 0.92]]];
+// De celeste claro (#e1f0f8) a azul noche (#1a1d52), con saltos marcados entre niveles
+const COLOR_AGUA = [[0.05, [225, 240, 248, 0.82]], [0.15, [140, 196, 236, 0.85]], [0.3, [64, 140, 214, 0.88]], [0.6, [36, 88, 178, 0.9]], [1, [34, 52, 132, 0.93]], [2, [26, 29, 82, 0.96]]];
 const COLOR_ALTURA = [[0, [38, 120, 120, 0.6]], [0.25, [92, 160, 110, 0.6]], [0.5, [180, 196, 120, 0.6]], [0.75, [205, 170, 110, 0.6]], [1, [170, 120, 80, 0.6]]];
-const CAPAS_SIM = ["flujo", "corte"];
+const CAPAS_SIM = [];   // sin botones: desagües (líneas) y corte quitados
 
 // ---------- Escenario: los factores que cambian cuánto se inunda con una lluvia ----------
 // Lluvia y duración, humedad del suelo, nivel de las lagunas, altura del río (o del mar) y capacidad de los desagües. Cada barra
@@ -832,6 +833,8 @@ function mascaraAguaPermanente(d) {
   const R = d.radarFino;
   // Agua histórica: donde hubo agua al menos el 10 % de las observaciones de 1984-2021 (lagunas permanentes y temporarias)
   if (R?.jrc) for (let i = 0; i < out.length; i++) if (R.jrc[4 * i + 3] > 0 && R.jrc[4 * i] >= 26) out[i] = 1;
+  // Lagunas con vegetación o someras (Dynamic World, último año): agua + vegetación inundada con probabilidad media ≥ 40 %
+  if (R?.dw) for (let i = 0; i < out.length; i++) if (R.dw[4 * i + 3] > 0 && R.dw[4 * i] >= 102) out[i] = 1;
   if (R) {   // radar: un píxel cuenta si la mayoría de sus 3 × 3 vecinos también es agua (saca el ruido del radar, granos sueltos)
     const W = D.W, ag = (i) => (R.px[4 * i + 3] > 0 && R.px[4 * i] > 127 ? 1 : 0);
     for (let y = 1; y < D.H - 1; y++) for (let x = 1; x < W - 1; x++) {
@@ -1976,8 +1979,8 @@ async function teselasEE(url, D) {
 async function aguaRadar(d) {
   const R = await (cargaRadarAgua ??= fetch("datos/radar_agua.json").then((r) => (r.ok ? r.json() : null)).catch(() => null));
   if (!R?.url) return null;
-  const [px, jrc] = await Promise.all([teselasEE(R.url, d.D), R.jrc_url ? teselasEE(R.jrc_url, d.D) : null]);
-  return px || jrc ? { px: px ?? new Uint8ClampedArray(d.D.W * d.D.H * 4), jrc, W: d.D.W, generado: R.generado } : null;
+  const [px, jrc, dw] = await Promise.all([teselasEE(R.url, d.D), R.jrc_url ? teselasEE(R.jrc_url, d.D) : null, R.dw_url ? teselasEE(R.dw_url, d.D) : null]);
+  return px || jrc || dw ? { px: px ?? new Uint8ClampedArray(d.D.W * d.D.H * 4), jrc, dw, W: d.D.W, generado: R.generado } : null;
 }
 // Por celda del modelo: fracción con agua y días desde la pasada (mediana del círculo)
 function radarEnGrilla(rad, g) {
@@ -2213,6 +2216,7 @@ function pintarPronostico() {
 function pintarFiltrosSimulador() {
   const cont = document.getElementById("sim-filtros"), C = SIM.capas;
   if (!cont) return;
+  cont.hidden = !CAPAS_SIM.length;
   const todas = CAPAS_SIM.every((k) => C[k]), maqueta = SIM.vista === "maqueta";
   // En la maqueta se ve la imagen satelital: colores, curvas y drenaje son solo de la vista Mapa
   const soloMapa = (k) => (maqueta && k !== "corte" ? ` disabled title="${t("sim_solo_mapa")}"` : "");
@@ -2278,7 +2282,7 @@ function pintarPanelSimulador(d) {
     <div class="sim-mas">
     <div class="sim-corte" id="sim-corte" hidden></div>
     <div class="sim-filtros" id="sim-filtros" role="group" aria-label="${t("sim_capas")}"></div>
-    <div class="sim-leyenda">${COLOR_AGUA.map(([v, c]) => `<span><i style="background:${rgba(c, 0.6)}"></i>${v < 1 ? `${fmt(v * 100)} cm` : `${fmt(v)} m`}</span>`).join("")}</div>
+    <div class="sim-leyenda">${COLOR_AGUA.map(([v, c]) => `<span><i style="background:${rgba(c, 1)}"></i>${v < 1 ? `${fmt(v * 100)} cm` : `${fmt(v)} m`}</span>`).join("")}</div>
     <div class="sim-validez" id="sim-validez">${t("sim_validez")}</div>
     <div class="sim-ant" id="sim-ant"></div>
     <div class="sim-ninos" id="sim-ninos"></div>
