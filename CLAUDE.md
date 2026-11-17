@@ -75,6 +75,7 @@ Proyecto de portfolio de Diamela (ingeniera química). Publicación única en Li
   (configuración en `wrangler.jsonc` y `web/.assetsignore`; ~11 publicaciones por día, plan gratis 500 por mes).
 - Riesgo por día, MÉTODO NUEVO (17-nov): probabilidad × impacto (umbrales del SMN `earth_engine/umbrales_smn.py`, niveles del INA,
   alertas del SMN; impacto `transformacion/impacto.py`). Ver bitácora. Falta: documento funcional y validar contra lo que pase.
+  Documento funcional (cuando ella valide todo): DESTACAR la verificación diaria/semanal con ajuste prudente (`modelos/verificar_riesgo.py`), lo pidió.
 - Riesgo por día (15-nov): `modelos/riesgo_diario.py` (ensamble ECMWF de datos abiertos + umbrales ERA5-Land, GloFAS con error
   reciente del INA, alertas SMN) → `web/datos/riesgo_diario.json`, 2 veces por día. El índice mensual se sigue calculando solo por
   E y V. Amenaza del día = combinación de la fija del lugar (propensión con lluvia normal) y la pronosticada; subindicador «Propensión a
