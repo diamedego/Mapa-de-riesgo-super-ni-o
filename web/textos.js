@@ -574,6 +574,15 @@ const TEXTOS = {
     // Riesgo por día (hoy y los próximos 14)
     sim_riesgo_t: "Riesgo",
     sim_riesgo_ayuda: "El riesgo de inundación del lugar en el día elegido (el mismo de la lámina 01): probabilidad de un evento × impacto. El simulador muestra cuánta agua dejaría una lluvia.",
+    // Riesgo por día (hoy y los próximos 14)
+    sim_k_total: "Habitantes",
+    sim_k_total_a: "Personas que viven en el círculo (Censo 2022, radios censales cuyo centro cae adentro). El mismo número del Panorama.",
+    sim_k_total_s: "en el círculo · Censo 2022",
+    sim_k_inund: "En zona inundable",
+    sim_k_inund_a: "Personas que viven en terreno a menos de 2 m sobre el cauce (por la fracción de cada radio). El mismo número del Panorama: dónde podría llegar el agua, llueva o no.",
+    sim_k_inund_s: (p) => `${p} % de los habitantes`,
+    sim_k_alc: "Alcanzados por el agua",
+    sim_k_alc_s: "con 10 cm o más en esta simulación",
   },
   en: {
     titulo: "Argentina facing El Niño 2026–27",
@@ -1145,5 +1154,14 @@ const TEXTOS = {
     // Riesgo por día (hoy y los próximos 14)
     sim_riesgo_t: "Risk",
     sim_riesgo_ayuda: "Flood risk of the place on the chosen day (same as sheet 01): probability of an event × impact. The simulator shows how much water a rain would leave.",
+    // Riesgo por día (hoy y los próximos 14)
+    sim_k_total: "Residents",
+    sim_k_total_a: "People living in the circle (2022 Census, tracts whose center falls inside). Same number as the Overview.",
+    sim_k_total_s: "in the circle · 2022 Census",
+    sim_k_inund: "On flood-prone ground",
+    sim_k_inund_a: "People living less than 2 m above the stream (by the share of each tract). Same number as the Overview: where water could reach, rain or not.",
+    sim_k_inund_s: (p) => `${p} % of residents`,
+    sim_k_alc: "Reached by the water",
+    sim_k_alc_s: "with 10 cm or more in this simulation",
   },
 };

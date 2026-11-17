@@ -2181,8 +2181,8 @@ function pintarPanelSimulador(d) {
   // Indicadores del momento de más agua: en una fila debajo del selector de Niño (o arriba del pronóstico): primer pantallazo
   SIM.kpisEl = Object.assign(document.createElement("div"), { className: "sim-kpis", id: "sim-kpis" });
   SIM.kpisEl.innerHTML = `<p class="sim-kpis-cab" id="sim-kpis-cab"></p><div class="kpis sim-datos">
-    ${kpiSim(t("sim_k_area"), t("sim_k_area_a"))}${kpiSim(t("sim_k_pers"), t("sim_k_pers_a"))}${kpiSim(t("sim_k_ind"), t("sim_k_ind_a"))}
-    ${kpiSim(t("sim_k_calles"), t("sim_k_calles_a"))}${kpiSim(t("sim_k_aisl"), t("sim_aisladas_sub"))}${kpiSim(t("sim_k_salud"), t("sim_salud_sub"))}</div>`;
+    ${kpiSim(t("sim_k_total"), t("sim_k_total_a"))}${kpiSim(t("sim_k_inund"), t("sim_k_inund_a"))}${kpiSim(t("sim_k_alc"), t("sim_k_pers_a"))}
+    ${kpiSim(t("sim_k_area"), t("sim_k_area_a"))}${kpiSim(t("sim_k_calles"), t("sim_k_calles_a"))}${kpiSim(t("sim_k_aisl"), t("sim_aisladas_sub"))}${kpiSim(t("sim_k_salud"), t("sim_salud_sub"))}</div>`;
   enlazarInfo(SIM.kpisEl);
   panel.innerHTML = `
     <div class="sim-lec">
@@ -2368,21 +2368,22 @@ function actualizarNumeros() {
     return;
   }
   // Superficie (con la profundidad máxima abajo), habitantes y la parte industrial o comercial con agua
-  vals[0].innerHTML = conU(pctTxt, "%");
-  ext[0].textContent = [t("sim_km2_corto")(fmt(P.km2, P.km2 < 10 ? 2 : 0)), P.maxProf >= 0.01 ? t("sim_prof_corto")(fmt(P.maxProf, 2)) : ""].filter(Boolean).join(" · ");
-  const actTot = Mo.g?.actHa ?? 0;
-  vals[2].innerHTML = actTot >= 0.05 ? conU(fmt(P.actHa ?? 0, (P.actHa ?? 0) < 10 ? 1 : 0), "ha") : "–";
-  ext[2].textContent = actTot >= 0.05 ? t("sim_ind_de")(fmt(actTot, actTot < 10 ? 1 : 0)) : t("sim_ind_no");
+  // Personas: totales y en zona inundable del lugar (los mismos números del Panorama) y las alcanzadas por el agua en esta simulación
+  const HL = estado.habitantesLugar;
+  vals[0].textContent = HL ? fmtPersonas(HL.total) : "–"; ext[0].textContent = t("sim_k_total_s");
+  vals[1].textContent = HL ? fmtPersonas(HL.inundable) : "–"; ext[1].textContent = HL && HL.total ? t("sim_k_inund_s")(fmt((100 * HL.inundable) / HL.total, 1)) : "";
+  vals[3].innerHTML = conU(pctTxt, "%");
+  ext[3].textContent = [t("sim_km2_corto")(fmt(P.km2, P.km2 < 10 ? 2 : 0)), P.maxProf >= 0.01 ? t("sim_prof_corto")(fmt(P.maxProf, 2)) : ""].filter(Boolean).join(" · ");
   pintarCabezaSim();
   const tit = document.getElementById("sim-titular"); if (tit) tit.innerHTML = `${t("sim_tit_q")} <span>${t("sim_tit_pct")(pctTxt)}</span>`;
-  vals[1].textContent = fmtPersonas(P.personas);
+  vals[2].textContent = fmtPersonas(P.personas); ext[2].textContent = t("sim_k_alc_s");
   const g = Mo.g;
   if (Mo.accesoK !== kp) { Mo.accesoK = kp; Mo.accesoPico = accesoHora(Mo, Mo.frames[kp]); }   // una vez por corrida (es una búsqueda en la red de calles)
   const ac = Mo.accesoPico;
-  vals[3].innerHTML = g.nRuta ? conU(fmt(P.cortesKm, P.cortesKm < 10 ? 1 : 0), "km") : t("sin_informacion");
-  ext[3].textContent = g.nRuta ? t("sim_cortes_de_corto")(fmt((g.nRuta * g.dx) / 1000)) : "";
-  vals[4].textContent = ac ? fmtPersonas(ac.aisladas) : t("sin_informacion");
-  vals[5].innerHTML = ac && ac.salud ? conU(ac.sinAcceso, `/ ${ac.salud}`) : t("sin_informacion");
+  vals[4].innerHTML = g.nRuta ? conU(fmt(P.cortesKm, P.cortesKm < 10 ? 1 : 0), "km") : t("sin_informacion");
+  ext[4].textContent = g.nRuta ? t("sim_cortes_de_corto")(fmt((g.nRuta * g.dx) / 1000)) : "";
+  vals[5].textContent = ac ? fmtPersonas(ac.aisladas) : t("sin_informacion");
+  vals[6].innerHTML = ac && ac.salud ? conU(ac.sinAcceso, `/ ${ac.salud}`) : t("sin_informacion");
   pintarAntecedentesSim(Mo, d);
   const sup = document.getElementById("sim-supuestos");
   if (sup) sup.textContent = `${t(d.D.fuente === "fabdem" ? "sim_terreno_fabdem" : "sim_terreno_aws")} ` + t("sim_supuestos")(Mo.suelo.nombre, Mo.suelo.supuesto, SIM.desague, fmt(Mo.g.dx), Mo.cuenta ? fmt(100 * Mo.cuenta.infiltrada / Math.max(1, Mo.cuenta.lluvia)) : "…")

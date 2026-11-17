@@ -1790,3 +1790,13 @@ body[data-lamina="3"] .lec-1 { display: none; }
 .sim-riesgo-barra em { position: absolute; top: -4px; width: 2px; height: 14px; margin-left: -1px; background: var(--tinta-1); }
 .sim-radio-fila { grid-template-columns: minmax(0, 1fr) 152px; }
 .sim-radio-fila .sim-riesgo { order: 2; min-width: 0; }
+
+/* Indicadores del simulador: 3 de personas arriba y 4 de agua abajo (12 columnas); líneas de 1 px como hueco de la grilla */
+.sim-lec .sim-kpis .kpis { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 1px; background: var(--borde-fuerte); border: 0; border-top: 1px solid var(--borde-fuerte); border-bottom: 1px solid var(--borde-fuerte); }
+.sim-lec .sim-kpis .kpi, .sim-lec .sim-kpis .kpi:nth-child(n) { grid-column: span 3; padding: 8px 12px; border: 0; background: var(--superficie); }
+.sim-lec .sim-kpis .kpi:nth-child(-n+3) { grid-column: span 4; }
+@media (max-width: 760px) {
+  .sim-lec .sim-kpis .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sim-lec .sim-kpis .kpi, .sim-lec .sim-kpis .kpi:nth-child(n) { grid-column: auto; }
+  .sim-lec .sim-kpis .kpi:nth-child(1) { grid-column: 1 / -1; }
+}
