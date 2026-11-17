@@ -651,6 +651,9 @@ async function prepararSimulacion(s) {
   pintarPanelSimulador(SIM.datos);
   elegirVistaSimulador("maqueta");   // solo maqueta 3D (el mapa 2D queda debajo y es el respaldo si el navegador no puede con WebGL)
   iniciarEscenario();   // al abrir: condiciones de hoy y sin lluvia (la maqueta queda seca, como en la imagen satelital)
+  // Agua que ve hoy el radar: se suma al agua permanente del dibujo (lagunas que el mapa base no tiene)
+  const dd = SIM.datos;
+  aguaRadar(dd).then((r) => { if (r && SIM.datos === dd) { dd.radarFino = r; dd.aguaPerm = null; SIM.mapaSucio = true; if (SIM.maqueta) { SIM.maqueta.claveCharcos = null; actualizarMaqueta(); } dibujarAgua(); } }).catch(() => {});
 }
 
 // Ríos, lagunas y embalses del mapa base, rasterizados a la grilla del relieve
@@ -805,13 +808,37 @@ function frameVista(M) {
   }
   return M.bufVista;
 }
+// Agua permanente con su forma real, píxel a píxel (no por celda del modelo): las lagunas, esteros y ríos del mapa base y el agua que
+// ve hoy el radar Sentinel-1 (encuentra las lagunas que el mapa base no tiene dibujadas, como en los esteros de Corrientes)
+function mascaraAguaPermanente(d) {
+  const D = d.D, aPx = (lo, la) => [(xDeLon(lo, D.z) - D.tx0) * 256, (yDeLat(la, D.z) - D.ty0) * 256];
+  const L = lienzoGrilla(D.W, D.H);
+  L.c.fillStyle = "#000";
+  for (const ft of rasgosBase("water")) trazar(L.c, ft.geometry, aPx);
+  const m = L.leer(), out = new Uint8Array(D.W * D.H);
+  for (let i = 0; i < out.length; i++) out[i] = m[i] >= 0.5 ? 1 : 0;
+  const R = d.radarFino;
+  if (R) {   // radar: un píxel cuenta si la mayoría de sus 3 × 3 vecinos también es agua (saca el ruido del radar, granos sueltos)
+    const W = D.W, ag = (i) => (R.px[4 * i + 3] > 0 && R.px[4 * i] > 127 ? 1 : 0);
+    for (let y = 1; y < D.H - 1; y++) for (let x = 1; x < W - 1; x++) {
+      let n = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) n += ag((y + dy) * W + x + dx);
+      if (n >= 5) out[y * W + x] = 1;
+    }
+  }
+  return out;
+}
 function aguaFina(i) {
   const M = SIM.modelo, d = SIM.datos;
   if (!M?.frames.length) return 0;
   const g = M.g, c = g.celdaFina[i];
   if (c < 0) return 0;
-  if (g.tipo2[c] === 2) { const sube = M.seco ? 0 : M.lagos[M.hora]?.[g.lago[c]] ?? 0; return sube > 0.05 ? sube : 0; }
-  if (g.tipo2[c] !== 1) return 0;
+  d.aguaPerm ??= mascaraAguaPermanente(d);
+  if (d.aguaPerm[i]) {   // agua de siempre: se ve siempre (con su forma), más honda si la laguna sube
+    const sube = g.tipo2[c] === 2 && !M.seco ? M.lagos[M.hora]?.[g.lago[c]] ?? 0 : 0;
+    return 0.3 + Math.max(0, sube);
+  }
+  if (g.tipo2[c] !== 1) return 0;   // borde de una celda de laguna o río fuera de su contorno: tierra seca (salvo que la cubra el desborde)
   // Nivel del agua interpolado entre los centros de las 4 celdas vecinas (no un bloque por celda): el borde del charco sigue el
   // relieve fino y se redondea en vez de verse en escalones de 30-120 m. Hacia las celdas secas el agua se afina hasta 0.
   const F = frameVista(M), W = d.D.W, fx = ((i % W) - g.bx0) / g.f - 0.5, fy = (((i / W) | 0) - g.by0) / g.f - 0.5;
