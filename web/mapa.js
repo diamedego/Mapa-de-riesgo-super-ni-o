@@ -6,7 +6,7 @@ let mapa;
 // sin mapa base ni relieve externos; calles, agua y nombres salen de archivos propios.
 const SIN_TESELAS = window.SIN_TESELAS === true;
 const fuenteMapa = (negrita = false) => (SIN_TESELAS ? ["noto"] : [negrita ? "Noto Sans Bold" : "Noto Sans Regular"]);
-const CAPAS_RIESGO = ["sin-datos", "riesgo-mun", "riesgo-radio", "estaciones"];   // sin «bordes-riesgo»: como la lámina aprobada, sin línea entre zonas
+const CAPAS_RIESGO = ["sin-datos", "riesgo-mun", "riesgo-grilla", "riesgo-radio", "estaciones"];   // sin «bordes-riesgo»: como la lámina aprobada, sin línea entre zonas
 const CAPAS_TIEMPO = ["atenuar", "tiempo-raster", "ciudades-punto", "ciudades-texto"];
 
 function estiloBase() {
@@ -56,11 +56,73 @@ function colorRiesgoExpr(meses) {
 }
 // Opacidad del relleno según el zoom; con una zona elegida, lo de afuera queda más tenue (el zoom va arriba de todo)
 const OPAC_RELLENO = [[4, 0.86], [10, 0.78], [13, 0.55], [16, 0.42]];
+// Municipios de lejos; al acercar (zoom 5,5 a 6,5) dan paso a las manchas por celda de 10 km, y desde 9,6 a los radios censales
+const OPAC_MUNI = [[4, 0.86], [5.5, 0.86], [6.5, 0]];
 function opacidadRiesgo(paradas) {
   const cmus = estado.sel?.tipo === "zona" ? estado.sel.lugar.cmus : null;
   const f = estado.verInundadas || estado.verInundHoy || estado.verDensidad || estado.verSuelo ? 0.45 : 1;   // con una capa de superficie encendida, el riesgo se atenúa para que se lea
   const valor = (v) => (cmus ? ["case", ["in", ["get", "cmu"], ["literal", cmus]], v * f, v * f * 0.38] : v * f);
   return ["interpolate", ["linear"], ["zoom"], ...paradas.flatMap(([z, v]) => [z, valor(v)])];
+}
+
+// ---------- Riesgo en manchas (celdas de 0,1°, modelos/riesgo_diario.py → datos/riesgo_grilla.bin) ----------
+// El navegador interpola entre celdas (bordes suaves, sin bloques), pinta con los colores del sitio y recorta con el contorno de
+// las provincias. Con un período, cada celda muestra su peor día (como los municipios).
+let grillaBytes = null;
+function agregarGrilla(antes) {
+  const G = estado.riesgo.grilla;
+  if (!G || mapa.getSource("riesgo-grilla")) return;
+  const x0 = G.oeste, x1 = G.oeste + G.ancho * G.paso, y0 = G.norte, y1 = G.norte - G.alto * G.paso;
+  const cv = (estado.lienzoGrilla ??= document.createElement("canvas"));
+  cv.width = 1200; cv.height = Math.round((1200 * (mercY(y0) - mercY(y1))) / ((x1 - x0) * Math.PI / 180));
+  mapa.addSource("riesgo-grilla", { type: "canvas", canvas: cv, animate: false, coordinates: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]] });
+  mapa.addLayer({ id: "riesgo-grilla", type: "raster", source: "riesgo-grilla",
+    paint: { "raster-opacity": ["interpolate", ["linear"], ["zoom"], 5.5, 0, 6.5, 0.86, 9.6, 0.86, 10.2, 0], "raster-resampling": "linear", "raster-fade-duration": 0 } }, antes);
+  fetch("datos/riesgo_grilla.bin", { cache: "no-cache" }).then((r) => (r.ok ? r.arrayBuffer() : null)).then((b) => { if (b) { grillaBytes = new Uint8Array(b); dibujarGrilla(); } }).catch(() => {});
+}
+function dibujarGrilla() {
+  const G = estado.riesgo.grilla, cv = estado.lienzoGrilla;
+  if (!G || !grillaBytes || !cv || !mapa.getSource("riesgo-grilla")) return;
+  const [a, b] = estado.rangoRiesgo ?? [0, 0], k0 = estado.riesgo.k0 ?? 0, N = G.ancho * G.alto;
+  // Peor día del período por celda
+  const v = new Float32Array(N).fill(NaN);
+  for (let d = a; d <= b; d++) {
+    const o = (d + k0) * N;
+    if (o + N > grillaBytes.length) break;
+    for (let i = 0; i < N; i++) { const x = grillaBytes[o + i]; if (x !== 255 && !(v[i] >= x / G.escala)) v[i] = x / G.escala; }
+  }
+  const col = [1, 2, 3, 4, 5].map((n) => { const h = css(`--r${n}`).replace("#", ""); return [0, 2, 4].map((j) => parseInt(h.slice(j, j + 2), 16)); });
+  const W = cv.width, H = cv.height, c = cv.getContext("2d"), img = c.createImageData(W, H), px = img.data;
+  const x0 = G.oeste, x1 = G.oeste + G.ancho * G.paso, m0 = mercY(G.norte), m1 = mercY(G.norte - G.alto * G.paso);
+  for (let y = 0; y < H; y++) {
+    const lat = (Math.atan(Math.exp(m0 + ((m1 - m0) * (y + 0.5)) / H)) * 360) / Math.PI - 90, fi = (G.norte - lat) / G.paso - 0.5;
+    const i0 = Math.max(0, Math.min(G.alto - 2, Math.floor(fi))), ti = Math.max(0, Math.min(1, fi - i0));
+    for (let x = 0; x < W; x++) {
+      const fj = ((x0 + ((x1 - x0) * (x + 0.5)) / W) - G.oeste) / G.paso - 0.5, j0 = Math.max(0, Math.min(G.ancho - 2, Math.floor(fj))), tj = Math.max(0, Math.min(1, fj - j0));
+      let s = 0, w = 0;
+      for (const [di, dj, ww] of [[0, 0, (1 - ti) * (1 - tj)], [1, 0, ti * (1 - tj)], [0, 1, (1 - ti) * tj], [1, 1, ti * tj]]) {
+        const val = v[(i0 + di) * G.ancho + j0 + dj];
+        if (val === val && ww > 0) { s += val * ww; w += ww; }
+      }
+      if (w < 0.05) continue;
+      const r = s / w, n = r < CORTES[0] ? 0 : r < CORTES[1] ? 1 : r < CORTES[2] ? 2 : r < CORTES[3] ? 3 : 4, o = 4 * (y * W + x);
+      px[o] = col[n][0]; px[o + 1] = col[n][1]; px[o + 2] = col[n][2]; px[o + 3] = 255;
+    }
+  }
+  c.clearRect(0, 0, W, H);
+  c.putImageData(img, 0, 0);
+  // Recorte con el contorno del país (provincias): la costa nítida aunque la celda sea de 10 km
+  c.globalCompositeOperation = "destination-in";
+  c.beginPath();
+  const X = (lon) => ((lon - x0) / (x1 - x0)) * W, Y = (lat) => ((mercY(lat) - m0) / (m1 - m0)) * H;
+  for (const f of estado.datos.provincias.features) {
+    const g = f.geometry, polis = g.type === "Polygon" ? [g.coordinates] : g.coordinates;
+    for (const pol of polis) for (const anillo of pol) anillo.forEach(([lo, la], k) => (k ? c.lineTo(X(lo), Y(la)) : c.moveTo(X(lo), Y(la))));
+  }
+  c.fill("evenodd");
+  c.globalCompositeOperation = "source-over";
+  const src = mapa.getSource("riesgo-grilla");
+  src.play(); mapa.triggerRepaint(); requestAnimationFrame(() => requestAnimationFrame(() => src.pause()));
 }
 
 // ---------- Capas ----------
@@ -74,10 +136,11 @@ function agregarCapas() {
 
   mapa.addSource("provincias", { type: "geojson", data: D.provincias });
   mapa.addLayer({ id: "sin-datos", type: "fill", source: "provincias",
-    paint: { "fill-color": css("--sin-datos"), "fill-opacity": ["interpolate", ["linear"], ["zoom"], 4, 1, 13, 0.35] } }, antesLineas);
+    paint: { "fill-color": css("--sin-datos"), "fill-opacity": ["interpolate", ["linear"], ["zoom"], 4, 1, 5.5, 1, 6.5, 0] } }, antesLineas);
   mapa.addSource("municipios", { type: "geojson", data: D.municipios, promoteId: "cmu" });
   mapa.addLayer({ id: "riesgo-mun", type: "fill", source: "municipios", maxzoom: 10.2,
-    paint: { "fill-color": colorRiesgoExpr(meses), "fill-opacity": opacidadRiesgo(OPAC_RELLENO) } }, antesLineas);
+    paint: { "fill-color": colorRiesgoExpr(meses), "fill-opacity": opacidadRiesgo(OPAC_MUNI) } }, antesLineas);
+  agregarGrilla(antesLineas);
   mapa.addSource("radios", { type: "geojson", data: { type: "FeatureCollection", features: estado.radios } });
   mapa.addLayer({ id: "riesgo-radio", type: "fill", source: "radios", minzoom: 9.6,
     paint: { "fill-color": colorRiesgoExpr(meses), "fill-opacity": opacidadRiesgo(OPAC_RELLENO) } }, antesLineas);
@@ -261,7 +324,7 @@ function alternarRelieve() {
   mapa.setLayoutProperty("sombreado", "visibility", estado.relieve3d ? "visible" : "none");
   terrenoMapa();
   vistaCurvas = "";
-  for (const id of ["riesgo-mun", "riesgo-radio"]) mapa.setPaintProperty(id, "fill-opacity", opacidadRiesgo(OPAC_RELLENO));
+  mapa.setPaintProperty("riesgo-mun", "fill-opacity", opacidadRiesgo(OPAC_MUNI)); mapa.setPaintProperty("riesgo-radio", "fill-opacity", opacidadRiesgo(OPAC_RELLENO));
   mapa.triggerRepaint();
 }
 
@@ -447,6 +510,7 @@ function estiloEstaciones() {
 
 // Actualiza colores y visibilidad según capa, modo y período
 function aplicarCapaEnMapa() {
+  if (estado.riesgo?.grilla) { const clave = String(estado.rangoRiesgo); if (clave !== estado.claveGrilla) { estado.claveGrilla = clave; dibujarGrilla(); } }
   if (!mapa?.getLayer("riesgo-mun")) return;
   const riesgo = estado.capa === "riesgo", meses = diasVista();
   const vis = (id, v) => mapa.getLayer(id) && mapa.setLayoutProperty(id, "visibility", v ? "visible" : "none");

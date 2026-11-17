@@ -571,7 +571,7 @@ function armarRiesgo(fijo, diario) {
       prob: (d?.p ?? []).slice(k0), r: d?.r ? d.r.slice(k0) : n.map(() => 0), h: n.map((v) => 10 - ((10 - hf) * (10 - H[v])) / 10), p: Array(nD).fill(0) };
   }
   const est = Object.fromEntries(Object.entries(diario?.est ?? {}).map(([e, v]) => [e, { n: digitos(v.n), p: (v.p ?? []).slice(k0), h: (v.h ?? []).slice(k0) }]));
-  return { dias, cmu, H, est, generado: diario?.generado ?? null, fuentes: diario?.fuentes ?? {} };
+  return { dias, cmu, H, est, generado: diario?.generado ?? null, fuentes: diario?.fuentes ?? {}, grilla: diario?.grilla ?? null, k0 };
 }
 
 const hoyDeFecha = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: ZONA_HORARIA, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);

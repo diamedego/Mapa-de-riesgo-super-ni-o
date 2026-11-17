@@ -318,6 +318,91 @@ def amenaza_fija(f, lluvia: float = F_NORMAL) -> float:
     return combinar(ha, hq)
 
 
+def riesgo_grilla(lluvia: dict, rios: dict, dias: list) -> dict | None:
+    """El mismo riesgo por celda de 0,1° (lo que el mapa muestra como manchas al acercarse, en vez del promedio por municipio):
+    lluvia del ensamble de la celda de 0,25° que la contiene contra los umbrales del SMN de la celda, ríos a ≤ 15 km (a 15-30 km un
+    nivel menos), alertas del SMN que cubren la celda e impacto de la gente en zona inundable de la celda (data/referencia/
+    grilla_riesgo.npz, de web/preparar_grilla_riesgo.py). Sin la propensión del terreno (va por municipio).
+    Salida: web/datos/riesgo_grilla.bin (Uint8, día × fila × columna, riesgo × 20; 255 = sin dato)."""
+    f = REF / "grilla_riesgo.npz"
+    if not f.exists():
+        return None
+    from shapely import vectorized
+    from shapely.geometry import shape
+    G = np.load(f)
+    U, PL, PR, V = G["umb"].astype(float), G["pob_lluvia"], G["pob_rio"], G["V"].astype(float)
+    ny, nx = PL.shape
+    lat = float(G["norte"]) - (np.arange(ny) + 0.5) * float(G["paso"])
+    lon = float(G["oeste"]) + (np.arange(nx) + 0.5) * float(G["paso"])
+    LON, LAT = np.meshgrid(lon, lat)
+    imp_cut = lambda pob: 1 + sum((pob >= c).astype(int) for c in IMPACTO_CORTES)  # noqa: E731
+    imp_l = np.minimum(4, imp_cut(PL) + ((V >= 6) & (PL >= 1))).astype(int)
+    imp_r = np.minimum(4, imp_cut(PR) + ((V >= 6) & (PR >= 1))).astype(int)
+    D = len(dias)
+    NL, PLL, PAM = np.zeros((D, ny, nx), int), np.zeros((D, ny, nx)), np.zeros((D, ny, nx))
+    k25 = (np.round(LAT / 0.25) * 0.25, np.round(LON / 0.25) * 0.25)
+    validas = np.isfinite(U).all(axis=0)
+    for (la, lo), (_, M) in lluvia.items():
+        sel = (k25[0] == la) & (k25[1] == lo) & validas
+        if not sel.any():
+            continue
+        base = U[:, sel].T   # celdas × 3
+        for d in range(min(D, M.shape[1] - 2)):
+            k = d + 2
+            ant = sum(M[:, k - j] * 0.85 ** (j - 1) for j in range(1, 6) if k - j >= 0)
+            fac = 1 - F_SUELO * np.clip(ant[:, None] / np.maximum(base[None, :, 1], 1.0), 0, 1)   # miembros × celdas
+            p = (M[:, k][:, None, None] > base[None, :, :] * fac[:, :, None]).mean(axis=0)     # celdas × 3
+            n = np.where(p[:, 2] >= P_UMBRAL, 3, np.where(p[:, 1] >= P_UMBRAL, 2, np.where(p[:, 0] >= P_UMBRAL, 1, 0)))
+            NL[d][sel], PLL[d][sel] = n, np.take_along_axis(p, np.maximum(n - 1, 0)[:, None], 1)[:, 0]
+            PAM[d][sel] = p[:, 0]
+    NQ, PQ = np.zeros((D, ny, nx), int), np.zeros((D, ny, nx))
+    for R in rios.values():
+        dk = np.hypot((LON - R["lon"]) * 111 * math.cos(math.radians(R["lat"])), (LAT - R["lat"]) * 111)
+        cerca, medio = dk <= 15, (dk > 15) & (dk <= 30)
+        for d in range(D):
+            n0 = R["n"][d]
+            if not n0:
+                continue
+            for m, v in ((cerca, n0), (medio, max(0, n0 - 1))):
+                mejor = m & (v > NQ[d])
+                NQ[d][mejor], PQ[d][mejor] = v, R["p"][d]
+    NA = np.zeros((D, ny, nx), int)
+    try:
+        al = json.loads((WEB / "alertas.geojson").read_text())["features"]
+    except (OSError, ValueError):
+        al = []
+    nivel = {"amarilla": 1, "naranja": 2, "roja": 3}
+    for f_ in al:
+        pr = f_["properties"]
+        n = nivel.get(pr.get("nivel"))
+        if not n or pr.get("tipo") not in ("tormentas", "lluvias"):
+            continue
+        g = shape(f_["geometry"])
+        x0, y0, x1, y1 = g.bounds
+        caja = (LON >= x0) & (LON <= x1) & (LAT >= y0) & (LAT <= y1)
+        dentro = np.zeros_like(caja)
+        dentro[caja] = vectorized.contains(g, LON[caja], LAT[caja])
+        vence = (pr.get("vence") or dias[0])[:10]
+        for d, iso in enumerate(dias):
+            if iso <= vence:
+                NA[d] = np.where(dentro, np.maximum(NA[d], n), NA[d])
+    MZ, CT = np.array(MATRIZ), np.array(CORTES)
+
+    def matriz(a, imp, p):
+        nv = MZ[a, imp - 1]
+        lo, hi = CT[nv - 1], CT[nv]
+        return np.floor((lo + (hi - lo - 0.1) * np.clip(p, 0, 1)) * 10) / 10
+    out = np.full((D, ny, nx), 255, np.uint8)
+    for d in range(D):
+        r = np.maximum.reduce([matriz(NL[d], imp_l, np.where(NL[d] > 0, PLL[d], 0)), matriz(NQ[d], imp_r, PQ[d]),
+                               matriz(NA[d], imp_l, (NA[d] > 0).astype(float))])
+        sin = (NL[d] == 0) & (NQ[d] == 0) & (NA[d] == 0)
+        r = np.where(sin, matriz(np.zeros_like(NL[d]), imp_l, PAM[d] / P_UMBRAL), r)
+        out[d] = np.where(validas, np.round(r * 20), 255).astype(np.uint8)
+    (WEB / "riesgo_grilla.bin").write_bytes(out.tobytes())
+    return {"oeste": float(G["oeste"]), "norte": float(G["norte"]), "paso": float(G["paso"]), "ancho": nx, "alto": ny, "dias": D, "escala": 20}
+
+
 def guardado(nombre: str, fn, valido=lambda v: True):
     """Resultado de fn guardado en data/procesado/riesgo_diario/<nombre>.pkl (cada parte por separado: si algo falla después,
     no se vuelve a bajar lo que ya estaba)."""
@@ -395,11 +480,12 @@ def main() -> None:
         digitos = lambda xs: "".join(str(x) for x in xs)
         salida[r.cmu] = {"r": riesgo, "n": digitos(n), **{k: digitos(v) for k, v in fuente.items()}, "p": p, "i": max(imp.values()), "hf": 0, "pr": round(prop, 1), "x": int(ex["pob_lluvia"]) if ex is not None else 0,
                          "u": [int(umb.loc[r.cmu, k]) for k in ("amarillo", "naranja", "rojo")] if r.cmu in umb.index and umb.loc[r.cmu].notna().all() else None}
+    grilla = riesgo_grilla(lluvia, rios, dias)
     res = {"generado": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"), "dias": dias, "umbral_p": P_UMBRAL, "h_nivel": H_NIVEL,
            "fuentes": {"lluvia": "Ensamble ECMWF IFS 0,25° (50 miembros, datos abiertos del ECMWF, CC BY 4.0)", "umbrales": "Método del SMN (percentiles 90 y 99 y valor extremo de la lluvia diaria) con ERA5-Land 1991-2020",
                        "rios": f"GloFAS (51 miembros) + curva de cada estación; hoy, INA ({len(rios)} estaciones)", "alertas": "SMN vigentes",
                        "metodo": "Matriz probabilidad × impacto (pronóstico basado en impacto)"},
-           "sin_lluvia": sin_lluvia, "cmu": salida,
+           "sin_lluvia": sin_lluvia, "grilla": grilla, "cmu": salida,
            "est": {e: {"n": "".join(str(x) for x in R["n"]), "p": R["p"], "h": R["h"]} for e, R in rios.items()}}
     (WEB / "riesgo_diario.json").write_text(json.dumps(res, separators=(",", ":")))
     arch = RAIZ / "data" / "archivo" / "riesgo_diario"

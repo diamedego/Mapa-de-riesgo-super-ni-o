@@ -901,3 +901,7 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
   SEMANAL (lunes) calcula aciertos, falsas alarmas, Brier y confiabilidad (`web/datos/verificacion_riesgo.json`) y ajusta
   `data/referencia/parametros_riesgo.json` (probabilidad mínima para avisar y días de persistencia del río) de a pasos chicos, con
   ≥ 30 eventos en ≥ 21 días; cada cambio queda en su historial y en esta bitácora. MENSUAL (pendiente): radar contra lo marcado en alto.
+- 17-nov: riesgo en manchas al acercar el mapa. De lejos, municipios (como antes); entre zoom 5,5 y 6,5 pasan a manchas por celda
+  de 0,1° (mismo método, `riesgo_grilla` en `modelos/riesgo_diario.py`, datos fijos en `data/referencia/grilla_riesgo.npz` de
+  `web/preparar_grilla_riesgo.py`), dibujadas en el navegador con interpolación y recortadas por el contorno del país; desde 9,6,
+  radios censales. Misma opacidad que los municipios (en el prototipo se veían más claras por doble transparencia).
