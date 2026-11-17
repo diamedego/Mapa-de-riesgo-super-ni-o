@@ -552,7 +552,7 @@ function cambiarTema() {
   try { localStorage.setItem("tema", document.documentElement.dataset.theme); } catch (e) { /* sin almacenamiento */ }
   const vista = { center: mapa.getCenter(), zoom: mapa.getZoom(), pitch: mapa.getPitch(), bearing: mapa.getBearing() };
   estado.lienzo = null;
-  mapa.setStyle(estiloBase());
+  mapa.setStyle(estiloBase(), { diff: false });   // sin «diff»: todas las capas propias se rehacen con los colores del tema
   // Al terminar de cargar el estilo nuevo se reponen las capas propias (el estilo nuevo las borra), con los colores del tema
   const reponer = () => {
     if (!mapa.isStyleLoaded()) return setTimeout(reponer, 120);

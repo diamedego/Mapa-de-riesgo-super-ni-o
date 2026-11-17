@@ -154,7 +154,7 @@ function capasPlano() {
     mapa.addSource("tierra", { type: "geojson", data: topojson.feature(tp, tp.objects.land) });
     mapa.addLayer({ id: "tierra", type: "fill", source: "tierra", paint: { "fill-color": css("--superficie") } }, debajo);
     mapa.addSource("limites-paises", { type: "geojson", data: topojson.mesh(tp, tp.objects.countries) });
-    mapa.addLayer({ id: "limites-paises", type: "line", source: "limites-paises", paint: { "line-color": css("--tinta-3"), "line-opacity": 0.85,
+    mapa.addLayer({ id: "limites-paises", type: "line", source: "limites-paises", paint: { "line-color": css("--linea-paises"), "line-opacity": 0.9,
       "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.5, 8, 1] } }, debajo);
   }).catch((e) => console.warn("tierra", e));
   mapa.addSource("caja-a", { type: "geojson", data: { type: "Feature", geometry: { type: "LineString", coordinates: [[o, n], [e, n], [e, s], [o, s], [o, n]] }, properties: {} } });
