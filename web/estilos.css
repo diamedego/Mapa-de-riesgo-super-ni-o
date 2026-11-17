@@ -1745,3 +1745,9 @@ body[data-lamina="3"] .lec-1 { display: none; }
 }
 /* Indicadores del simulador: un valor de texto («Sin información») pasa a dos líneas en vez de salirse de su columna */
 .sim-lec .sim-kpis .kpi-v { flex-wrap: wrap; white-space: normal; min-width: 0; }
+
+/* Coordenadas del punto elegido (debajo del rótulo): cifras en mono, copiar y abrir en Google Maps */
+.lec-coords { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.lec-coords[hidden] { display: none; }
+.lec-coords-v { font: 500 12px/16px var(--f-mono); font-variant-numeric: tabular-nums; color: var(--tinta-1); user-select: all; }
+.lec-coords .btn-banda { min-height: 24px; padding: 0 8px; font-size: 10px; }

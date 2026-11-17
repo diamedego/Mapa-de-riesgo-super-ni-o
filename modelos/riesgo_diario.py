@@ -393,7 +393,7 @@ def main() -> None:
             riesgo.append(rmax)
             n[d], p[d] = max(fuente[x][d] for x in "lqa"), pf[k][d]
         digitos = lambda xs: "".join(str(x) for x in xs)
-        salida[r.cmu] = {"r": riesgo, "n": digitos(n), **{k: digitos(v) for k, v in fuente.items()}, "p": p, "i": max(imp.values()), "hf": 0, "pr": round(prop, 1),
+        salida[r.cmu] = {"r": riesgo, "n": digitos(n), **{k: digitos(v) for k, v in fuente.items()}, "p": p, "i": max(imp.values()), "hf": 0, "pr": round(prop, 1), "x": int(ex["pob_lluvia"]) if ex is not None else 0,
                          "u": [int(umb.loc[r.cmu, k]) for k in ("amarillo", "naranja", "rojo")] if r.cmu in umb.index and umb.loc[r.cmu].notna().all() else None}
     res = {"generado": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"), "dias": dias, "umbral_p": P_UMBRAL, "h_nivel": H_NIVEL,
            "fuentes": {"lluvia": "Ensamble ECMWF IFS 0,25° (50 miembros, datos abiertos del ECMWF, CC BY 4.0)", "umbrales": "Método del SMN (percentiles 90 y 99 y valor extremo de la lluvia diaria) con ERA5-Land 1991-2020",

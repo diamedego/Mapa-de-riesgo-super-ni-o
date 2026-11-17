@@ -608,14 +608,21 @@ async function cargarRadiosVisibles() {
   const b = mapa.getBounds();
   await cargarRadiosEn([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]);
 }
-// Radio censal: riesgo = ∛(amenaza del municipio ese día × exposición del radio × vulnerabilidad del radio)
+// Radio censal: el riesgo del día de su lugar (probabilidad × impacto); si el radio no está en terreno inundable (menos del 10 % de
+// su superficie a < 2 m del cauce), con impacto mínimo: la misma amenaza, poco para dañar
+const MATRIZ_R = [[1, 1, 1, 1], [2, 2, 3, 3], [2, 3, 4, 4], [3, 4, 5, 5]], CORTES_R = [0, 3, 4.5, 6, 7, 10];
+function riesgoMatriz(amenaza, imp, p) {
+  const nivel = MATRIZ_R[amenaza][imp - 1], lo = CORTES_R[nivel - 1], hi = CORTES_R[nivel];
+  return Math.floor((lo + (hi - lo - 0.1) * limitar(p, 0, 1)) * 10) / 10;
+}
 function riesgoRadios(features) {
   features.forEach((f) => {
     const d = estado.riesgo.cmu[f.properties.cmu];
     f.properties._c = centroDe(f.geometry);
     if (!d) return;
+    const expuesto = (Number(f.properties.pct_area_hand_2m) || 0) >= 10;
     estado.riesgo.dias.forEach((m, i) => {
-      f.properties[`r_${m}`] = Math.round(Math.cbrt(d.h[i] * f.properties.E * f.properties.V) * 10) / 10;
+      f.properties[`r_${m}`] = expuesto ? d.r[i] : riesgoMatriz(d.n[i] ?? 0, 1, d.n[i] ? d.prob[i] ?? 0 : 0);
     });
   });
 }
