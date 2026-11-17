@@ -10,6 +10,7 @@ function prepararBuscador() {
     const pob = sumar(cmus.map((c) => Number(estado.porCmu.get(c)?.poblacion) || 0));
     return { nombre, tipo, provincia, cmus, caja, nivel, clave, palabras: clave.split(/[\s\-.,()]+/).filter(Boolean), pob };
   });
+  estado.regiones = armarRegiones();
   estado.filtros = { provincia: null, partido: null, localidad: null };
   for (const nivel of ["provincia", "partido", "localidad"]) autocompletar(document.getElementById(`b-${nivel}`), nivel);
   autocompletarDireccion(document.getElementById("b-direccion"));
@@ -348,6 +349,32 @@ async function buscarPhoton(texto, { limite = 8 } = {}) {
     .sort((a, b) => (b.parecido >= 0.5) - (a.parecido >= 0.5) || b.parecido - a.parecido || a.orden - b.orden || (lugar ? a.km - b.km : 0)).slice(0, limite);
 }
 
+// Regiones de la Argentina (las que se usan en los pronósticos y en los medios): unión de provincias, o de partidos para el AMBA
+const REGIONES = [
+  { nombre: "Litoral", alias: ["litoral", "region litoral", "litoral argentino"], provs: ["Santa Fe", "Entre Ríos", "Corrientes", "Misiones", "Chaco", "Formosa"] },
+  { nombre: "Noreste (NEA)", alias: ["nea", "noreste", "noreste argentino", "nordeste"], provs: ["Chaco", "Corrientes", "Formosa", "Misiones"] },
+  { nombre: "Noroeste (NOA)", alias: ["noa", "noroeste", "noroeste argentino"], provs: ["Jujuy", "Salta", "Tucumán", "Catamarca", "Santiago del Estero", "La Rioja"] },
+  { nombre: "Cuyo", alias: ["cuyo", "region de cuyo"], provs: ["Mendoza", "San Juan", "San Luis", "La Rioja"] },
+  { nombre: "Centro", alias: ["centro", "region centro"], provs: ["Córdoba", "Santa Fe", "Entre Ríos"] },
+  { nombre: "Región pampeana", alias: ["pampeana", "region pampeana", "pampa humeda", "llanura pampeana"], provs: ["Buenos Aires", "Córdoba", "Santa Fe", "Entre Ríos", "La Pampa"] },
+  { nombre: "Patagonia", alias: ["patagonia", "sur", "region patagonica"], provs: ["Neuquén", "Río Negro", "Chubut", "Santa Cruz", "Tierra del Fuego, Antártida e Islas del Atlántico Sur"] },
+  { nombre: "Gran Chaco", alias: ["gran chaco", "chaco salteño", "impenetrable"], provs: ["Chaco", "Formosa", "Santiago del Estero", "Salta"] },
+  { nombre: "AMBA (Ciudad y conurbano)", alias: ["amba", "gba", "gran buenos aires", "conurbano", "area metropolitana"], provs: ["CABA"],
+    partidos: ["Almirante Brown", "Avellaneda", "Berazategui", "Esteban Echeverría", "Ezeiza", "Florencio Varela", "General San Martín", "Hurlingham", "Ituzaingó",
+      "José C. Paz", "La Matanza", "Lanús", "Lomas de Zamora", "Malvinas Argentinas", "Merlo", "Moreno", "Morón", "Quilmes", "San Fernando", "San Isidro",
+      "San Miguel", "Tigre", "Tres de Febrero", "Vicente López"] },
+];
+function armarRegiones() {
+  const prov = (n) => estado.lugares.find((l) => l.nivel === "prov" && l.nombre === n);
+  const part = (n) => estado.lugares.find((l) => l.nivel === "depto" && l.provincia === "Buenos Aires" && normalizar(l.nombre) === normalizar(n));
+  return REGIONES.map((r) => {
+    const partes = [...r.provs.map(prov), ...(r.partidos ?? []).map(part)].filter(Boolean);
+    const caja = partes.reduce((c, l) => [Math.min(c[0], l.caja[0]), Math.min(c[1], l.caja[1]), Math.max(c[2], l.caja[2]), Math.max(c[3], l.caja[3])], [180, 90, -180, -90]);
+    return { nombre: r.nombre, tipo: "Región", provincia: "", cmus: [...new Set(partes.flatMap((l) => l.cmus))], caja, nivel: "region", clave: normalizar(r.nombre), alias: r.alias.map(normalizar),
+      pob: sumar(partes.map((l) => l.pob || 0)) };
+  });
+}
+
 // Orden por relevancia, para cualquier búsqueda: (1) cuánto coincide el nombre con lo escrito (exacto, empieza igual, tiene todas las
 // palabras, las tiene sumando el detalle —«san cayetano zarate»—, las contiene) y (2) la importancia del tipo (país y provincias,
 // municipios y plantas o sedes cargadas, localidades, calles, barrios, comercios). Los que solo se parecen por las letras (p. ej.
@@ -357,7 +384,7 @@ function ordenarSugerencias(items, q) {
   const qn = normalizar(q), pal = qn.split(/\s+/).filter(Boolean), conNumero = /\d/.test(q);
   const palabrasDe = (txt) => normalizar(txt ?? "").split(/[\s,·\-\/().]+/).filter(Boolean);
   const coincide = (x) => {
-    if (["pais", "coords", "buscar"].includes(x.tipo)) return -1;
+    if (["pais", "coords", "buscar", "region"].includes(x.tipo)) return -1;
     const n = normalizar(x.nombre ?? ""), pn = palabrasDe(x.nombre), pd = [...pn, ...palabrasDe(x.detalle)];
     const prefijo = (lista) => pal.every((w) => lista.some((p) => p.startsWith(w)));
     if (x.propio && (x.alias ?? []).some((al) => normalizar(al) === qn)) return 0;   // cargados a mano: por su nombre
@@ -379,6 +406,10 @@ async function sugerenciasLibres(texto) {
   const c = coordenadasDe(q);
   if (c?.punto) return [{ tipo: "coords", nombre: t("sug_coords"), detalle: `${c.punto[1].toFixed(5)}, ${c.punto[0].toFixed(5)}`, punto: c.punto }];
   if (/[,;]/.test(q) && q.length > 12) items.push({ tipo: "buscar", nombre: t("sug_buscar")(q), detalle: t("sug_buscar_sub") });   // dirección completa pegada
+  // Regiones (Litoral, NEA, NOA, Cuyo, Patagonia, AMBA…)
+  const qr = normalizar(q);
+  if (qr.length >= 3) for (const r of estado.regiones ?? []) if (r.alias.some((a) => a.startsWith(qr) || qr.startsWith(a)))
+    items.push({ tipo: "region", nombre: r.nombre, detalle: t("sug_region"), lugar: r });
   // El país entero: «Argentina», «país», «todo el país»
   const qn = normalizar(q);
   if (qn.length >= 3 && ["argentina", "pais", "todo el pais", "republica argentina"].some((x) => x.startsWith(qn))) items.push({ tipo: "pais", nombre: "Argentina", detalle: t("sug_pais") });
@@ -414,7 +445,7 @@ function autocompletarDireccion(input) {
   listaSugerencias(input, {
     buscarItems: sugerenciasLibres,
     pintarItem: (it) => {
-      const ic = it.tipo === "pais" ? "objetivo" : it.tipo === "lugar" ? "pin" : it.tipo === "coords" ? "objetivo" : it.tipo === "buscar" ? "buscar" : "pin";
+      const ic = it.tipo === "pais" || it.tipo === "region" ? "objetivo" : it.tipo === "lugar" ? "pin" : it.tipo === "coords" ? "objetivo" : it.tipo === "buscar" ? "buscar" : "pin";
       const etiqueta = it.tipo === "osm" ? t(it.cat) : it.tipo === "lugar" ? "" : "";
       return `<span class="sug-nombre">${icono(ic, "ico ico-sug")}<span>${resaltar(it.nombre, input.value)}</span></span>
         <span class="sug-tipo">${etiqueta ? `<b class="sug-cat">${escapar(etiqueta)}</b> · ` : ""}${escapar(it.detalle ?? "")}</span>`;
@@ -427,6 +458,7 @@ function elegirSugerencia(input, it) {
   const aviso = document.getElementById("aviso-busqueda");
   aviso.hidden = true;
   if (it.tipo === "buscar") return buscarDireccion(input.value.trim());
+  if (it.tipo === "region") { input.value = ""; return seleccionarZona(it.lugar, { volar: true, origen: "buscador" }); }
   if (it.tipo === "pais") {   // vuelve a todo el país: sin filtros ni punto elegido
     input.value = "";
     for (const n of ["provincia", "partido", "localidad"]) { estado.filtros[n] = null; document.getElementById(`b-${n}`).value = ""; }

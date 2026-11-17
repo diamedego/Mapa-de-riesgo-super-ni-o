@@ -610,6 +610,8 @@ const TEXTOS = {
     r11_p: "Zonas que más preocupan, comparación entre provincias y la validación del simulador contra el satélite.",
     r12_t: "Claro u oscuro",
     r12_p: "Cambiá entre modo claro y oscuro.",
+    // Riesgo por día (hoy y los próximos 14)
+    sug_region: "Región · varias provincias",
   },
   en: {
     titulo: "Argentina facing El Niño 2026–27",
@@ -1217,5 +1219,7 @@ const TEXTOS = {
     r11_p: "Areas of most concern, provinces compared and the simulator validated against satellite.",
     r12_t: "Light or dark",
     r12_p: "Switch between light and dark mode.",
+    // Riesgo por día (hoy y los próximos 14)
+    sug_region: "Region · several provinces",
   },
 };
