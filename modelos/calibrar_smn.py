@@ -11,6 +11,7 @@ coincidir «lluvia > k × umbral» con «había alerta del SMN por tormentas o l
 equitativo de aciertos). k se busca entre 0,1 y 1,2 y se guarda en data/referencia/parametros_riesgo.json (factor_umbral), que usa
 modelos/riesgo_diario.py. Se puede volver a correr cuando haya más días (la verificación semanal lo puede retomar).
 
+Corre sola los lunes en GitHub Actions (últimas 8 semanas, ≥ 21 días, cambio máximo de 0,05 por semana).
 Uso: .venv/bin/python modelos/calibrar_smn.py
 """
 import datetime as dt
@@ -31,6 +32,7 @@ import lluvia_ninos as LN  # noqa: E402
 
 CACHE = RAIZ / "data" / "procesado" / "calibrar_smn"
 PARAM = RAIZ / "data" / "referencia" / "parametros_riesgo.json"
+VENTANA, MIN_DIAS, PASO_MAX = 56, 21, 0.05   # 8 semanas de alertas; como mucho 0,05 de cambio por semana (una semana rara no lo desbalancea)
 
 
 def nivel_alerta(severidad: str) -> int:
@@ -67,7 +69,7 @@ def ets(a, b, c, d) -> float:
 
 def main() -> None:
     ee.Initialize(project=PROYECTO_EE)
-    U = np.load(RAIZ / "data" / "procesado" / "umbrales_smn.npy")
+    U = np.load(RAIZ / "data" / "referencia" / "grilla_riesgo.npz")["umb"].astype(np.float32)   # los umbrales del SMN por celda (versionados)
     ny, nx = U.shape[1:]
     lat = LN.NORTE - (np.arange(ny) + 0.5) * LN.PASO
     lon = LN.OESTE + (np.arange(nx) + 0.5) * LN.PASO
@@ -75,9 +77,12 @@ def main() -> None:
     pv = gpd.read_file(RAIZ / "web" / "datos" / "provincias_geo.geojson").union_all()
     tierra = vectorized.contains(pv, LON, LAT) & np.isfinite(U).all(axis=0)
     # Alertas por día (fecha de envío en hora argentina): nivel máximo por celda, solo tormentas y lluvias
-    archivos = sorted((RAIZ / "data" / "archivo" / "smn_cap").glob("alertas_*.parquet"))
     hasta = (dt.date.today() - dt.timedelta(days=6)).isoformat()   # ERA5-Land llega con ~5 días de atraso
-    dias, mm = lluvia_dias(archivos[0].stem[-10:], hasta)
+    desde = (dt.date.today() - dt.timedelta(days=6 + VENTANA)).isoformat()
+    archivos = [f for f in sorted((RAIZ / "data" / "archivo" / "smn_cap").glob("alertas_*.parquet")) if f.stem[-10:] >= desde]
+    if len(archivos) < MIN_DIAS:
+        return print(f"calibración SMN: solo {len(archivos)} días de alertas (hacen falta {MIN_DIAS}); sin cambios")
+    dias, mm = lluvia_dias(max(desde, archivos[0].stem[-10:]), hasta)
     A = np.zeros((len(dias), ny, nx), np.int8)
     for f in archivos:
         d = pd.read_parquet(f)
@@ -108,11 +113,18 @@ def main() -> None:
         res[nombre] = {"factor": mejor[1], "ets": round(mejor[0], 3)}
         print(f"  {nombre}: factor {mejor[1]} (ETS {mejor[0]:.3f})")
     P = json.loads(PARAM.read_text())
-    P["factor_umbral"] = {"amarillo": res["amarillo"]["factor"], "naranja": res["naranja"]["factor"], "rojo": 1.0}   # sin alertas rojas en la muestra: el rojo no se calibra
-    P["historial"].append({"fecha": dt.date.today().isoformat(), "cambio": f"factor_umbral calibrado contra las alertas del SMN ({len(dias)} días, {dias[0]} a {dias[-1]}): "
-                           f"amarillo {res['amarillo']['factor']} (ETS {res['amarillo']['ets']}), naranja {res['naranja']['factor']}; rojo sin calibrar (ETS {res['naranja']['ets']})"})
-    PARAM.write_text(json.dumps(P, ensure_ascii=False, indent=2))
-
+    viejo = P.get("factor_umbral", {"amarillo": 1.0, "naranja": 1.0, "rojo": 1.0})
+    nuevo = {k: round(float(np.clip(viejo[k] + np.clip(res[k]["factor"] - viejo[k], -PASO_MAX, PASO_MAX), 0.1, 1.2)), 2) for k in ("amarillo", "naranja")}
+    nuevo["rojo"] = 1.0   # sin alertas rojas suficientes: el rojo no se calibra
+    if nuevo != {k: viejo.get(k) for k in nuevo}:
+        P["factor_umbral"] = nuevo
+        P["historial"].append({"fecha": dt.date.today().isoformat(), "cambio": f"factor_umbral (calibración semanal contra el SMN, {len(dias)} días hasta {dias[-1]}): "
+                               f"amarillo {viejo.get('amarillo')} → {nuevo['amarillo']} (óptimo {res['amarillo']['factor']}, ETS {res['amarillo']['ets']}); "
+                               f"naranja {viejo.get('naranja')} → {nuevo['naranja']} (óptimo {res['naranja']['factor']}, ETS {res['naranja']['ets']})"})
+        PARAM.write_text(json.dumps(P, ensure_ascii=False, indent=2))
+        print("calibración SMN: factores", nuevo)
+    else:
+        print("calibración SMN: sin cambios", nuevo)
 
 if __name__ == "__main__":
     main()

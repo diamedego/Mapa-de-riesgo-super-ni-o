@@ -71,7 +71,7 @@ jobs:
 
       - name: Identidad en Google Cloud para Earth Engine (cuenta de servicio, sin claves)
         id: google
-        if: steps.tarea.outputs.tarea == 'smn' || steps.tarea.outputs.tarea == 'tiempo'
+        if: steps.tarea.outputs.tarea == 'smn' || steps.tarea.outputs.tarea == 'tiempo' || steps.tarea.outputs.tarea == 'glofas'
         continue-on-error: true
         uses: google-github-actions/auth@v2
         with:
@@ -100,6 +100,11 @@ jobs:
         if: steps.tarea.outputs.tarea == 'tiempo'
         continue-on-error: true
         run: python modelos/verificar_riesgo.py diario
+
+      - name: Calibración semanal de los umbrales de lluvia contra las alertas del SMN
+        if: steps.tarea.outputs.tarea == 'glofas'
+        continue-on-error: true
+        run: python modelos/calibrar_smn.py
 
       - name: Verificación semanal del riesgo (métricas y ajuste prudente de parámetros)
         if: steps.tarea.outputs.tarea == 'glofas'

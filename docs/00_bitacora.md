@@ -914,3 +914,6 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
   amarillo 0,20 (ETS 0,117) y naranja 0,25 (ETS 0,134); rojo sin calibrar (no hubo alertas rojas). Ventana de ±1 día desde
   mañana; 14 días (el 15 quedaba incompleto). Resultado: hoy el modelo coincide con el SMN en 1.395 de 2.038 municipios
   alertados y la evolución baja gradual (1.572 → 369 municipios con color en 13 días). Eje del gráfico día por día fijo en 100 %.
+- 17-nov: la calibración contra el SMN corre sola los lunes en Actions (`modelos/calibrar_smn.py`): últimas 8 semanas de alertas y
+  lluvia ERA5-Land, ≥ 21 días, cambio máximo de 0,05 por semana, registrado en el historial de parámetros. Modo oscuro: los países
+  vecinos, la retícula y el recuadro A se reponen con los colores del tema.
