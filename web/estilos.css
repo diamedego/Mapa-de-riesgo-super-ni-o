@@ -1776,3 +1776,17 @@ body[data-lamina="3"] .lec-1 { display: none; }
 /* Miniaturas: el lugar del máximo en dos líneas si hace falta (sin «…», sin pisar a la miniatura vecina) */
 .mini-pie small { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.3; }
 .mini { min-width: 0; }
+
+/* Simulador: radio y riesgo del lugar en la misma fila (el riesgo, chico: rótulo, valor, nivel y barra de 5 colores con marca) */
+.sim-radio-fila { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: stretch; }
+.sim-radio-fila .lec-radio { margin: 0; }
+.sim-riesgo { display: grid; gap: 4px; align-content: start; min-width: 136px; padding: 8px 12px; border: 1px solid var(--borde-fuerte); }
+.sim-riesgo-l { font: 500 10px/16px var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--tinta-3); white-space: nowrap; }
+.sim-riesgo-v { display: flex; align-items: baseline; gap: 8px; }
+.sim-riesgo-v b { font: 500 20px/1 var(--f-mono); font-variant-numeric: tabular-nums; color: var(--tinta-1); }
+.sim-riesgo-v small { font-size: 12px; color: var(--tinta-2); }
+.sim-riesgo-barra { position: relative; display: flex; height: 6px; margin-top: 4px; }
+.sim-riesgo-barra i { display: block; height: 100%; }
+.sim-riesgo-barra em { position: absolute; top: -4px; width: 2px; height: 14px; margin-left: -1px; background: var(--tinta-1); }
+.sim-radio-fila { grid-template-columns: minmax(0, 1fr) 152px; }
+.sim-radio-fila .sim-riesgo { order: 2; min-width: 0; }

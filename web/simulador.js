@@ -2165,6 +2165,16 @@ function pintarFiltrosSimulador() {
   });
 }
 
+// Riesgo del lugar (el mismo de la lámina 01), chico, al lado del radio: no hace falta volver a la otra solapa para verlo
+function cuadroRiesgoSim() {
+  const R = estado.riesgoVista;
+  if (!R || !Number.isFinite(R.r)) return "";
+  const cortes = [0, ...CORTES, 10], v = limitar(R.r, 0, 10), n = nivelRiesgo(v) || 1;
+  const dia = R.dia ? fmtDia(estado.riesgo.dias[R.dia], { day: "numeric", month: "short" }).replace(".", "") : t("hoy").toLowerCase();
+  return `<div class="sim-riesgo" data-ayuda="${escapar(t("sim_riesgo_ayuda"))}"><span class="sim-riesgo-l">${t("sim_riesgo_t")} · ${escapar(dia)}</span>
+    <span class="sim-riesgo-v"><b>${fmtRiesgo(v)}</b><small>${escapar(nombreNivel(v))}</small></span>
+    <span class="sim-riesgo-barra">${cortes.slice(1).map((c, i) => `<i style="width:${(10 * (c - cortes[i])).toFixed(1)}%;background:var(--r${i + 1})"></i>`).join("")}<em style="left:${(10 * v).toFixed(1)}%"></em></span></div>`;
+}
 function pintarPanelSimulador(d) {
   const panel = document.getElementById("sim-panel");
   const kpiSim = (etq, ayuda) => `<div class="kpi"><span class="kpi-l">${etq}${infoIcono("sim_kpi", ayuda)}</span><span class="kpi-v tb-dato-valor">–</span><span class="kpi-f tb-dato-extra"></span></div>`;
@@ -2176,8 +2186,9 @@ function pintarPanelSimulador(d) {
   enlazarInfo(SIM.kpisEl);
   panel.innerHTML = `
     <div class="sim-lec">
+      <div class="sim-radio-fila">${cuadroRiesgoSim()}
       <div class="lec-radio" id="sim-radio">${estado.sel?.tipo === "punto" ? `<div class="lec-radio-cab"><span class="etq">${t("radio_km")}</span><b id="sim-radio-v">${fmt(estado.sel.km, estado.sel.km % 1 ? 1 : 0)} km</b></div>
-        <input type="range" min="0.5" max="20" step="0.5" value="${estado.sel.km}" aria-label="${t("radio_km")}"><div class="lec-radio-ext"><span>0,5 km</span><span>20 km</span></div>` : ""}</div>
+        <input type="range" min="0.5" max="20" step="0.5" value="${estado.sel.km}" aria-label="${t("radio_km")}"><div class="lec-radio-ext"><span>0,5 km</span><span>20 km</span></div>` : ""}</div></div>
       <div><span class="etq" id="sim-etq"></span><h2 class="titular" id="sim-titular">${t("sim_tit_q")} <span>–</span></h2></div>
       <div class="sim-play">
           <div class="ctrls">

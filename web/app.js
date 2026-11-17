@@ -53,6 +53,7 @@ function pintarKpis() {
   if (C?.cargando) return;   // vuelve a pintarse apenas llegan los radios censales del círculo
   const Z = C ?? analisisRiesgoZona(A.cmus);
   const rV = Math.max(...idx.map((i) => Z.riesgo[i]));
+  estado.riesgoVista = { r: rV, dia: Math.max(...idx) };   // el simulador lo muestra junto al radio
   const altos = C ? [] : A.cmus.filter((c) => Math.max(...idx.map((i) => R.cmu[c].r[i] ?? 0)) >= CORTES[2]);
   const pobAlto = C ? C.pobAlto : sumar(altos.map((c) => Number(estado.porCmu.get(c)?.poblacion) || 0));
   // Habitantes en zona inundable (a menos de 2 m sobre el cauce, por la fracción de cada radio): los que el riesgo del día alcanzaría

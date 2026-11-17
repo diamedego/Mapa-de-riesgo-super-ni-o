@@ -571,6 +571,9 @@ const TEXTOS = {
     sim_exag: (x) => `relieve ×${x}`,
     // Riesgo por día (hoy y los próximos 14)
     conf_aria: "Confianza del pronóstico: alta hasta 2 días, media de 3 a 7 y baja de 8 a 14",
+    // Riesgo por día (hoy y los próximos 14)
+    sim_riesgo_t: "Riesgo",
+    sim_riesgo_ayuda: "El riesgo de inundación del lugar en el día elegido (el mismo de la lámina 01): probabilidad de un evento × impacto. El simulador muestra cuánta agua dejaría una lluvia.",
   },
   en: {
     titulo: "Argentina facing El Niño 2026–27",
@@ -1139,5 +1142,8 @@ const TEXTOS = {
     sim_exag: (x) => `relief ×${x}`,
     // Riesgo por día (hoy y los próximos 14)
     conf_aria: "Forecast confidence: high up to 2 days, medium from 3 to 7, low from 8 to 14",
+    // Riesgo por día (hoy y los próximos 14)
+    sim_riesgo_t: "Risk",
+    sim_riesgo_ayuda: "Flood risk of the place on the chosen day (same as sheet 01): probability of an event × impact. The simulator shows how much water a rain would leave.",
   },
 };
