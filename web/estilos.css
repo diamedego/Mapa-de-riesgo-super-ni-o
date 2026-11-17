@@ -1800,3 +1800,14 @@ body[data-lamina="3"] .lec-1 { display: none; }
   .sim-lec .sim-kpis .kpi, .sim-lec .sim-kpis .kpi:nth-child(n) { grid-column: auto; }
   .sim-lec .sim-kpis .kpi:nth-child(1) { grid-column: 1 / -1; }
 }
+
+/* Evolución en el período: el título arriba, a todo el ancho; abajo el play alineado con la línea de días */
+.lec-arriba .tb-evol { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: start; column-gap: 16px; padding-top: 32px; }
+.lec-arriba .tb-evol .tb-evol-cab { position: absolute; left: 0; top: 0; }
+.lec-arriba .tb-evol .lt-play { margin: 24px 0 0; }
+/* El tiempo en el lugar: ícono arriba a la derecha, valor en su propia línea (sin pisarse), rótulo debajo */
+.lec-arriba .salto { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 12px 12px 12px 12px; min-width: 0; }
+.lec-arriba .salto:first-child { padding-left: 0; }
+.lec-arriba .salto > .ico { position: absolute; top: 12px; right: 12px; }
+.lec-arriba .salto span { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding-right: 32px; }
+.lec-arriba .salto b { font-size: 20px; }

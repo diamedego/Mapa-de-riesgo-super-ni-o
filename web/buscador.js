@@ -179,6 +179,9 @@ const LUGARES_PROPIOS = [
   // en la esquina noreste del barrio Los Mirtillos, sobre el trazado de la RN 9 de OpenStreetMap
   { alias: ["masterbus", "master bus"], nombre: "MasterBus · terminal de micros", detalle: "Ruta Nacional 9, Colectora Sur km 87,5 · Zárate · Buenos Aires", cat: "cat_transporte", punto: [-59.077632, -34.128394], lugar: "zarate" },
   { alias: ["masterbus", "master bus"], nombre: "MasterBus · oficina", detalle: "Doctor Salk 243 · Campana · Buenos Aires", cat: "cat_transporte", punto: [-58.948364, -34.1869741], lugar: "campana" },
+  // Zárate: planta de Toyota Argentina (Ruta 12 km 81, en el cruce con la RN 9). Centro del polígono de OpenStreetMap («Toyota», man_made=works)
+  { alias: ["toyota", "toyota argentina", "planta toyota", "toyota zarate", "toyota planta zarate"], nombre: "Toyota Argentina · Planta Zárate",
+    detalle: "Ruta 12 km 81 · Zárate · Buenos Aires", cat: "cat_industria", punto: [-59.0414729, -34.1368842], lugar: "zarate" },
   // Campana: Camino 014-04 a Capilla del Señor, a 500 m de la RN 9 km 80. Punto del lugar cargado en Waze (no está en OpenStreetMap ni en TomTom)
   { alias: ["toyota boshoku", "boshoku"], nombre: "Toyota Boshoku Argentina", detalle: "Camino a Capilla del Señor (014-04), a 500 m de la RN 9 km 80 · Campana · Buenos Aires", cat: "cat_industria", punto: [-59.002897, -34.169283], lugar: "campana" },
   // Campana: RN 9 km 79,5, Camino Morejón 10. Punto del lugar publicado en near-place.com (ficha de Google del negocio); el punto de la
@@ -226,7 +229,7 @@ function lugaresPropios(texto) {
   const pegado = (a) => a.replace(/[^\p{L}\p{N}]/gu, "").replace(/(\p{L})\1+/gu, "$1");
   return LUGARES_PROPIOS.filter((x) => x.alias.some((a) => { const b = pegado(a); if (q.length < 4) return b === q;   // «YPF», «PAE»: enteros
     return (b.startsWith(q) && q.length >= 0.6 * b.length) || (b.length >= 4 && distanciaEdicion(q, b) <= 2) || (b.length >= 5 && q.length > b.length && distanciaEdicion(q.slice(0, b.length + 1), b) <= 2); }))
-    .map((x) => ({ tipo: "osm", nombre: x.nombre, detalle: x.detalle, cat: x.cat, punto: x.punto, orden: lugar && lugar.clave.includes(x.lugar) ? -1 : 0 }))
+    .map((x) => ({ tipo: "osm", nombre: x.nombre, detalle: x.detalle, cat: x.cat, punto: x.punto, orden: lugar && lugar.clave.includes(x.lugar) ? -1 : 0, alias: x.alias, propio: true }))
     .sort((a, b) => a.orden - b.orden);
 }
 // "Master Bus, Zárate" o "masterbus zarate": separa el nombre buscado del lugar (localidad o partido conocido) que lo acompaña
@@ -345,6 +348,31 @@ async function buscarPhoton(texto, { limite = 8 } = {}) {
     .sort((a, b) => (b.parecido >= 0.5) - (a.parecido >= 0.5) || b.parecido - a.parecido || a.orden - b.orden || (lugar ? a.km - b.km : 0)).slice(0, limite);
 }
 
+// Orden por relevancia, para cualquier búsqueda: (1) cuánto coincide el nombre con lo escrito (exacto, empieza igual, tiene todas las
+// palabras, las tiene sumando el detalle —«san cayetano zarate»—, las contiene) y (2) la importancia del tipo (país y provincias,
+// municipios y plantas o sedes cargadas, localidades, calles, barrios, comercios). Los que solo se parecen por las letras (p. ej.
+// «Loyola» para «toyota») se descartan si hay alguna coincidencia real. Sin lugar ni número escrito, fuera las calles de otras
+// ciudades y los puntos de OpenStreetMap con el mismo nombre que un lugar ya listado.
+function ordenarSugerencias(items, q) {
+  const qn = normalizar(q), pal = qn.split(/\s+/).filter(Boolean), conNumero = /\d/.test(q);
+  const palabrasDe = (txt) => normalizar(txt ?? "").split(/[\s,·\-\/().]+/).filter(Boolean);
+  const coincide = (x) => {
+    if (["pais", "coords", "buscar"].includes(x.tipo)) return -1;
+    const n = normalizar(x.nombre ?? ""), pn = palabrasDe(x.nombre), pd = [...pn, ...palabrasDe(x.detalle)];
+    const prefijo = (lista) => pal.every((w) => lista.some((p) => p.startsWith(w)));
+    if (x.propio && (x.alias ?? []).some((al) => normalizar(al) === qn)) return 0;   // cargados a mano: por su nombre
+    return n === qn || n.startsWith(qn) ? 0 : prefijo(pn) ? 2 : prefijo(pd) ? 3 : n.includes(qn) ? 4 : 9;
+  };
+  const peso = (x) => x.propio ? 0 : x.tipo === "lugar" ? ({ prov: 0.5, depto: 2, gl: 1, loc: 3 }[x.lugar?.nivel] ?? 2) : x.tipo === "calle" ? 3
+    : x.cat === "cat_industria" || x.cat === "cat_edificio" || x.cat === "cat_transporte" && x.lugar ? 1 : x.cat === "cat_barrio" ? 4 : x.cat === "cat_lugar" ? 4 : x.cat === "cat_calle" ? 5 : 5;
+  const conPuntaje = items.map((x, i) => ({ x, i, c: coincide(x), p: peso(x) }));
+  const hayReal = conPuntaje.some((o) => o.c >= 0 && o.c < 9), hayLugar = items.some((x) => x.tipo === "lugar");
+  const mismoLugar = (o) => items.some((x) => x.tipo === "lugar" && normalizar(x.nombre) === normalizar(o.nombre ?? ""));
+  return conPuntaje
+    .filter((o) => !(hayReal && o.c === 9))
+    .filter((o) => conNumero || !hayLugar || o.x.tipo !== "osm" || (o.x.cat !== "cat_calle" && !(/^cat_lugar/.test(o.x.cat ?? "") && mismoLugar(o.x))))
+    .sort((a, b) => a.c - b.c || a.p - b.p || a.i - b.i).map((o) => o.x);
+}
 async function sugerenciasLibres(texto) {
   const q = texto.trim(), items = [];
   if (q.length < 2) return items;
@@ -357,7 +385,7 @@ async function sugerenciasLibres(texto) {
   // Localidades, partidos y provincias propios (solo si el texto no parece una dirección con número)
   if (!/\d/.test(q) && !q.includes(",")) {
     for (const nivel of ["localidad", "partido", "provincia"]) for (const l of candidatos(nivel, q).slice(0, nivel === "localidad" ? 2 : 1)) {
-      if (!items.some((x) => x.lugar?.clave === l.clave && x.lugar?.provincia === l.provincia)) items.push({ tipo: "lugar", nivel, lugar: l, nombre: l.nombre, detalle: `${l.tipo}${l.nivel === "prov" ? "" : ` · ${l.provincia}`}` });
+      if (!items.some((x) => x.lugar?.clave === l.clave && x.lugar?.provincia === l.provincia && x.lugar?.nivel === l.nivel)) items.push({ tipo: "lugar", nivel, lugar: l, nombre: l.nombre, detalle: `${l.tipo}${l.nivel === "prov" ? "" : ` · ${l.provincia}`}` });
     }
   }
   // Calles del callejero propio, si ya hay localidad o partido elegido
@@ -379,17 +407,7 @@ async function sugerenciasLibres(texto) {
     await demora(260);
     if (v === photonVersion) items.push(...(await buscarPhoton(q).catch(() => [])).filter((o) => !propios.some((p) => distanciaKm(p.punto, o.punto) < 0.2)));
   }
-  // Menos ruido cuando el texto ya nombra un lugar (municipio, localidad, partido): primero los lugares; fuera los barrios que solo se
-  // parecen por las letras (p. ej. «Tortosa» para «totora»), las calles de otras ciudades (sin número ni zona elegida) y los puntos de
-  // OpenStreetMap con el mismo nombre que un lugar ya listado
-  const hayLugar = items.some((x) => x.tipo === "lugar");
-  const mismoLugar = (o) => items.some((x) => x.tipo === "lugar" && normalizar(x.nombre) === normalizar(o.nombre ?? ""));
-  const contiene = (x) => normalizar(x.nombre ?? "").includes(qn);
-  return items.filter((x) => {
-    if (!hayLugar || x.tipo !== "osm" || /\d/.test(q)) return true;
-    if (x.cat === "cat_barrio") return contiene(x);                    // barrios: solo si el nombre contiene lo escrito
-    return x.cat !== "cat_calle" && x.cat !== "cat_lugar" && !mismoLugar(x);   // sin calles de otras ciudades ni lugares repetidos
-  }).slice(0, 10);
+  return ordenarSugerencias(items, q).slice(0, 10);
 }
 
 function autocompletarDireccion(input) {
