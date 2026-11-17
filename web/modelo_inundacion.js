@@ -399,6 +399,14 @@ function grillaModelo(d) {
   const celdaDe = (i) => { const x = Math.floor(((i % W) - bx0) / f), y = Math.floor((((i / W) | 0) - by0) / f); return x >= 0 && y >= 0 && x < nx && y < ny ? y * nx + x : -1; };
   // Agua del mapa base separada en lagunas (guardan) y ríos/mar (nivel fijo)
   const capa = rasterizarAgua(d, aPx, bx0, by0, f, nx, ny);
+  // Agua permanente vista por el radar (lagunas que el mapa base no tiene): cuenta como laguna si cubre la mitad de la celda o más,
+  // así el modelo la llena primero y la desborda por su borde más bajo, igual que a las lagunas dibujadas
+  if (d.aguaPerm && d.radarFino) for (let y = 0; y < ny; y++) for (let x = 0; x < nx; x++) {
+    let n = 0;
+    for (let yy = 0; yy < f; yy++) for (let xx = 0; xx < f; xx++) n += d.aguaPerm[(by0 + y * f + yy) * W + bx0 + x * f + xx];
+    const c = y * nx + x;
+    if (n / (f * f) >= 0.5) capa.lago[c] = Math.max(capa.lago[c], 0.51);
+  }
   for (let y = 0; y < ny; y++) for (let x = 0; x < nx; x++) {
     let suma = 0, n = 0;
     for (let yy = 0; yy < f; yy++) for (let xx = 0; xx < f; xx++) { suma += D.h[(by0 + y * f + yy) * W + bx0 + x * f + xx]; n++; }

@@ -650,10 +650,11 @@ async function prepararSimulacion(s) {
   agregarAguaAlMapa(D);
   pintarPanelSimulador(SIM.datos);
   elegirVistaSimulador("maqueta");   // solo maqueta 3D (el mapa 2D queda debajo y es el respaldo si el navegador no puede con WebGL)
-  iniciarEscenario();   // al abrir: condiciones de hoy y sin lluvia (la maqueta queda seca, como en la imagen satelital)
-  // Agua que ve hoy el radar: se suma al agua permanente del dibujo (lagunas que el mapa base no tiene)
+  // Agua que ve hoy el radar (lagunas que el mapa base no tiene): se pide antes del escenario, que la espera (hasta 3 s) para usarla como laguna
   const dd = SIM.datos;
-  aguaRadar(dd).then((r) => { if (r && SIM.datos === dd) { dd.radarFino = r; dd.aguaPerm = null; SIM.mapaSucio = true; if (SIM.maqueta) { SIM.maqueta.claveCharcos = null; actualizarMaqueta(); } dibujarAgua(); } }).catch(() => {});
+  // Si el radar llega después de armar el escenario, se recalcula con esas lagunas
+  dd.radarProm = aguaRadar(dd).then((r) => { if (r && SIM.datos === dd) { dd.radarFino = r; dd.aguaPerm = null; SIM.mapaSucio = true; if (SIM.modelo?.escenario && !SIM.modelo.conRadar && !SIM.modelo.corriendo) simularEscenario(true); if (SIM.maqueta) { SIM.maqueta.claveCharcos = null; actualizarMaqueta(); } dibujarAgua(); } }).catch(() => {});
+  iniciarEscenario();   // al abrir: condiciones de hoy y sin lluvia (la maqueta queda seca, como en la imagen satelital)
 }
 
 // Ríos, lagunas y embalses del mapa base, rasterizados a la grilla del relieve
@@ -716,7 +717,11 @@ async function simularEscenario(alInicio = false) {
   const met = { horas: Array.from({ length: n }, (_, k) => t0 + k * 3600e3), lluvia: new Array(n).fill(0), et0: new Array(n).fill(et0), tipo: new Array(n).fill(2), theta0: E.theta };
   (E.perfil?.length === E.horas ? E.perfil : repartoTormenta(E.horas)).forEach((f, j) => { met.lluvia[2 + j] = E.mm * f; });   // la tormenta real (o su forma) o pareja
   M.hoy = 0;
+  await Promise.race([d.radarProm, new Promise((r) => setTimeout(r, 6000))]);   // el agua del radar entra como laguna (hasta 6 s)
+  if (SIM.modelo !== M) return;
+  d.aguaPerm ??= mascaraAguaPermanente(d);
   const g = grillaModelo(d);   // celdas de ~30 m, las mismas para cualquier radio (el agua se dibuja sobre el relieve fino)
+  M.conRadar = !!d.radarFino;
   await prepararCorrida(M, d, g, met);
   if (SIM.modelo !== M) return;
   if (alInicio) {   // sin las lagunas de la corrida anterior: se vuelve enseguida a la maqueta seca
@@ -818,6 +823,8 @@ function mascaraAguaPermanente(d) {
   const m = L.leer(), out = new Uint8Array(D.W * D.H);
   for (let i = 0; i < out.length; i++) out[i] = m[i] >= 0.5 ? 1 : 0;
   const R = d.radarFino;
+  // Agua histórica: donde hubo agua al menos el 10 % de las observaciones de 1984-2021 (lagunas permanentes y temporarias)
+  if (R?.jrc) for (let i = 0; i < out.length; i++) if (R.jrc[4 * i + 3] > 0 && R.jrc[4 * i] >= 26) out[i] = 1;
   if (R) {   // radar: un píxel cuenta si la mayoría de sus 3 × 3 vecinos también es agua (saca el ruido del radar, granos sueltos)
     const W = D.W, ag = (i) => (R.px[4 * i + 3] > 0 && R.px[4 * i] > 127 ? 1 : 0);
     for (let y = 1; y < D.H - 1; y++) for (let x = 1; x < W - 1; x++) {
@@ -1930,20 +1937,26 @@ function elegirModoSim(modo) {
 }
 // Agua del radar en la zona del relieve (mismas teselas y zoom, píxel a píxel): rojo = agua, verde = días desde la pasada × 20
 let cargaRadarAgua = null;
-async function aguaRadar(d) {
-  const R = await (cargaRadarAgua ??= fetch("datos/radar_agua.json").then((r) => (r.ok ? r.json() : null)).catch(() => null));
-  if (!R?.url) return null;
-  const D = d.D, nTx = Math.ceil(D.W / 256), nTy = Math.ceil(D.H / 256);
+// Teselas de un mapa de Earth Engine en la zona del relieve (mismas teselas y zoom, píxel a píxel)
+async function teselasEE(url, D) {
+  const nTx = Math.ceil(D.W / 256), nTy = Math.ceil(D.H / 256);
   const cv = new OffscreenCanvas(nTx * 256, nTy * 256), c = cv.getContext("2d", { willReadFrequently: true });
   let ok = 0;
   await Promise.all(Array.from({ length: nTx * nTy }, async (_, k) => {
     const tx = D.tx0 + (k % nTx), ty = D.ty0 + Math.floor(k / nTx);
-    const b = await fetch(R.url.replace("{z}", D.z).replace("{x}", tx).replace("{y}", ty)).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+    const b = await fetch(url.replace("{z}", D.z).replace("{x}", tx).replace("{y}", ty)).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
     if (!b) return;
     c.drawImage(await createImageBitmap(b), (k % nTx) * 256, Math.floor(k / nTx) * 256);
     ok++;
   }));
-  return ok ? { px: c.getImageData(0, 0, D.W, D.H).data, W: D.W, generado: R.generado } : null;
+  return ok ? c.getImageData(0, 0, D.W, D.H).data : null;
+}
+// Agua del radar de hoy (rojo = agua, verde = días desde la pasada × 20) y agua histórica JRC 1984-2021 (rojo = % del tiempo con agua)
+async function aguaRadar(d) {
+  const R = await (cargaRadarAgua ??= fetch("datos/radar_agua.json").then((r) => (r.ok ? r.json() : null)).catch(() => null));
+  if (!R?.url) return null;
+  const [px, jrc] = await Promise.all([teselasEE(R.url, d.D), R.jrc_url ? teselasEE(R.jrc_url, d.D) : null]);
+  return px || jrc ? { px: px ?? new Uint8ClampedArray(d.D.W * d.D.H * 4), jrc, W: d.D.W, generado: R.generado } : null;
 }
 // Por celda del modelo: fracción con agua y días desde la pasada (mediana del círculo)
 function radarEnGrilla(rad, g) {
@@ -2033,6 +2046,8 @@ async function simularPronostico(variante) {
   bloquearControles(true);
   avisoProgreso(t("pron_calculando"));
   M.hoy = hoy;
+  await Promise.race([d.radarProm, new Promise((r) => setTimeout(r, 6000))]);
+  d.aguaPerm ??= mascaraAguaPermanente(d);
   const g = grillaModelo(d);
   await prepararCorrida(M, d, g, met);
   if (SIM.modelo !== M) return;

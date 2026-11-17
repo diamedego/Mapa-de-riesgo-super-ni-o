@@ -50,8 +50,13 @@ def mapa() -> dict:
     agua = ultimo.select("VV").lt(UMBRAL_DB).And(permanente.Not()).rename("agua")
     rgb = ee.Image.cat([agua, ultimo.select("dias"), ee.Image.constant(0).rename("b")]).updateMask(ultimo.select("VV").mask())
     vis = rgb.visualize(bands=["agua", "dias", "b"], min=[0, 0, 0], max=[1, 12.75, 1])
-    return {"url": vis.getMapId({})["tile_fetcher"].url_format, "generado": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"),
-            "ventana_dias": VENTANA_DIAS, "umbral_db": UMBRAL_DB, "codificacion": "rojo 255 = agua; verde = días desde la pasada × 20; transparente = sin pasada"}
+    # Agua histórica (JRC Global Surface Water 1984-2021): en qué % de las observaciones hubo agua en cada píxel de 30 m. Marca las
+    # lagunas permanentes y las temporarias (donde el agua se junta seguido), que el radar de hoy no ve si están secas o vegetadas
+    occ = ee.Image("JRC/GSW1_4/GlobalSurfaceWater").select("occurrence").unmask(0)
+    jrc = occ.visualize(min=0, max=100, palette=["000000", "ff0000"]).updateMask(occ.gt(0))
+    return {"url": vis.getMapId({})["tile_fetcher"].url_format, "jrc_url": jrc.getMapId({})["tile_fetcher"].url_format, "generado": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"),
+            "ventana_dias": VENTANA_DIAS, "umbral_db": UMBRAL_DB, "codificacion": "rojo 255 = agua; verde = días desde la pasada × 20; transparente = sin pasada",
+            "jrc_codificacion": "rojo = % de las observaciones 1984-2021 con agua (0-255 = 0-100 %); transparente = nunca"}
 
 
 if __name__ == "__main__":
