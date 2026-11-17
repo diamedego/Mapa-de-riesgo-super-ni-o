@@ -14,11 +14,12 @@ const SIM = { mapa: null, mm: 0, reproduciendo: 0, datos: null,
   capas: { colores: true, curvas: true, drenaje: true, cortes: false, flujo: true, corte: true, x5: false, refs3d: true }, vista: "mapa", maqueta: null,
   modelo: null, desague: 10, crecida: 0, tormenta: { mm: 0, horas: 3 }, velocidad: 1 };   // desagües pluviales supuestos: 10 mm/h en superficies impermeables (no hay datos)
 const AGUA_MIN = 0.1;   // desde 10 cm se cuenta como zona con agua (superficie, personas)
-const AGUA_VER = 0.02;  // se dibuja desde 2 cm, en celeste claro: así se ve dónde se junta el agua antes de ser profunda
+const AGUA_VER = 0.05;  // se dibuja desde 5 cm (menos es solo suelo mojado)
 const CORTE = 0.3;      // desde 30 cm una calle queda cortada para un auto (el agua en movimiento lo puede arrastrar)
 const TERRARIUM = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
 // Agua: de celeste translúcido a azul profundo. Altura: del verde azulado de los bajos al marrón de las lomas.
-const COLOR_AGUA = [[0.02, [110, 198, 252, 0.58]], [0.05, [78, 178, 248, 0.66]], [0.1, [54, 158, 242, 0.74]], [0.3, [56, 170, 235, 0.65]], [0.6, [30, 120, 210, 0.76]], [1, [22, 82, 180, 0.84]], [1.5, [14, 50, 130, 0.9]]];
+// Escala del agua: cada escalón más oscuro y más opaco que el anterior (de celeste a azul marino)
+const COLOR_AGUA = [[0.05, [158, 207, 240, 0.6]], [0.15, [110, 176, 230, 0.68]], [0.3, [70, 145, 215, 0.74]], [0.6, [40, 110, 195, 0.8]], [1, [25, 75, 165, 0.86]], [2, [14, 45, 120, 0.92]]];
 const COLOR_ALTURA = [[0, [38, 120, 120, 0.6]], [0.25, [92, 160, 110, 0.6]], [0.5, [180, 196, 120, 0.6]], [0.75, [205, 170, 110, 0.6]], [1, [170, 120, 80, 0.6]]];
 const CAPAS_SIM = ["flujo", "corte"];
 
@@ -1741,7 +1742,10 @@ function pintarCorte() {
   // Misma escala horizontal y mismo ancho que el mapa topográfico de abajo: cada punto del corte queda arriba del mismo punto del mapa
   const T = curvasTopo(d), ancho = Math.min(cont.clientWidth || 300, 360), esc = ancho / Math.max(T.nx, T.ny);
   const alto = 130, n = perfil.length, base = alto - 20, izq = 0, der = 0;
-  const lo = Math.floor(Math.min(...perfil.map((p) => p[0])) - 1), hi = Math.ceil(Math.max(...perfil.map((p) => p[0] + p[1])) + 1);
+  // Exageración vertical fija (×50): antes el desnivel se estiraba hasta llenar el alto y una llanura parecía una sierra
+  const EXAG = 50, mPx = (d.metrosPx * T.p) / esc, span = Math.max(4, ((base - 16) * mPx) / EXAG);
+  const zMin = Math.min(...perfil.map((p) => p[0])), zMax = Math.max(...perfil.map((p) => p[0] + p[1]));
+  const lo = Math.floor(zMin - 1), hi = Math.max(Math.ceil(zMax + 1), Math.ceil(lo + span));
   const paso = esc / T.p;
   const sx = (k) => ((xs[k] - T.x0 + 0.5) / T.p) * esc, sy = (v) => 16 + (1 - (v - lo) / (hi - lo)) * (base - 16);
   const suelo = perfil.map((p, k) => `${k ? "L" : "M"}${sx(k).toFixed(1)},${sy(p[0]).toFixed(1)}`).join("") + `L${sx(n - 1).toFixed(1)},${base}L${sx(0).toFixed(1)},${base}Z`;
@@ -1755,6 +1759,7 @@ function pintarCorte() {
       <path d="${suelo}" class="sim-suelo"/><g class="sim-agua-corte">${agua}</g>
       <text class="eje" x="2" y="${sy(hi) - 4}">${fmt(hi)} m</text>
       <text class="eje" x="2" y="${sy(lo) + 12}">${fmt(lo)} m</text>
+      <text class="eje" x="${ancho - 2}" y="${sy(hi) - 4}" text-anchor="end">${t("sim_exag")(hi - lo > ((base - 16) * mPx) / EXAG + 0.5 ? fmt(((base - 16) * mPx) / (hi - lo)) : EXAG)}</text>
       <text class="eje" x="${sx(0)}" y="${alto - 4}">${t("sim_oeste")}</text>
       <text class="eje" x="${sx(n - 1)}" y="${alto - 4}" text-anchor="end">${t("sim_este")} · ${fmt(km, 1)} km</text></svg>`;
   document.getElementById("sim-ver-corte").onclick = verCorteEn3D;
@@ -1798,14 +1803,19 @@ function pintarTopografico(cont) {
   c.scale(devicePixelRatio, devicePixelRatio);
   c.fillStyle = oscuro ? "#141c22" : "#fbfaf6"; c.fillRect(0, 0, lado, lado);
   // Agua de la hora (en cada celda de la grilla, la profundidad en su centro)
+  // (se pinta en una imagen chica, una celda por píxel, y se agranda con suavizado: bordes redondeados, sin cuadraditos)
+  const chica = new OffscreenCanvas(T.nx, T.ny), cc = chica.getContext("2d"), im = cc.createImageData(T.nx, T.ny);
   for (let gy = 0; gy < T.ny; gy++) for (let gx = 0; gx < T.nx; gx++) {
     const i = (T.y0 + gy * T.p) * d.D.W + T.x0 + gx * T.p;
     if (!d.circulo[i]) continue;
     const prof = d.dentro[i] ? aguaFina(i) : 1;   // ríos y lagunas, siempre agua
-    if (prof < AGUA_MIN) continue;
-    c.fillStyle = rgba(colorEscala(COLOR_AGUA, prof), d.dentro[i] ? 0.9 : 0.55);
-    c.fillRect(gx * esc, gy * esc, esc + 0.5, esc + 0.5);
+    if (prof < AGUA_VER) continue;
+    const col = colorEscala(COLOR_AGUA, prof), o = 4 * (gy * T.nx + gx);
+    im.data[o] = col[0]; im.data[o + 1] = col[1]; im.data[o + 2] = col[2]; im.data[o + 3] = (d.dentro[i] ? 0.9 : 0.55) * 255;
   }
+  cc.putImageData(im, 0, 0);
+  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  c.drawImage(chica, 0, 0, T.nx * esc, T.ny * esc);
   // Curvas: finas cada intervalo, gruesas cada cinco (con su altura)
   const etiquetas = [];
   for (const { L, mayor, lista } of T.segs) {
