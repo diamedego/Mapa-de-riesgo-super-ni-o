@@ -309,10 +309,11 @@ function opcionesNino() {
   const H = SIM.hist?.H, E = SIM.esc, peor = SIM.hist?.peor?.temporada;
   if (!H?.ninos.length) return "";
   const fecha = (iso) => new Date(`${iso}T12:00:00-03:00`).toLocaleDateString(loc(), { day: "numeric", month: "short", year: "numeric" });
-  return `<option value="">${t(E.forma && !E.nino ? "sim_nino_forma" : "sim_nino_propio")(E.forma ?? "")}</option>` + H.ninos.filter((x) => x.completo).reverse().map((n) => {
+  // Mientras no se elige nada, el desplegable invita a elegir (el Niño cargado se dice abajo, en la línea del peor)
+  return `<option value="">${E.tocado ? t(E.forma && !E.nino ? "sim_nino_forma" : "sim_nino_propio")(E.forma ?? "") : t("sim_nino_elegir")}</option>` + H.ninos.filter((x) => x.completo).reverse().map((n) => {
     const ev = n.evento, rt = rioTormenta(n), rio = SIM.hist.est ? ` · ${rt ? t("sim_rio_tormenta_c")(fmt(rt.max, 2), rt.max >= SIM.hist.est.ref) : t("sim_rio_sin_dato_c")}` : "";
     const txt = ev ? `${n.temporada} · ${t(`int_${n.intensidad}`)} · ${t("sim_mm_en_3d")(fmt(ev.horaria?.total ?? ev.total))} · ${fecha(ev.dias[0])}${rio}` : `${n.temporada} · ${t("sin_dato")}`;
-    return `<option value="${n.temporada}"${E.nino === n.temporada ? " selected" : ""}${ev ? "" : " disabled"}${n.temporada === peor ? ' class="peor"' : ""}>${n.temporada === peor ? "▲ " : ""}${txt}</option>`;
+    return `<option value="${n.temporada}"${E.tocado && E.nino === n.temporada ? " selected" : ""}${ev ? "" : " disabled"}${n.temporada === peor ? ' class="peor"' : ""}>${n.temporada === peor ? "▲ " : ""}${txt}</option>`;
   }).join("");
 }
 function pintarPeorLinea() {
@@ -2186,7 +2187,6 @@ function pintarPanelSimulador(d) {
         <div class="esc" id="sim-esc"><p class="sim-hint">${t("sim_hist_cargando")}</p></div></div>
         <div id="sim-modo-pronostico" class="pron"${SIM.modoSim === "pronostico" ? "" : " hidden"}></div>
         <p class="sim-hint" id="sim-hint" hidden>${t("sim_hint")}</p></div>
-      <div class="lec-pie" id="sim-pie"></div>
     </div>
     <div class="sim-mas">
     <div class="sim-corte" id="sim-corte" hidden></div>
@@ -2196,6 +2196,7 @@ function pintarPanelSimulador(d) {
     <div class="sim-ant" id="sim-ant"></div>
     <div class="sim-ninos" id="sim-ninos"></div>
     <details class="sim-metodo"><summary>${t("sim_como")}</summary><p>${t("sim_metodo")}</p><p id="sim-supuestos"></p></details>
+    <div class="lec-pie" id="sim-pie"></div>
     </div>`;
   const barra = document.getElementById("sim-barra");
   barra.oninput = () => { const Mo = SIM.modelo; if (!Mo?.frames.length) return; detenerAnimaciones(); Mo.siguiendo = false; Mo.seco = false; Mo.hora = limitar(Number(barra.value), Mo.hoy, Mo.frames.length - 1); mostrarHora(); };
@@ -2364,6 +2365,7 @@ function actualizarNumeros() {
   if (sup) sup.textContent = `${t(d.D.fuente === "fabdem" ? "sim_terreno_fabdem" : "sim_terreno_aws")} ` + t("sim_supuestos")(Mo.suelo.nombre, Mo.suelo.supuesto, SIM.desague, fmt(Mo.g.dx), Mo.cuenta ? fmt(100 * Mo.cuenta.infiltrada / Math.max(1, Mo.cuenta.lluvia)) : "…")
     + ` ${usoDelSuelo(Mo.g)}`;
   pintarCorte();
+  caja.querySelectorAll(".sim-datos .tb-dato-valor").forEach((v) => v.classList.toggle("texto", !/\d/.test(v.textContent)));   // «Sin información»: en letra de texto
 }
 function actualizarSimulador() { mostrarHora(); }
 

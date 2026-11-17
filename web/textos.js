@@ -565,6 +565,8 @@ const TEXTOS = {
     // Riesgo por día (hoy y los próximos 14)
     copiar: "Copiar",
     copiado: "Copiado ✓",
+    // Riesgo por día (hoy y los próximos 14)
+    sim_nino_elegir: "Elegir tipo de Niño",
   },
   en: {
     titulo: "Argentina facing El Niño 2026–27",
@@ -1127,5 +1129,7 @@ const TEXTOS = {
     // Riesgo por día (hoy y los próximos 14)
     copiar: "Copy",
     copiado: "Copied ✓",
+    // Riesgo por día (hoy y los próximos 14)
+    sim_nino_elegir: "Choose an El Niño year",
   },
 };
