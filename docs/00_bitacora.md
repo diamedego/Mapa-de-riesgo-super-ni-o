@@ -908,3 +908,9 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
 - 17-nov: sin «Desde / Hasta» sobre el mapa. Lluvia con ventana de ±1 día desde el día 3 (a más plazo el ensamble no coincide en el
   día exacto: antes los días 7-14 quedaban casi verdes aunque el ensamble viera tormentas); banda de confianza bajo la línea de
   días (alta 0-2, media 3-7, baja 8-14).
+- 17-nov: salto entre hoy y mañana en el riesgo (hoy 45 % del país con color por las alertas del SMN; desde mañana casi todo
+  verde). Causa: el ensamble suaviza las tormentas; de 1.656 municipios con alerta amarilla, el modelo veía 184. Calibración contra
+  las alertas del SMN (`modelos/calibrar_smn.py`, 43 días de alertas archivadas + lluvia ERA5-Land): factor sobre los umbrales
+  amarillo 0,20 (ETS 0,117) y naranja 0,25 (ETS 0,134); rojo sin calibrar (no hubo alertas rojas). Ventana de ±1 día desde
+  mañana; 14 días (el 15 quedaba incompleto). Resultado: hoy el modelo coincide con el SMN en 1.395 de 2.038 municipios
+  alertados y la evolución baja gradual (1.572 → 369 municipios con color en 13 días). Eje del gráfico día por día fijo en 100 %.

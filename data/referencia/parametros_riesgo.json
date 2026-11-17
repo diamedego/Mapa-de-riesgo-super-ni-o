@@ -1,7 +1,21 @@
 {
-  "p_umbral": 0.30,
+  "p_umbral": 0.3,
   "persistencia_rio_dias": 3,
   "factor_suelo": 0.25,
-  "factor_terreno": 0.20,
-  "historial": [{"fecha": "2026-11-17", "cambio": "valores iniciales (EFAS: 30 %; persistencia 3 días; suelo 25 %; terreno 20 %)"}]
+  "factor_terreno": 0.2,
+  "historial": [
+    {
+      "fecha": "2026-11-17",
+      "cambio": "valores iniciales (EFAS: 30 %; persistencia 3 días; suelo 25 %; terreno 20 %)"
+    },
+    {
+      "fecha": "2026-11-17",
+      "cambio": "factor_umbral calibrado contra las alertas del SMN (43 días, 2026-09-28 a 2026-11-09): amarillo 0.2 (ETS 0.117), naranja y rojo 0.25 (ETS 0.134); rojo sin calibrar (1,0): no hubo alertas rojas en la muestra"
+    }
+  ],
+  "factor_umbral": {
+    "amarillo": 0.2,
+    "naranja": 0.25,
+    "rojo": 1.0
+  }
 }
