@@ -78,7 +78,22 @@ function agregarGrilla(antes) {
   mapa.addSource("riesgo-grilla", { type: "canvas", canvas: cv, animate: false, coordinates: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]] });
   mapa.addLayer({ id: "riesgo-grilla", type: "raster", source: "riesgo-grilla",
     paint: { "raster-opacity": ["interpolate", ["linear"], ["zoom"], 5.5, 0, 6.5, 0.86, 9.6, 0.86, 10.2, 0], "raster-resampling": "linear", "raster-fade-duration": 0 } }, antes);
-  fetch("datos/riesgo_grilla.bin", { cache: "no-cache" }).then((r) => (r.ok ? r.arrayBuffer() : null)).then((b) => { if (b) { grillaBytes = new Uint8Array(b); dibujarGrilla(); } }).catch(() => {});
+  fetch("datos/riesgo_grilla.bin", { cache: "no-cache" }).then((r) => (r.ok ? r.arrayBuffer() : null)).then((b) => { if (b) { grillaBytes = new Uint8Array(b); dibujarGrilla(); riesgoRadios(estado.radios ?? []); mapa.getSource("radios")?.setData({ type: "FeatureCollection", features: estado.radios ?? [] }); if (typeof pintarKpis === "function") pintarKpis(); } }).catch(() => {});
+}
+// Riesgo de la grilla en un punto y un día (el mismo valor interpolado que se ve en el mapa); null si no hay grilla
+function valorGrilla([lon, lat], d) {
+  const G = estado.riesgo?.grilla;
+  if (!G || !grillaBytes) return null;
+  const o = (d + (estado.riesgo.k0 ?? 0)) * G.ancho * G.alto;
+  if (o + G.ancho * G.alto > grillaBytes.length) return null;
+  const fi = (G.norte - lat) / G.paso - 0.5, fj = (lon - G.oeste) / G.paso - 0.5;
+  const i0 = Math.max(0, Math.min(G.alto - 2, Math.floor(fi))), j0 = Math.max(0, Math.min(G.ancho - 2, Math.floor(fj))), ti = limitar(fi - i0, 0, 1), tj = limitar(fj - j0, 0, 1);
+  let s = 0, w = 0;
+  for (const [di, dj, ww] of [[0, 0, (1 - ti) * (1 - tj)], [1, 0, ti * (1 - tj)], [0, 1, (1 - ti) * tj], [1, 1, ti * tj]]) {
+    const x = grillaBytes[o + (i0 + di) * G.ancho + j0 + dj];
+    if (x !== 255 && ww > 0) { s += (x / G.escala) * ww; w += ww; }
+  }
+  return w >= 0.05 ? Math.round((s / w) * 10) / 10 : null;
 }
 function dibujarGrilla() {
   const G = estado.riesgo.grilla, cv = estado.lienzoGrilla;
@@ -686,7 +701,9 @@ function riesgoRadios(features) {
     if (!d) return;
     const expuesto = (Number(f.properties.pct_area_hand_2m) || 0) >= 10;
     estado.riesgo.dias.forEach((m, i) => {
-      f.properties[`r_${m}`] = expuesto ? d.r[i] : riesgoMatriz(d.n[i] ?? 0, 1, d.n[i] ? d.prob[i] ?? 0 : 0);
+      // Con la grilla: el valor de la celda en el centro del radio (lo mismo que muestran las manchas); sin ella, el del municipio
+      const g = valorGrilla(f.properties._c, i);
+      f.properties[`r_${m}`] = g ?? (expuesto ? d.r[i] : riesgoMatriz(d.n[i] ?? 0, 1, d.n[i] ? d.prob[i] ?? 0 : 0));
     });
   });
 }

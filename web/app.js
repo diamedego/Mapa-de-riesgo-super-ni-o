@@ -35,7 +35,9 @@ function circuloKpis(s) {
   const clave = `${s.punto}|${s.km}`;
   if (!dentro.length) {
     if (pedidoRadiosKpi !== clave) { pedidoRadiosKpi = clave; cargarRadiosEn(cajaCirculo(s.punto, s.km)).then(() => { if (estado.sel === s) pintarKpis(); }); return { cargando: true }; }
-    return null;   // sin radios censales en el lugar (zona rural sin datos): queda el municipio
+    // Sin radios censales en el lugar: el riesgo de la grilla en el punto (lo que se ve en el mapa), o el del municipio si no hay grilla
+    const g = estado.riesgo.dias.map((_, i) => valorGrilla(s.punto, i));
+    return g.every((v) => v != null) ? { n: 0, poblacion: 0, altos: 0, pobAlto: 0, expuestos: 0, riesgo: g } : null;
   }
   const props = dentro.map((f) => f.properties), pob = props.map((p) => Number(p.poblacion) || 0), peso = pob.map((v) => Math.max(1, v)), total = sumar(peso);
   const rVista = props.map((p) => Math.max(...idx.map((i) => Number(p[`r_${M[i]}`]) || 0)));
