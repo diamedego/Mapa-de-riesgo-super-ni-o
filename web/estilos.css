@@ -75,6 +75,7 @@
   --mapa-texto: #f1f6fb; --mapa-halo-texto: rgba(5, 11, 16, 0.92);
   --linea-paises: #b4c0bc; --mini-tierra: #172331; --mini-borde: rgba(255, 255, 255, 0.32); --tinta-calor: #0b1118;
   --sombra-2: 5px 5px 0 rgba(0, 0, 0, 0.5);
+  --bordo: #f3a0ad; --bordo-fondo: rgba(243, 160, 173, 0.12);   /* (faltaban: con el botón quedaban los del tema claro) */
 }
 
 /* ---------- Base ---------- */
