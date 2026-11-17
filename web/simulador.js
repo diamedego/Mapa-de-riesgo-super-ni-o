@@ -1733,15 +1733,17 @@ function pintarCorte() {
   if (!cont) return;
   cont.hidden = !SIM.capas.corte || !d;
   if (cont.hidden) return;
-  const perfil = filaCorte(d).map((x) => {
+  const xs = filaCorte(d), perfil = xs.map((x) => {
     const i = d.filaCorte * d.D.W + x;
     return [d.hs[i], aguaFina(i)];
   });
   if (perfil.length < 4) { cont.innerHTML = `<p class="sim-corte-titulo">${t("sim_corte_ayuda")}</p>`; return; }
-  const ancho = Math.max(240, cont.clientWidth), alto = 130, n = perfil.length, izq = 44, der = 6, base = alto - 20;
+  // Misma escala horizontal y mismo ancho que el mapa topográfico de abajo: cada punto del corte queda arriba del mismo punto del mapa
+  const T = curvasTopo(d), ancho = Math.min(cont.clientWidth || 300, 360), esc = ancho / Math.max(T.nx, T.ny);
+  const alto = 130, n = perfil.length, base = alto - 20, izq = 0, der = 0;
   const lo = Math.floor(Math.min(...perfil.map((p) => p[0])) - 1), hi = Math.ceil(Math.max(...perfil.map((p) => p[0] + p[1])) + 1);
-  const paso = (ancho - izq - der) / n;
-  const sx = (k) => izq + (k + 0.5) * paso, sy = (v) => 8 + (1 - (v - lo) / (hi - lo)) * (base - 8);
+  const paso = esc / T.p;
+  const sx = (k) => ((xs[k] - T.x0 + 0.5) / T.p) * esc, sy = (v) => 16 + (1 - (v - lo) / (hi - lo)) * (base - 16);
   const suelo = perfil.map((p, k) => `${k ? "L" : "M"}${sx(k).toFixed(1)},${sy(p[0]).toFixed(1)}`).join("") + `L${sx(n - 1).toFixed(1)},${base}L${sx(0).toFixed(1)},${base}Z`;
   const agua = perfil.map((p, k) => (p[1] >= AGUA_MIN
     ? `<rect x="${(sx(k) - paso / 2).toFixed(1)}" y="${sy(p[0] + p[1]).toFixed(1)}" width="${(paso + 0.6).toFixed(2)}" height="${(sy(p[0]) - sy(p[0] + p[1])).toFixed(1)}"/>` : "")).join("");
@@ -1749,12 +1751,12 @@ function pintarCorte() {
   cont.innerHTML = `<p class="sim-corte-titulo"><b>${t("sim_corte")}</b> · ${t("sim_corte_ayuda")}
       <button type="button" class="btn-corte3d" id="sim-ver-corte" aria-pressed="${!!SIM.corte3d}">${t(SIM.corte3d ? "sim_corte3d_salir" : "sim_corte3d")}</button></p>
     <svg width="${ancho}" height="${alto}" class="sim-corte-svg" role="img" aria-label="${t("sim_corte")}">
-      <line class="grilla" x1="${izq}" x2="${ancho - der}" y1="${sy(hi)}" y2="${sy(hi)}"/><line class="grilla" x1="${izq}" x2="${ancho - der}" y1="${sy(lo)}" y2="${sy(lo)}"/>
+      <line class="grilla" x1="0" x2="${ancho}" y1="${sy(hi)}" y2="${sy(hi)}"/><line class="grilla" x1="0" x2="${ancho}" y1="${sy(lo)}" y2="${sy(lo)}"/>
       <path d="${suelo}" class="sim-suelo"/><g class="sim-agua-corte">${agua}</g>
-      <text class="eje" x="${izq - 4}" y="${sy(hi) + 4}" text-anchor="end">${fmt(hi)} m</text>
-      <text class="eje" x="${izq - 4}" y="${sy(lo) + 4}" text-anchor="end">${fmt(lo)} m</text>
-      <text class="eje" x="${izq}" y="${alto - 4}">${t("sim_oeste")}</text>
-      <text class="eje" x="${ancho - der}" y="${alto - 4}" text-anchor="end">${t("sim_este")} · ${fmt(km, 1)} km</text></svg>`;
+      <text class="eje" x="2" y="${sy(hi) - 4}">${fmt(hi)} m</text>
+      <text class="eje" x="2" y="${sy(lo) + 12}">${fmt(lo)} m</text>
+      <text class="eje" x="${sx(0)}" y="${alto - 4}">${t("sim_oeste")}</text>
+      <text class="eje" x="${sx(n - 1)}" y="${alto - 4}" text-anchor="end">${t("sim_este")} · ${fmt(km, 1)} km</text></svg>`;
   document.getElementById("sim-ver-corte").onclick = verCorteEn3D;
   pintarTopografico(cont);
 }
