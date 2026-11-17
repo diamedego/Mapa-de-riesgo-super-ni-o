@@ -333,7 +333,7 @@ function grafPaneles(cont, o) {
 function grafApiladas(cont, o) {
   const W = ancho(cont), H = o.alto ?? 170, izq = 40, der = 8, arr = 12 + (o.unidad ? 14 : 0), aba = 26, n = o.etiquetas.length;
   const tot = o.etiquetas.map((_, i) => sumar(o.series.map((se) => se.valores[i] ?? 0)));
-  const marcas = marcasEje(Math.max(...tot) || 1), tope = marcas[marcas.length - 1];
+  const marcas = o.tope ? marcasEje(o.tope) : marcasEje(Math.max(...tot) || 1), tope = o.tope ?? marcas[marcas.length - 1];   // porcentajes: tope fijo en 100
   const banda = (W - izq - der) / n, grueso = Math.min(24, Math.max(3, banda - 4));
   const y = (v) => arr + (1 - v / tope) * (H - arr - aba), xc = (i) => izq + banda * (i + 0.5);
   const activo = (i) => !o.activos || (i >= o.activos[0] && i <= o.activos[1]);

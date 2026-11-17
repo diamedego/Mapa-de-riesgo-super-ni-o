@@ -107,7 +107,7 @@ function bloqueDias() {
 function graficoDias(cont) {
   const R = estado.riesgo, P = porcentajesDias(), idx = indicesVista();
   grafApiladas(cont, {
-    alto: 168, unidad: t("dc_unidad"), formatoEje: (v) => `${fmt(v)}`,
+    alto: 168, unidad: t("dc_unidad"), formatoEje: (v) => `${fmt(v)}`, tope: 100,
     etiquetas: R.dias.map((d, i) => (i ? fmtDia(d, { day: "numeric" }) : t("hoy"))),
     series: [1, 2, 3, 4, 5].map((n) => ({ valores: P[n - 1], color: `var(--r${n})` })),
     activos: [Math.min(...idx), Math.max(...idx)],
