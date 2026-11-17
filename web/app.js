@@ -547,20 +547,43 @@ function aplicarIdioma() {
   if (document.getElementById("fuentes")?.open) abrirFuentes();
   if (estado.riesgo) actualizarTodo();
 }
+// Cambio de tema rápido: las capas propias cambian de color al instante (cada color del tema anterior por el del nuevo, sin rehacer
+// nada) y el mapa base (claro u oscuro) se cambia por detrás conservando esas capas (antes se rearmaba todo: varios segundos)
+const variablesCss = () => {
+  const nombres = new Set();
+  for (const hoja of document.styleSheets) { let reglas; try { reglas = hoja.cssRules; } catch (e) { continue; }
+    for (const r of reglas) for (const x of [r, ...(r.cssRules ?? [])]) if (x.style) for (const n of x.style) if (n.startsWith("--")) nombres.add(n); }
+  return Object.fromEntries([...nombres].map((n) => [n, css(n)]));
+};
+function recolorear(cambio) {
+  const tr = (v) => (typeof v === "string" ? cambio.get(v) ?? v : Array.isArray(v) ? v.map(tr) : v);
+  for (const capa of mapa.getStyle().layers) for (const prop of Object.keys(capa.paint ?? {})) {
+    const v = mapa.getPaintProperty(capa.id, prop), n = tr(v);
+    if (JSON.stringify(n) !== JSON.stringify(v)) mapa.setPaintProperty(capa.id, prop, n);
+  }
+}
 function cambiarTema() {
+  const antes = variablesCss();
   document.documentElement.dataset.theme = temaOscuro() ? "light" : "dark";
   try { localStorage.setItem("tema", document.documentElement.dataset.theme); } catch (e) { /* sin almacenamiento */ }
-  const vista = { center: mapa.getCenter(), zoom: mapa.getZoom(), pitch: mapa.getPitch(), bearing: mapa.getBearing() };
+  const despues = variablesCss(), cambio = new Map(Object.keys(antes).filter((k) => antes[k] && antes[k] !== despues[k]).map((k) => [antes[k], despues[k]]));
   estado.lienzo = null;
-  mapa.setStyle(estiloBase(), { diff: false });   // sin «diff»: todas las capas propias se rehacen con los colores del tema
-  // Al terminar de cargar el estilo nuevo se reponen las capas propias (el estilo nuevo las borra), con los colores del tema
-  const reponer = () => {
-    if (!mapa.isStyleLoaded()) return setTimeout(reponer, 120);
-    if (!mapa.getSource("municipios")) agregarCapas();
-    capasPlano(); actualizarReticula(); mapa.jumpTo(vista);
-  };
-  setTimeout(reponer, 120);
+  recolorear(cambio);
+  if (typeof dibujarGrilla === "function") dibujarGrilla();
   actualizarTodo();
+  if (SIN_TESELAS) return;
+  // Mapa base nuevo por detrás: se conservan las fuentes y capas propias (debajo de los nombres del mapa base)
+  mapa.setStyle(estiloBase(), {
+    transformStyle: (previo, nuevo) => {
+      if (!previo) return nuevo;
+      const fuentes = { ...nuevo.sources }, propias = previo.layers.filter((l) => l.source && !(l.source in nuevo.sources) && previo.sources[l.source]);
+      for (const l of propias) fuentes[l.source] = previo.sources[l.source];
+      const i = nuevo.layers.findIndex((l) => l.type === "symbol");
+      const capas = i < 0 ? [...nuevo.layers, ...propias] : [...nuevo.layers.slice(0, i), ...propias, ...nuevo.layers.slice(i)];
+      return { ...nuevo, sources: fuentes, layers: capas };
+    },
+  });
+  mapa.once("style.load", () => { nombresEnEspanol(); mapaBaseLiso(); recolorear(cambio); });
 }
 function alternar3d() {
   estado.relieve3d = !estado.relieve3d;
