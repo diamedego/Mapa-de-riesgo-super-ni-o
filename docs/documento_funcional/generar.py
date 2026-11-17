@@ -87,7 +87,9 @@ def valores() -> dict:
               "n_pico": f"{por_dia[ip]} municipios en riesgo alto o muy alto" if por_dia[ip] != 1 else "1 municipio en riesgo alto o muy alto",
               "prop_alta": f"{sum((m.get('pr') or 0) >= 6 for m in rd['cmu'].values()):,}".replace(",", ".")}
     tes = sorted((RAIZ / "web" / "datos" / "lluvia_ninos").glob("*.bin"))
-    return {"lluvia": L, "rio": R, "dw": D, "verif": verif, "indice": indice, "diario": diario, "desague": desague,
+    um = pd.read_parquet(RAIZ / "data" / "referencia" / "umbrales_smn_municipios.parquet")
+    umbr = f"amarilla {um['amarillo'].median():.0f} mm, naranja {um['naranja'].median():.0f} mm y roja {um['rojo'].median():.0f} mm en un día"
+    return {"lluvia": L, "rio": R, "dw": D, "verif": verif, "indice": indice, "diario": diario, "desague": desague, "umbr": umbr,
             "teselas": len(tes), "teselas_mb": f"{sum(x.stat().st_size for x in tes) / 1e6:.1f}".replace(".", ",")}
 
 
