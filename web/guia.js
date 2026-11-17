@@ -146,10 +146,11 @@ function abrirFuentes() {
 // Cada paso resalta una parte de la página, la lleva a la vista y pone el cartel al lado (en el celular, abajo)
 // (el tercer dato es la lámina donde está esa parte; sin dato, la 01)
 const PASOS = [
-  [".solapas", "g0"], ["#intro", "g1"], ["#kpis", "g2"], ["#form-buscar", "g3"], ["#modo", "g4"], ["#btn-sim-top", "g5"], [".capas-tabs", "g6"],
-  ["#capas-extra", "g7"], ["#mapa", "g8"], ["#leyenda", "g9"], ["#miniaturas", "g10"], ["#tablero", "g11"], ["#analisis", "g12", 4], [".intro-fuentes", "g13", 4],
+  [".solapas", "r0"], [".lec-cabeza > div:first-child", "r1"], ["#kpis", "r2"], ["#form-buscar|#btn-lupa", "r3"], [".capas-tabs", "r4"], ["#btn-capas", "r5"],
+  ["#mapa", "r6"], ["#refs", "r7"], ["#lec-arriba", "r8"], ["#tablero", "r9"], ["#hoja-sim", "r10", 2], ["#analisis", "r11", 3], ["#btn-tema", "r12"],
 ];
-const verPaso = (i) => { mostrarLamina(PASOS[i][2] ?? 1); return document.querySelector(PASOS[i][0]); };
+// Con «a|b», la primera parte que se vea (en el celular el buscador está detrás de la lupa)
+const verPaso = (i) => { mostrarLamina(PASOS[i][2] ?? 1); const ops = PASOS[i][0].split("|").map((q) => document.querySelector(q)); return ops.find((e) => e?.getClientRects().length) ?? ops[0]; };
 let guia = null;
 function recorrido(i = 0) {
   if (i < 0 || i >= PASOS.length) return cerrarRecorrido();
