@@ -113,7 +113,7 @@ const TEXTOS = {
     info_b_rio: "Altura del río en la estación del INA más cercana (a menos de 15 km), medida o estimada con GloFAS en los días de cada tormenta. En su altura mediana el agua queda en el cauce; en evacuación llega a las orillas bajas; por encima, cada metro de más se suma.",
     info_b_crecida: "Sin estación del INA cerca: metros por encima o por debajo del nivel normal del río o del mar (rango supuesto).",
     info_b_desague: "Capacidad de la red pluvial en lo impermeable: por defecto, la lluvia de 1 h que se supera una vez cada 2 años aquí, medida con el mismo dato (la red se diseña para 2 a 10 años; no hay datos públicos de la red). 0 = desagües tapados.",
-    sim_k_area: "Superficie", sim_k_area_a: "Parte del círculo con 10 cm de agua o más en el momento de más agua. Abajo: la superficie en km² y la profundidad máxima (en el bajo más profundo).", sim_k_prof: "Profundidad", sim_k_pers: "Habitantes", sim_k_calles: "Calles", sim_k_calles_a: "Calles con 30 cm de agua o más (un auto puede ser arrastrado); los puentes siguen pasables.", sim_k_aisl: "Aisladas", sim_k_salud: "Salud",
+    sim_k_area: "Superficie", sim_k_area_a: "Parte del círculo con 10 cm de agua o más en el momento de más agua. Abajo: la superficie en km² y la profundidad máxima (en el bajo más profundo).", sim_k_prof: "Profundidad", sim_k_pers: "Habitantes", sim_k_calles: "Calles", sim_k_calles_a: "Calles con 30 cm de agua o más (un auto puede ser arrastrado); los puentes siguen pasables.", sim_k_aisl: "Habitantes aislados", sim_k_salud: "Salud",
     sim_kpis_calc: "Calculando…", sim_kpis_pico_esc: (h, n) => `En el momento de más agua · hora ${h} de una tormenta de ${n} h`, sim_kpis_pico_fecha: (f) => `En el momento de más agua · ${f}`, sim_km2_corto: (v) => `${v} km²`, sim_cortes_de_corto: (v) => `de ${v} km`,
     sim_modos: "Tipo de simulación", sim_modo_escenario: "Simular un escenario", sim_modo_pronostico: "Simular pronóstico",
     pron_cargando: "Bajando la lluvia de los últimos 14 días, el pronóstico, el ensamble y el agua vista por radar…", pron_calculando: "Calculando desde hace 14 días hasta dentro de 15…",
@@ -578,10 +578,10 @@ const TEXTOS = {
     sim_k_total: "Habitantes",
     sim_k_total_a: "Personas que viven en el círculo (Censo 2022, radios censales cuyo centro cae adentro). El mismo número del Panorama.",
     sim_k_total_s: "en el círculo · Censo 2022",
-    sim_k_inund: "En zona inundable",
+    sim_k_inund: "Habitantes en zona inundable",
     sim_k_inund_a: "Personas que viven en terreno a menos de 2 m sobre el cauce (por la fracción de cada radio). El mismo número del Panorama: dónde podría llegar el agua, llueva o no.",
     sim_k_inund_s: (p) => `${p} % de los habitantes`,
-    sim_k_alc: "Alcanzados por el agua",
+    sim_k_alc: "Habitantes alcanzados por el agua",
     sim_k_alc_s: "con 10 cm o más en esta simulación",
     // Riesgo por día (hoy y los próximos 14)
     r0_t: "Tres láminas",
@@ -614,6 +614,9 @@ const TEXTOS = {
     sug_region: "Región · varias provincias",
     // Riesgo por día (hoy y los próximos 14)
     sim_r_humedad_hoy: "humedad de hoy (punto de partida)",
+    // Riesgo por día (hoy y los próximos 14)
+    hab_u: "hab.",
+    sim_k_aisl_s: "sin salida por calles secas",
   },
   en: {
     titulo: "Argentina facing El Niño 2026–27",
@@ -728,7 +731,7 @@ const TEXTOS = {
     info_b_rio: "River level at the nearest INA gauge (within 15 km), measured or estimated with GloFAS on each storm's days. At its median level the water stays in the channel; at evacuation it reaches the low banks; above that, each extra metre adds up.",
     info_b_crecida: "No INA gauge nearby: metres above or below the normal river or sea level (assumed range).",
     info_b_desague: "Storm-drain capacity on paved ground: by default, the 1-hour rain exceeded once every 2 years here, measured with the same data (drains are designed for 2 to 10 years; no public network data). 0 = blocked drains.",
-    sim_k_area: "Area", sim_k_area_a: "Share of the circle with 10 cm of water or more at the wettest moment. Below: the area in km² and the maximum depth (in the deepest low).", sim_k_prof: "Depth", sim_k_pers: "Residents", sim_k_calles: "Streets", sim_k_calles_a: "Streets with 30 cm of water or more (a car can be swept away); bridges stay passable.", sim_k_aisl: "Cut off", sim_k_salud: "Health",
+    sim_k_area: "Area", sim_k_area_a: "Share of the circle with 10 cm of water or more at the wettest moment. Below: the area in km² and the maximum depth (in the deepest low).", sim_k_prof: "Depth", sim_k_pers: "Residents", sim_k_calles: "Streets", sim_k_calles_a: "Streets with 30 cm of water or more (a car can be swept away); bridges stay passable.", sim_k_aisl: "Residents cut off", sim_k_salud: "Health",
     sim_kpis_calc: "Computing…", sim_kpis_pico_esc: (h, n) => `At the wettest moment · hour ${h} of a ${n} h storm`, sim_kpis_pico_fecha: (f) => `At the wettest moment · ${f}`, sim_km2_corto: (v) => `${v} km²`, sim_cortes_de_corto: (v) => `of ${v} km`,
     sim_modos: "Simulation type", sim_modo_escenario: "Simulate a scenario", sim_modo_pronostico: "Simulate the forecast",
     pron_cargando: "Downloading the last 14 days of rain, the forecast, the ensemble and the radar water…", pron_calculando: "Computing from 14 days ago to 15 days ahead…",
@@ -1189,10 +1192,10 @@ const TEXTOS = {
     sim_k_total: "Residents",
     sim_k_total_a: "People living in the circle (2022 Census, tracts whose center falls inside). Same number as the Overview.",
     sim_k_total_s: "in the circle · 2022 Census",
-    sim_k_inund: "On flood-prone ground",
+    sim_k_inund: "Residents on flood-prone ground",
     sim_k_inund_a: "People living less than 2 m above the stream (by the share of each tract). Same number as the Overview: where water could reach, rain or not.",
     sim_k_inund_s: (p) => `${p} % of residents`,
-    sim_k_alc: "Reached by the water",
+    sim_k_alc: "Residents reached by water",
     sim_k_alc_s: "with 10 cm or more in this simulation",
     // Riesgo por día (hoy y los próximos 14)
     r0_t: "Three sheets",
@@ -1225,5 +1228,8 @@ const TEXTOS = {
     sug_region: "Region · several provinces",
     // Riesgo por día (hoy y los próximos 14)
     sim_r_humedad_hoy: "today's moisture (starting point)",
+    // Riesgo por día (hoy y los próximos 14)
+    hab_u: "res.",
+    sim_k_aisl_s: "no way out on dry streets",
   },
 };

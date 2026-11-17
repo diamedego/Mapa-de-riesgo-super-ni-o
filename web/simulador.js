@@ -999,7 +999,7 @@ function pintarLineaSim() {
     <g clip-path="url(#sim-clip-falta)" class="sim-futuro">${capa()}</g><g clip-path="url(#sim-clip-ya)">${capa()}</g>
     <line x1="${iz}" x2="${ancho - de}" y1="${yB}" y2="${yB}" class="sim-eje-base"/>${franja}${ejes}${eje}
     ${finPron > 0 ? hito(finPron, t("sim_hito_fin_pron")) : ""}${M.pico != null ? hito(M.pico, t("sim_hito_pico")) : ""}${globo}</svg>
-    <div class="sim-linea-ley"><span><i class="sim-ley-lluvia"></i>${t("sim_ley_lluvia")}</span><span><i class="sim-ley-agua"></i>${t("sim_area")}</span>${[0, 1, 2].filter((k) => met.tipo.includes(k))
+    <div class="sim-linea-ley"><span><i class="sim-ley-lluvia"></i>${t("sim_ley_lluvia")}</span><span><i class="sim-ley-agua"></i>${t("sim_area")}</span>${[0, 1, 2].filter((k) => met.tipo.includes(k) && !(k === 2 && M.escenario))
       .map((k) => `<span><i style="background:${COLOR_TIPO[k]}"></i>${t(k === 2 && M.escenario ? "sim_tipo_tormenta" : ["sim_tipo_real", "sim_tipo_pronostico", "sim_tipo_escenario"][k])}</span>`).join("")}</div>`;
   const svg = cont.querySelector("svg");
   const ir = (ev) => {
@@ -1602,13 +1602,27 @@ function texturaMaqueta() {
   if (L.activa || L.cuadro) {   // película de agua que moja el terreno y corre
     const cp = M.pelicula.getContext("2d"), img = cp.createImageData(L.nx, L.ny), px = img.data;
     for (let k = 0; k < L.N; k++) {
-      const h = L.tipo[k] === 1 ? L.w[k] + L.mojadura : 0;
+      const h = (L.tipo[k] === 1 ? L.w[k] : 0) + L.mojadura;   // también en celdas de río o laguna: su orilla de tierra se moja igual
       if (h < 0.0015) continue;
       const f = Math.min(1, Math.log10(h / 0.0015) / Math.log10(0.05 / 0.0015)), o = 4 * k;   // 1,5 mm (moja) → 5 cm (corre)
       px[o] = 150 - 40 * f; px[o + 1] = 215 - 30 * f; px[o + 2] = 250 - 10 * f; px[o + 3] = (0.32 + 0.3 * f) * 255;
     }
     cp.putImageData(img, 0, 0);
-    ct.drawImage(M.pelicula, 0, 0, L.nx, L.ny, 0, 0, L.nx * L.p * S, L.ny * L.p * S);
+    // Lo que es agua permanente (río, lagunas) se borra al detalle fino: la película queda solo sobre la tierra, hasta la orilla real
+    const d = SIM.datos;
+    if (d.aguaPerm && M.permDe !== d.aguaPerm) {
+      M.permDe = d.aguaPerm;
+      M.permCv ??= new OffscreenCanvas(M.bw, M.bh);
+      const pc = M.permCv.getContext("2d"), im = pc.createImageData(M.bw, M.bh);
+      for (let y = 0; y < M.bh; y++) for (let x = 0; x < M.bw; x++) if (d.aguaPerm[(M.y0 + y) * d.D.W + M.x0 + x]) im.data[4 * (y * M.bw + x) + 3] = 255;
+      pc.putImageData(im, 0, 0);
+    }
+    M.filmCv ??= new OffscreenCanvas(M.bw, M.bh);
+    const fc = M.filmCv.getContext("2d");
+    fc.clearRect(0, 0, M.bw, M.bh); fc.imageSmoothingEnabled = true; fc.globalCompositeOperation = "source-over";
+    fc.drawImage(M.pelicula, 0, 0, L.nx, L.ny, 0, 0, L.nx * L.p, L.ny * L.p);
+    if (M.permCv) { fc.globalCompositeOperation = "destination-out"; fc.drawImage(M.permCv, 0, 0); fc.globalCompositeOperation = "source-over"; }
+    ct.drawImage(M.filmCv, 0, 0, M.bw * S, M.bh * S);
   }
   pintarCharcos();
   ct.drawImage(M.charcos, 0, 0, M.bw * S, M.bh * S);
@@ -2231,19 +2245,20 @@ function pintarPanelSimulador(d) {
   SIM.kpisEl = Object.assign(document.createElement("div"), { className: "sim-kpis", id: "sim-kpis" });
   SIM.kpisEl.innerHTML = `<p class="sim-kpis-cab" id="sim-kpis-cab"></p><div class="kpis sim-datos">
     ${kpiSim(t("sim_k_total"), t("sim_k_total_a"))}${kpiSim(t("sim_k_inund"), t("sim_k_inund_a"))}${kpiSim(t("sim_k_alc"), t("sim_k_pers_a"))}
-    ${kpiSim(t("sim_k_area"), t("sim_k_area_a"))}${kpiSim(t("sim_k_calles"), t("sim_k_calles_a"))}${kpiSim(t("sim_k_aisl"), t("sim_aisladas_sub"))}${kpiSim(t("sim_k_salud"), t("sim_salud_sub"))}</div>`;
+    ${kpiSim(t("sim_k_area"), t("sim_k_area_a"))}${kpiSim(t("sim_k_calles"), t("sim_k_calles_a"))}${kpiSim(t("sim_k_aisl"), t("sim_aisladas_sub"))}</div>`;
   enlazarInfo(SIM.kpisEl);
   panel.innerHTML = `
     <div class="sim-lec">
       <div class="sim-radio-fila">${cuadroRiesgoSim()}
       <div class="lec-radio" id="sim-radio">${estado.sel?.tipo === "punto" ? `<div class="lec-radio-cab"><span class="etq">${t("radio_km")}</span><b id="sim-radio-v">${fmt(estado.sel.km, estado.sel.km % 1 ? 1 : 0)} km</b></div>
         <input type="range" min="0.5" max="20" step="0.5" value="${estado.sel.km}" aria-label="${t("radio_km")}"><div class="lec-radio-ext"><span>0,5 km</span><span>20 km</span></div>` : ""}</div></div>
-      <div><span class="etq" id="sim-etq"></span><h2 class="titular" id="sim-titular">${t("sim_tit_q")} <span>–</span></h2></div>
+<div class="sim-modos" role="tablist" aria-label="${t("sim_modos")}">${["escenario", "pronostico"].map((m) => `<button type="button" role="tab" class="sim-modo" data-modo="${m}" aria-selected="${(SIM.modoSim ?? "escenario") === m}">${t(`sim_modo_${m}`)}</button>`).join("")}</div>
+      <div class="sim-cab-tit"><span class="etq" id="sim-etq"></span><h2 class="titular" id="sim-titular">${t("sim_tit_q")} <span>–</span></h2></div>
       <div class="sim-play">
           <div class="ctrls">
           <div class="ctrl"><span class="etq">${t("sim_lluvia_etq")}</span><div class="seg"><button type="button" id="sim-reiniciar" aria-label="${t("sim_reiniciar")}" data-ayuda="${t("sim_reiniciar")}">${icono("repetir")}</button><button type="button" id="sim-play" aria-label="${t("sim_reproducir")}">${icono("play")}</button></div></div>
         </div>
-    <div class="sim-modos" role="tablist" aria-label="${t("sim_modos")}">${["escenario", "pronostico"].map((m) => `<button type="button" role="tab" class="sim-modo" data-modo="${m}" aria-selected="${(SIM.modoSim ?? "escenario") === m}">${t(`sim_modo_${m}`)}</button>`).join("")}</div>
+
     <p class="sim-progreso" id="sim-progreso" role="status" hidden></p>
     <div class="sim-ahora"><span class="sim-ahora-fecha" id="sim-fecha">–</span><span class="sim-ahora-tipo" id="sim-tipo"></span>
       <span class="sim-ahora-lluvia" id="sim-acum"></span></div>
@@ -2392,7 +2407,8 @@ function actualizarNumeros() {
   const fecha = new Date(met.horas[k]);
   document.getElementById("sim-fecha").textContent = fecha.toLocaleString(estado.idioma === "en" ? "en-GB" : "es-AR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const etq = document.getElementById("sim-tipo");
-  etq.textContent = t(Mo.escenario ? "sim_tipo_elegido" : `sim_tipo_${tp}`); etq.style.background = COLOR_TIPO[met.tipo[k]];
+  etq.hidden = !!Mo.escenario;
+  if (!Mo.escenario) { etq.textContent = t(`sim_tipo_${tp}`); etq.style.background = COLOR_TIPO[met.tipo[k]]; }
   if (Mo.escenario) document.getElementById("sim-fecha").textContent = t("sim_hora_esc")(k - 2, Mo.tormenta.horas);
   // Solo desde ahora: lo que ya pasó no se muestra (el modelo lo usa en silencio para saber qué tan mojado está el suelo)
   let pron = 0, esc = 0, test = 0;
@@ -2431,8 +2447,7 @@ function actualizarNumeros() {
   const ac = Mo.accesoPico;
   vals[4].innerHTML = g.nRuta ? conU(fmt(P.cortesKm, P.cortesKm < 10 ? 1 : 0), "km") : t("sin_informacion");
   ext[4].textContent = g.nRuta ? t("sim_cortes_de_corto")(fmt((g.nRuta * g.dx) / 1000)) : "";
-  vals[5].textContent = ac ? fmtPersonas(ac.aisladas) : t("sin_informacion");
-  vals[6].innerHTML = ac && ac.salud ? conU(ac.sinAcceso, `/ ${ac.salud}`) : t("sin_informacion");
+  vals[5].innerHTML = ac ? conU(fmtPersonas(ac.aisladas), t("hab_u")) : t("sin_informacion"); ext[5].textContent = ac ? t("sim_k_aisl_s") : "";
   pintarAntecedentesSim(Mo, d);
   const sup = document.getElementById("sim-supuestos");
   if (sup) sup.textContent = `${t(d.D.fuente === "fabdem" ? "sim_terreno_fabdem" : "sim_terreno_aws")} ` + t("sim_supuestos")(Mo.suelo.nombre, Mo.suelo.supuesto, SIM.desague, fmt(Mo.g.dx), Mo.cuenta ? fmt(100 * Mo.cuenta.infiltrada / Math.max(1, Mo.cuenta.lluvia)) : "…")

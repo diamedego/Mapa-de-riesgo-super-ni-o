@@ -19,10 +19,10 @@
   --s-1: #2a78d6; --s-2: #eb6834; --s-3: #1baf7a;
   --torta-resto: #ddd8cb;
   --violeta: #7c5aa6;
-  --ok: #0a7d32; --atencion: #a35f00; --critico: #c62f2f; --serio: #ec835a; --rio-normal: #3f8fd2;
+  --ok: #0a7d32; --atencion: #a35f00; --critico: #c62f2f; --serio: #ec835a; --rio-normal: #1a9850;
   --bordo: #8c1d2e; --bordo-fondo: rgba(140, 29, 46, 0.08);   /* avisos de carga: que se vean */
   --ok-fondo: rgba(12, 163, 12, 0.1); --atencion-fondo: rgba(250, 178, 25, 0.16); --critico-fondo: rgba(208, 59, 59, 0.12);
-  --alerta-amarilla: #e0ae00; --alerta-naranja: #ef8a00; --alerta-roja: #d03b3b;
+  --alerta-amarilla: #f2c94c; --alerta-naranja: #e8642c; --alerta-roja: #d03b3b;
   --lluvia-4: #e8a33c; --lluvia-5: #d6453a;
   /* Mapa y maqueta 3D: sin cambios */
   --suelo-corte: #d9c9a8; --suelo-borde: #8a6f48; --maq-1: #f4f6f8; --maq-2: #d9dee4; --maq-3: #c9cfd6;
@@ -49,7 +49,7 @@
     --r1: #2fb366; --r2: #a6d96a; --r3: #fee08b; --r4: #fc8d59; --r5: #f04a3a;
     --sin-datos: #343c3a; --borde-riesgo: #8d99a8; --borde-prov: rgba(255, 255, 255, 0.7);
     --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --torta-resto: #2a3634; --violeta: #a689d6;
-    --ok: #3ccf6e; --atencion: #fab219; --critico: #ff6b6b; --rio-normal: #58a6e6; --bordo: #f3a0ad; --bordo-fondo: rgba(243, 160, 173, 0.12); --bordo: #f3a0ad; --bordo-fondo: rgba(243, 160, 173, 0.12);
+    --ok: #3ccf6e; --atencion: #fab219; --critico: #ff6b6b; --rio-normal: #2fb366; --bordo: #f3a0ad; --bordo-fondo: rgba(243, 160, 173, 0.12); --bordo: #f3a0ad; --bordo-fondo: rgba(243, 160, 173, 0.12);
     --ok-fondo: rgba(60, 207, 110, 0.12); --atencion-fondo: rgba(250, 178, 25, 0.14); --critico-fondo: rgba(255, 107, 107, 0.14);
     --suelo-corte: #5b4a33; --suelo-borde: #b39368; --maq-1: #2a3540; --maq-2: #172029; --maq-3: #0e151c;
     --mapa-fondo: #232928; --mapa-tierra: #2c3331; --mapa-costa: #8a9894; --agua: #16324a; --agua-texto: #8ab8de; --calle: #4a5765; --velo: #000000;
@@ -68,7 +68,7 @@
   --r1: #2fb366; --r2: #a6d96a; --r3: #fee08b; --r4: #fc8d59; --r5: #f04a3a;
   --sin-datos: #343c3a; --borde-riesgo: #8d99a8; --borde-prov: rgba(255, 255, 255, 0.7);
   --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --torta-resto: #2a3634; --violeta: #a689d6;
-  --ok: #3ccf6e; --atencion: #fab219; --critico: #ff6b6b; --rio-normal: #58a6e6;
+  --ok: #3ccf6e; --atencion: #fab219; --critico: #ff6b6b; --rio-normal: #2fb366;
   --ok-fondo: rgba(60, 207, 110, 0.12); --atencion-fondo: rgba(250, 178, 25, 0.14); --critico-fondo: rgba(255, 107, 107, 0.14);
   --suelo-corte: #5b4a33; --suelo-borde: #b39368; --maq-1: #2a3540; --maq-2: #172029; --maq-3: #0e151c;
   --mapa-fondo: #232928; --mapa-tierra: #2c3331; --mapa-costa: #8a9894; --agua: #16324a; --agua-texto: #8ab8de; --calle: #4a5765; --velo: #000000;
@@ -1656,8 +1656,8 @@ body[data-lamina="3"] .lec-1 { display: none; }
   .sim-lec .titular { font: 600 22px/1.25 var(--f-ui); letter-spacing: -0.02em; }
   .sim-lec .lec-radio { margin: 0; padding: 8px 0; }
   /* Tarjeta «¿Hasta dónde llega el agua?»: el título, el lugar debajo y la reproducción (play, hora, barra, velocidad y gráfico) */
-  .sim-lec > div:nth-child(2) { display: flex; flex-direction: column-reverse; gap: 8px; margin-bottom: -16px; padding: 16px 16px 0; border: 1px solid var(--borde-fuerte); border-bottom: 0; }
-  .sim-lec > div:nth-child(2) .titular { margin: 0; }
+  .sim-lec > .sim-cab-tit { display: flex; flex-direction: column-reverse; gap: 8px; margin-bottom: -16px; padding: 16px 16px 0; border: 1px solid var(--borde-fuerte); border-bottom: 0; }
+  .sim-lec > .sim-cab-tit .titular { margin: 0; }
   .sim-play { gap: 16px; padding: 16px; border: 1px solid var(--borde-fuerte); border-top: 0; }
   /* Carteles sobre la maqueta: la carga al centro; ayuda y créditos, cada uno en su mitad de abajo */
   .hoja-sim .sim-carga { top: 50%; transform: translate(-50%, -50%); }
@@ -1811,3 +1811,11 @@ body[data-lamina="3"] .lec-1 { display: none; }
 .lec-arriba .salto > .ico { position: absolute; top: 12px; right: 12px; }
 .lec-arriba .salto span { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding-right: 32px; }
 .lec-arriba .salto b { font-size: 20px; }
+
+/* Indicadores del simulador (17-nov): seis iguales en 3 × 2; rótulo de dos líneas fijas con el ícono de ayuda arriba a la derecha,
+   valor y pie alineados en cada fila (retícula de 8 px) */
+.sim-lec .sim-kpis .kpi, .sim-lec .sim-kpis .kpi:nth-child(n), .sim-lec .sim-kpis .kpi:nth-child(-n+3) { grid-column: span 4; display: grid; grid-template-rows: 32px auto auto; align-content: start; gap: 4px; padding: 8px 12px 12px; }
+.sim-lec .sim-kpis .kpi-l { position: relative; display: block; padding-right: 24px; font-size: 10px; line-height: 16px; }
+.sim-lec .sim-kpis .kpi-l .info { position: absolute; top: 0; right: 0; margin: 0; }
+@media (max-width: 760px) { .sim-lec .sim-kpis .kpi, .sim-lec .sim-kpis .kpi:nth-child(n), .sim-lec .sim-kpis .kpi:nth-child(1) { grid-column: auto; } }
+.sim-lec > .sim-modos { margin: 0; }
