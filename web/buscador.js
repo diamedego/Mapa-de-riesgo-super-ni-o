@@ -379,7 +379,17 @@ async function sugerenciasLibres(texto) {
     await demora(260);
     if (v === photonVersion) items.push(...(await buscarPhoton(q).catch(() => [])).filter((o) => !propios.some((p) => distanciaKm(p.punto, o.punto) < 0.2)));
   }
-  return items.slice(0, 10);
+  // Menos ruido cuando el texto ya nombra un lugar (municipio, localidad, partido): primero los lugares; fuera los barrios que solo se
+  // parecen por las letras (p. ej. «Tortosa» para «totora»), las calles de otras ciudades (sin número ni zona elegida) y los puntos de
+  // OpenStreetMap con el mismo nombre que un lugar ya listado
+  const hayLugar = items.some((x) => x.tipo === "lugar");
+  const mismoLugar = (o) => items.some((x) => x.tipo === "lugar" && normalizar(x.nombre) === normalizar(o.nombre ?? ""));
+  const contiene = (x) => normalizar(x.nombre ?? "").includes(qn);
+  return items.filter((x) => {
+    if (!hayLugar || x.tipo !== "osm" || /\d/.test(q)) return true;
+    if (x.cat === "cat_barrio") return contiene(x);                    // barrios: solo si el nombre contiene lo escrito
+    return x.cat !== "cat_calle" && x.cat !== "cat_lugar" && !mismoLugar(x);   // sin calles de otras ciudades ni lugares repetidos
+  }).slice(0, 10);
 }
 
 function autocompletarDireccion(input) {
