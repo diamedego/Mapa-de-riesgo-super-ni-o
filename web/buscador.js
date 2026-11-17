@@ -73,9 +73,10 @@ function listaSugerencias(input, { buscarItems, pintarItem, elegir }) {
     input.setAttribute("aria-activedescendant", pos >= 0 ? `${input.id}-op${pos}` : "");
   };
   const actualizar = async () => {
-    const v = ++version, res = await buscarItems(input.value);
-    if (v !== version) return;
-    items = res; pos = items.length ? 0 : -1; pintar();
+    // Como Google Maps: en cada letra se muestra al instante lo que ya se tiene (lugares propios y lo que trajeron los servicios
+    // en las letras anteriores, filtrado con el texto nuevo); lo de los servicios externos se suma cuando llega
+    const v = ++version, poner = (res) => { if (v !== version) return; items = res; pos = items.length ? 0 : -1; pintar(); };
+    poner(await buscarItems(input.value, poner));
   };
   input.addEventListener("input", actualizar);
   input.addEventListener("focus", () => { if (input.value.trim()) actualizar(); });
@@ -400,7 +401,12 @@ function ordenarSugerencias(items, q) {
     .filter((o) => conNumero || !hayLugar || o.x.tipo !== "osm" || (o.x.cat !== "cat_calle" && !(/^cat_lugar/.test(o.x.cat ?? "") && mismoLugar(o.x))))
     .sort((a, b) => a.c - b.c || a.p - b.p || a.i - b.i).map((o) => o.x);
 }
-async function sugerenciasLibres(texto) {
+// Resultados de los servicios externos de las últimas letras: mientras llega la respuesta nueva, se muestran los que siguen
+// coincidiendo con lo escrito (todas las palabras empiezan alguna palabra del nombre o del detalle)
+let remotosPrevios = [];
+const sigueCoincidiendo = (o, q) => { const pal = normalizar(`${o.nombre ?? ""} ${o.detalle ?? ""}`).split(/[\s,.·-]+/);
+  return normalizar(q).split(/\s+/).filter(Boolean).every((f) => pal.some((w) => w.startsWith(f))); };
+async function sugerenciasLibres(texto, parcial) {
   const q = texto.trim(), items = [];
   if (q.length < 2) return items;
   const c = coordenadasDe(q);
@@ -432,11 +438,16 @@ async function sugerenciasLibres(texto) {
   }
   const propios = [...lugaresPropios(q), ...await buscarBarrios(q).catch(() => [])];
   items.push(...propios);
-  // Photon, con una pausa corta para no consultar en cada letra
+  // Photon y TomTom, con una pausa corta para no consultar en cada letra; antes se muestra lo que ya hay
   if (!SIN_TESELAS && q.length >= 3) {
+    const previos = remotosPrevios.filter((o) => sigueCoincidiendo(o, q));
+    parcial?.(ordenarSugerencias([...items, ...previos], q).slice(0, 10));
     const v = ++photonVersion;
-    await demora(260);
-    if (v === photonVersion) items.push(...(await buscarPhoton(q).catch(() => [])).filter((o) => !propios.some((p) => distanciaKm(p.punto, o.punto) < 0.2)));
+    await demora(200);
+    if (v !== photonVersion) return ordenarSugerencias([...items, ...previos], q).slice(0, 10);
+    const nuevos = (await buscarPhoton(q).catch(() => [])).filter((o) => !propios.some((p) => distanciaKm(p.punto, o.punto) < 0.2));
+    if (v === photonVersion) remotosPrevios = nuevos;
+    items.push(...nuevos);
   }
   return ordenarSugerencias(items, q).slice(0, 10);
 }
