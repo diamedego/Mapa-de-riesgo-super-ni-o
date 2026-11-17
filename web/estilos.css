@@ -1764,3 +1764,5 @@ body[data-lamina="3"] .lec-1 { display: none; }
 .sim-lec .sim-kpis .kpi-v small { font-size: 12px; }
 .sim-lec .sim-kpis .kpi-v.texto { font: 500 14px/1.3 var(--f-ui); letter-spacing: 0; color: var(--tinta-3); }
 .sim-lec .sim-kpis .kpi-f { font-size: 11px; line-height: 16px; }
+/* Sin «Desde / Hasta» sobre el mapa (17-nov): el día o el período se eligen con la línea de tiempo de abajo */
+.plano-cab .periodo-fila, .hoja-mapa .plano-cab .periodo-fila { display: none !important; }
