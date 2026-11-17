@@ -140,8 +140,12 @@ async function aplicarNino(temporada, alInicio = false) {
   // Todo es de ese Niño; lo que no tiene dato en esa tormenta queda en un valor supuesto y avisado, nunca el de hoy ni el de otro
   // año: humedad media del lugar en los Niños y río en su nivel mediano del registro
   const E = SIM.esc, rt = rioTormenta(n), Lh = limitesEscenario().humedad, mediana = SIM.hist.rio?.todo?.mediana;
+  // La tormenta y el río son los de ese Niño; el punto de partida es HOY: la humedad del suelo de hoy y el agua que hoy ve el radar en
+  // los bajos (se agrega al iniciar la corrida). Así el escenario responde «¿qué pasaría si mañana cae la tormenta de ese Niño?»
+  const thetaHoy = SIM.hist.humedadHoy;
   Object.assign(E, { nino: temporada, forma: temporada, horas: ev.dur, perfil: ev.lluvia.map((v) => v / ev.total), lagos: 0,
-    theta: ev.theta ?? (Lh.min + Lh.max) / 2, ...(rt ? { rio: rt.max } : mediana != null ? { rio: mediana } : {}) });
+    theta: thetaHoy != null ? limitar(thetaHoy, Lh.min, Lh.max) : ev.theta ?? (Lh.min + Lh.max) / 2, thetaHoy: thetaHoy != null,
+    ...(rt ? { rio: rt.max } : mediana != null ? { rio: mediana } : {}) });
   E.mm = Math.round(ev.total);
   // El río nunca por debajo de lo que mide hoy el INA: un escenario del peor Niño no puede quedar mejor que la situación actual
   // (por ejemplo Goya, 16-nov-2026: el Niño 2023-24 tuvo el río a 4,05 m y hoy está a 5,81 m, sobre evacuación)
@@ -340,7 +344,7 @@ function limitesEscenario() {
   const lluvia = ll?.max > 0 ? { max: Math.max(5, Math.ceil(ll.max), ev ? Math.ceil(ev.total) : 0), fuente: ev ? t(ev.formaSupuesta ? "sim_r_evento_forma" : "sim_r_evento")(E.nino) : t("sim_r_nino")(ll.temporada) } : { max: 300, fuente: t("sim_r_supuesto") };
   const hu = H?.humedad;
   const humedad = hu ? { min: Math.min(hu.min, ts - 0.02), max: Math.min(hu.max, ts),
-    fuente: ev ? (ev.theta != null ? t("sim_r_humedad_antes")(E.nino) : t("sim_r_supuesto_medio")) : t("sim_r_nino_todas")(H.temporadas) }
+    fuente: E.thetaHoy ? t("sim_r_humedad_hoy") : ev ? (ev.theta != null ? t("sim_r_humedad_antes")(E.nino) : t("sim_r_supuesto_medio")) : t("sim_r_nino_todas")(H.temporadas) }
     : { min: 0.1, max: ts, fuente: t("sim_r_supuesto") };
   const R = Hh.rio, e = Hh.est, nino = E.nino ? H.ninos.find((n) => n.temporada === E.nino) : null, rt = nino ? rioTormenta(nino) : null;
   const altos = H?.ninos.filter((n) => n.completo).map((n) => rioTormenta(n)?.max).filter((v) => v != null) ?? [];
@@ -729,6 +733,9 @@ async function simularEscenario(alInicio = false) {
     if (SIM.vista === "maqueta") { SIM.mapaSucio = true; actualizarMaqueta(true); } else dibujarAgua();
   }
   pintarEscenario();   // con el suelo y la grilla del lugar ya se sabe dónde se satura y si hay lagunas o río en el círculo
+  // Agua de hoy: lo que vio el radar en los bajos entra al empezar (hora 0), como en la simulación del pronóstico
+  let asimilar = null;
+  if (d.radarFino) { const Rg = radarEnGrilla(d.radarFino, g), Hh = profundidadRadar(g, Rg.fr); if (Hh.haAsignada > 0) asimilar = { k: 0, h: Hh.h }; M.aguaHoyHa = Hh.haAsignada; }
   const w = (M.worker = new Worker("hidraulica.js"));
   w.onmessage = (e) => recibirHora(M, e.data);
   w.onerror = (e) => { avisoProgreso(t("sim_error")); console.error(e); };
@@ -736,7 +743,7 @@ async function simularEscenario(alInicio = false) {
   w.postMessage({ tipo: "iniciar", nx: g.nx, ny: g.ny, dx: g.dx, z: g.z, tipo2: g.tipo2, lago: g.lago, nMan: g.nMan, imp: g.imp,
     suelo: M.suelo, theta0: E.theta, desague: E.desague, crecida: est ? 0 : E.crecida, lagoOffset: E.lagos,
     lluvia: Float32Array.from(met.lluvia), et0: Float32Array.from(met.et0),
-    ...(est ? { relEvac: new Float32Array(n).fill(E.rio - est.ref), relMed: relMedRio() } : {}) });
+    ...(est ? { relEvac: new Float32Array(n).fill(E.rio - est.ref), relMed: relMedRio() } : {}), ...(asimilar ? { asimilar } : {}) });
   pintarLineaSim();
 }
 
