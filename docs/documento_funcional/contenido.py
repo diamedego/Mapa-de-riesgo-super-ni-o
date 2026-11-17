@@ -619,18 +619,20 @@ Cada modelo termina con un recuadro «Alcance y validez»: qué pregunta respond
 <tr><td>Buscador que llevaba a estaciones de servicio o a una calle parecida</td><td>Las estaciones caían como «comercio»; el servicio de calles iba antes que las empresas</td><td>Categoría propia, fuera de los resultados salvo que se pida; empresas antes que calles</td></tr></tbody></table></section>''',
 
 11: f'''<section><h1><span class="num">Capítulo 11</span>Registro cronológico del proceso</h1>
-<p>El proyecto se desarrolló entre el 27 de septiembre y el 16 de noviembre de 2026 en conversación continua entre la autora y el asistente. Cada paso quedó en una bitácora fechada del repositorio (<code>docs/00_bitacora.md</code>) y en los commits. La autora tomó las decisiones de alcance, método y diseño; el asistente investigó, programó y verificó.</p>
+<p>El proyecto se desarrolló entre el 27 de septiembre y el 17 de noviembre de 2026 en conversación continua entre la autora y el asistente. Cada paso quedó en una bitácora fechada del repositorio (<code>docs/00_bitacora.md</code>) y en los commits. La autora tomó las decisiones de alcance, método y diseño; el asistente investigó, programó y verificó.</p>
 {fig(F["crono"], 11, "Cronología de los hitos principales.")}
 <div class="tabla-t">Tabla 6. Hitos y decisiones</div>
-<table class="cronologia"><thead><tr><th>Fecha</th><th>Hito y decisiones</th></tr></thead><tbody>
-<tr><td>27–30 sep</td><td>Investigación de fuentes; alcance (solo Argentina, 2.282 gobiernos locales y 66.515 radios); ingesta con reintentos; Earth Engine; índice híbrido; foco solo en inundación; arquitectura medallón.</td></tr>
-<tr><td>8–15 oct</td><td>Consumo de IA como línea base; análisis por zona; buscadores; versión para celular; capas del tiempo.</td></tr>
-<tr><td>5–8 nov</td><td>Rediseño «sala de situación»; sitio público; primer simulador 3D; maqueta con lluvia animada.</td></tr>
-<tr><td>10–12 nov</td><td>Pedido de 28 puntos; modelo hidráulico 2D; FABDEM; validación contra Dynamic World y su mejora; documento funcional v1 a v3.</td></tr>
-<tr><td>13 nov</td><td>Revisión de una crítica externa: confianza baja sin validación, «Sin información» en ríos sin estación, límites explícitos. Rediseño en «láminas».</td></tr>
-<tr><td>14 nov</td><td>Índice con umbrales físicos; indicadores del círculo; radio arriba; imagen de alta resolución; escenarios con los Niños; peor Niño por fórmula; solo Niños completos; buscador con TomTom y barrios; revisión visual automática.</td></tr>
-<tr><td>15 nov</td><td>Investigación de 17 trabajos; validación de la lluvia ({L["tormentas"]} tormentas) y elección de IMERG; río de los días de la tormenta; validación del río contra el radar, regla de tierra conectada y corrección del motor; λ = 0,05, humedad relativa, bajos con relieve y desagües de 2 años; simulación del pronóstico con ensamble y radar; agua de hoy por satélite (NASA); documento v4 (sin generar).</td></tr>
-<tr><td>15–16 nov</td><td>Riesgo por día en lugar del mensual (decisión de la autora) con ensamble del ECMWF, GloFAS corregido con el INA y alertas del SMN; «Qué cambia en los próximos días» y «Riesgo día por día»; grilla del simulador por tramos de radio; propensión con semáforo; habitantes e industrias; buscador de petroleras y plantas; preparación del simulador en paralelo; guía de diseño; diagnóstico de la automatización; documento v5.</td></tr></tbody></table>
+<table class="cronologia"><thead><tr><th>Etapa</th><th>Hito y decisiones</th></tr></thead><tbody>
+<tr><td>1</td><td>Investigación de fuentes; alcance (solo Argentina, 2.282 gobiernos locales y 66.515 radios); ingesta con reintentos; Earth Engine; índice híbrido; foco solo en inundación; arquitectura medallón.</td></tr>
+<tr><td>2</td><td>Consumo de IA como línea base; análisis por zona; buscadores; versión para celular; capas del tiempo.</td></tr>
+<tr><td>3</td><td>Rediseño «sala de situación»; sitio público; primer simulador 3D; maqueta con lluvia animada.</td></tr>
+<tr><td>4</td><td>Pedido de 28 puntos; modelo hidráulico 2D; FABDEM; validación contra Dynamic World y su mejora; documento funcional v1 a v3.</td></tr>
+<tr><td>5</td><td>Revisión de una crítica externa: confianza baja sin validación, «Sin información» en ríos sin estación, límites explícitos. Rediseño en «láminas».</td></tr>
+<tr><td>6</td><td>Índice con umbrales físicos; indicadores del círculo; radio arriba; imagen de alta resolución; escenarios con los Niños; peor Niño por fórmula; solo Niños completos; buscador con TomTom y barrios; revisión visual automática.</td></tr>
+<tr><td>7</td><td>Investigación de 17 trabajos; validación de la lluvia ({L["tormentas"]} tormentas) y elección de IMERG; río de los días de la tormenta; validación del río contra el radar, regla de tierra conectada y corrección del motor; λ = 0,05, humedad relativa, bajos con relieve y desagües de 2 años; simulación del pronóstico con ensamble y radar; agua de hoy por satélite (NASA); documento v4 (sin generar).</td></tr>
+<tr><td>8</td><td>Riesgo por día en lugar del mensual (decisión de la autora) con ensamble del ECMWF, GloFAS corregido con el INA y alertas del SMN; «Qué cambia en los próximos días» y «Riesgo día por día»; grilla del simulador por tramos de radio; propensión con semáforo; habitantes e industrias; buscador de petroleras y plantas; preparación del simulador en paralelo; guía de diseño; diagnóstico de la automatización; documento v5.</td></tr>
+<tr><td>9</td><td>Riesgo como probabilidad × impacto con umbrales del SMN y niveles del INA (después de investigar lo publicado en la Argentina); 162 zonas rurales sin gobierno local; versión celular separada; manchas de riesgo al acercar; buscador por relevancia.</td></tr>
+<tr><td>10</td><td>Calibración contra las alertas del SMN y verificación diaria y semanal automáticas; coherencia entre el Panorama y el simulador; recorrido guiado; modo oscuro; este documento.</td></tr></tbody></table>
 </section>''',
 
 12: f'''<section><h1><span class="num">Capítulo 12</span>Cumplimiento de los pedidos</h1>

@@ -73,20 +73,21 @@ def cobertura_datos() -> str:
 
 
 def cronograma() -> str:
-    hitos = [("Fuentes y alcance", "2026-09-27", "2026-09-28", AZUL), ("Ingesta y Earth Engine", "2026-09-28", "2026-09-30", AZUL),
-             ("Índice de riesgo y modelos", "2026-09-29", "2026-10-02", CIAN), ("Web: primera versión y análisis", "2026-09-29", "2026-10-15", VERDE),
-             ("Rediseño «sala de situación» y sitio público", "2026-11-05", "2026-11-06", VERDE), ("Simulador: llenado de bajos", "2026-11-06", "2026-11-08", NARANJA),
-             ("Modelo hidráulico 2D y terreno FABDEM", "2026-11-10", "2026-11-11", NARANJA), ("Tandas 1 a 9 (28 puntos del pedido)", "2026-11-10", "2026-11-12", ROJO),
-             ("Validación del simulador (Dynamic World)", "2026-11-11", "2026-11-12", ROJO), ("Láminas, índice físico y escenarios", "2026-11-13", "2026-11-14", VERDE),
-             ("Investigación y validación de lluvia y río", "2026-11-15", "2026-11-15", ROJO),
-             ("Riesgo por día, pronóstico y propensión", "2026-11-15", "2026-11-16", CIAN)]
-    fig, ax = plt.subplots(figsize=(6.8, 3.2))
-    for i, (n, a, b, c) in enumerate(hitos[::-1]):
-        a_, b_ = pd.Timestamp(a), pd.Timestamp(b) + pd.Timedelta(days=1)
-        ax.barh(i, (b_ - a_).days, left=matplotlib.dates.date2num(a_), height=0.55, color=c)
+    """Etapas del proyecto en orden (sin eje de calendario: muestra la secuencia, no las pausas)."""
+    hitos = [("Fuentes, alcance e ingesta", AZUL), ("Índice de riesgo y modelos", CIAN), ("Web: primera versión y análisis", VERDE),
+             ("Rediseño «sala de situación» y sitio público", VERDE), ("Simulador: llenado de bajos", NARANJA),
+             ("Modelo hidráulico 2D y terreno FABDEM", NARANJA), ("Pedido de 28 puntos y validación del simulador", ROJO),
+             ("Láminas, índice físico y escenarios", VERDE), ("Investigación y validación de lluvia y río", ROJO),
+             ("Riesgo por día y pronóstico", CIAN), ("Probabilidad × impacto, zonas rurales y celular", CIAN),
+             ("Calibración contra el SMN y verificación automática", ROJO)]
+    fig, ax = plt.subplots(figsize=(6.8, 3.4))
+    for i, (n, c) in enumerate(hitos[::-1]):
+        k = len(hitos) - 1 - i
+        ax.barh(i, 1, left=k, height=0.55, color=c)
     ax.set_yticks(range(len(hitos))); ax.set_yticklabels([h[0] for h in hitos[::-1]], fontsize=7.5)
-    ax.xaxis_date(); ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%d/%m")); ax.xaxis.set_major_locator(matplotlib.dates.DayLocator(interval=7))
-    ax.grid(axis="x", color=GRIS, lw=0.6); ax.set_axisbelow(True); ax.tick_params(axis="x", labelsize=8)
+    ax.set_xticks([k + 0.5 for k in range(len(hitos))]); ax.set_xticklabels([str(k + 1) for k in range(len(hitos))], fontsize=7.5)
+    ax.set_xlabel("Etapa", fontsize=8)
+    ax.grid(axis="x", color=GRIS, lw=0.6); ax.set_axisbelow(True)
     return svg(fig)
 
 
