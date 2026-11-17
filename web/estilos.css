@@ -1766,3 +1766,9 @@ body[data-lamina="3"] .lec-1 { display: none; }
 .sim-lec .sim-kpis .kpi-f { font-size: 11px; line-height: 16px; }
 /* Sin «Desde / Hasta» sobre el mapa (17-nov): el día o el período se eligen con la línea de tiempo de abajo */
 .plano-cab .periodo-fila, .hoja-mapa .plano-cab .periodo-fila { display: none !important; }
+
+/* Confianza del pronóstico debajo de la línea de los días (filete de 2 px y rótulo en mono; grises: no es nivel de riesgo) */
+.tb-evol-conf { position: relative; height: 24px; margin: 0 28px 0 6px; }
+.tb-conf { position: absolute; top: 0; height: 2px; }
+.tb-conf.alta { background: var(--tinta-1); } .tb-conf.media { background: var(--tinta-3); } .tb-conf.baja { background: var(--borde-fuerte); }
+.tb-conf small { position: absolute; top: 6px; left: 0; font: 500 10px/12px var(--f-mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--tinta-3); white-space: nowrap; }

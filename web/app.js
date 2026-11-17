@@ -256,6 +256,15 @@ function actualizarEvolucion() {
 }
 // Bloque del panel izquierdo: ▶ y una línea de tiempo con hitos al comienzo de cada semana (lunes). Mientras avanza, en el riesgo
 // la línea se pinta con el color del nivel de ese día y un cartelito dice dónde estamos.
+// Confianza del pronóstico según el plazo, debajo de la línea de los días: alta (0-2: día exacto, alertas del SMN), media (3-7: lluvia
+// con ventana de ±1 día) y baja (8-14: el ensamble ya no ubica bien el día; sirve como tendencia)
+function bandaConfianza(lista, x) {
+  const tramos = [["alta", 0, 2], ["media", 3, 7], ["baja", 8, 99]].map(([c, a, b]) => {
+    const j0 = lista.findIndex((k) => k >= a), j1 = lista.findLastIndex((k) => k <= b);
+    return j0 < 0 || j1 < j0 ? "" : `<span class="tb-conf ${c}" style="left:${x(j0)}%;width:${Math.max(0, x(j1) - x(j0))}%"><small>${t(`conf_${c}`)}</small></span>`;
+  }).join("");
+  return `<div class="tb-evol-conf" aria-label="${t("conf_aria")}">${tramos}</div>`;
+}
 function bloqueEvolucion() {
   const { tipo, lista } = listaReproduccion();
   if (!lista.length || lista.length < 2) return "";
@@ -283,7 +292,7 @@ function bloqueEvolucion() {
         ${cartel ? `<span class="tb-evol-cartel" style="left:${limitar(pct, 22, 78)}%">${escapar(cartel)}</span>` : ""}
         <span class="tb-evol-relleno" style="width:${pct}%"></span>
         ${semanas.map((x) => `<span class="tb-evol-sem${x <= pct && cartel ? " ok" : ""}" style="left:${x}%"></span>`).join("")}
-        ${hitos.map((h) => `<span class="tb-evol-hito${h.activo ? " ok" : ""}" style="left:${h.x}%"><i></i><small>${escapar(h.etq)}</small></span>`).join("")}</div></div></div>`;
+        ${hitos.map((h) => `<span class="tb-evol-hito${h.activo ? " ok" : ""}" style="left:${h.x}%"><i></i><small>${escapar(h.etq)}</small></span>`).join("")}</div>${tipo === "rdia" ? bandaConfianza(lista, x) : ""}</div></div>`;
 }
 
 function elegirEnLinea(tipo, a, b, extender = false) {

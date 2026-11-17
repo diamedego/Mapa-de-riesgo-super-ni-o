@@ -905,3 +905,6 @@ Descartado: «sin balance en horas secas» (falso: `balance(1,r,e)` sigue corrie
   de 0,1° (mismo método, `riesgo_grilla` en `modelos/riesgo_diario.py`, datos fijos en `data/referencia/grilla_riesgo.npz` de
   `web/preparar_grilla_riesgo.py`), dibujadas en el navegador con interpolación y recortadas por el contorno del país; desde 9,6,
   radios censales. Misma opacidad que los municipios (en el prototipo se veían más claras por doble transparencia).
+- 17-nov: sin «Desde / Hasta» sobre el mapa. Lluvia con ventana de ±1 día desde el día 3 (a más plazo el ensamble no coincide en el
+  día exacto: antes los días 7-14 quedaban casi verdes aunque el ensamble viera tormentas); banda de confianza bajo la línea de
+  días (alta 0-2, media 3-7, baja 8-14).

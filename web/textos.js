@@ -54,7 +54,7 @@ const TEXTOS = {
     sim_hud_llueve: (mm, acum) => `Lloviendo ${mm} mm/h · ${acum} mm en total`, sim_hud_escurre: "Escurriendo: el agua baja hacia los bajos", sim_hud_seco: "Seco",
     sim_f_flujo: "Desagües (líneas)",
     sim_reiniciar: "Empezar de cero", sim_velocidad: "Velocidad", sim_eje_mm: "mm por día", sim_eje_pct: "% del círculo con agua",
-    sim_mm_etq: "Lluvia a simular, además de la real y la pronosticada", sim_dur: "Cae en", sim_hint: "Con la lluvia real y pronosticada no se juntan zonas con agua. Mové la barra para simular una tormenta y ver dónde se acumula.", sim_conf: (n) => `Confianza ${n}`, conf_alta: "alta", conf_media: "media", conf_baja: "baja",
+    sim_mm_etq: "Lluvia a simular, además de la real y la pronosticada", sim_dur: "Cae en", sim_hint: "Con la lluvia real y pronosticada no se juntan zonas con agua. Mové la barra para simular una tormenta y ver dónde se acumula.", sim_conf: (n) => `Confianza ${n}`, conf_alta: "alta", conf_media: "media", conf_baja: "baja · tendencia",
     sim_conf_lluvia_real: () => "dato real", sim_conf_lluvia_pronostico: (d) => (d < 1 ? "pronóstico de las próximas horas" : `pronóstico a ${d} ${d === 1 ? "día" : "días"}`), sim_conf_lluvia_escenario: () => "escenario estacional",
     sim_conf_ayuda: (l, r, m, ql, fab) => `Lluvia: ${ql} (${l}). Relieve: ${fab ? "FABDEM sin edificios ni árboles" : "satelital, con edificios y árboles"} (${r}). Modelo: ${m}. La confianza es la menor de las tres.`,
     sim_modelo_teorico: "sin validar contra inundaciones reales",
@@ -569,6 +569,8 @@ const TEXTOS = {
     sim_nino_elegir: "Elegir tipo de Niño",
     // Riesgo por día (hoy y los próximos 14)
     sim_exag: (x) => `relieve ×${x}`,
+    // Riesgo por día (hoy y los próximos 14)
+    conf_aria: "Confianza del pronóstico: alta hasta 2 días, media de 3 a 7 y baja de 8 a 14",
   },
   en: {
     titulo: "Argentina facing El Niño 2026–27",
@@ -624,7 +626,7 @@ const TEXTOS = {
     sim_hud_llueve: (mm, acum) => `Raining ${mm} mm/h · ${acum} mm in total`, sim_hud_escurre: "Draining: water flows down to the lows", sim_hud_seco: "Dry",
     sim_f_flujo: "Drainage (lines)",
     sim_reiniciar: "Restart", sim_velocidad: "Speed", sim_eje_mm: "mm per day", sim_eje_pct: "% of circle with water",
-    sim_mm_etq: "Rain to simulate, on top of real and forecast rain", sim_dur: "Falls in", sim_hint: "With the real and forecast rain no areas collect water. Move the bar to simulate a storm and see where it pools.", sim_conf: (n) => `${capitalizar(n)} confidence`, conf_alta: "high", conf_media: "medium", conf_baja: "low",
+    sim_mm_etq: "Rain to simulate, on top of real and forecast rain", sim_dur: "Falls in", sim_hint: "With the real and forecast rain no areas collect water. Move the bar to simulate a storm and see where it pools.", sim_conf: (n) => `${capitalizar(n)} confidence`, conf_alta: "high", conf_media: "medium", conf_baja: "low · trend",
     sim_conf_lluvia_real: () => "real data", sim_conf_lluvia_pronostico: (d) => (d < 1 ? "forecast for the next hours" : `${d}-day forecast`), sim_conf_lluvia_escenario: () => "seasonal scenario",
     sim_conf_ayuda: (l, r, m, ql, fab) => `Rain: ${ql} (${l}). Terrain: ${fab ? "FABDEM without buildings or trees" : "satellite, with buildings and trees"} (${r}). Model: ${m}. Confidence is the lowest of the three.`,
     sim_modelo_teorico: "not validated against real floods",
@@ -1135,5 +1137,7 @@ const TEXTOS = {
     sim_nino_elegir: "Choose an El Niño year",
     // Riesgo por día (hoy y los próximos 14)
     sim_exag: (x) => `relief ×${x}`,
+    // Riesgo por día (hoy y los próximos 14)
+    conf_aria: "Forecast confidence: high up to 2 days, medium from 3 to 7, low from 8 to 14",
   },
 };

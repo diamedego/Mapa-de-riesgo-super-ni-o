@@ -7,7 +7,8 @@ terreno, vulnerabilidad) solo dice cuánto daño haría el evento.
 AMENAZA del día (nivel 0 a 3), el mayor entre:
 - LLUVIA, con los umbrales del SMN (Nota Técnica SMN 2021-109): lluvia diaria del percentil 90 (amarillo), 99 (naranja) y del
   valor extremo (rojo), calculados por celda de 0,1° con ERA5-Land (earth_engine/umbrales_smn.py). Probabilidad = fracción de los 50
-  pronósticos del ensamble del ECMWF que superan cada umbral ese día; nivel 1 / 2 / 3 si al menos el 30 % supera amarillo / naranja
+  pronósticos del ensamble del ECMWF que superan cada umbral ese día (desde el día 3, ese día o el anterior o el siguiente: a más plazo
+  los pronósticos no coinciden en el día exacto); nivel 1 / 2 / 3 si al menos el 30 % supera amarillo / naranja
   / rojo (criterio de aviso del EFAS). Dos agregados con su porqué:
     · suelo mojado: el umbral baja hasta un 25 % con la lluvia de los 5 días anteriores (índice de precipitación antecedente,
       factor 0,85 por día): la misma lluvia inunda más sobre suelo saturado (es la base del sistema de crecidas repentinas de la
@@ -56,6 +57,7 @@ import requests
 RAIZ = Path(__file__).resolve().parents[1]
 REF, WEB = RAIZ / "data" / "referencia", RAIZ / "web" / "datos"
 DIAS, P_ALTA = 15, 0.70
+VENTANA_DESDE = 3   # desde este día la lluvia se evalúa con ventana de ±1 día
 # Parámetros que la verificación semanal (modelos/verificar_riesgo.py) puede mover de a poco, dentro de límites, sin cambiar el método
 PARAM = json.loads((REF / "parametros_riesgo.json").read_text()) if (REF / "parametros_riesgo.json").exists() else {}
 P_UMBRAL = float(PARAM.get("p_umbral", 0.30))
@@ -150,7 +152,9 @@ def niveles_lluvia(M: np.ndarray, u: pd.Series, propension: float) -> tuple[list
         k = d + 2
         ant = sum(M[:, k - j] * 0.85 ** (j - 1) for j in range(1, 6) if k - j >= 0)
         sat = np.clip(ant / max(base[1], 1.0), 0, 1)
-        dia = M[:, k][:, None]
+        # Desde el día 3 el ensamble ya no coincide en el día exacto de la tormenta: cuenta si el miembro supera el umbral ese día
+        # o el anterior o el siguiente (ventana de ±1 día, como el índice de extremos del ECMWF con plazos largos)
+        dia = (M[:, max(2, k - 1):min(M.shape[1], k + 2)].max(axis=1) if d >= VENTANA_DESDE else M[:, k])[:, None]
         p = ((dia > base[None, :] * (1 - F_SUELO * sat)[:, None]).mean(axis=0))
         n = 3 if p[2] >= P_UMBRAL else 2 if p[1] >= P_UMBRAL else 1 if p[0] >= P_UMBRAL else 0
         niv.append(n); prob.append(round(float(p[max(0, n - 1)]), 2)); p3.append([float(x) for x in p])
@@ -351,7 +355,8 @@ def riesgo_grilla(lluvia: dict, rios: dict, dias: list) -> dict | None:
             k = d + 2
             ant = sum(M[:, k - j] * 0.85 ** (j - 1) for j in range(1, 6) if k - j >= 0)
             fac = 1 - F_SUELO * np.clip(ant[:, None] / np.maximum(base[None, :, 1], 1.0), 0, 1)   # miembros × celdas
-            p = (M[:, k][:, None, None] > base[None, :, :] * fac[:, :, None]).mean(axis=0)     # celdas × 3
+            dia = M[:, max(2, k - 1):min(M.shape[1], k + 2)].max(axis=1) if d >= VENTANA_DESDE else M[:, k]   # ±1 día desde el día 3
+            p = (dia[:, None, None] > base[None, :, :] * fac[:, :, None]).mean(axis=0)     # celdas × 3
             n = np.where(p[:, 2] >= P_UMBRAL, 3, np.where(p[:, 1] >= P_UMBRAL, 2, np.where(p[:, 0] >= P_UMBRAL, 1, 0)))
             NL[d][sel], PLL[d][sel] = n, np.take_along_axis(p, np.maximum(n - 1, 0)[:, None], 1)[:, 0]
             PAM[d][sel] = p[:, 0]
