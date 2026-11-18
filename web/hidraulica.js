@@ -152,8 +152,9 @@ function correr() {
   for (let k = 0; k < horas; k++) {
     if (cortar) { postMessage({ tipo: "cortado" }); return; }
     const r = lluvia[k], e = et0[k];
-    if (S.asimilar && k === S.asimilar.k) {
-      const H = S.asimilar.h, a = S.dx * S.dx;
+    for (const As of Array.isArray(S.asimilar) ? S.asimilar : S.asimilar ? [S.asimilar] : []) {   // puede haber varias (radar de hoy, agua vista en el Niño)
+      if (k !== As.k) continue;
+      const H = As.h, a = S.dx * S.dx;
       for (let i = 0; i < N; i++) if (S.tipo2[i] === 1 && H[i] > S.h[i]) { S.cuenta.asimilada = (S.cuenta.asimilada ?? 0) + (H[i] - S.h[i]) * a; S.h[i] = H[i]; }
       quietas = 0;
     }

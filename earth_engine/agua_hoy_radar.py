@@ -24,6 +24,7 @@ from config import PROYECTO_EE  # noqa: E402
 
 RAIZ = Path(__file__).resolve().parents[1]
 VENTANA_DIAS, UMBRAL_DB = 12, -16
+NINOS_S1 = [2015, 2023]   # temporadas Niño (octubre a abril) con radar Sentinel-1
 
 
 def iniciar() -> None:
@@ -54,7 +55,29 @@ def mapa() -> dict:
     # lagunas permanentes y las temporarias (donde el agua se junta seguido), que el radar de hoy no ve si están secas o vegetadas
     occ = ee.Image("JRC/GSW1_4/GlobalSurfaceWater").select("occurrence").unmask(0)
     jrc = occ.visualize(min=0, max=100, palette=["000000", "ff0000"]).updateMask(occ.gt(0))
-    return {"url": vis.getMapId({})["tile_fetcher"].url_format, "jrc_url": jrc.getMapId({})["tile_fetcher"].url_format, "generado": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"),
+    # Lagunas con vegetación o someras (esteros): Dynamic World (Sentinel-2, 10 m) del último año, probabilidad media de «agua» más
+    # «vegetación inundada». El JRC y el radar ven solo agua abierta
+    dw = ee.ImageCollection("GOOGLE/DYNAMICWORLD/V1").filterDate(ahora.advance(-365, "day"), ahora).select(["water", "flooded_vegetation"]) \
+        .map(lambda i: i.select("water").add(i.select("flooded_vegetation")).rename("p")).mean()
+    dwv = dw.visualize(min=0, max=1, palette=["000000", "ff0000"]).updateMask(dw.gt(0.15))
+    # Agua vista por el radar en cada mes de los Niños con Sentinel-1 (desde 2014): donde hubo agua al menos en una pasada del mes
+    # (mediana de 50 m, VV < −16 dB) y no es agua permanente. El simulador la usa para completar la inundación del escenario de ese
+    # Niño con lo que de verdad se vio (lo que el modelo no llegó a mojar)
+    ninos = {}
+    for anio in NINOS_S1:
+        meses = {}
+        for m in range(7):
+            ini = ee.Date.fromYMD(anio, 10, 1).advance(m, "month")
+            col = ee.ImageCollection("COPERNICUS/S1_GRD").filterDate(ini, ini.advance(1, "month")).filter(ee.Filter.eq("instrumentMode", "IW")) \
+                .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VV")).select("VV")
+            vv = col.map(lambda i: i.focalMedian(50, "circle", "meters").lt(UMBRAL_DB).updateMask(i.mask())).max()
+            a = vv.And(permanente.Not())
+            img = a.visualize(min=0, max=1, palette=["000000", "ff0000"]).updateMask(vv.mask())
+            meses[f"{anio + (m + 9) // 12}-{(9 + m) % 12 + 1:02d}"] = img.getMapId({})["tile_fetcher"].url_format
+        ninos[f"{anio}-{str(anio + 1)[2:]}"] = meses
+    return {"url": vis.getMapId({})["tile_fetcher"].url_format, "ninos_url": ninos, "jrc_url": jrc.getMapId({})["tile_fetcher"].url_format,
+            # "dw_url" (lagunas con vegetación, Dynamic World): apagado hasta probarlo en el simulador
+            "generado": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"),
             "ventana_dias": VENTANA_DIAS, "umbral_db": UMBRAL_DB, "codificacion": "rojo 255 = agua; verde = días desde la pasada × 20; transparente = sin pasada",
             "jrc_codificacion": "rojo = % de las observaciones 1984-2021 con agua (0-255 = 0-100 %); transparente = nunca"}
 

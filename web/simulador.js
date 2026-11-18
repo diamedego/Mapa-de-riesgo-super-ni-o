@@ -147,7 +147,7 @@ async function aplicarNino(temporada, alInicio = false) {
   // La tormenta y el río son los de ese Niño; el punto de partida es HOY: la humedad del suelo de hoy y el agua que hoy ve el radar en
   // los bajos (se agrega al iniciar la corrida). Así el escenario responde «¿qué pasaría si mañana cae la tormenta de ese Niño?»
   const thetaHoy = SIM.hist.humedadHoy;
-  Object.assign(E, { nino: temporada, forma: temporada, horas: ev.dur, perfil: ev.lluvia.map((v) => v / ev.total), lagos: 0,
+  Object.assign(E, { nino: temporada, diasNino: n.evento?.dias ?? null, forma: temporada, horas: ev.dur, perfil: ev.lluvia.map((v) => v / ev.total), lagos: 0,
     theta: thetaHoy != null ? limitar(thetaHoy, Lh.min, Lh.max) : ev.theta ?? (Lh.min + Lh.max) / 2, thetaHoy: thetaHoy != null,
     ...(rt ? { rio: rt.max } : mediana != null ? { rio: mediana } : {}) });
   E.mm = Math.round(ev.total);
@@ -739,7 +739,12 @@ async function simularEscenario(alInicio = false) {
   pintarEscenario();   // con el suelo y la grilla del lugar ya se sabe dónde se satura y si hay lagunas o río en el círculo
   // Agua de hoy: lo que vio el radar en los bajos entra al empezar (hora 0), como en la simulación del pronóstico
   let asimilar = null;
-  if (d.radarFino) { const Rg = radarEnGrilla(d.radarFino, g), Hh = profundidadRadar(g, Rg.fr); if (Hh.haAsignada > 0) asimilar = { k: 0, h: Hh.h }; M.aguaHoyHa = Hh.haAsignada; }
+  if (d.radarFino) { const Rg = radarEnGrilla(d.radarFino, g), Hh = profundidadRadar(g, Rg.fr); if (Hh.haAsignada > 0) asimilar = [{ k: 0, h: Hh.h }]; M.aguaHoyHa = Hh.haAsignada; }
+  // Niño con radar (2015-16 y 2023-24): el agua que vio Sentinel-1 en los días de esa tormenta completa lo que el modelo no llegó a
+  // mojar, al terminar la lluvia (solo sube el agua donde el modelo tenía menos; en cada bajo, hasta el nivel que cubre lo visto)
+  const vistoNino = await aguaVistaNino(d, E);
+  if (SIM.modelo !== M) return;
+  if (vistoNino) { const Hn = profundidadRadar(g, radarEnGrilla(vistoNino, g).fr); if (Hn.haAsignada > 0) (asimilar ??= []).push({ k: 2 + E.horas, h: Hn.h }); M.aguaNinoHa = Hn.haAsignada; }
   const w = (M.worker = new Worker("hidraulica.js"));
   w.onmessage = (e) => recibirHora(M, e.data);
   w.onerror = (e) => { avisoProgreso(t("sim_error")); console.error(e); };
@@ -1984,6 +1989,18 @@ async function aguaRadar(d) {
   if (!R?.url) return null;
   const [px, jrc, dw] = await Promise.all([teselasEE(R.url, d.D), R.jrc_url ? teselasEE(R.jrc_url, d.D) : null, R.dw_url ? teselasEE(R.dw_url, d.D) : null]);
   return px || jrc || dw ? { px: px ?? new Uint8ClampedArray(d.D.W * d.D.H * 4), jrc, dw, W: d.D.W, generado: R.generado } : null;
+}
+// Agua vista por el radar en el mes de la tormenta de un Niño (y en el de 3 días después, si cambia de mes): rojo = agua
+async function aguaVistaNino(d, E) {
+  const R = await (cargaRadarAgua ??= fetch("datos/radar_agua.json").then((r) => (r.ok ? r.json() : null)).catch(() => null));
+  const meses = R?.ninos_url?.[E?.nino], dias = E?.diasNino;
+  if (!meses || !dias?.length) return null;
+  const fin = new Date(`${dias[dias.length - 1]}T12:00:00Z`), claves = new Set([fin.toISOString().slice(0, 7), new Date(+fin + 3 * 864e5).toISOString().slice(0, 7)]);
+  const capas = (await Promise.all([...claves].filter((k) => meses[k]).map((k) => teselasEE(meses[k], d.D)))).filter(Boolean);
+  if (!capas.length) return null;
+  const px = new Uint8ClampedArray(capas[0].length);
+  for (const c of capas) for (let i = 0; i < c.length; i += 4) if (c[i + 3] > 0) { px[i + 3] = 255; px[i] = Math.max(px[i], c[i]); }
+  return { px, W: d.D.W };
 }
 // Por celda del modelo: fracción con agua y días desde la pasada (mediana del círculo)
 function radarEnGrilla(rad, g) {
