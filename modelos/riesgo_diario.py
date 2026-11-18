@@ -167,6 +167,7 @@ def niveles_lluvia(M: np.ndarray, u: pd.Series, propension: float) -> tuple[list
 
 
 IMPACTO_CORTES = [100, 1_000, 10_000]
+PISO_ALERTA = {2: 2, 3: 3}   # impacto mínimo con alerta naranja (menor) y roja (significativo) del SMN
 MATRIZ = [[1, 1, 1, 1], [2, 2, 3, 3], [2, 3, 4, 4], [3, 4, 5, 5]]   # [amenaza][impacto − 1] → nivel de riesgo 1-5
 CORTES = [0, 3, 4.5, 6, 7, 10]                                     # los del sitio (muy bajo … muy alto)
 
@@ -447,7 +448,7 @@ def riesgo_grilla(lluvia: dict, rios: dict, dias: list, PLd: np.ndarray | None =
     for d in range(D):
         imp_l = imp_ld[d]
         r = np.maximum.reduce([matriz(NL[d], imp_l, np.where(NL[d] > 0, PLL[d], 0)), matriz(NQ[d], imp_r, PQ[d]),
-                               matriz(NA[d], imp_l, (NA[d] > 0).astype(float))])
+                               matriz(NA[d], np.maximum(imp_l, np.where(NA[d] == 3, 3, np.where(NA[d] == 2, 2, 1))), (NA[d] > 0).astype(float))])
         sin = (NL[d] == 0) & (NQ[d] == 0) & (NA[d] == 0)
         r = np.where(sin, matriz(np.zeros_like(NL[d]), imp_l, PAM[d] / P_UMBRAL), r)
         out[d] = np.where(validas, np.round(r * 20), 255).astype(np.uint8)
@@ -533,7 +534,10 @@ def main() -> None:
         riesgo = []
         for d in range(DIAS):
             # El riesgo del día es el de la fuente que da más (cada una con su impacto: la lluvia anega lo más bajo, el río su llanura)
-            imp["l"] = imp["a"] = imp_l[d]
+            # Piso por alerta del SMN: con alerta naranja el impacto no baja de «menor» y con roja de «significativo», aunque el terreno
+            # no muestre bajos (el relieve de 30 m no ve el agua que corre por las calles en una tormenta intensa)
+            imp["l"] = imp_l[d]
+            imp["a"] = max(imp_l[d], PISO_ALERTA.get(fuente["a"][d], 1))
             cand = [(riesgo_matriz(fuente[k][d], imp[k], pf[k][d] if fuente[k][d] else 0.0), k) for k in ("l", "q", "a")]
             rmax, k = max(cand)
             if fuente[k][d] == 0:   # sin amenaza: se ordena por la probabilidad de la lluvia amarilla (0 a 3)

@@ -1132,7 +1132,7 @@ body[data-lamina="3"] .lec-1 { display: none; }
 .lec-1 { gap: 0; }
 .lec-cabeza { display: grid; gap: 14px; }
 .lectura .etq { font: 500 10.5px/1.2 var(--f-mono); letter-spacing: 0.09em; text-transform: uppercase; color: var(--tinta-3); }
-.lectura .titular { margin: 8px 0 0; font: 600 30px/1.12 var(--f-ui); letter-spacing: -0.03em; text-wrap: balance; }
+.lectura .titular { margin: 8px 0 0; font: 600 30px/1.12 var(--f-ui); letter-spacing: -0.03em; text-wrap: pretty; }   /* «pretty»: llena el ancho (sin hueco a la derecha) y evita una palabra sola al final */
 .lectura .titular span { color: var(--cian); }
 .lectura .bajada { max-width: none; font-size: 14px; line-height: 1.5; color: var(--tinta-2); }
 .lec-cabeza .kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin: 0; border-top: 1.5px solid var(--marco); border-bottom: 1.5px solid var(--marco); }
@@ -1580,7 +1580,7 @@ body[data-lamina="3"] .lec-1 { display: none; }
   .lec-fila-etq > .etq { display: flex; flex: 1 1 auto; align-items: center; gap: 8px; white-space: normal; overflow: visible; }
   .lec-fila-etq > .etq::after { content: ""; flex: 1; min-width: 16px; height: 1px; background: var(--borde-fuerte); }
   .lectura .etq { font-size: 10px; line-height: 16px; letter-spacing: 0.1em; }
-  .lectura .titular { margin: 8px 0 0; font: 600 22px/1.25 var(--f-ui); letter-spacing: -0.02em; }
+  .lectura .titular { margin: 8px 0 0; font: 600 22px/1.25 var(--f-ui); letter-spacing: -0.02em; text-wrap: pretty; }
   .lectura .titular span { display: block; margin-top: 8px; font: 500 22px/1 var(--f-mono); letter-spacing: -0.02em; color: var(--tinta-2); }
   .lectura .titular span b { margin-right: 4px; font: 500 40px/1 var(--f-mono); letter-spacing: -0.04em; color: var(--cian); }
   .lec-pie > .bajada { font-size: 14px; line-height: 1.5; }

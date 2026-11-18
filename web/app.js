@@ -160,7 +160,12 @@ function pintarCabezaLectura(A, rV, pobAlto, evac, pico) {
   const nivel = nombreNivel(rV).toLowerCase(), c = A.circulo ? "_c" : "";
   document.getElementById("lec-etq").textContent = t("lec_etq")(pais ? t("lec_pais") : A.nombre, hoy);
   pintarCoordenadas(A.circulo?.punto ?? null);
-  document.getElementById("lec-titular").innerHTML = `${escapar(capitalizar(t("lec_titular")(nivel)))} <span>${t("sobre_10")(`<b>${fmtRiesgo(rV)}</b>`)}</span>`;
+  // El período que mira el riesgo va en el titular: «hoy», «en los próximos 14 días», «el 20/11» o «del 20/11 al 25/11»
+  const iv = indicesVista(), i0 = Math.min(...iv), i1 = Math.max(...iv), fd = (i) => fechaCorta(estado.riesgo.dias[i]).slice(0, 5);
+  const per = i1 === 0 ? t("per_hoy") : i0 === 0 ? t("per_prox")(i1 + 1) : i0 === i1 ? t("per_dia")(fd(i0)) : t("per_rango")(fd(i0), fd(i1));
+  // En el celular el período va en la línea chica de arriba (el titular entra en 2 líneas); en la computadora, en el titular
+  if (esMovil()) document.getElementById("lec-etq").textContent = `${capitalizar(per)} · ${document.getElementById("lec-etq").textContent}`;
+  document.getElementById("lec-titular").innerHTML = `${escapar(capitalizar(esMovil() ? t("lec_titular")(nivel, "").replace(" :", ":") : t("lec_titular")(nivel, per)))} <span>${t("sobre_10")(`<b>${fmtRiesgo(rV)}</b>`)}</span>`;
   const pers = pobAlto >= 1e6 ? t("personas_txt")(fmt(pobAlto / 1e6, 1), true) : t("personas_txt")(fmt(Math.round(pobAlto)), false);
   const diaPico = pico ? fmtDiaFrase(estado.riesgo.dias[pico.i], { weekday: "long", day: "numeric", month: "long" }).replace(",", "") : null;
   document.getElementById("lec-bajada").textContent = t(`lec_bajada${c}`)(capitalizar(pers), evac, pico ? pico.i : null, diaPico);

@@ -723,7 +723,9 @@ function riesgoRadios(features) {
       // Radio sin habitantes expuestos (el peor Niño moja menos del 10 % de su superficie, método del simulador): la misma amenaza
       // con impacto mínimo, aunque la celda tenga gente expuesta en otros radios
       const g = expuesto ? valorGrilla(f.properties._c, i) : null;
-      f.properties[`r_${m}`] = g ?? (expuesto ? d.r[i] : riesgoMatriz(d.n[i] ?? 0, 1, d.n[i] ? d.prob[i] ?? 0 : 0));
+      // Sin gente expuesta, impacto mínimo; con alerta naranja o roja del SMN, como mínimo «menor» o «significativo» (como el municipio)
+      const piso = d.alerta?.[i] === 3 ? 3 : d.alerta?.[i] === 2 ? 2 : 1;
+      f.properties[`r_${m}`] = g ?? (expuesto ? d.r[i] : riesgoMatriz(d.n[i] ?? 0, piso, d.n[i] ? d.prob[i] ?? 0 : 0));
     });
   });
 }
