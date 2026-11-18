@@ -14,6 +14,8 @@ import pandas as pd
 RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ / "earth_engine"))
 sys.path.insert(0, str(RAIZ / "web"))
+sys.path.insert(0, str(RAIZ / "transformacion"))
+from exposicion import pct_expuesto  # noqa: E402
 import lluvia_ninos as LN  # noqa: E402  (la grilla)
 from preparar_geometrias import exposicion_vulnerabilidad_radios  # noqa: E402
 
@@ -29,7 +31,7 @@ def main() -> None:
     ci = ((rr.lon - LN.OESTE) / LN.PASO).astype(int).clip(0, nx - 1).values
     pob = rr.poblacion.fillna(0).values
     PL, PR, PV, P = (np.zeros((ny, nx)) for _ in range(4))
-    np.add.at(PL, (fi, ci), pob * rr.pct_area_hand_2m.fillna(0).values / 100)
+    np.add.at(PL, (fi, ci), pob * pct_expuesto(rr).values / 100)   # habitantes expuestos (método del simulador)
     np.add.at(PR, (fi, ci), pob * rr.pct_area_hand_5m.fillna(0).values / 100)
     np.add.at(PV, (fi, ci), pob * rr.V.fillna(0).values)
     np.add.at(P, (fi, ci), pob)

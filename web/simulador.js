@@ -14,6 +14,9 @@ const SIM = { mapa: null, mm: 0, reproduciendo: 0, datos: null,
   capas: { colores: true, curvas: true, drenaje: true, cortes: false, flujo: false, corte: false, x5: false, refs3d: true }, vista: "mapa", maqueta: null,
   modelo: null, desague: 10, crecida: 0, tormenta: { mm: 0, horas: 3 }, velocidad: 1 };   // desagües pluviales supuestos: 10 mm/h en superficies impermeables (no hay datos)
 const AGUA_MIN = 0.1;   // desde 10 cm se cuenta como zona con agua (superficie, personas)
+// Margen de terreno alrededor del círculo: el agua se mueve también ahí (el borde de la grilla, que la deja salir, queda lejos)
+// y solo se muestra y se cuenta lo de adentro. Sin margen, un bajo cortado por el borde desagotaba de mentira
+const MARGEN_KM = 0.8;
 const AGUA_VER = 0.05;  // se dibuja desde 5 cm (menos es solo suelo mojado)
 const CORTE = 0.3;      // desde 30 cm una calle queda cortada para un auto (el agua en movimiento lo puede arrastrar)
 const TERRARIUM = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
@@ -181,7 +184,7 @@ function rasgosLugar() {
     const x = c % g.nx, y = (c / g.nx) | 0;
     for (const [vx, vy] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
       const v = vy * g.nx + vx;
-      if (vx >= 0 && vy >= 0 && vx < g.nx && vy < g.ny && g.tipo2[v] === 1) { base = Math.min(base, g.z[v] - 0.05); orillas.push(g.z[v]); }
+      if (vx >= 0 && vy >= 0 && vx < g.nx && vy < g.ny && g.tipo2[v] === 1 && g.z[v] < 900) { base = Math.min(base, g.z[v] - 0.05); orillas.push(g.z[v]); }
     }
   }
   orillas.sort((a, b) => a - b);
@@ -579,7 +582,7 @@ async function prepararSimulacion(s) {
   est.textContent = t("sim_cargando");
   const mapaListo = crearMapaSimulador(s);
   pedirDatosZona(s);   // Niños, ríos, humedad y suelo del lugar: en paralelo con el relieve
-  const [D] = await Promise.all([relieveDe(cajaCirculo(s.punto, s.km * 1.25), s.km), cargarRadiosEn(cajaCirculo(s.punto, s.km)), mapaListo]);
+  const [D] = await Promise.all([relieveDe(cajaCirculo(s.punto, s.km + MARGEN_KM), s.km), cargarRadiosEn(cajaCirculo(s.punto, s.km)), mapaListo]);
   if (estado.sel !== s || document.getElementById("sim").hidden) return;
   const { W, H } = D, N = W * H;
   const aPx = (lon, lat) => [(xDeLon(lon, D.z) - D.tx0) * 256, (yDeLat(lat, D.z) - D.ty0) * 256];

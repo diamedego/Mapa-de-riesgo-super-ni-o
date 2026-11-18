@@ -69,6 +69,22 @@ function opacidadRiesgo(paradas) {
 // El navegador interpola entre celdas (bordes suaves, sin bloques), pinta con los colores del sitio y recorta con el contorno de
 // las provincias. Con un período, cada celda muestra su peor día (como los municipios).
 let grillaBytes = null;
+// Habitantes expuestos de cada radio censal y día (modelos/riesgo_diario.py: terreno del simulador + lluvia del ensamble):
+// fracción de su población × 250, día × radio. El Panorama y el simulador suman lo mismo
+let expuestosBytes = null, expuestosIndice = null, expuestosN = 0;
+function cargarExpuestos() {
+  Promise.all([fetch("datos/expuestos_radios.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)), fetch("datos/expuestos_radios.bin", { cache: "no-cache" }).then((r) => (r.ok ? r.arrayBuffer() : null))])
+    .then(([j, b]) => { if (!j || !b) return; expuestosIndice = new Map(j.radios.map((c, i) => [c, i])); expuestosN = j.radios.length; expuestosBytes = new Uint8Array(b);
+      riesgoRadios(estado.radios ?? []); mapa.getSource("radios")?.setData({ type: "FeatureCollection", features: estado.radios ?? [] }); if (typeof pintarKpis === "function") pintarKpis(); })
+    .catch(() => {});
+}
+// Fracción expuesta de un radio en el día d (desde hoy); null si no hay dato
+function fraccionExpuesta(cod, d) {
+  const i = expuestosIndice?.get(cod);
+  if (i == null) return null;
+  const o = (d + (estado.riesgo?.k0 ?? 0)) * expuestosN + i;
+  return o < expuestosBytes.length ? expuestosBytes[o] / 250 : null;
+}
 function agregarGrilla(antes) {
   const G = estado.riesgo.grilla;
   if (!G || mapa.getSource("riesgo-grilla")) return;
@@ -78,6 +94,7 @@ function agregarGrilla(antes) {
   mapa.addSource("riesgo-grilla", { type: "canvas", canvas: cv, animate: false, coordinates: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]] });
   mapa.addLayer({ id: "riesgo-grilla", type: "raster", source: "riesgo-grilla",
     paint: { "raster-opacity": ["interpolate", ["linear"], ["zoom"], 5.5, 0, 6.5, 0.86]   /* sigue debajo de los radios: donde no hay radio con habitantes (campo, monte) se ve la celda */, "raster-resampling": "linear", "raster-fade-duration": 0 } }, antes);
+  cargarExpuestos();
   fetch("datos/riesgo_grilla.bin", { cache: "no-cache" }).then((r) => (r.ok ? r.arrayBuffer() : null)).then((b) => { if (b) { grillaBytes = new Uint8Array(b); dibujarGrilla(); riesgoRadios(estado.radios ?? []); mapa.getSource("radios")?.setData({ type: "FeatureCollection", features: estado.radios ?? [] }); if (typeof pintarKpis === "function") pintarKpis(); } }).catch(() => {});
 }
 // Riesgo de la grilla en un punto y un día (el mismo valor interpolado que se ve en el mapa); null si no hay grilla
@@ -687,8 +704,8 @@ async function cargarRadiosVisibles() {
   const b = mapa.getBounds();
   await cargarRadiosEn([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]);
 }
-// Radio censal: el riesgo del día de su lugar (probabilidad × impacto); si el radio no está en terreno inundable (menos del 10 % de
-// su superficie a < 2 m del cauce), con impacto mínimo: la misma amenaza, poco para dañar
+// Radio censal: el riesgo del día de su lugar (probabilidad × impacto); si el radio no tiene habitantes expuestos (menos del 10 % de
+// su superficie con agua en el peor Niño), con impacto mínimo: la misma amenaza, poco para dañar
 const MATRIZ_R = [[1, 1, 1, 1], [2, 2, 3, 3], [2, 3, 4, 4], [3, 4, 5, 5]], CORTES_R = [0, 3, 4.5, 6, 7, 10];
 function riesgoMatriz(amenaza, imp, p) {
   const nivel = MATRIZ_R[amenaza][imp - 1], lo = CORTES_R[nivel - 1], hi = CORTES_R[nivel];
@@ -699,10 +716,13 @@ function riesgoRadios(features) {
     const d = estado.riesgo.cmu[f.properties.cmu];
     f.properties._c = centroDe(f.geometry);
     if (!d) return;
-    const expuesto = (Number(f.properties.pct_area_hand_2m) || 0) >= 10;
     estado.riesgo.dias.forEach((m, i) => {
+      // Radio con habitantes expuestos ese día (10 personas o más con agua, según el terreno del simulador y la lluvia pronosticada)
+      const fr = fraccionExpuesta(f.properties.cod_indec, i), expuesto = fr != null ? fr * (Number(f.properties.poblacion) || 0) >= 10 : (Number(f.properties.pct_area_hand_2m) || 0) >= 10;
       // Con la grilla: el valor de la celda en el centro del radio (lo mismo que muestran las manchas); sin ella, el del municipio
-      const g = valorGrilla(f.properties._c, i);
+      // Radio sin habitantes expuestos (el peor Niño moja menos del 10 % de su superficie, método del simulador): la misma amenaza
+      // con impacto mínimo, aunque la celda tenga gente expuesta en otros radios
+      const g = expuesto ? valorGrilla(f.properties._c, i) : null;
       f.properties[`r_${m}`] = g ?? (expuesto ? d.r[i] : riesgoMatriz(d.n[i] ?? 0, 1, d.n[i] ? d.prob[i] ?? 0 : 0));
     });
   });

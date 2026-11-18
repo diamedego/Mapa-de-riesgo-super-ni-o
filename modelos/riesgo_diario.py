@@ -45,6 +45,7 @@ Uso: python modelos/riesgo_diario.py
 """
 import datetime as dt
 import json
+import sys
 import math
 import pickle
 import time
@@ -313,6 +314,46 @@ def alertas_smn(puntos: pd.DataFrame, dias: list) -> dict:
     return out
 
 
+def expuestos_por_dia(lluvia: dict, D: int) -> dict:
+    """Habitantes expuestos a inundaciones de cada día, con el mismo terreno que el simulador (transformacion/exposicion.py): para
+    cada radio censal, la lluvia de 3 días hasta ese día que supera el 30 % de los 50 pronósticos (P_UMBRAL, el mismo criterio que
+    avisa) y la humedad del suelo por la lluvia de los 5 días anteriores (como en los umbrales: w = 0,1 + 0,8 · s_m), interpoladas en
+    la tabla de fracción del radio con 10 cm de agua o más. Con alerta del SMN, la lluvia de ese nivel (umbral sin calibrar) como
+    mínimo. Devuelve fracciones por radio y día, personas por gobierno local y día, y personas por celda de 0,1° y día."""
+    sys.path.insert(0, str(RAIZ / "transformacion"))
+    from exposicion import fraccion, tabla
+    r = pd.read_parquet(REF / "rasgos_radios.parquet", columns=["cod_indec", "cmu", "lat", "lon", "poblacion", "pct_area_hand_2m"]).dropna(subset=["cmu", "lat", "lon"])
+    r = r[r.poblacion > 0].reset_index(drop=True)
+    F = tabla(r)
+    G = np.load(REF / "grilla_riesgo.npz")
+    ny, nx = G["pob_lluvia"].shape
+    fi = ((float(G["norte"]) - r.lat) / float(G["paso"])).astype(int).clip(0, ny - 1).to_numpy()
+    ci = ((r.lon - float(G["oeste"])) / float(G["paso"])).astype(int).clip(0, nx - 1).to_numpy()
+    U = G["umb"].astype(float)[:, fi, ci]   # umbrales del SMN (sin calibrar) de la celda de cada radio: 3 × radios
+    U = np.where(np.isfinite(U), U, np.nanmedian(U, axis=1)[:, None])
+    k25 = list(zip((r.lat / 0.25).round() * 0.25, (r.lon / 0.25).round() * 0.25))
+    P70, W = np.zeros((D, len(r))), np.full((D, len(r)), 0.5)
+    grupos = pd.Series(range(len(r))).groupby(pd.Series(k25)).apply(list)
+    for clave, ix in grupos.items():
+        L = lluvia.get(clave)
+        if not L:
+            continue
+        M, ix = L[1], np.array(ix)
+        for d in range(min(D, M.shape[1] - 2)):
+            k = d + 2
+            P3 = M[:, max(0, k - 2):k + 1].sum(axis=1)
+            ant = sum(M[:, k - j] * 0.85 ** (j - 1) for j in range(1, 6) if k - j >= 0)
+            P70[d, ix] = np.quantile(P3, 1 - P_UMBRAL)
+            W[d, ix] = 0.1 + 0.8 * np.clip(np.median(ant) / np.maximum(U[1, ix], 1.0), 0, 1)
+    return {"fraccion": fraccion, "r": r, "F": F, "P": P70, "W": W, "U": U, "fi": fi, "ci": ci, "ny": ny, "nx": nx}
+
+
+def personas_expuestas(E: dict, d: int, piso: np.ndarray | None = None) -> np.ndarray:
+    """Personas expuestas de cada radio el día d (con un mínimo de lluvia por radio, p. ej. el de una alerta)."""
+    P = E["P"][d] if piso is None else np.maximum(E["P"][d], piso)
+    return E["r"].poblacion.to_numpy(float) * E["fraccion"](E["F"], P, E["W"][d])
+
+
 def combinar(a: float, b: float) -> float:
     """Dos amenazas de 0 a 10 combinadas como en el índice: 10 − (10 − a)(10 − b)/10."""
     return 10 - (10 - a) * (10 - b) / 10
@@ -326,7 +367,7 @@ def amenaza_fija(f, lluvia: float = F_NORMAL) -> float:
     return combinar(ha, hq)
 
 
-def riesgo_grilla(lluvia: dict, rios: dict, dias: list) -> dict | None:
+def riesgo_grilla(lluvia: dict, rios: dict, dias: list, PLd: np.ndarray | None = None) -> dict | None:
     """El mismo riesgo por celda de 0,1° (lo que el mapa muestra como manchas al acercarse, en vez del promedio por municipio):
     lluvia del ensamble de la celda de 0,25° que la contiene contra los umbrales del SMN de la celda, ríos a ≤ 15 km (a 15-30 km un
     nivel menos), alertas del SMN que cubren la celda e impacto de la gente en zona inundable de la celda (data/referencia/
@@ -344,7 +385,8 @@ def riesgo_grilla(lluvia: dict, rios: dict, dias: list) -> dict | None:
     lon = float(G["oeste"]) + (np.arange(nx) + 0.5) * float(G["paso"])
     LON, LAT = np.meshgrid(lon, lat)
     imp_cut = lambda pob: 1 + sum((pob >= c).astype(int) for c in IMPACTO_CORTES)  # noqa: E731
-    imp_l = np.minimum(4, imp_cut(PL) + ((V >= 6) & (PL >= 1))).astype(int)
+    # Impacto por lluvia y alertas: habitantes expuestos de la celda ese día (si se pasaron); si no, la tabla fija
+    imp_ld = [np.minimum(4, imp_cut(X) + ((V >= 6) & (X >= 1))).astype(int) for X in (PLd if PLd is not None else [PL] * len(dias))]
     imp_r = np.minimum(4, imp_cut(PR) + ((V >= 6) & (PR >= 1))).astype(int)
     D = len(dias)
     NL, PLL, PAM = np.zeros((D, ny, nx), int), np.zeros((D, ny, nx)), np.zeros((D, ny, nx))
@@ -403,6 +445,7 @@ def riesgo_grilla(lluvia: dict, rios: dict, dias: list) -> dict | None:
         return np.floor((lo + (hi - lo - 0.1) * np.clip(p, 0, 1)) * 10) / 10
     out = np.full((D, ny, nx), 255, np.uint8)
     for d in range(D):
+        imp_l = imp_ld[d]
         r = np.maximum.reduce([matriz(NL[d], imp_l, np.where(NL[d] > 0, PLL[d], 0)), matriz(NQ[d], imp_r, PQ[d]),
                                matriz(NA[d], imp_l, (NA[d] > 0).astype(float))])
         sin = (NL[d] == 0) & (NQ[d] == 0) & (NA[d] == 0)
@@ -447,6 +490,15 @@ def main() -> None:
     if fallas:
         print(f"  {len(fallas)} estaciones sin pronóstico de GloFAS (Open-Meteo no respondió)", flush=True)
     smn = alertas_smn(puntos, dias)
+    # Habitantes expuestos de cada radio y día (terreno del simulador + lluvia del ensamble; con alerta, al menos la lluvia de su nivel)
+    E = expuestos_por_dia(lluvia, DIAS)
+    cmu_r = E["r"].cmu.to_numpy()
+    PE = np.zeros((DIAS, len(cmu_r)))
+    for d in range(DIAS):
+        lev = np.array([smn.get(c, [0] * DIAS)[d] for c in cmu_r])
+        piso = np.where(lev > 0, E["U"][np.maximum(lev - 1, 0), np.arange(len(lev))], 0.0)
+        PE[d] = personas_expuestas(E, d, piso)
+    N_cmu = pd.DataFrame(PE.T, index=cmu_r).groupby(level=0).sum()   # gobierno local × día
     salida, sin_lluvia = {}, 0
     verif_p, verif_obs = {}, {}   # para la verificación (modelos/verificar_riesgo.py)
     for r in puntos.itertuples():
@@ -475,11 +527,13 @@ def main() -> None:
             fuente["a"][d], pf["a"][d] = v, 1.0 if v else 0.0
         V = float(f["V"]) if f is not None else 0.0
         ex = expo.loc[r.cmu] if r.cmu in expo.index else None
-        imp = {"l": impacto(float(ex["pob_lluvia"]) if ex is not None else 0.0, V), "q": impacto(float(ex["pob_rio"]) if ex is not None else 0.0, V)}
-        imp["a"] = imp["l"]
+        Nd = N_cmu.loc[r.cmu].to_numpy() if r.cmu in N_cmu.index else np.zeros(DIAS)
+        imp_l = [impacto(float(Nd[d]), V) for d in range(DIAS)]   # habitantes expuestos ese día (lluvia y alertas)
+        imp = {"q": impacto(float(ex["pob_rio"]) if ex is not None else 0.0, V)}
         riesgo = []
         for d in range(DIAS):
             # El riesgo del día es el de la fuente que da más (cada una con su impacto: la lluvia anega lo más bajo, el río su llanura)
+            imp["l"] = imp["a"] = imp_l[d]
             cand = [(riesgo_matriz(fuente[k][d], imp[k], pf[k][d] if fuente[k][d] else 0.0), k) for k in ("l", "q", "a")]
             rmax, k = max(cand)
             if fuente[k][d] == 0:   # sin amenaza: se ordena por la probabilidad de la lluvia amarilla (0 a 3)
@@ -487,9 +541,16 @@ def main() -> None:
             riesgo.append(rmax)
             n[d], p[d] = max(fuente[x][d] for x in "lqa"), pf[k][d]
         digitos = lambda xs: "".join(str(x) for x in xs)
-        salida[r.cmu] = {"r": riesgo, "n": digitos(n), **{k: digitos(v) for k, v in fuente.items()}, "p": p, "i": max(imp.values()), "hf": 0, "pr": round(prop, 1), "x": int(ex["pob_lluvia"]) if ex is not None else 0,
+        salida[r.cmu] = {"r": riesgo, "n": digitos(n), **{k: digitos(v) for k, v in fuente.items()}, "p": p, "i": max(max(imp_l), imp["q"]), "hf": 0, "pr": round(prop, 1), "x": int(Nd.max()), "xd": [int(v) for v in Nd],
                          "u": [int(umb.loc[r.cmu, k]) for k in ("amarillo", "naranja", "rojo")] if r.cmu in umb.index and umb.loc[r.cmu].notna().all() else None}
-    grilla = riesgo_grilla(lluvia, rios, dias)
+    PLd = np.zeros((DIAS, E["ny"], E["nx"]))
+    for d in range(DIAS):
+        np.add.at(PLd[d], (E["fi"], E["ci"]), PE[d])
+    grilla = riesgo_grilla(lluvia, rios, dias, PLd)
+    # Fracción expuesta de cada radio y día, para el círculo de la web (mismo número en el Panorama y en el simulador)
+    fr = np.clip(PE / np.maximum(E["r"].poblacion.to_numpy(float), 1)[None, :], 0, 1)
+    (WEB / "expuestos_radios.bin").write_bytes(np.round(fr * 250).astype(np.uint8).tobytes())
+    (WEB / "expuestos_radios.json").write_text(json.dumps({"dias": DIAS, "radios": E["r"].cod_indec.tolist()}, separators=(",", ":")))
     res = {"generado": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"), "dias": dias, "umbral_p": P_UMBRAL, "h_nivel": H_NIVEL,
            "fuentes": {"lluvia": "Ensamble ECMWF IFS 0,25° (50 miembros, datos abiertos del ECMWF, CC BY 4.0)", "umbrales": "Método del SMN (percentiles 90 y 99 y valor extremo de la lluvia diaria) con ERA5-Land 1991-2020",
                        "rios": f"GloFAS (51 miembros) + curva de cada estación; hoy, INA ({len(rios)} estaciones)", "alertas": "SMN vigentes",

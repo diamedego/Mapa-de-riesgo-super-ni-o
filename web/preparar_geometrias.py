@@ -1,3 +1,4 @@
+import sys
 """Prepara las GEOMETRÍAS de la web (web/datos/), que casi no cambian. Corre en la Mac (necesita los
 polígonos crudos); se vuelve a correr solo si cambian los límites, el Censo o el modelo de CABA.
 
@@ -17,6 +18,8 @@ import pandas as pd
 import shapely
 
 RAIZ = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(RAIZ / "transformacion"))
+from exposicion import pct_expuesto  # noqa: E402
 GOLD = RAIZ / "data" / "gold"
 SALIDA = Path(__file__).resolve().parent / "datos"
 
@@ -120,7 +123,7 @@ def exposicion_vulnerabilidad_radios(rr: pd.DataFrame):
     materiales deficientes (0-100 %)."""
     def u(s, cero, lleno):
         return ((s - cero) / (lleno - cero)).clip(0, 1).fillna(0)
-    E = (10 * u(rr["pct_area_hand_2m"], 0, 100)).round(2)
+    E = (10 * u(rr["expo"] if "expo" in rr else rr["pct_area_hand_2m"], 0, 100)).round(2)
     V = (10 * (u(100 - rr["pct_cloaca"], 0, 100) + u(rr["pct_nbi"], 0, 25) + u(rr["pct_materiales_deficientes"], 0, 100)) / 3).round(2)
     return E, V
 
@@ -178,9 +181,11 @@ def main() -> None:
     # Nombres cortos (son ~66 000 radios): nbi = % hogares con NBI, agua = % del área con agua alguna vez 1984-2021 (JRC),
     # pend = pendiente media en grados
     rr = rr.rename(columns={"pct_nbi": "nbi", "pct_area_agua_alguna_vez": "agua", "pendiente_grados": "pend"})
-    geo_r = geo_r.merge(rr[["cod_indec", "cmu", "poblacion", "pct_cloaca", "pct_area_hand_2m", "E", "V", "nbi", "agua", "pend"]], on="cod_indec")
+    rr["expo"] = pct_expuesto(rr)   # % del radio con agua en el peor Niño (método del simulador): habitantes expuestos
+    geo_r = geo_r.merge(rr[["cod_indec", "cmu", "poblacion", "pct_cloaca", "pct_area_hand_2m", "expo", "E", "V", "nbi", "agua", "pend"]], on="cod_indec")
     geo_r["geometry"] = geo_r.to_crs(5345).simplify(15).to_crs(4326).make_valid()
     geo_r[["pct_cloaca", "pct_area_hand_2m", "agua"]] = geo_r[["pct_cloaca", "pct_area_hand_2m", "agua"]].round(0)
+    geo_r["expo"] = geo_r["expo"].round(1)
     geo_r[["nbi", "pend"]] = geo_r[["nbi", "pend"]].round(1)
     carpeta_r = SALIDA / "radios"
     carpeta_r.mkdir(exist_ok=True)

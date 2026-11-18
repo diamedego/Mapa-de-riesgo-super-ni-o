@@ -45,7 +45,7 @@ function iniciar(m) {
   // agua llega a la orilla del cuartil más bajo; cada metro de más o de menos se suma o se resta
   if (m.relEvac && Number.isFinite(S.baseRio)) {
     const bordes = [];
-    for (let i = 0; i < N; i++) if (m.tipo2[i] === 3) orilla(i, (v) => { if (m.tipo2[v] === 1) bordes.push(m.z[v]); });
+    for (let i = 0; i < N; i++) if (m.tipo2[i] === 3) orilla(i, (v) => { if (m.tipo2[v] === 1 && m.z[v] < 900) bordes.push(m.z[v]); });   // sin la pared del borde del círculo
     bordes.sort((a, b) => a - b);
     const bordo = bordes.length ? bordes[Math.floor(bordes.length * (m.cuantilOrilla ?? 0.4))] - S.baseRio : 0;
     // Por debajo del nivel de evacuación: en la altura mediana del río el agua queda en su cauce (superficie del relieve) y sube en

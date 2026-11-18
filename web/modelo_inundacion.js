@@ -384,7 +384,7 @@ const CELDA_M = 30, MAX_CELDAS = 260000;
 function grillaModelo(d) {
   const D = d.D, W = D.W, s = d.s;
   const aPx = (lon, lat) => [(xDeLon(lon, D.z) - D.tx0) * 256, (yDeLat(lat, D.z) - D.ty0) * 256];
-  const [cx0, cy0, cx1, cy1] = cajaCirculo(s.punto, s.km * 1.3);   // un poco más que el círculo: el agua que baja de afuera entra
+  const [cx0, cy0, cx1, cy1] = cajaCirculo(s.punto, s.km + MARGEN_KM);   // margen de terreno real alrededor del círculo (el agua de afuera entra y la de adentro no se escapa por un borde artificial)
   const [px0, py1] = aPx(cx0, cy0), [px1, py0] = aPx(cx1, cy1);
   const ax0 = Math.max(0, Math.floor(px0)), ay0 = Math.max(0, Math.floor(py0)), bx1 = Math.min(W, Math.ceil(px1)), by1 = Math.min(D.H, Math.ceil(py1));
   // Celda de ~30 m en z 14 y el doble por cada zoom menos (tramos de radio, ver relieveDe): el mismo f en píxeles para todos,
