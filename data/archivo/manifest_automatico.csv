@@ -289,3 +289,4 @@ fecha_descarga,fuente,dataset,url,archivo,formato,registros,licencia,estado,nota
 2026-11-17T19:24:54,INA,catálogo de series de altura,https://alerta.ina.gob.ar/a5/obs/puntual/series?var_id=2,data/archivo/ina/series.parquet,GeoParquet,1143,"Datos públicos INA, citar fuente",ok,
 2026-11-17T19:26:22,INA,alturas diarias desde 2026-11-07 (series con nivel de alerta),https://alerta.ina.gob.ar/a5/obs/puntual/observaciones,data/archivo/ina/alturas_2026-11-17.parquet,Parquet,4026,"Datos públicos INA, citar fuente",ok,176 series
 2026-11-18T00:58:56,SMN,alertas CAP vigentes,https://ssl.smn.gob.ar/CAP/AR.php,data/archivo/smn_cap/alertas_2026-11-18.parquet,GeoParquet,84,CC BY 4.0 (SMN),ok,"84 avisos en el feed, 0 con XML inválido"
+2026-11-18T11:43:42,SMN,alertas CAP vigentes,https://ssl.smn.gob.ar/CAP/AR.php,data/archivo/smn_cap/alertas_2026-11-18.parquet,GeoParquet,190,CC BY 4.0 (SMN),ok,"112 avisos en el feed, 0 con XML inválido"
