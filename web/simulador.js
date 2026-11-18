@@ -2269,7 +2269,7 @@ function pintarPanelSimulador(d) {
   SIM.kpisEl = Object.assign(document.createElement("div"), { className: "sim-kpis", id: "sim-kpis" });
   SIM.kpisEl.innerHTML = `<p class="sim-kpis-cab" id="sim-kpis-cab"></p><div class="kpis sim-datos">
     ${kpiSim(t("sim_k_total"), t("sim_k_total_a"))}${kpiSim(t("sim_k_inund"), t("sim_k_inund_a"))}${kpiSim(t("sim_k_alc"), t("sim_k_pers_a"))}
-    ${kpiSim(t("sim_k_area"), t("sim_k_area_a"))}${kpiSim(t("sim_k_calles"), t("sim_k_calles_a"))}${kpiSim(t("sim_k_aisl"), t("sim_aisladas_sub"))}</div>`;
+    ${kpiSim(t("sim_k_area"), t("sim_k_area_a"))}${kpiSim(t("sim_k_calles"), t("sim_k_calles_a"))}${kpiSim(t("sim_k_aisl"), t("sim_k_aisl_a"))}</div>`;
   enlazarInfo(SIM.kpisEl);
   panel.innerHTML = `
     <div class="sim-lec">

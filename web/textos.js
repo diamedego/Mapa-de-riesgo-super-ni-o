@@ -580,7 +580,7 @@ const TEXTOS = {
     sim_k_total_s: "en el círculo · Censo 2022",
     sim_k_inund: "Habitantes expuestos a inundaciones",
     sim_k_inund_a: "Población que quedaría con 10 cm de agua o más según el terreno del simulador (bajos del relieve, suelo y desagües del lugar) con la lluvia pronosticada para el período elegido: la de 3 días que supera el 30 % de los 50 pronósticos del ensamble del ECMWF y, con alerta del SMN, al menos la lluvia de ese nivel. Por radio censal (Censo 2022) y sumada en el círculo. Es el mismo número del Panorama y el impacto que usa el riesgo; es una estimación propia, no una observación.",
-    sim_k_inund_s: (p) => `${p} % de los habitantes`,
+    sim_k_inund_s: (p) => `${p} % de los habitantes del círculo`, sim_k_aisl_a: "Población que, en condiciones secas, llega por calles transitables hasta el borde del círculo y que, en el momento de mayor superficie anegada, ya no puede hacerlo porque todas sus salidas tienen 30 cm de agua o más. Se evalúa dentro del círculo: no considera caminos alternativos fuera de él.",
     sim_k_alc: "Habitantes alcanzados por el agua",
     sim_k_alc_s: "con 10 cm o más en esta simulación",
     // Riesgo por día (hoy y los próximos 14)
@@ -1194,7 +1194,7 @@ const TEXTOS = {
     sim_k_total_s: "in the circle · 2022 Census",
     sim_k_inund: "Residents exposed to flooding",
     sim_k_inund_a: "Population that would be left with 10 cm of water or more according to the simulator's terrain (relief lows, soil and local drainage) under the rain forecast for the selected period: the 3-day rain exceeded by 30 % of the 50 ECMWF ensemble members and, under an SMN warning, at least the rain of that level. Per census tract (2022 Census), summed over the circle. Same number as the Overview and the impact used by the risk; an own estimate, not an observation.",
-    sim_k_inund_s: (p) => `${p} % of residents`,
+    sim_k_inund_s: (p) => `${p} % of the circle's residents`, sim_k_aisl_a: "Residents who, in dry conditions, reach the edge of the circle along passable streets and who, at the moment of largest flooded area, can no longer do so because all their exits carry 30 cm of water or more. Assessed within the circle: alternative routes outside it are not considered.",
     sim_k_alc: "Residents reached by water",
     sim_k_alc_s: "with 10 cm or more in this simulation",
     // Riesgo por día (hoy y los próximos 14)
