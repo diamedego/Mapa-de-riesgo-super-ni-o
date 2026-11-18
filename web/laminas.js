@@ -2,7 +2,7 @@
 // 01 panorama y mapa, 02 simulador 3D, 03 análisis y validación. (La lámina de alertas y ríos se quitó el 15-nov: repetía lo que
 // ya muestran las capas y los indicadores de la 01.)
 
-const N_LAMINAS = 3;
+const N_LAMINAS = 4;   // 04: documentación técnica (también en /documentacion/)
 let laminaActual = 1;
 const dosCifras = (n) => String(n).padStart(2, "0");
 
@@ -15,11 +15,14 @@ function mostrarLamina(n) {
   document.getElementById("hoja-mapa").hidden = n !== 1;
   document.getElementById("hoja-sim").hidden = n !== 2;
   document.getElementById("hoja-analisis").hidden = n !== 3;
+  document.getElementById("hoja-doc").hidden = n !== 4;
+  if (n === 4) { const f = document.getElementById("doc-marco"); if (!f.getAttribute("src")) f.src = "documentacion/documento.html"; }
   document.querySelectorAll(".solapa").forEach((b) => b.setAttribute("aria-selected", String(+b.dataset.lamina === n)));
   document.getElementById("lamina-titulo").textContent = `${t("lamina")} ${dosCifras(n)} · ${t(`lam${n}`)}`;
   document.getElementById("caj-lamina").textContent = `${dosCifras(n)} / ${dosCifras(N_LAMINAS)}`;
   document.getElementById("rotulo-movil").textContent = `${dosCifras(n)} · ${t(`lam${n}`)}`;
-  if (location.hash !== "#fuentes") history.replaceState(null, "", n === 1 ? location.pathname + location.search : `#lamina-${n}`);
+  // Dirección: la documentación tiene la suya (/documentacion/); las demás, la raíz con su ancla
+  if (location.hash !== "#fuentes") history.replaceState(null, "", n === 4 ? "/documentacion/" : (/^\/documentacion/.test(location.pathname) ? "/" : location.pathname) + (n === 1 ? location.search : `#lamina-${n}`));
   if (!cambia) return;
   // Los mapas y los gráficos se miden al dibujarse: al volver a verse hay que avisarles el tamaño nuevo
   if (typeof mapa !== "undefined") mapa?.resize();
@@ -117,7 +120,7 @@ function iniciarLaminas() {
   const deHash = (hash = location.hash) => { const m = /^#lamina-(\d)$/.exec(hash); if (m) irALamina(+m[1]); };
   addEventListener("hashchange", () => deHash());
   const inicial = location.hash;   // se guarda ahora: al pintar la lámina 01 el enlace queda sin ancla
-  return () => deHash(inicial);
+  return () => (/^\/documentacion/.test(location.pathname) ? irALamina(4) : deHash(inicial));
 }
 
 // ---------- Plano de la lámina 01: retícula con grados, recuadro «A», escala gráfica y detalle del Litoral ----------

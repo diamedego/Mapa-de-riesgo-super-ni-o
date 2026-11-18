@@ -132,6 +132,38 @@ def numerar(pdf: Path) -> dict:
     return out
 
 
+WEB_CSS = """
+@media screen {
+  html { font-size: 17px; background: #f7f6f2; }
+  body { max-width: 820px; margin: 0 auto; padding: 24px 16px 64px; text-align: left; hyphens: manual; background: #fff; }
+  .portada { width: auto; height: auto; min-height: 560px; margin: -24px -16px 32px; }
+  .portada .contenido { position: relative; left: 0; right: 0; top: 0; padding: 48px 24px 0; }
+  .portada .pie { position: relative; left: 0; right: 0; bottom: 0; padding: 160px 24px 24px; }
+  .portada .olas { height: 140px; }
+  section { margin-bottom: 56px; }
+  h1 { padding-top: 24px; border-top: 1px solid #d8d5cd; }
+  table { display: block; overflow-x: auto; max-width: 100%; }
+  figure svg, img { max-width: 100%; height: auto; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .indice li { cursor: pointer; } .indice li .p { display: none; }
+  .formula { overflow-x: auto; }
+}
+"""
+JS_WEB = """<script>
+// Índice navegable: cada capítulo es un ancla (#cap-1 … #anexo-c)
+document.querySelectorAll("section").forEach((s) => { const n = s.querySelector("h1 .num")?.textContent?.trim(); if (n) s.id = n.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/[^a-z0-9]+/g, "-"); });
+document.querySelectorAll(".indice li").forEach((li) => { const n = li.querySelector(".n")?.textContent?.trim(); li.onclick = () => { const id = /^[ABC]$/.test(n) ? `anexo-${n.toLowerCase()}` : `capitulo-${n}`; document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }); }; });
+</script>"""
+
+
+def web(html: str) -> None:
+    """Versión web navegable (lámina 04 del observatorio y /documentacion/): el mismo contenido que el PDF, adaptada a pantalla."""
+    destino = RAIZ / "web" / "documentacion" / "documento.html"
+    destino.parent.mkdir(exist_ok=True)
+    destino.write_text(html.replace("</style>", WEB_CSS + "</style>", 1).replace("</body>", JS_WEB + "</body>", 1))
+    print("versión web:", destino.relative_to(RAIZ))
+
+
 def versionar(descripcion: str) -> Path:
     """Copia el PDF como la versión siguiente, marcada (ULTIMA), y desmarca la anterior."""
     VERSIONES.mkdir(exist_ok=True)
@@ -154,6 +186,7 @@ if __name__ == "__main__":
     imprimir(armar(pag, V, F), SALIDA)
     tmp.unlink(missing_ok=True)
     (AQUI / "_documento.html").unlink(missing_ok=True)
+    web(armar(pag, V, F))
     n = len(PdfReader(str(SALIDA)).pages)
     print(f"{SALIDA.name}: {n} páginas, {SALIDA.stat().st_size / 1e6:.1f} MB")
     if len(sys.argv) > 1:

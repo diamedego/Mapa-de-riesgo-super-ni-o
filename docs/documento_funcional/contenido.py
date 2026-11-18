@@ -79,7 +79,7 @@ def capitulos(F, P, V):
     return {
 "portada": f'''<section class="portada"><div class="contenido">{LOGO}<div class="tipo">Documento funcional y memoria técnica</div>
 <h1>Argentina frente a El Niño 2026–27</h1><div class="sub">Sistema de pronóstico de riesgo de inundación basado en impacto para los gobiernos locales de la República Argentina, con simulación hidráulica bidimensional de escenarios históricos</div>
-<div class="datos"><b>Autora:</b> Diamela, ingeniera química (UTN)<br><b>Versión:</b> 7.0 · <b>Fecha:</b> 18 de noviembre de 2026<br><b>Sitio:</b> mapa-de-riesgo-super-nino.diamedego.workers.dev<br><b>Repositorio:</b> github.com/diamedego/Mapa-de-riesgo-super-ni-o</div></div>{OLAS}
+<div class="datos"><b>Autora:</b> Diamela, ingeniera química (UTN)<br><b>Versión:</b> 8.0 · <b>Fecha:</b> 18 de noviembre de 2026<br><b>Sitio:</b> mapa-de-riesgo-super-nino.diamedego.workers.dev<br><b>Repositorio:</b> github.com/diamedego/Mapa-de-riesgo-super-ni-o</div></div>{OLAS}
 <div class="pie">Trabajo independiente elaborado con datos públicos. No constituye un producto oficial; ante una emergencia rigen las indicaciones de Defensa Civil, el SMN y el INA.</div></section>''',
 
 "resumen": f'''<section class="resumen"><h1><span class="num">Resumen</span>Resumen</h1>
@@ -266,7 +266,7 @@ Cada modelo concluye con un recuadro «Alcance y validez», que delimita la preg
 </ul>
 <p>Las capas se construyen en SQL y se validaron con DuckDB, con resultados idénticos a los de la implementación en Python para los componentes de exposición y vulnerabilidad. La ejecución sobre Databricks se encuentra preparada.</p>
 <h2><span class="n">4.2</span>Aplicación web</h2>
-<p>La interfaz es una aplicación estática basada en MapLibre GL, complementada por maplibre-contour para las curvas de nivel y three.js para la maqueta tridimensional, que se carga solo cuando se la solicita. Se organiza en tres láminas (Panorama y mapa · Simulador 3D · Análisis y validación) y en módulos de responsabilidad única (tabla 3). El diseño visual responde a una guía propia: retícula de 8 px, filetes de 1 px, cifras en tipografía monoespaciada, semáforo reservado al nivel de riesgo y una revisión de cinco puntos previa a cada publicación.</p>
+<p>La interfaz es una aplicación estática basada en MapLibre GL, complementada por maplibre-contour para las curvas de nivel y three.js para la maqueta tridimensional, que se carga solo cuando se la solicita. Se organiza en cuatro secciones principales (Mapa de riesgo · Simulador de inundación · Tablero de control · Documentación técnica) y en módulos de responsabilidad única (tabla 3). El diseño visual responde a una guía propia: retícula de 8 px, filetes de 1 px, cifras en tipografía monoespaciada, semáforo reservado al nivel de riesgo y una revisión de cinco puntos previa a cada publicación.</p>
 <div class="tabla-t">Tabla 3. Módulos de la aplicación</div>
 <table><thead><tr><th>Módulo</th><th>Responsabilidad</th></tr></thead><tbody>
 <tr><td>Textos</td><td>Contenido en español e inglés; los textos dependientes de datos se generan por función</td></tr>
@@ -554,7 +554,7 @@ Cada modelo concluye con un recuadro «Alcance y validez», que delimita la preg
 9: f'''<section><h1><span class="num">Capítulo 9</span>Especificación funcional</h1>
 <div class="tabla-t">Tabla 9. Requerimientos funcionales implementados</div>
 <table><thead><tr><th style="width:11mm">Código</th><th>Función</th><th>Descripción</th></tr></thead><tbody>
-<tr><td>RF-01</td><td>Láminas</td><td>Tres láminas con solapas: Panorama y mapa · Simulador 3D · Análisis y validación</td></tr>
+<tr><td>RF-01</td><td>Secciones</td><td>Cuatro secciones con solapas: Mapa de riesgo · Simulador de inundación · Tablero de control · Documentación técnica (esta memoria, con dirección propia /documentacion/)</td></tr>
 <tr><td>RF-02</td><td>Lectura del lugar</td><td>Nivel de riesgo con escala de aguja, radio del área (1 km por defecto), evolución en el período y condiciones meteorológicas del lugar</td></tr>
 <tr><td>RF-03</td><td>Indicadores del área</td><td>Habitantes en zona inundable, radios en riesgo alto, ríos a 15 km o menos, alertas vigentes sobre el punto y día más crítico; método y fuente disponibles en cada indicador</td></tr>
 <tr><td>RF-04</td><td>Buscador</td><td>Provincia, partido, localidad, dirección, barrio popular (RENABAP), establecimiento (TomTom y registro propio) y coordenadas, ordenados por relevancia; ante ausencia de coincidencia ofrece alternativas en lugar de un resultado aproximado</td></tr>
@@ -562,7 +562,7 @@ Cada modelo concluye con un recuadro «Alcance y validez», que delimita la preg
 <tr><td>RF-06</td><td>Detalle del lugar</td><td>Recuadro asociado a la selección, con el punto y el área, que da acceso al simulador</td></tr>
 <tr><td>RF-07</td><td>Situación y recomendaciones</td><td>Nivel, período, día más comprometido, causa, antecedentes y población; recomendaciones de prevención y de emergencia construidas con los datos del lugar; propensión a acumular agua</td></tr>
 <tr><td>RF-08</td><td>Riesgo diario</td><td>Línea de tiempo de 14 días con reproducción; gráfico de riesgo diario vinculado al mapa; listado de zonas que aumentan, se mantienen o descienden de nivel</td></tr>
-<tr><td>RF-09</td><td>Análisis y validación</td><td>Gráficos vinculados a los filtros y resultados de la validación del simulador</td></tr>
+<tr><td>RF-09</td><td>Tablero de control</td><td>Indicadores, evolución diaria por nivel, cambios de nivel previstos, calendario por provincia, ranking (riesgo, incremento, exposición), amenazas, orientación preventiva e incertidumbre; un filtro de provincia actualiza todos los componentes</td></tr>
 <tr><td>RF-10</td><td>Simulador: reproducción</td><td>Control de reproducción, hora, barra temporal, velocidad y gráfico de lluvia y agua; maqueta en condición seca al inicio de cada escenario</td></tr>
 <tr><td>RF-11</td><td>Simulador: escenario</td><td>Parámetros de lluvia, duración (1–72 h), humedad, lagunas, río y desagüe con sus límites y fuentes; inicialización con el evento más severo del lugar</td></tr>
 <tr><td>RF-12</td><td>Simulador: eventos</td><td>Selector de eventos desde 1997–98 con su tormenta, fecha y nivel del río; identificación del evento más severo; tabla informativa de los 27 eventos desde 1951</td></tr>

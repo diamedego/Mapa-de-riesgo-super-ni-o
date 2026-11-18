@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<script>if (/^\/documentacion/.test(location.pathname)) document.write('<base href="/">');</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Argentina frente a El Niño 2026–27</title>
 <meta name="description" content="Riesgo de inundación y tiempo en los 2.282 gobiernos locales y las 162 zonas rurales de la Argentina durante El Niño 2026-27, con datos públicos que se actualizan solos.">
@@ -22,6 +23,7 @@
       <button type="button" class="solapa" role="tab" data-lamina="1" aria-selected="true"><i>01</i><span data-i18n="lam1">Panorama y mapa</span><svg class="ico solapa-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg><b class="solapa-corta" data-i18n="nav1"></b></button>
       <button type="button" class="solapa" role="tab" data-lamina="2" aria-selected="false"><i>02</i><span data-i18n="lam2">Simulador 3D</span><svg class="ico solapa-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3Z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></svg><b class="solapa-corta" data-i18n="nav2"></b></button>
       <button type="button" class="solapa" role="tab" data-lamina="3" aria-selected="false"><i>03</i><span data-i18n="lam3">Análisis y validación</span><svg class="ico solapa-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/></svg><b class="solapa-corta" data-i18n="nav3"></b></button>
+      <button type="button" class="solapa" role="tab" data-lamina="4" aria-selected="false"><i>04</i><span data-i18n="lam4">Documentación técnica</span><svg class="ico solapa-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 16h7"/></svg><b class="solapa-corta" data-i18n="nav4"></b></button>
     </div>
     <dl class="cajetin">
       <div class="caj-ancho"><dt data-i18n="caj_proyecto">Proyecto</dt><dd data-i18n="titulo">Argentina frente a El Niño 2026–27</dd></div>
@@ -155,6 +157,10 @@
   <p data-i18n="pie_fuentes"></p>
     <p><a href="https://github.com/diamedego/Mapa-de-riesgo-super-ni-o" data-i18n="pie_repo">Código, datos y metodología en GitHub</a></p>
 </footer>
+    </section>
+
+    <section class="hoja hoja-doc" id="hoja-doc" hidden>
+      <iframe class="doc-marco" id="doc-marco" title="Documentación técnica" loading="lazy"></iframe>
     </section>
   </div>
 </div>
