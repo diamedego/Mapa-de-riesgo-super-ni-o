@@ -450,11 +450,12 @@ function recCambio(it) {
       .sort((a, b) => b.properties[`nd_${D}`] - a.properties[`nd_${D}`])[0]?.properties;
     txt = t("rec_rio")(e ? escapar(e.estacion) : null, t("rio_nivel_pron")[Math.min(2, d.rio[it.i])], pct, dia);
   } else if (it.causa === "alerta") txt = t("rec_alerta")(t(`nivel_alerta_${["", "amarilla", "naranja", "roja"][d.alerta[it.i]]}`) ?? "", dia);
-  else if (it.causa === "lluvia") txt = t("rec_lluvia")([0, 2, 5, 10][d.lluvia[it.i]], pct, dia);
+  else if (it.causa === "lluvia") txt = t("rec_lluvia")(t(`nivel_alerta_${["", "amarilla", "naranja", "roja"][d.lluvia[it.i]]}`) ?? "", pct, dia);
   else txt = t("rec_baja");
-  const pob = Number(m.poblacion) || 0, bajo = pob ? (100 * (Number(m.pob_terreno_bajo) || 0)) / pob : 0, sinCl = m.pct_cloaca == null ? 0 : 100 - Number(m.pct_cloaca);
-  const extra = [bajo >= 15 ? t("rec_bajo")(fmt(bajo)) : "", sinCl >= 30 ? t("rec_cloaca")(fmt(sinCl)) : ""].filter(Boolean).join(" ");
-  return `${txt}${extra ? ` ${extra}` : ""}`;
+  // Habitantes expuestos ese día (terreno del simulador con la lluvia pronosticada): la medida se dirige a ellos, no a todo el lugar
+  const N = d.xd?.[it.i] ?? 0, pob = Number(m.poblacion) || 0;
+  const extra = it.causa === "rio" ? "" : N >= 1 ? t("rec_expuestos")(fmt(Math.round(N)), pob ? fmt((100 * N) / pob, 1) : null) : t("rec_sin_expuestos");
+  return `${txt} ${extra}`.trim();
 }
 function bloqueCambios(cmus) {
   const N = estado.horizonte ?? 7, C = cambiosNivel(cmus, N), tab = estado.cambiosTab && C[estado.cambiosTab].length ? estado.cambiosTab : C.sube.length ? "sube" : C.sigue.length ? "sigue" : "baja";
