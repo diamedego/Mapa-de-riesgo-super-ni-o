@@ -3,7 +3,7 @@
 // ya muestran las capas y los indicadores de la 01.)
 
 const N_LAMINAS = 4;   // 04: documentación técnica (también en /documentacion/)
-let laminaActual = 1;
+let laminaActual = 1, laminasListas = false;   // hasta abrir la lámina del enlace no se toca la dirección
 const dosCifras = (n) => String(n).padStart(2, "0");
 
 // Solo cambia lo que se ve (hojas, solapa marcada, título de la franja y cajetín); no toca la selección ni las capas
@@ -22,7 +22,7 @@ function mostrarLamina(n) {
   document.getElementById("caj-lamina").textContent = `${dosCifras(n)} / ${dosCifras(N_LAMINAS)}`;
   document.getElementById("rotulo-movil").textContent = `${dosCifras(n)} · ${t(`lam${n}`)}`;
   // Dirección: la documentación tiene la suya (/documentacion/); las demás, la raíz con su ancla
-  if (location.hash !== "#fuentes") history.replaceState(null, "", n === 4 ? "/documentacion/" : (/^\/documentacion/.test(location.pathname) ? "/" : location.pathname) + (n === 1 ? location.search : `#lamina-${n}`));
+  if (location.hash !== "#fuentes" && !(n === 1 && !laminasListas && /^\/documentacion/.test(location.pathname))) history.replaceState(null, "", n === 4 ? "/documentacion/" : (/^\/documentacion/.test(location.pathname) ? "/" : location.pathname) + (n === 1 ? location.search : `#lamina-${n}`));
   if (!cambia) return;
   // Los mapas y los gráficos se miden al dibujarse: al volver a verse hay que avisarles el tamaño nuevo
   if (typeof mapa !== "undefined") mapa?.resize();
@@ -119,8 +119,8 @@ function iniciarLaminas() {
   });
   const deHash = (hash = location.hash) => { const m = /^#lamina-(\d)$/.exec(hash); if (m) irALamina(+m[1]); };
   addEventListener("hashchange", () => deHash());
-  const inicial = location.hash;   // se guarda ahora: al pintar la lámina 01 el enlace queda sin ancla
-  return () => (/^\/documentacion/.test(location.pathname) ? irALamina(4) : deHash(inicial));
+  const inicial = location.hash, enDoc = /^\/documentacion/.test(location.pathname);   // se guardan ahora: al pintar la lámina 01 la dirección cambia
+  return () => { laminasListas = true; enDoc ? irALamina(4) : deHash(inicial); };
 }
 
 // ---------- Plano de la lámina 01: retícula con grados, recuadro «A», escala gráfica y detalle del Litoral ----------
