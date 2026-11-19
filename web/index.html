@@ -22,7 +22,7 @@
     <div class="solapas" role="tablist">
       <button type="button" class="solapa" role="tab" data-lamina="1" aria-selected="true"><i>01</i><span data-i18n="lam1">Panorama y mapa</span><svg class="ico solapa-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg><b class="solapa-corta" data-i18n="nav1"></b></button>
       <button type="button" class="solapa" role="tab" data-lamina="2" aria-selected="false"><i>02</i><span data-i18n="lam2">Simulador 3D</span><svg class="ico solapa-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3Z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></svg><b class="solapa-corta" data-i18n="nav2"></b></button>
-      <button type="button" class="solapa" role="tab" data-lamina="3" aria-selected="false"><i>03</i><span data-i18n="lam3">Análisis y validación</span><svg class="ico solapa-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/></svg><b class="solapa-corta" data-i18n="nav3"></b></button>
+      <button type="button" class="solapa" role="tab" data-lamina="3" aria-selected="false"><i>03</i><span data-i18n="lam3">Reporte</span><svg class="ico solapa-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/></svg><b class="solapa-corta" data-i18n="nav3"></b></button>
       <button type="button" class="solapa" role="tab" data-lamina="4" aria-selected="false"><i>04</i><span data-i18n="lam4">Documentación técnica</span><svg class="ico solapa-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 16h7"/></svg><b class="solapa-corta" data-i18n="nav4"></b></button>
     </div>
     <dl class="cajetin">
@@ -57,6 +57,7 @@
       <button id="btn-idioma" class="idioma" type="button" data-i18n-aria="idioma_aria" aria-label="Change language to English"><b>ES</b><span>EN</span></button>
       <button id="btn-recorrido" class="btn-tema btn-recorrido" type="button" data-i18n-aria="recorrido" aria-label="Recorrido guiado"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.4v.6M12 16.6v.2"/></svg></button>
       <button id="btn-tema" class="btn-tema" type="button" data-i18n-aria="tema_aria" aria-label="Cambiar a modo oscuro o claro"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor"/></svg></button>
+      <button id="btn-volver" class="btn-tema btn-volver" type="button" data-i18n-aria="volver" data-i18n-ayuda="volver" aria-label="Volver al mapa de riesgo"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
     </header>
     <p class="rotulo-movil" id="rotulo-movil" aria-hidden="true"></p>
 
@@ -80,6 +81,7 @@
                 <button type="button" role="radio" aria-checked="false" data-modo="futuro"><span data-i18n="modo_pronostico">Pronóstico</span></button>
               </div>
               <button type="button" class="seg-btn" id="btn-capas" aria-expanded="false" aria-controls="panel-capas" data-i18n-aria="capas_btn" aria-label="Capas"><svg class="ico ico-capas" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></svg><span data-i18n="capas_btn">Capas</span> <i aria-hidden="true">▾</i></button>
+              <div class="lec-radio" id="lec-radio" hidden></div>
               <div class="panel-capas" id="panel-capas" hidden>
                 <span class="grupo-tit" data-i18n="capas_sumar">Capas · varias</span>
                 <div class="capas-sumar" id="capas-sumar" role="group" aria-label="Capas adicionales"></div>
@@ -94,9 +96,9 @@
               </div>
             </div>
             <div class="refs" id="refs"><div class="mapa-titulo" id="mapa-titulo"></div><div class="leyenda" id="leyenda"></div></div>
-            <div class="detalle" id="detalle" hidden><header><b data-i18n="detalle_a">Detalle A</b><span id="detalle-tit">Litoral y NEA</span></header><canvas id="detalle-lienzo"></canvas><button type="button" class="detalle-sim" id="detalle-sim" hidden>
-              <svg class="detalle-sim-dib" viewBox="0 0 32 32" aria-hidden="true"><path class="lluvia" d="M10 1.5 9 4.5M16 .5l-1 3M22 1.5l-1 3"/><path class="cara-sup" d="M16 8l12 6-12 6-12-6z"/><path class="cara-izq" d="M4 14l12 6v7L4 21z"/><path class="cara-der" d="M28 14l-12 6v7l12-6z"/><ellipse class="agua" cx="14.5" cy="14.2" rx="5" ry="2.3"/></svg>
-              <span class="detalle-sim-txt"><b data-i18n="detalle_sim">Hacé clic acá</b><small data-i18n="detalle_sim_sub">Mirá la lluvia en 3D →</small></span></button></div>
+            <div class="detalle" id="detalle" hidden><header><b data-i18n="detalle_a">Detalle</b><span id="detalle-tit">Litoral y NEA</span></header><canvas id="detalle-lienzo"></canvas><button type="button" class="detalle-sim" id="detalle-sim" hidden>
+              <span class="detalle-sim-txt"><b data-i18n="detalle_sim">Hacé clic acá</b><small data-i18n="detalle_sim_sub">Ver en simulador 3D</small></span><i aria-hidden="true">→</i></button></div>
+            <div class="miniaturas" id="miniaturas" aria-label="Otras capas"></div>
             <div class="linea-tiempo" id="linea-tiempo" hidden></div>
             <button type="button" class="btn-sim-top" id="btn-sim-top" hidden></button>
           </div>
@@ -104,23 +106,23 @@
         <aside class="lectura" aria-label="Lectura">
           <div class="lec-1">
             <div class="lec-cabeza">
-              <div><div class="lec-fila-etq"><span class="etq" id="lec-etq"></span><div class="lec-radio" id="lec-radio" hidden></div></div><h1 class="titular" id="lec-titular"></h1></div>
+              <div><div class="lec-fila-etq"><span class="etq" id="lec-etq"></span></div><h1 class="titular" id="lec-titular"></h1></div>
               <div class="lec-pie">
                 <div><h3 class="tit" data-i18n="escala_t">Escala de riesgo</h3><p class="sub" id="escala-sub"></p><div id="lec-escala"></div></div>
                 <p class="bajada" id="lec-bajada"></p>
+                <button type="button" class="btn-detalles" id="btn-detalles"><span><b data-i18n="ver_detalles">Ver más detalles</b><small data-i18n="ver_detalles_sub">Tablero de control</small></span><i aria-hidden="true">→</i></button>
                 <div hidden><h3 class="tit" data-i18n="pico_t">Camino al pico</h3><p class="sub" id="pico-sub">Estaciones con ≥ 50 % de prob. de evacuación</p><div id="lec-pico"></div></div>
               </div>
               <div class="kpis-cab-movil"><span data-i18n="kpis_principales">Indicadores principales</span><button type="button" id="kpis-todos" aria-expanded="false" aria-controls="kpis"></button></div>
               <div class="kpis" id="kpis" aria-live="polite"></div>
             </div>
-            <div class="lec-arriba" id="lec-arriba"></div>
+            <div class="lec-arriba" id="lec-arriba"><div class="lec-dias" id="lec-dias" hidden></div></div>
             <div class="lec-mas">
               <p class="kpis-alcance" id="kpis-alcance"></p>
               <div class="kpis-graficos" id="kpis-graficos"></div>
               <div class="intro" id="intro" role="region" aria-label="Situación del país"></div>
             </div>
             <div class="tablero" id="tablero" aria-live="polite" aria-label="Tablero"></div>
-            <div class="miniaturas" id="miniaturas" aria-label="Otras capas"></div>
           </div>
         </aside>
       </div>
@@ -134,22 +136,49 @@
       <button type="button" class="btn-icono" id="sim-cerrar" aria-label="Cerrar"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </header>
     <div class="sim-cuerpo">
-      <div class="sim-mapa-marco"><div id="sim-mapa"></div><p class="sim-estado" id="sim-estado"></p><p class="sim-carga" id="sim-carga" role="status" hidden></p></div>
+      <div class="sim-mapa-marco"><div id="sim-mapa"></div><p class="sim-estado" id="sim-estado"></p><p class="sim-carga" id="sim-carga" role="status" hidden></p><div class="sim-esquina"><div class="sim-refs-agua" id="sim-refs-agua"></div><div class="sim-zoom maplibregl-ctrl maplibregl-ctrl-group" id="sim-zoom"><button type="button" class="maplibregl-ctrl-zoom-in" id="sim-zoom-mas" aria-label="Acercar" title="Acercar"><span class="maplibregl-ctrl-icon" aria-hidden="true"></span></button><button type="button" class="maplibregl-ctrl-zoom-out" id="sim-zoom-menos" aria-label="Alejar" title="Alejar"><span class="maplibregl-ctrl-icon" aria-hidden="true"></span></button><button type="button" class="maplibregl-ctrl-compass" id="sim-zoom-norte" aria-label="Orientar al norte" title="Orientar al norte"><span class="maplibregl-ctrl-icon" id="sim-brujula" aria-hidden="true"></span></button></div></div></div>
       <aside class="sim-panel" id="sim-panel"></aside>
     </div>
   </div>
 </div>
-      <div class="sim-vacio">
-        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.3"/></svg>
-        <h3 data-i18n="sim_vacio_t">Elegí un punto para simular</h3>
-        <p data-i18n="sim_elegir_punto"></p>
-        <button type="button" class="btn-primario" id="sim-ir-mapa" data-i18n="sim_ir_mapa">Ir al mapa</button>
+      <div class="sim-esqueleto">
+        <div class="sim-cuerpo">
+          <div class="sim-mapa-marco">
+            <div class="sim-vacio">
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.3"/></svg>
+              <h3 data-i18n="sim_vacio_t">Elegí un punto para simular</h3>
+              <p data-i18n="sim_elegir_punto"></p>
+              <button type="button" class="btn-primario" id="sim-ir-mapa" data-i18n="sim_ir_mapa">Ir al mapa</button>
+            </div>
+          </div>
+          <aside class="sim-panel" aria-hidden="true">
+            <div class="sim-lec">
+              <div class="sim-radio-fila">
+                <div class="sim-riesgo"><span class="sim-riesgo-l" data-i18n="sim_riesgo_t"></span>
+                  <span class="sim-riesgo-v"><b>–</b></span>
+                  <span class="sim-riesgo-barra"><i style="width:30%;background:var(--r1)"></i><i style="width:15%;background:var(--r2)"></i><i style="width:15%;background:var(--r3)"></i><i style="width:10%;background:var(--r4)"></i><i style="width:30%;background:var(--r5)"></i></span></div>
+                <div class="lec-radio"><div class="lec-radio-cab"><span class="etq" data-i18n="radio_km"></span><b>–</b></div>
+                  <input type="range" min="0.5" max="20" step="0.5" value="1" disabled tabindex="-1"><div class="lec-radio-ext"><span>0,5 km</span><span>20 km</span></div></div>
+              </div>
+              <div class="sim-cab-tit"><span class="etq">–</span><h2 class="titular"><i data-i18n="sim_tit_q" style="font:inherit;color:inherit"></i> <span>–</span></h2></div>
+              <div class="sim-modos"><button type="button" class="sim-modo" aria-selected="true" disabled tabindex="-1"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14.5a4.5 4.5 0 1 1 1.3-8.8A5.5 5.5 0 0 1 18.8 8 3.3 3.3 0 0 1 17 14.5"/><path d="m12.5 12-2.5 4.5h4L11.5 21"/></svg><span data-i18n="sim_modo_escenario"></span></button><button type="button" class="sim-modo" aria-selected="false" disabled tabindex="-1"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span data-i18n="sim_modo_pronostico"></span></button></div>
+              <div class="sim-play">
+                <div class="ctrls"><div class="ctrl"><span class="etq" data-i18n="sim_lluvia_etq"></span><div class="seg"><button type="button" disabled tabindex="-1">↻</button><button type="button" disabled tabindex="-1">▷</button></div></div></div>
+                <div class="sim-esc-cab"><h3 class="tit esc-tit" data-i18n="sim_esc_t"></h3></div>
+                <div class="sim-ahora"><span class="sim-ahora-fecha">–</span></div>
+                <div class="sim-control"><input type="range" min="0" max="0" value="0" disabled tabindex="-1"></div>
+                <div class="sim-vel"><span class="sim-dur-etq" data-i18n="sim_velocidad"></span><button type="button" class="chip" disabled tabindex="-1">×0,5</button><button type="button" class="chip" aria-pressed="true" disabled tabindex="-1">×1</button><button type="button" class="chip" disabled tabindex="-1">×2</button><button type="button" class="chip" disabled tabindex="-1">×4</button></div>
+                <div class="sim-linea sim-linea-vacia"></div>
+              </div>
+              <div><p class="bajada" data-i18n="sim_bajada_lam"></p></div>
+            </div>
+          </aside>
+        </div>
       </div>
     </section>
 
     <section class="hoja hoja-analisis" id="hoja-analisis" hidden>
 <section class="analisis" id="analisis" aria-label="Análisis por zonas"></section>
-      <section class="lam-validacion an-bloque" id="lam-validacion" hidden></section>
 <footer class="pie">
   <div class="intro-fila pie-datos" id="datos-act"></div>
   <p data-i18n="pie_oficial"><strong>No es un producto oficial.</strong> Ante una emergencia, seguí las indicaciones de Defensa Civil, el SMN y el INA.</p>

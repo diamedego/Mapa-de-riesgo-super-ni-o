@@ -75,11 +75,13 @@ async function pintarGraficosHeader() {
     `<li class="zr-fila" data-i="${i}" tabindex="0" data-tip="${escapar(`<b>${escapar(f.nombre)}</b><span>${escapar(f.sub ?? "")} · ${nombreNivel(f.r)} (${fmtRiesgo(f.r)}/10)</span>`)}">
       <span class="zr-nombre">${escapar(f.nombre)}<small>${escapar(f.sub ?? "")}</small></span>
       <span class="zr-pista"><span style="width:${limitar(f.r * 10, 2, 100)}%;background:${colorNivel(f.r)}"></span></span><b>${fmtRiesgo(f.r)}</b></li>`).join("")}</ol></div>`;
-  const sem = bloqueDias();
-  cont.hidden = !barras && !sem;
-  cont.className = `kpis-graficos${barras && sem ? " dos" : ""}`;
-  cont.innerHTML = barras + sem;
-  const cols = cont.querySelector("#dias-col");
+  // «Riesgo día por día» va arriba, debajo de la evolución en el período (contenedor #lec-dias); acá quedan las zonas de mayor riesgo
+  const sem = bloqueDias(), dias = document.getElementById("lec-dias");
+  cont.hidden = !barras;
+  cont.className = "kpis-graficos";
+  cont.innerHTML = barras;
+  if (dias) { dias.innerHTML = sem; dias.hidden = !sem; prepararInfo(dias); tipsEn(dias); }
+  const cols = document.getElementById("dias-col");
   if (cols) graficoDias(cols);
   cont.querySelectorAll(".zr-fila").forEach((li) => {
     const f = filas[+li.dataset.i], ir = () => {
@@ -101,8 +103,9 @@ function porcentajesDias() {
 function bloqueDias() {
   const s = estado.sel, sub = !s ? t("dc_pais") : s.tipo === "zona" ? t("dc_zona")(s.lugar.nombre) : t("dc_muni")(estado.porCmu.get(s.cmu)?.nam ?? "");
   return `<div class="kpi-g dc"><div class="kpi-g-cab"><b>${t("dc_t")}${infoIcono("dc_t", infoTexto("dc_t"))}</b><small>${escapar(sub)}</small></div>
+    <div id="dias-col" class="graf-cont"></div>
     <ul class="apilada-leyenda dc-ley">${[5, 4, 3, 2, 1].map((n) => `<li><i style="background:var(--r${n})"></i>${t("niveles_cortos")[n - 1]}</li>`).join("")}</ul>
-    <div id="dias-col" class="graf-cont"></div><p class="dc-pie">${t("dc_pie")}</p></div>`;
+    <p class="dc-pie">${t("dc_pie")}</p></div>`;
 }
 function graficoDias(cont) {
   const R = estado.riesgo, P = porcentajesDias(), idx = indicesVista();
@@ -146,8 +149,9 @@ function abrirFuentes() {
 // Cada paso resalta una parte de la página, la lleva a la vista y pone el cartel al lado (en el celular, abajo)
 // (el tercer dato es la lámina donde está esa parte; sin dato, la 01)
 const PASOS = [
-  [".solapas", "r0"], [".lec-cabeza > div:first-child", "r1"], ["#kpis", "r2"], ["#form-buscar|#btn-lupa", "r3"], [".capas-tabs", "r4"], ["#btn-capas", "r5"],
-  ["#mapa", "r6"], ["#refs", "r7"], ["#lec-arriba", "r8"], ["#tablero", "r9"], ["#hoja-sim", "r10", 2], ["#analisis", "r11", 3], ["#btn-tema", "r12"],
+  [".solapas", "r0"], [".lec-cabeza > div:first-child", "r1"], ["#btn-detalles", "r13"], ["#kpis", "r2"], ["#form-buscar|#btn-lupa", "r3"], [".capas-tabs", "r4"], ["#btn-capas", "r5"],
+  ["#lec-radio", "r15"], ["#mapa", "r6"], ["#miniaturas", "r14"], ["#refs", "r7"], ["#lec-arriba", "r8"], ["#tablero", "r9"], ["#hoja-sim", "r10", 2],
+  ["#analisis", "r11", 3], ["#hoja-doc", "r16", 4], ["#btn-tema", "r12"],
 ];
 // Con «a|b», la primera parte que se vea (en el celular el buscador está detrás de la lupa)
 const verPaso = (i) => { mostrarLamina(PASOS[i][2] ?? 1); const ops = PASOS[i][0].split("|").map((q) => document.querySelector(q)); return ops.find((e) => e?.getClientRects().length) ?? ops[0]; };
@@ -197,10 +201,10 @@ function ubicarGuia() {
   if (abajo) { cartel.style.top = cartel.style.left = ""; return; }
   // Debajo, arriba, a la derecha o a la izquierda de la parte explicada, sin taparla; si no entra en ningún lado (una parte
   // que ocupa todo el ancho), adentro, en su esquina de arriba a la derecha
-  const w = cartel.offsetWidth, h = cartel.offsetHeight, sep = 14, x = limitar(r.left, 8, innerWidth - w - 8), y = limitar(r.top, 8, innerHeight - h - 8);
-  const entra = ([top, left]) => top >= 8 && top + h <= innerHeight - 8 && left >= 8 && left + w <= innerWidth - 8;
+  const w = cartel.offsetWidth, h = cartel.offsetHeight, sep = 14, x = limitar(r.left, 24, innerWidth - w - 24), y = limitar(r.top, 24, innerHeight - h - 24);   // margen estándar de escritorio: 24 px
+  const entra = ([top, left]) => top >= 24 && top + h <= innerHeight - 24 && left >= 24 && left + w <= innerWidth - 24;
   const [top, left] = [[r.bottom + sep, x], [r.top - h - sep, x], [y, r.right + sep], [y, r.left - w - sep]].find(entra)
-    ?? [limitar(Math.max(r.top, 0) + 12, 8, innerHeight - h - 8), limitar(r.right - w - 12, 8, innerWidth - w - 8)];
+    ?? [limitar(Math.max(r.top, 0) + 16, 24, innerHeight - h - 24), limitar(r.right - w - 16, 24, innerWidth - w - 24)];
   Object.assign(cartel.style, { top: `${top}px`, left: `${left}px` });
 }
 function teclaGuia(ev) {

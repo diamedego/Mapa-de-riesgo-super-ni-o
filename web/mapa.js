@@ -60,7 +60,7 @@ const OPAC_RELLENO = [[4, 0.86], [10, 0.78], [13, 0.55], [16, 0.42]];
 const OPAC_MUNI = [[4, 0.86], [5.5, 0.86], [6.5, 0]];
 function opacidadRiesgo(paradas) {
   const cmus = estado.sel?.tipo === "zona" ? estado.sel.lugar.cmus : null;
-  const f = estado.verInundadas || estado.verInundHoy || estado.verDensidad || estado.verSuelo ? 0.45 : 1;   // con una capa de superficie encendida, el riesgo se atenúa para que se lea
+  const f = estado.verInundadas || estado.verInundHoy ? 0.45 : 1;   // con una capa de superficie encendida, el riesgo se atenúa para que se lea
   const valor = (v) => (cmus ? ["case", ["in", ["get", "cmu"], ["literal", cmus]], v * f, v * f * 0.38] : v * f);
   return ["interpolate", ["linear"], ["zoom"], ...paradas.flatMap(([z, v]) => [z, valor(v)])];
 }
@@ -209,6 +209,18 @@ function agregarCapas() {
   mapa.addLayer({ id: "alertas-borde", type: "line", source: "alertas", layout: { visibility: "none", "line-join": "round" },
     paint: { "line-color": colorAlerta, "line-width": 1.6, "line-dasharray": [2, 1.5] } });
 
+  // Rayado de las alertas: raya, espacio, raya, espacio (diagonal) del color de cada nivel, encima del relleno y del borde punteado
+  for (const [nivel, filtro] of [["roja", ["==", ["get", "nivel"], "roja"]], ["naranja", ["==", ["get", "nivel"], "naranja"]], ["amarilla", ["!", ["in", ["get", "nivel"], ["literal", ["roja", "naranja"]]]]]])
+    mapa.addLayer({ id: `alertas-rayado-${nivel}`, type: "fill", source: "alertas", filter: filtro, layout: { visibility: "none" }, paint: { "fill-pattern": `rayado-${nivel}`, "fill-opacity": 0.9 } });
+  mapa.on("styleimagemissing", (ev) => {
+    const nivel = /^rayado-(roja|naranja|amarilla)$/.exec(ev.id)?.[1];
+    if (!nivel || mapa.hasImage(ev.id)) return;
+    const cv = document.createElement("canvas"); cv.width = cv.height = 8;
+    const g = cv.getContext("2d"); g.strokeStyle = css(`--alerta-${nivel}`); g.lineWidth = 2; g.lineCap = "butt";
+    for (const [dx, dy] of [[0, 0], [-8, 8], [8, -8]]) { g.beginPath(); g.moveTo(dx - 1, dy + 9); g.lineTo(dx + 9, dy - 1); g.stroke(); }   // la diagonal se repite sin cortes
+    mapa.addImage(ev.id, g.getImageData(0, 0, 8, 8));
+  });
+
   agregarReferencias();
   agregarCapasOpcionales();
 
@@ -269,6 +281,9 @@ const urlCurvas = (m) => demCurvas.contourProtocolUrl({ multiplier: 1, contourLa
 // La separación entre curvas se elige según el relieve que se ve: unas 8 líneas de punta a punta. En lo llano o cuando se
 // acerca mucho (donde casi no hay diferencia de altura) quedan más espaciadas en metros; en lo empinado, más juntas. Cada
 // 5.ª línea es la principal y lleva su altura.
+// Separación según el zoom (se usa enseguida, antes de que llegue el terreno; después se afina con el relieve que se ve)
+const SEP_POR_ZOOM = (z) => (z < 4.5 ? 500 : z < 6 ? 200 : z < 7.5 ? 100 : z < 9 ? 50 : z < 10.5 ? 20 : z < 12 ? 10 : z < 13.5 ? 5 : 2);
+function aplicarSeparacion(m) { if (m === separacionCurvas) return; separacionCurvas = m; mapa.getSource("curvas").setTiles([urlCurvas(m)]); }
 let vistaCurvas = "";
 function ajustarCurvas() {
   if (!estado.relieve || !demCurvas || !mapa.getTerrain() || !mapa.getSource("curvas")) return;
@@ -279,16 +294,24 @@ function ajustarCurvas() {
     const v = mapa.queryTerrainElevation(mapa.unproject([((i + 0.5) / 14) * c.clientWidth, ((j + 0.5) / 14) * c.clientHeight]));
     if (v != null && Number.isFinite(v)) h.push(Math.max(0, v / EX_MEDIR));   // el fondo del mar no cuenta
   }
-  if (h.length < 50) { clearTimeout(ajustarCurvas.t); ajustarCurvas.t = setTimeout(ajustarCurvas, 1000); return; }   // las teselas todavía no llegaron
+  if (h.length < 50) { aplicarSeparacion(SEP_POR_ZOOM(mapa.getZoom())); clearTimeout(ajustarCurvas.t); ajustarCurvas.t = setTimeout(ajustarCurvas, 300); return; }   // las teselas del terreno todavía no llegaron
   vistaCurvas = vista;
   h.sort((x, y) => x - y);
   const rango = h[Math.floor((h.length - 1) * 0.95)] - h[Math.floor((h.length - 1) * 0.05)];
   // Con todo el país a la vista las líneas no pueden ir tan juntas (en la cordillera se empastan): cada 500 m como mínimo
   const porRango = SEPARACIONES.find((v) => v >= rango / 8) ?? SEPARACIONES.at(-1);
   const m = mapa.getZoom() < 5 && h.at(-1) - h[0] >= 1500 ? Math.max(porRango, 500) : porRango;
-  if (m === separacionCurvas) return;
-  separacionCurvas = m;
-  mapa.getSource("curvas").setTiles([urlCurvas(m)]);
+  aplicarSeparacion(m);
+}
+// Las curvas solo se dibujan en Argentina: una máscara con el color de la hoja tapa las de los países vecinos (queda justo encima de las curvas)
+function ubicarMascaraVecinos() {
+  if (!mapa.getLayer("vecinos-mascara")) return;
+  const ids = mapa.getStyle().layers.map((l) => l.id).filter((i) => i !== "vecinos-mascara" && i !== "limites-paises");
+  const k = Math.max(ids.indexOf("curvas"), ids.indexOf("curvas-texto"));
+  if (k < 0) return;
+  const antes = ids[k + 1];
+  mapa.moveLayer("vecinos-mascara", antes);
+  if (mapa.getLayer("limites-paises")) mapa.moveLayer("limites-paises", antes);   // los límites entre países quedan a la vista
 }
 function agregarRelieve() {
   mapa.addSource("relieve", { ...DEM_TERRARIUM, attribution: "Relieve: AWS Terrain Tiles" });
@@ -304,6 +327,7 @@ function agregarRelieve() {
       demCurvas = new mlcontour.DemSource({ url: DEM_TERRARIUM.tiles[0], encoding: "terrarium", maxzoom: 13, worker: true, cacheSize: 100, timeoutMs: 10000 });
       demCurvas.setupMaplibre(maplibregl);
     }
+    separacionCurvas = SEP_POR_ZOOM(mapa.getZoom());   // arranca con la separación del zoom (no con 10 m)
     mapa.addSource("curvas", { type: "vector", maxzoom: 15, tiles: [urlCurvas(separacionCurvas)] });
     mapa.addLayer({ id: "curvas", type: "line", source: "curvas", "source-layer": "contours", minzoom: 3, filter: [">", ["get", "ele"], 0], layout: { visibility: visible },
       paint: { "line-color": temaOscuro() ? "rgba(235,222,198,0.8)" : "rgba(70,50,30,0.8)", "line-width": ["match", ["get", "level"], 1, 1.4, 0.7] } }, primeraCapa(["symbol"]));   // encima del riesgo, para que se vean también de lejos
@@ -314,6 +338,7 @@ function agregarRelieve() {
   terrenoMapa();
   claveRelieve = "";
   if (!agregarRelieve.escuchando) { mapa.on("idle", ajustarColoresRelieve); agregarRelieve.escuchando = true; }
+  ubicarMascaraVecinos();
 }
 // Terreno: exageración 1,5 con el botón 3D; escala real con solo el relieve (hace falta para medir alturas)
 function terrenoMapa() {
@@ -345,12 +370,27 @@ function ajustarColoresRelieve() {
   const ley = document.getElementById("ley-relieve");
   ley.innerHTML = `<span>${t("relieve_ley")(fmt(a), fmt(b))}</span><span class="sim-degradado"></span>`;
 }
+// Precarga del terreno de la vista actual (teselas del relieve que usan las curvas y el terreno), con prioridad baja y sin pisar nada:
+// así la primera vez que se prende «Líneas de relieve» no hay que esperar la descarga
+function precargarRelieve() {
+  if (estado.relieve || SIN_TESELAS || navigator.connection?.saveData) return;
+  const z0 = Math.floor(mapa.getZoom()), b = mapa.getBounds(), n = (z) => 2 ** z;
+  const x = (lng, z) => Math.floor(((lng + 180) / 360) * n(z)), y = (lat, z) => { const f = (lat * Math.PI) / 180; return Math.floor(((1 - Math.log(Math.tan(f) + 1 / Math.cos(f)) / Math.PI) / 2) * n(z)); };
+  const urls = [];
+  for (const z of [z0, z0 + 1]) {
+    const xa = x(b.getWest(), z), xb = x(b.getEast(), z), ya = y(Math.min(85, b.getNorth()), z), yb = y(Math.max(-85, b.getSouth()), z);
+    for (let i = xa; i <= xb; i++) for (let j = ya; j <= yb; j++) urls.push(DEM_TERRARIUM.tiles[0].replace("{z}", z).replace("{x}", i).replace("{y}", j));
+  }
+  urls.slice(0, 40).forEach((u, k) => setTimeout(() => fetch(u, { priority: "low", cache: "force-cache" }).catch(() => {}), k * 150));   // de a poco, para no competir con el resto
+}
 function alternarRelieve() {
   estado.relieve = !estado.relieve;
   claveRelieve = "";
   pintarCapasExtra();
   document.getElementById("ley-relieve").hidden = true;
   if (!mapa.getSource("relieve")) return;
+  // La primera vez, las curvas se piden ya con la separación que corresponde al zoom (antes arrancaban con 10 m, que de lejos son miles de líneas)
+  if (estado.relieve && mapa.getSource("curvas")) aplicarSeparacion(SEP_POR_ZOOM(mapa.getZoom()));
   const vis = estado.relieve ? "visible" : "none";
   for (const id of ["curvas", "curvas-texto"]) if (mapa.getLayer(id)) mapa.setLayoutProperty(id, "visibility", vis);
   mapa.setLayoutProperty("sombreado", "visibility", estado.relieve3d ? "visible" : "none");
@@ -416,8 +456,7 @@ const CAPAS_REFERENCIAS = ["ref-municipios", "ref-ind-grandes", "ref-ind-grandes
 // Hidrografía, zonas que ya se inundaron (satélite), densidad de población, barrios populares, suelo urbano y verde,
 // infraestructura crítica y rutas. Tonos neutros o propios para no confundirse con el semáforo del riesgo.
 const CAPAS_OPCIONALES = {
-  verHidro: ["hidro-agua", "hidro-cursos"], verInundadas: ["jrc-agua"], verInundHoy: ["inund-hoy"], verDensidad: ["densidad-mun", "densidad-radio"],
-  verBarrios: ["barrios-relleno", "barrios-borde"], verSuelo: ["suelo-urbano", "suelo-verde"],
+  verHidro: ["hidro-agua", "hidro-cursos"], verInundadas: ["jrc-agua"], verInundHoy: ["inund-hoy"],
   verInfra: ["infra-punto", "infra-texto"], verRutas: ["rutas-borde", "rutas-linea", "rutas-tren"],
 };
 let CAPAS_POI_BASE = [];
@@ -441,7 +480,46 @@ function agregarCapasOpcionales() {
   mapa.addSource("sin-datos-zonas", { type: "geojson", data: "datos/sin_datos.geojson" });
   mapa.addLayer({ id: "sin-datos-borde", type: "line", source: "sin-datos-zonas", paint: { "line-color": css("--tinta-2"), "line-width": 1.1, "line-dasharray": [2, 2] } }, antes);
   // Zonas que ya se inundaron: frecuencia de agua observada por satélite 1984-2021 (JRC Global Surface Water)
-  mapa.addSource("jrc", { type: "raster", tileSize: 256, maxzoom: 13, tiles: ["https://storage.googleapis.com/global-surface-water/tiles2021/occurrence/{z}/{x}/{y}.png"],
+  // El océano no cuenta: el satélite lo da como agua «casi siempre», así que cada tesela se recorta a la tierra (Natural Earth 1:50 M,
+  // con 1 px de margen). Los estuarios que la costa de 1:50 M deja como mar (Río de la Plata) tampoco se pintan)
+  if (!maplibregl.__jrcSinMar) {
+    maplibregl.__jrcSinMar = true;
+    let tierra = null;
+    const cargarTierra = () => (tierra ??= Promise.all([topoMundo ??= fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json").then((r) => r.json()), cargarTopojson()]).then(([tp]) => {
+      const pols = [];
+      for (const f of topojson.feature(tp, tp.objects.land).features ?? [topojson.feature(tp, tp.objects.land)]) {
+        const g = f.geometry, lista = g.type === "Polygon" ? [g.coordinates] : g.coordinates;
+        for (const anillos of lista) {
+          const xs = anillos[0].map((p) => p[0]), ys = anillos[0].map((p) => p[1]);
+          if (Math.min(...ys) < -80 || Math.max(...xs) - Math.min(...xs) > 180) continue;   // la Antártida no entra en Mercator; Fiyi y Chukotka cruzan el antimeridiano (su anillo da la vuelta al mundo)
+          pols.push({ anillos, o: Math.min(...xs), e: Math.max(...xs), s: Math.min(...ys), n: Math.max(...ys) });
+        }
+      }
+      return pols;
+    }));
+    maplibregl.addProtocol("jrcsinmar", async (params, abort) => {
+      const [z, x, y] = params.url.replace(/\.png.*$/, "").split("/").slice(-3).map(Number);
+      const [r, pols] = await Promise.all([fetch(params.url.replace("jrcsinmar://", "https://"), { signal: abort.signal }), cargarTierra()]);
+      if (!r.ok) throw new Error(`agua ${r.status}`);
+      const bmp = await createImageBitmap(await r.blob()), cv = new OffscreenCanvas(256, 256), c = cv.getContext("2d");
+      c.drawImage(bmp, 0, 0, 256, 256);
+      const n2 = 2 ** z, lonA = (x / n2) * 360 - 180, lonB = ((x + 1) / n2) * 360 - 180;
+      const lat = (yy) => (Math.atan(Math.sinh(Math.PI * (1 - (2 * yy) / n2))) * 180) / Math.PI, latN = lat(y), latS = lat(y + 1);
+      const px = (lon) => ((lon + 180) / 360 * n2 - x) * 256;
+      const py = (la) => { const f = (la * Math.PI) / 180; return ((1 - Math.log(Math.tan(f) + 1 / Math.cos(f)) / Math.PI) / 2 * n2 - y) * 256; };
+      const mask = new OffscreenCanvas(256, 256), m = mask.getContext("2d");
+      const trazar = (p) => { m.beginPath(); for (const anillo of p.anillos) anillo.forEach(([lo, la], i) => { const X = px(lo), Y = py(Math.max(-85, Math.min(85, la))); i ? m.lineTo(X, Y) : m.moveTo(X, Y); }); };
+      const cerca = pols.filter((p) => !(p.e < lonA || p.o > lonB || p.n < latS || p.s > latN));
+      m.fillStyle = "#000";
+      for (const p of cerca) { trazar(p); m.fill("evenodd"); }
+      // La orilla se achica 2 px: el píxel de costa del satélite (agua «a veces») no deja una línea violeta alrededor de la tierra
+      m.globalCompositeOperation = "destination-out"; m.lineWidth = 4; m.lineJoin = "round";
+      for (const p of cerca) { trazar(p); m.stroke(); }
+      c.globalCompositeOperation = "destination-in"; c.drawImage(mask, 0, 0);
+      return { data: await (await cv.convertToBlob({ type: "image/png" })).arrayBuffer() };
+    });
+  }
+  mapa.addSource("jrc", { type: "raster", tileSize: 256, maxzoom: 13, tiles: ["jrcsinmar://storage.googleapis.com/global-surface-water/tiles2021/occurrence/{z}/{x}/{y}.png"],
     attribution: "Agua en superficie 1984-2021: EC JRC / Google (Pekel et al. 2016)" });
   mapa.addLayer({ id: "jrc-agua", type: "raster", source: "jrc", layout: { visibility: vis("verInundadas") }, paint: { "raster-opacity": 0.8 } }, antes);
   // Inundación de hoy por satélite: producto diario de NASA (LANCE, satélites MODIS Terra y Aqua, 250 m), compuesto de hoy y ayer
@@ -455,13 +533,26 @@ function agregarCapasOpcionales() {
       if (!r.ok) throw new Error(`satélite ${r.status}`);
       const bmp = await createImageBitmap(await r.blob()), cv = new OffscreenCanvas(bmp.width, bmp.height), c = cv.getContext("2d");
       c.drawImage(bmp, 0, 0);
-      const img = c.getImageData(0, 0, bmp.width, bmp.height), p = img.data;
-      for (let i = 0; i < p.length; i += 4) {
+      const img = c.getImageData(0, 0, bmp.width, bmp.height), p = img.data, W = bmp.width, H = bmp.height;
+      // Clase por píxel: 2 inundación inusual (rojo en NASA) · 1 recurrente (amarillo) · 3 sin dato (nubes, gris)
+      const cl = new Uint8Array(W * H);
+      for (let i = 0, k = 0; i < p.length; i += 4, k++) {
         const [R, G, B, A] = [p[i], p[i + 1], p[i + 2], p[i + 3]];
-        let o = [0, 0, 0, 0];
-        if (A > 0 && R > 200 && G < 90 && B < 90) o = [24, 74, 200, 235];            // inundación inusual (rojo en NASA)
-        else if (A > 0 && R > 200 && G > 200 && B < 90) o = [92, 150, 235, 200];     // inundación recurrente (amarillo en NASA)
-        else if (A > 0 && R === G && G === B && R > 120) o = [140, 140, 140, 40];    // sin dato: nubes
+        if (A > 0 && R > 200 && G < 90 && B < 90) cl[k] = 2;
+        else if (A > 0 && R > 200 && G > 200 && B < 90) cl[k] = 1;
+        else if (A > 0 && R === G && G === B && R > 120) cl[k] = 3;
+      }
+      // De lejos un píxel de 250 m no se ve: la mancha se ensancha (2 px a z ≤ 6, 1 px a z 7-8) para que se aprecie
+      const z = Number(params.url.replace(/\.png.*$/, "").split("/").slice(-3)[0]), rad = z <= 6 ? 2 : z <= 8 ? 1 : 0;
+      const TURQ = [[0, 0, 0, 0], [0, 196, 176, 235], [0, 168, 150, 255], [140, 140, 140, 40]];   // turquesa fuerte: inundación de hoy
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        let c0 = cl[y * W + x];
+        if (c0 !== 1 && c0 !== 2 && rad) for (let dy = -rad; dy <= rad; dy++) for (let dx = -rad; dx <= rad; dx++) {
+          const xx = x + dx, yy = y + dy;
+          if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+          const v = cl[yy * W + xx]; if ((v === 1 || v === 2) && (c0 !== 2)) c0 = Math.max(v, c0 === 3 ? 0 : c0);
+        }
+        const o = TURQ[c0], i = (y * W + x) * 4;
         p[i] = o[0]; p[i + 1] = o[1]; p[i + 2] = o[2]; p[i + 3] = o[3];
       }
       c.putImageData(img, 0, 0);
@@ -475,13 +566,6 @@ function agregarCapasOpcionales() {
   mapa.addLayer({ id: "inund-hoy", type: "raster", source: "inund-hoy", layout: { visibility: vis("verInundHoy") }, paint: { "raster-opacity": 1, "raster-resampling": "nearest" } }, antes);
   // Densidad de población (habitantes por km²): municipio de lejos, radio censal de cerca
   densidades(estado.datos.municipios.features); densidades(estado.radios);
-  const opDens = ["interpolate", ["linear"], ["get", "dens"], 1, 0, 50, 0.18, 500, 0.35, 3000, 0.55, 15000, 0.75];
-  mapa.addLayer({ id: "densidad-mun", type: "fill", source: "municipios", maxzoom: 9, layout: { visibility: vis("verDensidad") }, paint: { "fill-color": "#3b3366", "fill-opacity": opDens } }, antes);
-  mapa.addLayer({ id: "densidad-radio", type: "fill", source: "radios", minzoom: 9, layout: { visibility: vis("verDensidad") }, paint: { "fill-color": "#3b3366", "fill-opacity": opDens } }, antes);
-  // Barrios populares (RENABAP)
-  mapa.addSource("barrios", { type: "geojson", data: "datos/barrios_populares.geojson" });
-  mapa.addLayer({ id: "barrios-relleno", type: "fill", source: "barrios", minzoom: 7, layout: { visibility: vis("verBarrios") }, paint: { "fill-color": "#7a3d8f", "fill-opacity": 0.3 } }, antes);
-  mapa.addLayer({ id: "barrios-borde", type: "line", source: "barrios", minzoom: 9, layout: { visibility: vis("verBarrios") }, paint: { "line-color": "#5b2a6f", "line-width": 1 } }, antes);
   // Infraestructura crítica (OpenStreetMap)
   mapa.addSource("infra", { type: "geojson", data: "datos/infraestructura_critica.geojson" });
   const colorInfra = ["match", ["get", "g"], ...Object.entries(GRUPOS_INFRA).flat(), "#555"];
@@ -501,11 +585,6 @@ function agregarCapasOpcionales() {
   mapa.addLayer({ id: "hidro-agua", type: "fill", source: base, "source-layer": "water", filter: ["!=", ["get", "class"], "ocean"], layout: { visibility: vis("verHidro") }, paint: { "fill-color": "#3d8bd6", "fill-opacity": 0.35 } }, antes);
   mapa.addLayer({ id: "hidro-cursos", type: "line", source: base, "source-layer": "waterway", minzoom: 7, layout: { visibility: vis("verHidro"), "line-cap": "round" },
     paint: { "line-color": "#1f6fb5", "line-width": ["interpolate", ["linear"], ["zoom"], 7, 0.5, 12, 1.6, 15, 3] } }, antes);
-  // Suelo urbano (impermeable) y verde
-  mapa.addLayer({ id: "suelo-urbano", type: "fill", source: base, "source-layer": "landuse", minzoom: 8, filter: ["in", ["get", "class"], ["literal", ["residential", "commercial", "industrial", "retail", "railway"]]],
-    layout: { visibility: vis("verSuelo") }, paint: { "fill-color": "#5c6370", "fill-opacity": 0.35 } }, antes);
-  mapa.addLayer({ id: "suelo-verde", type: "fill", source: base, "source-layer": "landcover", minzoom: 8, filter: ["in", ["get", "class"], ["literal", ["wood", "grass", "wetland"]]],
-    layout: { visibility: vis("verSuelo") }, paint: { "fill-color": "#3a9a5b", "fill-opacity": 0.32 } }, antes);
   // Rutas y vías del tren
   const rutas = ["in", ["get", "class"], ["literal", ["motorway", "trunk", "primary", "secondary"]]];
   const anchoR = ["interpolate", ["linear"], ["zoom"], 5, 0.6, 9, 1.6, 14, 4];
@@ -573,6 +652,12 @@ function aplicarCapaEnMapa() {
     vis(id, (riesgo || estado.modo === "actual") && estado.verAlertas);
     mapa.setFilter(id, filtroAlertas);
   }
+  const FILTRO_NIVEL = { roja: ["==", ["get", "nivel"], "roja"], naranja: ["==", ["get", "nivel"], "naranja"], amarilla: ["!", ["in", ["get", "nivel"], ["literal", ["roja", "naranja"]]]] };
+  for (const [nivel, f] of Object.entries(FILTRO_NIVEL)) {
+    const id = `alertas-rayado-${nivel}`;
+    vis(id, (riesgo || estado.modo === "actual") && estado.verAlertas);
+    mapa.setFilter(id, filtroAlertas ? ["all", f, filtroAlertas] : f);
+  }
   mapa.setPaintProperty("alertas-relleno", "fill-opacity", riesgo ? 0.06 : 0.16);
   // Tiempo
   const tiempo = !riesgo && estado.tiempo;
@@ -625,7 +710,9 @@ function volarAPunto(punto, km) {
 function enlazarEventosMapa() {
   estado.mapaEnlazado = true;
   mapa.on("moveend", () => { cargarRadiosVisibles(); if (SIN_TESELAS) cargarMapaBaseVisible(); });
-  mapa.on("idle", ajustarCurvas);   // cuando terminó de cargar el terreno de la vista, se mide el relieve y se elige la separación
+  mapa.on("idle", ajustarCurvas);
+  mapa.once("idle", () => setTimeout(precargarRelieve, 3000));   // baja en silencio el terreno de lo que se ve: la primera vez que se prende el relieve ya está en la memoria del navegador
+  mapa.on("zoomend", () => { clearTimeout(ajustarCurvas.z); ajustarCurvas.z = setTimeout(ajustarCurvas, 60); });   // al cambiar el zoom, sin esperar a que termine de cargar todo   // cuando terminó de cargar el terreno de la vista, se mide el relieve y se elige la separación
   mapa.on("click", (e) => {
     const est = mapa.getLayer("estaciones") && mapa.queryRenderedFeatures(e.point, { layers: ["estaciones"] })[0];
     if (est) return seleccionarPunto(est.geometry.coordinates.slice(0, 2), { nombre: est.properties.estacion, origen: "mapa", volar: true });

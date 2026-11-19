@@ -22,7 +22,7 @@
   --ok: #0a7d32; --atencion: #a35f00; --critico: #c62f2f; --serio: #ec835a; --rio-normal: #1a9850;
   --bordo: #8c1d2e; --bordo-fondo: rgba(140, 29, 46, 0.08);   /* avisos de carga: que se vean */
   --ok-fondo: rgba(12, 163, 12, 0.1); --atencion-fondo: rgba(250, 178, 25, 0.16); --critico-fondo: rgba(208, 59, 59, 0.12);
-  --alerta-amarilla: #f2c94c; --alerta-naranja: #e8642c; --alerta-roja: #d03b3b;
+  --alerta-amarilla: #f0ad2e; --alerta-naranja: #e8642c; --alerta-roja: #d03b3b;
   --lluvia-4: #e8a33c; --lluvia-5: #d6453a;
   /* Mapa y maqueta 3D: sin cambios */
   --suelo-corte: #d9c9a8; --suelo-borde: #8a6f48; --maq-1: #f4f6f8; --maq-2: #d9dee4; --maq-3: #c9cfd6;
@@ -1862,3 +1862,554 @@ body[data-lamina="3"] .lec-1 { display: none; }
 .hoja-doc { padding: 0; }
 .doc-marco { display: block; width: 100%; height: calc(100svh - 96px); border: 0; background: var(--superficie, #fff); }
 @media (max-width: 760px) { .doc-marco { height: calc(100svh - 120px); } }
+
+
+/* ===== v9 · ajustes estéticos de la lámina 01 (retícula de 8 px) ===== */
+/* 1. Barra del mapa: pestañas, «Capas» con el mismo ancho que las cuatro pestañas y, debajo y separado, el radio */
+@media (min-width: 761px) {
+  .hoja-mapa .plano-cab { display: grid; grid-template-columns: max-content; justify-items: stretch; align-content: start; row-gap: 8px; right: auto; }
+  .hoja-mapa .plano-cab .seg-btn { width: 100%; justify-content: center; }
+  .hoja-mapa .plano-cab .panel-capas { top: 76px; }
+  .hoja-mapa .plano-cab .lec-radio:not([hidden]) { display: flex; align-items: center; gap: 8px; width: 100%; max-width: none; min-height: 32px; margin: 8px 0 0; padding: 0 12px;
+    border: 1px solid var(--borde-fuerte); background: var(--superficie); }
+  .hoja-mapa .plano-cab .lec-radio .etq { font: 500 10px/1 var(--f-mono); letter-spacing: 0.09em; text-transform: uppercase; color: var(--tinta-3); white-space: nowrap; }
+  .hoja-mapa .plano-cab .lec-radio input { flex: 1; width: auto; min-width: 0; height: 14px; margin: 0; accent-color: var(--cian); }
+  .hoja-mapa .plano-cab .lec-radio b { min-width: 48px; font: 500 12px var(--f-mono); color: var(--tinta-1); text-align: right; white-space: nowrap; }
+}
+
+/* 6. Otras capas: una debajo de la otra, sobre el margen izquierdo del mapa grande, más chicas */
+.mapa-marco > .miniaturas { position: absolute; z-index: 3; left: 56px; top: 160px; display: flex; flex-direction: column; gap: 8px; width: 152px; padding: 0; border: 0; overflow: visible; }
+.mapa-marco > .miniaturas > .minis-titulo { display: none; }
+.mapa-marco > .miniaturas .mini { flex: none; width: 100%; height: 128px; min-height: 0; gap: 4px; padding: 8px; border: 1px solid var(--borde-fuerte); border-radius: 0; background: var(--superficie); }
+.mapa-marco > .miniaturas .mini-cab { gap: 4px; font-size: 0.74rem; }
+.mapa-marco > .miniaturas .mini-cab .ico, .mapa-marco > .miniaturas .mini-ampliar .ico { width: 13px; height: 13px; }
+.mapa-marco > .miniaturas .mini-mapa { flex: 1; min-height: 0; }
+.mapa-marco > .miniaturas .mini-pie { font-size: 0.66rem; }
+.mapa-marco > .miniaturas .mini-pie b { font-size: 1rem; }
+.mapa-marco > .miniaturas .mini-pie small { font-size: 0.58rem; line-height: 12px; white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+@media (max-height: 859px) { .mapa-marco > .miniaturas .mini { height: 112px; } .mapa-marco > .miniaturas .mini-mapa { display: none; } }
+@media (max-width: 760px) { .mapa-marco > .miniaturas { display: none; } }
+
+/* 2. Confianza del pronóstico bajo la línea de evolución: «confianza alta / media / baja», cada una en sus dos renglones */
+.tb-evol-conf { height: 32px; }
+.tb-conf small { width: min-content; white-space: normal; line-height: 12px; }
+
+/* 2/7. Bloque de arriba (evolución, riesgo día por día, ríos cerca, tiempo en el lugar) */
+.lec-arriba .lec-dias[hidden] { display: none; }
+.lec-arriba .lec-dias .kpi-g { padding-top: 0; border-top: 0; }
+
+/* 5. Tortas: referencias centradas bajo cada gráfico y cada una en un solo renglón */
+.torta-ley { width: max-content; max-width: 100%; margin: 0 auto; font-size: 0.66rem; }
+.torta-ley li { align-items: center; white-space: nowrap; }
+.torta-ley i { margin-top: 0; }
+.torta-ley span { flex-wrap: nowrap; align-items: baseline; column-gap: 4px; }
+.torta-ley small { flex-basis: auto; font-size: 0.62rem; }
+.torta-ley small::before { content: "· "; }
+
+/* Celular: el radio va en una fila, debajo de las pestañas y de «Capas» */
+@media (max-width: 760px) {
+  .hoja-mapa .plano-cab .lec-radio:not([hidden]) { order: 3; flex: 1 1 100%; display: flex; align-items: center; gap: 8px; width: auto; max-width: none; min-height: 32px; margin: 0; padding: 0 8px;
+    border: 1px solid var(--borde-fuerte); background: var(--superficie); }
+  .hoja-mapa .plano-cab .lec-radio .etq { font: 500 10px/1 var(--f-mono); letter-spacing: 0.09em; text-transform: uppercase; color: var(--tinta-3); white-space: nowrap; }
+  .hoja-mapa .plano-cab .lec-radio input { flex: 1; width: auto; min-width: 0; height: 14px; margin: 0; accent-color: var(--cian); }
+  .hoja-mapa .plano-cab .lec-radio b { min-width: 44px; font: 500 12px var(--f-mono); color: var(--tinta-1); text-align: right; white-space: nowrap; }
+}
+
+
+/* ===== v10 · ajustes de la lámina 01 y del tablero de control ===== */
+/* 1. Otras capas: el mapa más grande y el recuadro más acotado */
+.mapa-marco > .miniaturas { width: 136px; gap: 8px; }
+.mapa-marco > .miniaturas .mini { height: auto; padding: 6px; gap: 4px; }
+.mapa-marco > .miniaturas .mini-mapa { flex: none; width: 100%; height: 96px; min-height: 0; }
+.mapa-marco > .miniaturas .mini-cab { font-size: 0.72rem; }
+.mapa-marco > .miniaturas .mini-pie small { font-size: 0.56rem; }
+@media (max-height: 859px) { .mapa-marco > .miniaturas .mini { height: auto; } .mapa-marco > .miniaturas .mini-mapa { display: block; height: 56px; } }
+
+/* 2. «Riesgo día por día»: referencias debajo del gráfico y más chicas */
+.kpi-g.dc .dc-ley { margin: 8px 0 0; gap: 2px 10px; font-size: 10px; line-height: 14px; }
+.kpi-g.dc .dc-ley i { width: 8px; height: 8px; margin-right: 3px; }
+.kpi-g.dc .dc-pie { margin-top: 6px; }
+
+/* 3. Rótulo «Panorama nacional · fecha» mucho más grande */
+#lec-etq { font: 600 16px/1.3 var(--f-mono); letter-spacing: 0.05em; color: var(--tinta-1); }
+.lec-fila-etq > #lec-etq { white-space: normal; overflow: visible; text-overflow: clip; }
+
+/* 5. Indicadores: solo informativos (sin botón ni acción) */
+.kpis .kpi { cursor: default; }
+.kpis .kpi:hover { background: none; }
+
+/* 4. «Ver más detalles» al lado de la escala de riesgo */
+.lec-pie > div:first-child { grid-row: 1 / span 2; }
+.lec-pie > .bajada { grid-column: 2; grid-row: 1; align-self: end; }
+.lec-pie > .btn-detalles { grid-column: 2; grid-row: 2; align-self: start; justify-self: start; }
+.btn-detalles { display: inline-flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 48px; margin-top: 8px; padding: 8px 16px; border: 1px solid var(--cian); background: var(--cian);
+  color: var(--cian-tinta); text-align: left; cursor: pointer; }
+.btn-detalles b { display: block; font: 600 14px/1.2 var(--f-ui); }
+.btn-detalles small { display: block; font: 500 10px/1.4 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.85; }
+.btn-detalles i { font-style: normal; font-size: 18px; }
+.btn-detalles:hover, .btn-detalles:focus-visible { background: var(--tinta-1); border-color: var(--tinta-1); color: var(--superficie); outline: none; }
+@media (max-width: 760px) { .hoja-mapa .btn-detalles { display: flex; width: calc(100% - 32px); margin: 0 16px 16px; } }
+
+/* Tablero de control: zona elegida, posición en el país y situación */
+.an-sel { display: grid; grid-template-columns: 1fr 1.4fr; gap: 16px; }
+.an-sel small { display: block; font: 500 10px/1.3 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-3); }
+.an-sel-id h3 { margin: 8px 0 4px; font: 700 24px/1.15 var(--f-ui); }
+.an-sel-id p { margin: 0; font-size: 13px; color: var(--tinta-2); }
+.an-sel-top ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.an-sel-top li { display: flex; flex-direction: column; gap: 2px; }
+.an-sel-top li span { font-size: 13px; color: var(--tinta-2); }
+.an-sel-top li b { font: 700 32px/1.1 var(--f-ui); font-variant-numeric: tabular-nums; }
+.an-sel-top li small { text-transform: none; letter-spacing: 0; font: 400 12px/1.4 var(--f-ui); color: var(--tinta-2); }
+.an-kpi-exp b small { font-size: 14px; }
+.an-kpi-exp strong { color: var(--tinta-1); }
+.an-situacion .tb-situacion { margin: 0; }
+@media (max-width: 1100px) { .an-sel { grid-template-columns: 1fr; } .an-sel-top ul { grid-template-columns: 1fr; } }
+
+
+/* ===== v10 (2.ª tanda) ===== */
+/* Rótulo del encabezado: solo el nombre del lugar va grande; el radio y la fecha, debajo y más chicos */
+#lec-etq { display: flex; flex-direction: column; gap: 4px; font: inherit; letter-spacing: 0; text-transform: none; color: inherit; }
+#lec-etq .lec-nombre { font: 700 24px/1.15 var(--f-ui); letter-spacing: -0.02em; color: var(--tinta-1); }
+#lec-etq .lec-resto { font: 500 11px/1.4 var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--tinta-3); }
+
+/* «Qué cambia»: texto comprimido y flecha para desplegarlo */
+.cb-fila .cb-cab { position: relative; padding-right: 32px; }
+.cb-desplegar { position: absolute; top: 0; right: 0; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid var(--borde-fuerte); border-radius: 0;
+  background: var(--superficie); color: var(--tinta-2); cursor: pointer; }
+.cb-desplegar i { font-style: normal; font-size: 12px; line-height: 1; transition: transform 0.15s; }
+.cb-fila.abierta .cb-desplegar i { transform: rotate(180deg); }
+.cb-desplegar:hover, .cb-desplegar:focus-visible { background: var(--cian-suave); color: var(--tinta-1); outline: none; }
+.cb-rec[hidden] { display: none; }
+
+/* Lámina 03 · Reporte: solo texto, en una columna legible */
+.an-reporte { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.an-eyebrow { margin: 0 0 8px; font: 500 11px/1.3 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-3); }
+.an-reporte .an-tit { margin: 0; font: 700 32px/1.15 var(--f-ui); letter-spacing: -0.02em; }
+.an-reporte .an-sub { margin: 8px 0 0; font-size: 14px; color: var(--tinta-2); }
+.an-lineas { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 14px; line-height: 1.5; color: var(--tinta-2); }
+.an-lineas b { color: var(--tinta-1); font-weight: 600; }
+.an-situacion .tb-situacion { margin: 0; }
+
+/* Recorrido guiado: mismo estándar que el resto (superficie plana, filete de 1 px, letra chica) */
+.guia-cartel { width: min(320px, calc(100% - 48px)); padding: 16px; border: 1px solid var(--borde-fuerte); background: var(--superficie); color: var(--tinta-1); box-shadow: none; }
+.guia-cartel .rec-paso { display: block; font: 500 10px/1.3 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-3); }
+.guia-cartel h3 { margin: 4px 0 8px; font: 600 14px/1.3 var(--f-ui); color: var(--tinta-1); }
+.guia-cartel p { font-size: 12px; line-height: 1.5; color: var(--tinta-2); }
+.guia-cartel .rec-botones { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
+.guia-cartel .rec-botones .btn-texto, .guia-cartel .rec-botones .btn-primario { min-height: 32px; padding: 0 12px; font-size: 12px; }
+.guia-cartel .rec-botones .btn-icono { margin-left: auto; width: 32px; height: 32px; }
+.guia-cartel.abajo { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: 16px; width: auto; }
+
+
+/* ===== v10 (3.ª tanda) ===== */
+/* «Hacé clic acá»: mismo formato que «Ver más detalles» (dos líneas y flecha a la derecha), con sus colores de siempre */
+.detalle-sim { justify-content: space-between; gap: 16px; min-height: 48px; padding: 8px 16px; border-radius: 0; }
+.detalle-sim i { font-style: normal; font-size: 18px; line-height: 1; color: var(--cian); }
+.detalle-sim-txt b { font: 600 14px/1.2 var(--f-ui); }
+.detalle-sim-txt small { font: 500 10px/1.4 var(--f-mono); letter-spacing: 0.08em; }
+
+/* «Qué cambia»: primera línea del texto, «…» y la flecha (sin recuadro) para desplegar */
+.cb-fila .cb-cab { padding-right: 0; }
+.cb-detalle { display: flex; align-items: flex-start; gap: 8px; margin-top: 4px; }
+.cb-detalle .cb-rec { flex: 1; min-width: 0; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cb-fila.abierta .cb-detalle .cb-rec { white-space: normal; overflow: visible; text-overflow: clip; }
+.cb-desplegar { position: static; flex: none; width: 24px; height: 24px; border: 0; background: none; color: var(--tinta-2); }
+.cb-desplegar:hover, .cb-desplegar:focus-visible { background: none; color: var(--cian); }
+
+/* Línea de tiempo: más aire junto al ▶, termina en el último día; confianza centrada y en tono petróleo que baja de intensidad */
+.lec-arriba .tb-evol-pista { margin-left: 32px; margin-right: 28px; }
+.tb-evol-conf { margin: 0 28px 0 32px; }
+.tb-conf.alta { background: var(--cian); }
+.tb-conf.media { background: color-mix(in srgb, var(--cian) 60%, transparent); }
+.tb-conf.baja { background: color-mix(in srgb, var(--cian) 30%, transparent); }
+.tb-conf small { left: 50%; transform: translateX(-50%); text-align: center; }
+.tb-conf.alta small { color: var(--cian); }
+.tb-conf.media small { color: color-mix(in srgb, var(--cian) 80%, transparent); }
+.tb-conf.baja small { color: color-mix(in srgb, var(--cian) 65%, transparent); }
+
+/* Escala de riesgo: título y subtítulo centrados al reloj; «Ver más detalles» arriba del texto, a la altura del título */
+.lec-pie { align-items: start; }
+.lec-pie > div:first-child { grid-row: 1 / span 2; align-items: center; text-align: center; }
+.lec-pie > div:first-child .tit, .lec-pie > div:first-child .sub { text-align: center; }
+.lec-pie > div:first-child #lec-escala { display: flex; justify-content: center; width: 100%; }
+.lec-pie > .btn-detalles { grid-column: 2; grid-row: 1; align-self: start; margin-top: 0; }
+.lec-pie > .bajada { grid-column: 2; grid-row: 2; align-self: start; margin-top: 8px; font-size: 13px; }
+
+/* Aviso sobre el mapa (punto fuera de Argentina) */
+.aviso-mapa { position: absolute; z-index: 8; left: 50%; bottom: 16px; transform: translateX(-50%); max-width: min(480px, calc(100% - 32px)); margin: 0; padding: 12px 16px;
+  border: 1px solid var(--tinta-1); background: var(--superficie); color: var(--tinta-1); font-size: 13px; line-height: 1.45; text-align: center; }
+
+
+/* «Qué lo explica»: de mayor a menor, filas parejas (las etiquetas no se parten) y el paréntesis del título en minúscula */
+.tb-comps { grid-template-columns: max-content minmax(0, 1fr) max-content; gap: 8px 16px; align-items: center; }
+.tb-comps .comp { display: contents; }
+.tb-comps .comp-etq { white-space: nowrap; }
+.tit-min { text-transform: none; }
+
+/* «Ríos cerca»: sin recuadros ni fondo pintado, y más margen entre el título y la lista */
+.tb-rios > h3 { margin-bottom: 24px; }
+.tb-rios .rios { gap: 24px; }
+.tb-rios .rio { padding: 0; border: 0; border-radius: 0; background: none; }
+
+
+/* Barra del mapa en una sola fila: pestañas, «Capas» (ancho de «Temperatura») y radio (triple de «Riesgo»), cada uno separado por 8 px */
+@media (min-width: 761px) {
+  .hoja-mapa .plano-cab { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; right: 240px; }
+  .hoja-mapa .plano-cab .seg-btn { width: var(--w-capas, auto); }
+  .hoja-mapa .plano-cab .lec-radio:not([hidden]) { width: var(--w-radio, auto); margin: 0; }
+  .hoja-mapa .plano-cab .panel-capas { top: 40px; }
+  .mapa-marco > .miniaturas { top: var(--top-minis, 74px); }
+}
+@media (min-width: 761px) { .hoja-mapa .plano-cab .seg-btn { box-sizing: border-box; min-height: 32px; } }
+
+/* «Qué cambia»: la línea comprimida nunca ensancha el panel (la flecha queda siempre a la vista) */
+.tb-cambios, .cb-lista, .cb-fila { min-width: 0; }
+.cb-detalle { min-width: 0; overflow: hidden; }
+
+/* Recorrido guiado: botones de la tarjeta clara (Anterior, Siguiente y cerrar), todos de 32 px de alto */
+.guia-cartel .rec-botones button { display: inline-flex; align-items: center; justify-content: center; min-height: 32px; padding: 0 12px; border: 1px solid var(--borde-fuerte); border-radius: 0;
+  background: var(--superficie); color: var(--tinta-1); font: 500 12px var(--f-ui); cursor: pointer; }
+.guia-cartel .rec-botones .btn-primario { background: var(--tinta-1); border-color: var(--tinta-1); color: var(--superficie); }
+.guia-cartel .rec-botones button:hover:not(:disabled) { border-color: var(--cian); }
+.guia-cartel .rec-botones button:disabled { opacity: 0.4; cursor: default; }
+.guia-cartel .rec-botones .btn-icono { margin-left: auto; width: 32px; padding: 0; }
+.guia-cartel .rec-botones .btn-icono .ico { width: 14px; height: 14px; }
+
+/* Reporte: el título del lugar arriba y bien visible; aire antes de «Qué hacer» */
+.an-reporte .an-cab { display: block; }
+.an-situacion .tb-situacion .tb-vinetas + h3 { margin-top: 24px; }
+.hoja-analisis > .pie { width: min(832px, calc(100% - 48px)); max-width: none; padding-left: 0; padding-right: 0; margin-left: auto; margin-right: auto; box-sizing: content-box; }
+
+/* v10: coordenadas arriba a la derecha del rótulo; copiar y Google Maps debajo, del mismo ancho que las coordenadas */
+.lec-cabeza > div:first-child { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; align-items: start; }
+.lec-cabeza > div:first-child > .lec-fila-etq { grid-column: 1; grid-row: 1; }
+.lec-cabeza > div:first-child > .titular { grid-column: 1 / -1; grid-row: 2; }
+.lec-cabeza > div:first-child > .lec-coords { grid-column: 2; grid-row: 1; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: max-content; justify-items: stretch; }
+.lec-cabeza > div:first-child > .lec-coords[hidden] { display: none; }
+.lec-coords .lec-coords-v { grid-column: 1 / -1; font: 500 11px/16px var(--f-mono); text-align: right; letter-spacing: 0; }
+.lec-coords .btn-banda { justify-content: center; white-space: nowrap; padding: 0 8px; }
+@media (max-width: 520px) {
+  .lec-cabeza > div:first-child { grid-template-columns: minmax(0, 1fr); }
+  .lec-cabeza > div:first-child > .lec-coords { grid-column: 1; grid-row: 2; width: 100%; margin-top: 8px; }
+  .lec-cabeza > div:first-child > .titular { grid-row: 3; }
+  .lec-coords .lec-coords-v { text-align: left; }
+}
+
+/* v10: lámina 02 sin punto elegido: el recuadro completo (maqueta a la izquierda, panel a la derecha), vacío, con el aviso donde iría la maqueta 3D */
+.sim:not([hidden]) ~ .sim-esqueleto { display: none; }
+.sim-esqueleto { height: 100%; }
+.sim-esqueleto .sim-cuerpo { height: 100%; }
+.sim-esqueleto .sim-mapa-marco { display: flex; align-items: center; justify-content: center; }
+.sim-esqueleto .sim-vacio { height: auto; min-height: 0; }
+.sim-esqueleto .sim-panel { pointer-events: none; user-select: none; }
+.sim-esqueleto .sim-panel :is(button, input) { cursor: default; opacity: 0.55; }
+.sim-esqueleto .sim-linea-vacia { min-height: 200px; border: 1px dashed var(--borde-fuerte); }
+@media (max-width: 1100px) { .hoja-sim .sim-esqueleto .sim-vacio { min-height: 0; } }
+
+/* v10: escala de riesgo más grande, aguja con flecha, cifras más grandes y bajada legible pegada al botón */
+.lec-pie { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); grid-template-rows: auto 1fr; gap: 0 32px; }
+.lec-pie > div:first-child .sub { margin-bottom: 16px; }
+#lec-escala svg { max-height: 176px; margin-top: 0; }
+#lec-escala text { font-size: 13px; }
+#lec-escala text.v { font-size: 15px; }
+.lec-pie > .bajada { margin-top: 16px; font-size: 15px; line-height: 1.5; }
+.lec-pie > .bajada > span { display: block; }
+.lec-pie > .bajada > span + span { margin-top: 8px; }
+
+/* v10: botón «volver» (flecha doblada) al final de la franja en el simulador y el reporte; en la computadora el buscador y los botones
+   ocupan justo el ancho del contenido del panel del simulador (de su margen izquierdo al derecho) */
+.btn-volver { display: none; }
+.marco { container-type: inline-size; --pw: clamp(420px, 44cqw, 520px); }
+@media (min-width: 761px) { body:is([data-lamina="2"], [data-lamina="3"]) .btn-volver { display: inline-grid; } }
+@media (min-width: 1101px) {
+  body:is([data-lamina="2"], [data-lamina="3"]) .franja { gap: 8px; padding-right: 24px; }
+  body:is([data-lamina="2"], [data-lamina="3"]) .franja-tit { flex: 0 0 calc(100cqw - var(--pw)); }
+  body:is([data-lamina="2"], [data-lamina="3"]) .buscar-franja { flex: 1 1 0; width: auto; min-width: 0; }
+}
+@media (min-width: 1101px) and (max-width: 1280px) { .marco { --pw: 430px; } }
+
+/* v10: la capa apagada (p. ej. «Alertas SMN») no usa opacity: eso encerraba su descripción en un plano propio, debajo de los otros botones.
+   Se atenúa con colores y la descripción queda por encima de todo al pasar el mouse. */
+.capa-chip:disabled { opacity: 1; color: var(--tinta-3); border-color: var(--borde); background: color-mix(in srgb, var(--superficie) 70%, var(--borde)); }
+.capa-chip:disabled > * { opacity: 0.6; }
+.capa-chip[data-ayuda]:hover, .capa-chip[data-ayuda]:focus-visible { z-index: 70; }
+.capa-chip[data-ayuda]:hover::after, .capa-chip[data-ayuda]:focus-visible::after { z-index: 80; }
+
+/* v10: referencias de las alertas del SMN (cuadrado rayado: raya, espacio, raya, espacio) */
+.ley-claves i.ley-ray { --c: var(--alerta-amarilla); width: 12px; height: 12px; vertical-align: -2px; border: 1px solid var(--c);
+  background: repeating-linear-gradient(45deg, var(--c) 0 2px, transparent 2px 4px); }
+.ley-claves i.ley-ray.naranja { --c: var(--alerta-naranja); } .ley-claves i.ley-ray.roja { --c: var(--alerta-roja); }
+
+/* v10: símbolo en los dos títulos principales del reporte (mismo estilo que el de «Ríos cerca»: trazo fino en cian) */
+.tb-situacion > h3 { display: flex; align-items: center; gap: 8px; }
+.tb-situacion > h3 > .ico:first-child { flex: none; width: 20px; height: 20px; color: var(--cian); }
+
+/* v10: más aire entre el titular y la escala; el texto de la derecha, más chico, con su última línea a la altura de la lectura del reloj */
+.lec-pie { margin-top: 16px; }
+.lec-pie > .bajada { align-self: end; margin-top: 16px; font-size: 12px; line-height: 1.5; }
+.lec-pie > .bajada > span + span { margin-top: 6px; }
+/* Reporte: encabezado centrado */
+.an-reporte .an-cab { text-align: center; }
+
+/* v10: confianza más separada de la línea de tiempo; entre ambas, un rectángulo del color (y la transparencia) de cada tramo de confianza,
+   del ancho del tramo y con la altura de esa distancia. El ▶ queda centrado en la línea de tiempo. */
+.lec-arriba .tb-evol { --dist: 56px; }
+.lec-arriba .tb-evol-pista { margin-bottom: var(--dist); }
+.tb-conf::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--dist, 56px); pointer-events: none; }
+.tb-conf.alta::before { background: color-mix(in srgb, var(--cian) 16%, transparent); }
+.tb-conf.media::before { background: color-mix(in srgb, var(--cian) 10%, transparent); }
+.tb-conf.baja::before { background: color-mix(in srgb, var(--cian) 5%, transparent); }
+.lec-arriba .tb-evol .lt-play { margin-top: 19px; }
+
+/* v10: lectura del reloj apenas más chica; el texto de la derecha, más grande para cerrar a la mitad el hueco bajo el botón sin mover su última línea */
+#lec-escala text.v { font-size: 14px; }
+.lec-pie > .bajada { font-size: 13px; line-height: 1.5; }
+
+/* v10: igual espacio (promedio de los dos) entre la fecha y el titular, y entre el titular y «Escala de riesgo» */
+@media (min-width: 761px) {
+  .lec-cabeza > div:first-child > .titular { margin-top: 21px; }
+  .lec-pie { margin-top: 3px; }
+}
+
+/* v10: el doble de espacio entre el reloj con su texto y los indicadores de abajo */
+@media (min-width: 761px) { .lec-cabeza > .kpis { margin-top: 14px; } }
+
+/* v10: el texto de la derecha arranca siempre a la misma distancia del botón (si es corto, queda más arriba: nunca un hueco grande) */
+.lec-pie > .bajada { align-self: start; margin-top: 28px; }
+
+/* v10: todos los carteles de espera del simulador, encima de la maqueta 3D y centrados (horizontal y vertical) en su marco */
+.sim-carga, .sim-estado { z-index: 30; top: 50%; left: 50%; right: auto; bottom: auto; transform: translate(-50%, -50%); max-width: calc(100% - 32px); text-align: center; }
+.hoja-sim .sim-carga { top: 50%; transform: translate(-50%, -50%); }
+.sim-estado { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 6px; }
+.sim-estado:empty { display: none; }
+
+/* v10: solapas «Simular un escenario / pronóstico» debajo del titular (el recuadro del celular sigue unido: titular, solapas y lluvia) */
+@media (max-width: 760px) {
+  .sim-lec > .sim-modos { margin: 0 0 -16px; padding: 0 16px; border: 1px solid var(--borde-fuerte); border-top: 0; }
+  .sim-lec > .sim-modos .sim-modo { margin-bottom: -1px; }
+}
+
+/* v10: separador de «sim-mas» igual a los demás de la solapa (1 px, mismo gris) */
+.sim-mas { border-top: 1px solid var(--borde-fuerte); }
+
+/* v10: referencias de la profundidad del agua: cuadro con título, mismo estilo y lugar que las del mapa de riesgo (arriba a la derecha del mapa) */
+.sim-refs-agua { position: absolute; z-index: 6; top: 28px; right: 16px; width: 190px; padding: 12px 14px 14px; border: 1px solid var(--borde-fuerte); background: var(--superficie); }
+.sim-refs-agua:empty { display: none; }
+.sim-refs-agua .mapa-titulo { position: static; display: block; padding: 0; border: 0; background: none; box-shadow: none; }
+.sim-refs-agua .mapa-titulo b { display: block; font: 600 12px/1.3 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-1); }
+.sim-refs-agua .ley-lista { display: grid; gap: 5px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--borde); }
+.sim-refs-agua .ley-lista div { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 8px; align-items: center; font-size: 12px; color: var(--tinta-1); }
+.sim-refs-agua .ley-lista i { width: 14px; height: 10px; display: block; }
+.sim-mapa-marco.sim-armando .sim-refs-agua { visibility: hidden; }
+@media (max-width: 1100px) { .sim-refs-agua { top: 12px; right: 12px; width: 150px; padding: 8px 10px 10px; } .sim-refs-agua .ley-lista { margin-top: 8px; padding-top: 8px; gap: 3px; } .sim-refs-agua .ley-lista div { font-size: 11px; } }
+/* El marcador de lluvia de la maqueta se corre a la izquierda del cuadro de referencias */
+@media (min-width: 1101px) { .sim-lluvia-estado { right: 222px; } }
+/* «Referencias» de la maqueta: su descripción se despliega hacia la derecha (centrada se cortaba en el borde del mapa) */
+.sim-refs3d[data-ayuda]:hover::after, .sim-refs3d[data-ayuda]:focus-visible::after { left: 0; transform: none; max-width: 220px; z-index: 40; }
+
+/* v10: «Radio del círculo» y «Riesgo · hoy» del simulador: dos rectángulos del mismo tamaño, con borde completo y el interior ajustado */
+.sim-radio-fila { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+.sim-radio-fila .lec-radio, .sim-radio-fila .sim-riesgo { box-sizing: border-box; min-width: 0; margin: 0; padding: 8px 12px; border: 1px solid var(--borde-fuerte); }
+.sim-radio-fila .lec-radio { align-content: center; gap: 4px; }
+.sim-radio-fila .sim-riesgo { align-content: center; }
+
+/* v10: indicadores del simulador: los rótulos de 3 líneas ya no pisan el valor (cada fila de la grilla toma la altura del rótulo más largo) */
+.sim-lec .sim-kpis .kpis { grid-auto-rows: auto; }
+.sim-lec .sim-kpis .kpi, .sim-lec .sim-kpis .kpi:nth-child(n), .sim-lec .sim-kpis .kpi:nth-child(-n+3) { grid-row: span 3; grid-template-rows: subgrid; row-gap: 4px; }
+/* «En el momento de más agua…»: centrado entre el filete de arriba y el de la grilla (16 px de cada lado) */
+.sim-kpis-cab { margin-bottom: 16px; }
+
+/* v10: bloque del escenario (título, aviso, selector de Niño y peor tormenta) entre los botones de lluvia y la hora; «Antes de la lluvia» sin título */
+.sim-esc-cab { display: grid; gap: 8px; }
+.sim-esc-cab[hidden] { display: none; }
+.sim-esc-cab .esc-tit { margin: 0; }
+.sim-esc-cab .sim-hint { margin: 0; }
+.sim-ahora-fecha:empty { display: none; }
+/* La peor tormenta del Niño, en una sola fila: la letra se ajusta al ancho del panel */
+.esc-nino { container-type: inline-size; }
+@media (min-width: 761px) { .esc-nino .esc-peor { white-space: nowrap; font-size: clamp(9px, 2.2cqw, 11.5px); } }
+
+/* v10: solapas «Simular un escenario / pronóstico» con su ícono (mismo estilo que el de «Ríos cerca»: trazo fino en cian) */
+.sim-modo { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.sim-modo .ico { flex: none; width: 18px; height: 18px; color: var(--cian); }
+.sim-modo[aria-selected="false"] .ico { opacity: 0.7; }
+
+/* v10: controles de acercar / alejar / norte del simulador: abajo a la izquierda, igual que en el mapa de riesgo; la ayuda y la leyenda se corren a su derecha */
+.sim-zoom { position: absolute; z-index: 6; left: 16px; bottom: 16px; }
+.sim-mapa-marco.sim-armando .sim-zoom { visibility: hidden; }
+@media (min-width: 761px) { .sim-maqueta-ayuda, .sim-leyenda-mapa { left: 58px; } }
+@media (max-width: 760px) { .sim-zoom { display: none; } }
+
+/* v10: los controles de zoom, a la misma distancia del borde izquierdo que las miniaturas (56 px), en el mapa de riesgo y en el simulador */
+.hoja-mapa .mapa-marco .maplibregl-ctrl-bottom-left { left: 46px; }
+.sim-zoom { left: 56px; }
+@media (min-width: 761px) { .sim-maqueta-ayuda, .sim-leyenda-mapa { left: 98px; } }
+
+/* v10: referencias de la profundidad del agua: una sola fila (uno al lado del otro) y abajo, centradas sobre la maqueta */
+.sim-refs-agua { top: auto; right: auto; left: 50%; bottom: 104px; transform: translateX(-50%); width: auto; max-width: calc(100% - 32px); padding: 10px 14px 12px; }
+.sim-refs-agua .mapa-titulo b { white-space: nowrap; }
+.sim-refs-agua .ley-lista { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; padding-top: 8px; }
+.sim-refs-agua .ley-lista div { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+@media (min-width: 1101px) { .sim-lluvia-estado { right: 10px; } }
+@media (max-width: 760px) { .sim-refs-agua { bottom: 64px; } }
+.sim-refs-agua { width: max-content; }
+@media (min-width: 761px) { .sim-maqueta-ayuda { max-width: 260px; } }
+
+/* v10: coordenadas arriba a la derecha; «copiar» (dos capas superpuestas) y «Google Maps» alineados al ancho de las coordenadas */
+@media (min-width: 521px) {
+  .lec-cabeza > div:first-child > .lec-coords { grid-template-columns: 1fr; gap: 6px; width: max-content; }
+  .lec-coords .lec-coords-v { grid-column: auto; font-size: 11px; text-align: right; }
+  .lec-coords .lec-coords-bot { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 6px; contain: inline-size; }
+}
+.lec-coords .lec-coords-bot .btn-banda { min-height: 24px; padding: 0 6px; font-size: 9.5px; letter-spacing: 0.04em; justify-content: center; white-space: nowrap; }
+.lec-coords .btn-copiar { padding: 0; }
+.lec-coords .btn-copiar .ico { width: 14px; height: 14px; }
+.lec-coords .btn-copiar.copiado { background: var(--tinta-1); border-color: var(--tinta-1); color: var(--superficie); }
+@media (max-width: 520px) { .lec-coords .lec-coords-bot { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; } .lec-coords .lec-coords-bot .btn-banda { min-height: 28px; } }
+
+/* v10: norte, sur, este y oeste sobre la maqueta 3D: flechas ▶ finas hacia afuera del círculo y la letra al lado (el norte, en cian) */
+.sim-pc { position: absolute; left: 0; top: 0; z-index: 1; color: var(--tinta-2); pointer-events: none; will-change: transform; }
+.sim-pc.n { color: var(--cian); }
+.sim-pc i { display: block; width: 9px; height: 10px; margin: -5px 0 0 -4.5px; background: currentColor; clip-path: polygon(0 0, 100% 50%, 0 100%); transform-origin: 50% 50%; }
+.sim-pc b { position: absolute; left: 0; top: 0; font: 600 11px/1 var(--f-mono); letter-spacing: 0.04em; color: currentColor; }
+
+/* v10: línea de tiempo: un poco menos de espacio bajo el título y entre la línea de tiempo y la de confianza (los tramos de confianza, sin huecos) */
+.lec-arriba .tb-evol { padding-top: 24px; --dist: 44px; }
+.lec-arriba .tb-evol .lt-play { margin-top: 19px; }
+
+/* v10: una sola línea entre los indicadores y «Evolución en el período», fina como las demás separadoras (1 px, mismo gris) */
+.lec-cabeza .kpis { border-bottom: 1px solid var(--borde-fuerte); }
+.lec-arriba { border-top: 0; }
+/* «Ríos cerca»: más aire entre el título y el nombre del primer río */
+.lec-arriba .tb-rios > h3 { margin-bottom: 16px; }
+/* Puntos cardinales: con un halo claro para que se lean sobre la imagen satelital */
+.sim-pc { color: var(--tinta-1); filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 1px rgba(255, 255, 255, 0.95)); }
+.sim-pc.n { color: #0d5560; }
+.sim-pc.n b { font-weight: 700; }
+
+/* v10: bloque de cambios de riesgo: título propio y separador fino (1 px, mismo gris que las demás líneas) */
+.lec-1 > .tablero { border-top: 1px solid var(--borde-fuerte); padding-top: 16px; }
+.tb-cambios > .cb-tit { margin: 0 0 16px; font: 600 12px/1.3 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-1); }
+
+/* v10: revisión de todas las líneas separadoras de contenido de los paneles: todas de 1 px y del mismo gris (los marcos de la página, sin cambios) */
+.lec-cabeza .kpis, .sim-lec .kpis { border-top: 1px solid var(--borde-fuerte); border-bottom: 1px solid var(--borde-fuerte); }
+.lec-mas, .miniaturas, .l3-bloque { border-top: 1px solid var(--borde-fuerte); }
+.sim-play, .sim-lec .esc-tit, .lec-radio { border-bottom-width: 1px; border-bottom-color: var(--borde-fuerte); }
+.sim-radio-fila .lec-radio { border: 1px solid var(--borde-fuerte); }
+
+/* v10: el símbolo de información, a la misma distancia (8 px) del texto en todos los títulos (en los títulos con ícono o con «gap», se descuenta ese espacio) */
+h2 > .info, h3 > .info, .tit > .info, b > .info, .etq > .info, .tb-evol-cab .info, .hero-prop-etq > .info { margin-left: 8px; }
+.tb-bloque > h3 > .info { margin-left: 2px; }
+.tb-situacion > h3 > .info { margin-left: 0; }
+
+/* v10: el subtítulo de la escala de riesgo, siempre en una línea (la letra se ajusta al ancho de su columna) */
+#escala-sub { white-space: nowrap; }
+#escala-sub { align-self: stretch; min-width: 0; }
+
+/* v10: más espacio entre «Tocá una columna…» y el título «El tiempo en el lugar» */
+#lec-dias + .tb-tiempo-lugar { margin-top: 12px; }
+
+/* v10: esquina inferior izquierda del simulador: zoom y referencias de profundidad uno al lado del otro, con el borde superior alineado */
+.sim-esquina { position: absolute; z-index: 6; left: 56px; bottom: 16px; display: flex; align-items: flex-start; gap: 16px; max-width: calc(66% - 72px); }
+.sim-esquina .sim-zoom { position: static; flex: none; }
+.sim-esquina .sim-refs-agua { position: static; transform: none; width: max-content; max-width: 100%; padding: 8px 12px 10px; }
+.sim-esquina .sim-refs-agua .mapa-titulo b { font-size: 11px; }
+.sim-esquina .sim-refs-agua .ley-lista { gap: 4px 12px; margin-top: 6px; padding-top: 6px; }
+.sim-esquina .sim-refs-agua .ley-lista div { gap: 5px; font-size: 11px; }
+.sim-esquina .sim-refs-agua .ley-lista i { width: 12px; height: 9px; }
+.sim-mapa-marco.sim-armando .sim-esquina { visibility: hidden; }
+/* «Arrastrá para girar…»: arriba a la derecha, con el mismo margen que los demás cuadros */
+@media (min-width: 761px) {
+  .sim-maqueta-ayuda { left: auto; right: 16px; top: 16px; bottom: auto; max-width: 260px; }
+  .sim-lluvia-estado { top: 16px; right: 292px; }
+}
+@media (max-width: 760px) { .sim-esquina { left: 8px; bottom: 64px; max-width: calc(100% - 16px); } }
+.sim-esquina .sim-zoom { order: -1; }
+.sim-esquina { max-width: calc(58% - 56px); }
+@media (max-width: 760px) { .sim-esquina { max-width: calc(100% - 16px); } }
+
+/* v10: un poco más de aire bajo los títulos «Situación en…» y «Qué hacer» */
+.tb-situacion > h3 { margin-bottom: 8px; }
+/* «Qué lo explica»: con el mismo margen interior (8 px) que el texto de la lista de zonas de arriba */
+.tb-bloque:has(> .tb-comps) { padding-inline: 8px; }
+
+/* v10: un poco menos de margen arriba del todo y entre indicadores (muy levemente) para que los dos últimos indicadores se lean completos */
+@media (min-width: 761px) {
+  .lectura { padding-top: 14px; }
+  .lec-cabeza .kpi { min-height: 92px; padding: 12px 14px 10px 0; }
+  .lec-cabeza .kpi:nth-child(2n) { padding: 12px 0 10px 14px; }
+  .lec-cabeza .kpi::before { top: 13px; }
+}
+
+/* v10: menos espacio entre la grilla de indicadores y «Evolución en el período» */
+@media (min-width: 761px) { .lec-arriba { margin-top: 14px; padding-top: 10px; } }
+
+/* v10: más margen antes de «El tiempo en el lugar» (también cuando viene después de «Ríos cerca») y sin la línea sobre «Indicadores» */
+.tb-rios + .tb-tiempo-lugar { margin-top: 14px; }
+.lec-mas { border-top: 0; }
+
+/* v10: «Evolución de riesgo por zona»: más margen antes del título, sin la línea bajo las pestañas y con un poco menos de espacio ahí */
+.lec-1 > .tablero { padding-top: 28px; }
+.cb-lista { border-top: 0; }
+.tb-cambios .cb-pest { margin: 0 0 2px; }
+
+/* v10: ajuste sutil (8 px en total) para que la línea final de los indicadores coincida con el borde inferior del panel */
+@media (min-width: 761px) {
+  .lectura { padding-top: 12px; }
+  .lec-cabeza .kpi { min-height: 90px; padding: 11px 14px 9px 0; }
+  .lec-cabeza .kpi:nth-child(2n) { padding: 11px 0 9px 14px; }
+  .lec-cabeza .kpi::before { top: 12px; }
+}
+
+/* v10: los carteles de espera se centran en el círculo de la maqueta (su centro en pantalla); sin maqueta, en el centro del cuadro */
+.sim-carga, .sim-estado { left: var(--cx, 50%); top: var(--cy, 50%); }
+.hoja-sim .sim-carga { top: var(--cy, 50%); }
+/* Referencias de profundidad: su borde inferior, a la altura del borde inferior del zoom */
+.sim-esquina { align-items: flex-end; }
+
+/* v10: simulador: un poco más de espacio (8 px) en los cuatro lugares marcados */
+.sim-lec > .sim-cab-tit { margin-top: 8px; }                 /* entre el radio / riesgo y el nombre del lugar */
+.sim-lec > .sim-modos { margin-bottom: 8px; }                 /* entre las solapas y «Lluvia» */
+.sim-play .sim-esc-cab { margin-top: 8px; }                   /* entre los botones de lluvia y «Escenario» */
+.sim-esc-cab .esc-tit { margin: 0 0 8px; }                    /* entre «Escenario» y el aviso */
+/* Una sola raya al final de las barras del escenario (se quita la de «sim-mas») y su espacio justo */
+.sim-mas { border-top: 0; margin-top: 24px; padding-top: 0; }
+/* Sin el cuadro «Acierto del modelo / Aciertos y falsas alarmas» en ninguna de las dos solapas */
+#sim-pie { display: none; }
+
+/* v10: tabla de los Niños ordenable (clic en el encabezado): ▲ menor a mayor, ▼ mayor a menor */
+.tabla-ninos th.ordenable { cursor: pointer; user-select: none; }
+.tabla-ninos th.ordenable:hover { color: var(--tinta-1); }
+.tabla-ninos th .ord-ind { display: inline-block; min-width: 10px; margin-left: 4px; color: var(--cian); font-style: normal; }
+.tabla-ninos th[aria-sort="ascending"], .tabla-ninos th[aria-sort="descending"] { color: var(--tinta-1); }
+
+/* v10: al elegir un punto o una zona ya no aparecen la cabecera («Radio: 1 km · Ver todo…», nombre y botón ×) ni la tarjeta de riesgo de inundación: lo mismo está arriba, en el panel */
+.lec-1 .tablero > .tb-cabeza, .lec-1 .tablero > .tb-hero { display: none; }
+
+/* v10: menos margen entre la línea y «Evolución de riesgo por zona» */
+.lec-1 > .tablero { padding-top: 20px; }
+
+/* v10: el cartel «Hacé clic acá · Ver en simulador 3D» no cambia de color al pasar el mouse */
+.detalle-sim:hover, .detalle-sim:focus-visible { background: var(--superficie); border-color: var(--tinta-1); }
+
+/* v10: todos los elementos del simulador a 16 px del borde del mapa (Referencias, ayuda, zoom y profundidad, créditos) */
+.sim-refs3d, .sim-x5.sim-refs3d { left: 16px; top: 16px; }
+.sim-esquina { left: 16px; bottom: 16px; }
+.sim-pie-maqueta { right: 16px; bottom: 16px; }
+@media (min-width: 761px) { .sim-maqueta-ayuda { right: 16px; top: 16px; } }
+@media (max-width: 760px) { .sim-pie-maqueta { right: 16px; bottom: 16px; } .sim-refs3d, .sim-x5.sim-refs3d { left: 16px; top: 16px; } }
+
+/* v10: el zoom del mapa de riesgo, con su borde inferior a la altura del borde inferior del recuadro «Detalle» */
+@media (min-width: 761px) { .hoja-mapa .mapa-marco .maplibregl-ctrl-bottom-left { bottom: 28px; } }
+
+/* v10: «Cargando la maqueta…» con el mismo cartel que «Calculando el escenario…»: mismo color, tamaño de letra, fondo y círculo de carga que gira */
+.sim-estado { flex-direction: row; align-items: center; justify-content: center; gap: 10px; padding: 9px 16px; border-radius: 0; background: var(--superficie); color: var(--bordo); font-size: 0.95rem; line-height: 1.3; box-shadow: var(--sombra-1); }
+.sim-estado:not(:has(.chip))::before { content: ""; flex: none; width: 13px; height: 13px; border: 2px solid var(--bordo); border-right-color: transparent; border-radius: 50%; animation: sim-girar 0.9s linear infinite; }
+.sim-estado:has(.chip) { flex-direction: column; }
+@media (prefers-reduced-motion: reduce) { .sim-estado::before { animation: none; } }
+
+/* v10: los carteles de espera sobre la maqueta, con el mismo rosa de fondo que el aviso «Calculando el escenario…» del panel (opaco, para que no se vea la maqueta detrás) */
+.sim-estado, .sim-carga { background: linear-gradient(var(--bordo-fondo), var(--bordo-fondo)), var(--superficie); }
+
+/* v10: la banda violeta gruesa bajo el gráfico de lluvia del pronóstico (días 7-15) pasa a una línea fina gris oscura */
+.pron-tramo-b.baja { fill: #4b5563; height: 1px; transform: translateY(1.5px); }

@@ -158,6 +158,7 @@ const ICONOS = {
   objetivo: '<circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
   idioma: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.4 3.8 5.3 3.8 8.5s-1.2 6.1-3.8 8.5c-2.6-2.4-3.8-5.3-3.8-8.5S9.4 5.9 12 3.5Z"/>',
   tema: '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17Z" fill="currentColor"/>',
+  lista: '<path d="M9.5 6H20M9.5 12H20M9.5 18H20"/><path d="m3.5 6 1.3 1.3L7 4.8M3.5 12l1.3 1.3L7 10.8M3.5 18l1.3 1.3L7 16.8"/>',
   tablero: '<rect x="3.5" y="3.5" width="7" height="8" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.5"/>',
 };
 const icono = (nombre, clase = "ico") =>
@@ -198,6 +199,8 @@ function demorar(fn, ms) {
 // Al pasar el mouse (o tocar) muestra la explicación y la fórmula; el clic queda reservado para el detalle (un PDF), todavía sin conectar.
 const infoIcono = (clave, texto) => `<button type="button" class="info" data-detalle="${escapar(clave)}" data-tip="${escapar(texto)}" aria-label="${escapar(t("info_aria"))}">!</button>`;
 const infoTexto = (clave) => { const v = TEXTOS[estado.idioma]?.[`info_${clave}`]; return typeof v === "string" ? v : t("info_generico"); };
+// Título con el paréntesis en minúscula (el resto va en mayúsculas por estilo): «QUÉ LO EXPLICA (amenazas del día más comprometido)»
+const tituloMin = (clave) => { const s = t(clave), i = s.indexOf(" ("); return `${i > 0 ? `${escapar(s.slice(0, i))}<span class="tit-min">${escapar(s.slice(i))}</span>` : escapar(s)}${infoIcono(clave, infoTexto(clave))}`; };
 const tit = (clave) => `${t(clave)}${infoIcono(clave, infoTexto(clave))}`;
 // Las notas chicas de cada bloque pasan a la explicación del icono de su título (no ocupan lugar)
 function notasATooltip(raiz) {

@@ -343,9 +343,9 @@ function bloqueSituacion(nivel, vinetas, acciones, { nota = "", extra = "" } = {
   const qh = Array.isArray(acciones) ? lista(acciones)
     : acciones.orden.map((k) => `<h4>${t(`acc_tit_${k}`)}</h4>${lista(acciones[k])}${k === "emer" && acciones.pie ? `<p class="tb-acc-pie">${acciones.pie}</p>` : ""}`).join("");
   return `<section class="tb-situacion" data-nivel="${nivel}">
-    <h3>${t("situacion_en")(escapar(lugarTitulo()))}${infoIcono("situacion_en", infoTexto("situacion_en"))}</h3>${nota ? `<p class="tb-sub">${nota}</p>` : ""}
+    <h3>${icono("riesgo")}<span>${t("situacion_en")(escapar(lugarTitulo()))}</span>${infoIcono("situacion_en", infoTexto("situacion_en"))}</h3>${nota ? `<p class="tb-sub">${nota}</p>` : ""}
     <ul class="tb-vinetas">${vinetas.filter(Boolean).map((v) => (Array.isArray(v) ? `<li><b>${v[0]}:</b> ${v[1]}</li>` : `<li>${v}</li>`)).join("")}</ul>
-    ${extra}<h3>${tit("que_hacer")}</h3>${qh}
+    ${extra}<h3>${icono("lista")}<span>${tit("que_hacer")}</span></h3>${qh}
     <p class="tb-nota">${t("nota_oficial")}</p></section>`;
 }
 const dato = (etq, valor, extra = "", estadoSem = "") =>
@@ -382,6 +382,9 @@ async function tableroRiesgo(cont) {
   const nivel = nivelRiesgo(r);
   const situacion = await situacionRiesgo({ s, A, M, idx, peor, r, nivel, motor, ests, alertas });
   if (estado.sel !== s) return;
+  // v10: la situación (viñetas, tortas, «Qué hacer») se muestra en el tablero de control (lámina 03), para lo elegido
+  estado.situacionHtml = situacion; estado.situacionSel = s;
+  if (typeof pintarSituacionAnalisis === "function") pintarSituacionAnalisis();
   // Ríos
   const rios = ests.slice(0, 4).map((e) => {
     const tope = Math.max(e.nivel_evacuacion ?? e.nivel_alerta, e.h) * 1.12, pos = (v) => `${limitar((100 * v) / tope, 0, 100)}%`;
@@ -390,22 +393,21 @@ async function tableroRiesgo(cont) {
       <div class="rio-barra"><span class="rio-nivel" style="width:${pos(e.h)}"></span><i class="umbral al" style="left:${pos(e.nivel_alerta)}"></i>${e.nivel_evacuacion ? `<i class="umbral ev" style="left:${pos(e.nivel_evacuacion)}"></i>` : ""}</div>
       <div class="rio-pie"><span>${fmt(e.h, 2)} m ${e.dh != null ? `(${e.dh > 0 ? "+" : ""}${fmt(e.dh, 2)} m 24 h)` : ""}</span><span>${t("alerta_m")} ${fmt(e.nivel_alerta, 1)} · ${t("evac_m")} ${fmt(e.nivel_evacuacion, 1)}</span></div></li>`;
   }).join("");
-  cont.innerHTML = `${cabeceraTablero()}
-    <section class="tb-hero hero-riesgo" style="--c:var(--r${nivel || 1})" data-nivel="${nivel}">
+  cont.innerHTML = `${s ? cabeceraTablero() : bloqueEvolucion()}
+    ${s ? `<section class="tb-hero hero-riesgo" style="--c:var(--r${nivel || 1})" data-nivel="${nivel}">
       <h3 class="hero-tit">${t("riesgo_inundacion")}${infoIcono("riesgo", infoTexto("riesgo"))}</h3>
       <div class="hero-fila"><div class="hero-num"><span class="hero-valor">${fmtRiesgo(r)}</span></div>
         <div class="hero-lado">${pastillaNivel(r)}</div></div>
       <div class="medidor-caja">${medidorRiesgo(r)}</div>
       ${prop != null ? `<div class="hero-prop" style="--c:${colorNivel(prop)}"><span class="hero-prop-etq">${t("prop_t")}${infoIcono("prop_t", infoTexto("prop_t"))}</span>
         <span class="hero-prop-v"><i aria-hidden="true"></i><b>${fmtRiesgo(prop)}</b><small>/ 10</small><span>${nombreNivel(prop)}</span></span></div>` : ""}
-    </section>
+    </section>` : ""}
     ${bloqueCambios(cmusSel())}
-    ${situacion}
-    <section class="tb-bloque"><h3>${tit("que_lo_explica")}</h3><p class="tb-sub">${t("explica_nota")(textoPeriodoCorto())}</p>
-      <div class="tb-comps">${comps.map(([k, v]) => `<div class="comp"><span class="comp-etq">${t(`comp_${k}`)}</span>
+    <section class="tb-bloque"><h3>${tituloMin("que_lo_explica")}</h3><p class="tb-sub">${t("explica_nota")(textoPeriodoCorto())}</p>
+      <div class="tb-comps">${[...comps].sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0)).map(([k, v]) => `<div class="comp"><span class="comp-etq">${t(`comp_${k}`)}</span>
         ${k === "rio" && A.sinRio ? `<span class="comp-pista"></span><b data-tip="${escapar(t("sin_info_rio"))}">${t("sin_info")}</b>` : `<span class="comp-pista"><span style="width:${limitar((v ?? 0) * 10, 0, 100)}%;background:${colorNivel(v)}"></span></span><b>${fmtRiesgo(v)}</b>`}</div>`).join("")}</div>
     </section>
-    ${rios ? `<section class="tb-bloque"><h3>${icono("rio")} ${tit("rios_cercanos")}</h3><p class="tb-sub">${t("fuente_ina")}</p><ul class="rios">${rios}</ul></section>` : ""}
+    ${rios ? `<section class="tb-bloque tb-rios"><h3>${icono("rio")} ${tit("rios_cercanos")}</h3><p class="tb-sub">${t("fuente_ina")}</p><ul class="rios">${rios}</ul></section>` : ""}
     ${enlacesCapas("riesgo")}`;
   enlazarCambios(cont);
   tipsEn(cont);
@@ -462,15 +464,16 @@ function bloqueCambios(cmus) {
   const lista = C[tab], todos = !!estado.cambiosTodos, vis = todos ? lista : lista.slice(0, 6), R = estado.riesgo;
   const chip = (n) => `<i class="cb-niv" style="--c:var(--r${n})">${t("niveles_cortos")[n - 1]}</i>`;
   const cuando = (it) => (tab === "sigue" ? t("cb_sigue")(it.i) : `${t("dentro_n")(it.i)} · ${fmtDia(R.dias[it.i], { weekday: "short", day: "numeric" }).replace(".", "")}`);
-  const filas = vis.map((it) => `<li class="cb-fila" data-cmu="${it.c}" tabindex="0">
+  const abiertos = (estado.cambiosAbiertos ??= new Set());
+  const filas = vis.map((it) => `<li class="cb-fila${abiertos.has(it.c) ? " abierta" : ""}" data-cmu="${it.c}" tabindex="0">
       <div class="cb-cab"><span class="cb-nombre"><b>${escapar(it.nombre)}</b><small>${escapar(it.prov)}</small></span>
         <span class="cb-niveles">${chip(it.n0)}<span class="cb-flecha" aria-hidden="true">→</span>${chip(it.n1)}</span>
         <span class="cb-cuando">${cuando(it)}</span></div>
-      <p class="cb-rec">${it.causa ? `<b>${t(`cb_causa_${it.causa}`)}</b> · ` : ""}${recCambio(it)}</p></li>`).join("");
+      <div class="cb-detalle"><p class="cb-rec">${it.causa ? `<b>${t(`cb_causa_${it.causa}`)}</b> · ` : ""}${recCambio(it)}</p><button type="button" class="cb-desplegar" data-cb-abrir="${it.c}" aria-expanded="${abiertos.has(it.c)}" aria-label="${t("cb_detalle")}"><i aria-hidden="true">▾</i></button></div></li>`).join("");
   const pest = ["sube", "sigue", "baja"].map((k) => `<button type="button" role="tab" data-cb-tab="${k}" aria-selected="${k === tab}">${t(`cb_tab_${k}`)} <span class="cb-n">${fmt(C[k].length)}</span></button>`).join("");
   const horiz = [3, 7, 14].map((n) => `<button type="button" role="radio" data-cb-h="${n}" aria-checked="${n === N}">${t("n_dias")(n)}</button>`).join("");
-  return `<section class="tb-bloque tb-cambios"><h3>${tit("cb_t")}</h3>
-    <div class="cb-controles"><span class="etq">${t("cb_horizonte")}</span><div class="seg cb-horiz" role="radiogroup" aria-label="${t("cb_horizonte")}">${horiz}</div></div>
+  return `<section class="tb-bloque tb-cambios">
+    <h3 class="cb-tit">${t("cb_titulo")}</h3>
     <div class="pestanas cb-pest" role="tablist">${pest}</div>
     ${lista.length ? `<ol class="cb-lista">${filas}</ol>${lista.length > 6 ? `<button type="button" class="btn-texto cb-todos" data-cb-todos>${todos ? t("cb_menos") : t("cb_todos")(fmt(lista.length))}</button>` : ""}`
       : `<p class="tb-sub cb-vacio">${t(`cb_vacio_${tab}`)(N)}</p>`}
@@ -480,6 +483,17 @@ function enlazarCambios(cont) {
   cont.querySelectorAll("[data-cb-h]").forEach((b) => { b.onclick = () => { estado.horizonte = +b.dataset.cbH; estado.cambiosTodos = false; pintarTablero(); }; });
   cont.querySelectorAll("[data-cb-tab]").forEach((b) => { b.onclick = () => { estado.cambiosTab = b.dataset.cbTab; estado.cambiosTodos = false; pintarTablero(); }; });
   cont.querySelector("[data-cb-todos]")?.addEventListener("click", () => { estado.cambiosTodos = !estado.cambiosTodos; pintarTablero(); });
+  cont.querySelectorAll("[data-cb-abrir]").forEach((b) => {
+    const alternar = (ev) => {
+      ev.stopPropagation();
+      if (ev.type === "keydown" && ev.key !== "Enter" && ev.key !== " ") return;
+      if (ev.type === "keydown") ev.preventDefault();
+      const li = b.closest(".cb-fila"), abrir = !li.classList.contains("abierta");
+      li.classList.toggle("abierta", abrir); b.setAttribute("aria-expanded", String(abrir));
+      (estado.cambiosAbiertos ??= new Set())[abrir ? "add" : "delete"](b.dataset.cbAbrir);
+    };
+    b.onclick = alternar; b.onkeydown = alternar;
+  });
   cont.querySelectorAll(".cb-fila").forEach((li) => {
     const ir = () => { const l = estado.lugares.find((x) => x.nivel === "gl" && x.cmus[0] === li.dataset.cmu); if (l) elegirLugar("localidad", l); };
     li.onclick = ir; li.onkeydown = (ev) => { if (ev.key === "Enter") ir(); };
@@ -520,8 +534,6 @@ async function situacionRiesgo({ s, A, M, idx, peor, r, nivel, motor, ests, aler
   const horiz = actual ? M.map((_, i) => i) : idx;
   const altos = horiz.filter((i) => nivelRiesgo(A.riesgo[i]) >= 4);
   const iPeor = horiz.reduce((m, i) => ((A.riesgo[i] ?? -1) > (A.riesgo[m] ?? -1) ? i : m), horiz[0]);
-  vin.push([t("v_periodo"), `${capitalizar(textoPeriodo("riesgo"))}. ${altos.length
-    ? t("dias_altos")(altos.length, horiz.length, actual, fmtDia(M[altos[0]]), fmtDia(M[altos[altos.length - 1]])) : t("sin_dias_altos")(actual)}`]);
   vin.push([t("v_peor_dia"), `${fmtDia(M[iPeor], largo).replace(",", "")}${iPeor ? ` (${t("dentro_n")(iPeor)})` : ""}: ${nombreNivel(A.riesgo[iPeor]).toLowerCase()} (${fmtRiesgo(A.riesgo[iPeor])}/10)`]);
   // Motivo: por qué el agua no se absorbe ni se va
   const fac = [];
@@ -604,8 +616,12 @@ async function situacionRiesgo({ s, A, M, idx, peor, r, nivel, motor, ests, aler
   if (!emer.length) emer.push([1, t("emer_calles")]);
   const ordenar = (xs) => xs.sort((a, b) => b[0] - a[0]).map((x) => x[1]);
   const urge = evac || alertas.some((a) => a.nivel === "naranja" || a.nivel === "roja");
+  // v10: «Población» va después de «Situación» y el texto de cada viñeta sin negritas (solo el rótulo va en negrita)
+  const iPob = vin.findIndex((v) => Array.isArray(v) && v[0] === t("v_poblacion"));
+  if (iPob > 1) vin.splice(1, 0, vin.splice(iPob, 1)[0]);
+  vin.forEach((v) => { if (Array.isArray(v)) v[1] = String(v[1]).replace(/<\/?b>/g, ""); });
   return bloqueSituacion(nivel, vin, { prev: ordenar(prev), emer: ordenar(emer), orden: urge ? ["emer", "prev"] : ["prev", "emer"], pie: t("emer_tel") },
-    { nota: t("sit_fuente"), extra: tortas });
+    { nota: t("sit_fuente") });
 }
 
 // ---------- Tablero: lluvia ----------
@@ -845,7 +861,7 @@ async function pintarTablero() {
   cont.querySelectorAll(".salto").forEach((b) => { b.onclick = () => elegirCapa(b.dataset.capa); });
   // La evolución en el período y el tiempo en el lugar van arriba de todo, antes del resto del detalle
   const arriba = document.getElementById("lec-arriba");
-  if (arriba) arriba.replaceChildren(...[cont.querySelector(".tb-evol"), cont.querySelector(".tb-tiempo-lugar")].filter(Boolean));
+  if (arriba) arriba.replaceChildren(...[cont.querySelector(".tb-evol"), document.getElementById("lec-dias"), cont.querySelector(".tb-rios"), cont.querySelector(".tb-tiempo-lugar")].filter(Boolean));
 }
 
 // ---------- Análisis debajo del mapa: 3 gráficos en una fila que siguen los filtros (como en Power BI) ----------

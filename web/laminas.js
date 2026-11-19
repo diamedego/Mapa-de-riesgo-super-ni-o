@@ -65,7 +65,6 @@ function irALamina(n) {
     if (abierto && clave && clave !== SIM.clave) cerrarSimulador();   // se eligió otro punto: se vuelve a simular
     if (document.getElementById("sim").hidden && (s?.tipo === "punto" || s?.tipo === "zona")) usarSimulador();
   }
-  if (n === 3) pintarValidacionLamina();
 }
 function salirSimulador() { cerrarSimulador(); mostrarLamina(1); }
 
@@ -102,13 +101,14 @@ function refrescarLaminas() {
   pintarVerTodos();
   const cal = String(estado.datos.resumen?.calculado ?? "");
   document.getElementById("caj-fecha").textContent = /^\d{4}-\d{2}-\d{2}/.test(cal) ? `${cal.slice(8, 10)}-${cal.slice(5, 7)}-${cal.slice(2, 4)}` : "–";
-  if (laminaActual === 3) pintarValidacionLamina();
   if (laminaActual === 2 && SIM.datos) { pintarPanelSimulador(SIM.datos); if (SIM.modelo?.frames.length) { mostrarHora(); pintarPieSim(); } }   // textos del simulador en el idioma nuevo
 }
 
 function iniciarLaminas() {
+  if (typeof iniciarControlesSim === "function") iniciarControlesSim();
   document.querySelectorAll(".solapa").forEach((b) => { b.onclick = () => irALamina(+b.dataset.lamina); });
   document.getElementById("sim-ir-mapa").onclick = () => mostrarLamina(1);
+  document.getElementById("btn-volver").onclick = () => irALamina(1);   // «volver» del simulador y del reporte: al mapa de riesgo
   document.getElementById("btn-lupa").onclick = () => abrirBusquedaMovil(!document.body.classList.contains("buscando"));
   document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") cerrarBusquedaMovil(); });
   document.getElementById("kpis-todos").onclick = () => { document.getElementById("kpis").classList.toggle("todos"); pintarVerTodos(); };
@@ -156,9 +156,21 @@ function capasPlano() {
     const debajo = mapa.getLayer("sin-datos") ? "sin-datos" : undefined;
     mapa.addSource("tierra", { type: "geojson", data: topojson.feature(tp, tp.objects.land) });
     mapa.addLayer({ id: "tierra", type: "fill", source: "tierra", paint: { "fill-color": css("--superficie") } }, debajo);
-    mapa.addSource("limites-paises", { type: "geojson", data: topojson.mesh(tp, tp.objects.countries) });
+    // La malla de países trae un segmento que da la vuelta al mundo (corte del antimeridiano de Fiyi, a 16,5° S): se descartan los tramos de más de 180° de longitud
+    const malla = topojson.mesh(tp, tp.objects.countries);
+    malla.coordinates = malla.coordinates.flatMap((ls) => {
+      const partes = [[ls[0]]];
+      for (let i = 1; i < ls.length; i++) { if (Math.abs(ls[i][0] - ls[i - 1][0]) > 180) partes.push([ls[i]]); else partes.at(-1).push(ls[i]); }
+      return partes.filter((q) => q.length > 1);
+    });
+    mapa.addSource("limites-paises", { type: "geojson", data: malla });
     mapa.addLayer({ id: "limites-paises", type: "line", source: "limites-paises", paint: { "line-color": css("--linea-paises"), "line-opacity": 0.9,
       "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.5, 8, 1] } }, debajo);
+    // Países vecinos (sin Argentina ni Malvinas) con el color de la hoja: tapan las curvas de nivel que pasan la frontera (mapa.js, ubicarMascaraVecinos)
+    const vecinos = { type: "GeometryCollection", geometries: tp.objects.countries.geometries.filter((g) => !["032", "238"].includes(String(g.id))) };
+    mapa.addSource("vecinos", { type: "geojson", data: topojson.feature(tp, vecinos) });
+    mapa.addLayer({ id: "vecinos-mascara", type: "fill", source: "vecinos", paint: { "fill-color": css("--superficie") } }, debajo);
+    ubicarMascaraVecinos();
   }).catch((e) => console.warn("tierra", e));
   mapa.addSource("caja-a", { type: "geojson", data: { type: "Feature", geometry: { type: "LineString", coordinates: [[o, n], [e, n], [e, s], [o, s], [o, n]] }, properties: {} } });
   mapa.addLayer({ id: "caja-a", type: "line", source: "caja-a", paint: { "line-color": css("--tinta-1"), "line-width": 1.2, "line-dasharray": [4, 2.5] } });
@@ -262,7 +274,17 @@ function dibujarDetalle() {
     c.beginPath(); c.arc(px, py, 4, 0, 7); c.fillStyle = css("--cian"); c.fill(); c.strokeStyle = "#fff"; c.lineWidth = 1.5; c.stroke();
     irSim.style.left = `${px.toFixed(0)}px`; irSim.style.top = `${(cv.offsetTop + py).toFixed(0)}px`;
   }
-  else if (sel?.tipo === "zona") for (const f of estado.datos.municipios.features) if (sel.lugar.cmus.includes(f.properties.cmu)) { c.beginPath(); poligonos(f.geometry).forEach((p) => p.forEach(traza)); c.stroke(); }
+  else if (sel?.tipo === "zona") {
+    // Solo el borde exterior de la zona, en una línea fina: se rellena la zona entera en una capa aparte y se deja únicamente el contorno de 1 px
+    const capa = document.createElement("canvas"); capa.width = cv.width; capa.height = cv.height;
+    const m = capa.getContext("2d"); m.scale(dpr, dpr); m.fillStyle = "#000";
+    for (const f of estado.datos.municipios.features) if (sel.lugar.cmus.includes(f.properties.cmu)) { m.beginPath(); poligonos(f.geometry).forEach((p) => p.forEach((anillo) => { anillo.forEach(([lon, lat], k2) => (k2 ? m.lineTo(X(lon), Y(lat)) : m.moveTo(X(lon), Y(lat)))); m.closePath(); })); m.fill("evenodd"); }
+    const borde = document.createElement("canvas"); borde.width = cv.width; borde.height = cv.height;
+    const g = borde.getContext("2d"); g.drawImage(capa, 0, 0); g.globalCompositeOperation = "destination-out";
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) g.drawImage(capa, dx * dpr, dy * dpr);
+    g.globalCompositeOperation = "source-in"; g.fillStyle = css("--cian"); g.fillRect(0, 0, borde.width, borde.height);
+    c.drawImage(borde, 0, 0, r.width, r.height);
+  }
   cv.style.cursor = detalleCirculo ? "pointer" : "";
   c.strokeStyle = css("--tinta-1"); c.globalAlpha = 0.55; c.lineWidth = 0.9; c.lineJoin = "round";
   for (const f of estado.datos.provincias.features) { c.beginPath(); poligonos(f.geometry).forEach((p) => p.forEach(traza)); c.stroke(); }
