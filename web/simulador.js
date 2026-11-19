@@ -1065,8 +1065,9 @@ function pintarLineaSim() {
 function crearMapaSimulador(s) {
   SIM.mapa?.remove();
   const m = new maplibregl.Map({ container: "sim-mapa", style: estiloBase(), center: s.punto, zoom: 13, pitch: 62, bearing: -20,
-    maxPitch: 80, attributionControl: { compact: true }, cooperativeGestures: esMovil(), locale: { "CooperativeGesturesHandler.MobileHelpText": t("gestos_mapa") } });
+    maxPitch: esMovil() ? 0 : 80, dragRotate: !esMovil(), touchPitch: !esMovil(), attributionControl: { compact: true }, cooperativeGestures: esMovil(), locale: { "CooperativeGesturesHandler.MobileHelpText": t("gestos_mapa") } });
   SIM.mapa = m;
+  if (esMovil()) m.touchZoomRotate.disableRotation();
   m.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
   return new Promise((listo) => {
     m.on("style.load", () => {
