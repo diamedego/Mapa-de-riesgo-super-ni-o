@@ -2,6 +2,39 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<script>
+/* Escala automática en pantallas de escritorio chicas (por ejemplo Windows al 150 % o ventanas reducidas): el espacio útil del navegador
+   baja y los paneles del mapa se superponen. En vez de deformar el diseño, la aplicación se muestra en un marco del tamaño pensado
+   (1500 × 870) achicado de forma proporcional hasta ocupar toda la ventana. En pantallas grandes, tablets y celulares no se usa. */
+(function () {
+  if (window.top !== window.self) return;                      // ya está dentro del marco
+  var ANCHO = 1500, ALTO = 870, titulo = document.title || "Argentina frente a El Niño 2026–27";
+  var esc = function () { return Math.max(0.5, Math.min(1, innerWidth / ANCHO, innerHeight / ALTO)); };
+  var hace = function () { return innerWidth >= 1101 && esc() < 0.98; };
+  if (!hace()) {                                               // sin marco; si la ventana se achica o gira hasta necesitarlo, se vuelve a cargar con él
+    var otra; addEventListener("resize", function () { clearTimeout(otra); if (hace()) otra = setTimeout(function () { location.reload(); }, 350); });
+    return;
+  }
+  var oscuro = false; try { oscuro = localStorage.getItem("tema") === "dark"; } catch (e) {}
+  window.stop();                                               // se corta la carga de la página: el marco carga la aplicación completa
+  var raiz = document.documentElement;
+  raiz.innerHTML = '<head><meta charset="utf-8"><title></title><meta name="viewport" content="width=device-width, initial-scale=1">'
+    + '<style>html,body{margin:0;height:100%;overflow:hidden;background:' + (oscuro ? '#1d2322' : '#f4f2ea') + '}'
+    + 'iframe{position:absolute;left:0;top:0;border:0;transform-origin:0 0}</style></head><body></body>';
+  document.title = titulo;
+  var marco = document.createElement("iframe"), espera;
+  marco.title = "Observatorio El Niño"; marco.setAttribute("allow", "clipboard-write");
+  document.body.appendChild(marco);
+  function ajustar() {
+    var w = innerWidth, h = innerHeight, s = esc();
+    clearTimeout(espera);
+    if (w < 1101 || s >= 0.98) { espera = setTimeout(function () { location.reload(); }, 350); return; }   // ya no hace falta el marco
+    marco.style.width = Math.ceil(w / s) + "px"; marco.style.height = Math.ceil(h / s) + "px"; marco.style.transform = "scale(" + s + ")";
+  }
+  addEventListener("resize", ajustar); ajustar();
+  marco.src = location.href;
+})();
+</script>
 <script>if (/^\/documentacion/.test(location.pathname)) document.write('<base href="/">');</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Argentina frente a El Niño 2026–27</title>
@@ -185,7 +218,6 @@
   <p data-i18n="pie_oficial"><strong>No es un producto oficial.</strong> Ante una emergencia, seguí las indicaciones de Defensa Civil, el SMN y el INA.</p>
   <p data-i18n="pie_metodo"></p>
   <p data-i18n="pie_fuentes"></p>
-    <p><a href="https://github.com/diamedego/Mapa-de-riesgo-super-ni-o" data-i18n="pie_repo">Código, datos y metodología en GitHub</a></p>
 </footer>
     </section>
 

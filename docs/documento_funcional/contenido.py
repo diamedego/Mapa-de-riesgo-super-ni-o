@@ -79,7 +79,7 @@ def capitulos(F, P, V):
     return {
 "portada": f'''<section class="portada"><div class="contenido">{LOGO}<div class="tipo">Documento funcional y memoria técnica</div>
 <h1>Argentina frente a El Niño 2026–27</h1><div class="sub">Sistema de pronóstico de riesgo de inundación basado en impacto para los gobiernos locales de la República Argentina, con simulación hidráulica bidimensional de escenarios históricos</div>
-<div class="datos"><b>Autora:</b> Diamela Dego<br><b>Versión:</b> 9.0 · <b>Fecha:</b> 18 de noviembre de 2026<br><b>Sitio:</b> mapa-de-riesgo-super-nino.diamedego.workers.dev<br><b>Repositorio:</b> github.com/diamedego/Mapa-de-riesgo-super-ni-o</div></div>{OLAS}
+<div class="datos"><b>Autora:</b> Diamela Dego<br><b>Versión:</b> 9.0 · <b>Fecha:</b> 18 de noviembre de 2026<br><b>Sitio:</b> mapa-de-riesgo-super-nino.diamedego.workers.dev</div></div>{OLAS}
 <div class="pie">Trabajo independiente elaborado con datos públicos. No constituye un producto oficial; ante una emergencia rigen las indicaciones de Defensa Civil, el SMN y el INA.</div></section>''',
 
 "resumen": f'''<section class="resumen"><h1><span class="num">Resumen</span>Resumen</h1>

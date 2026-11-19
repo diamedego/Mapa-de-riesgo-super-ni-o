@@ -121,7 +121,6 @@ function graficoDias(cont) {
 }
 
 // ---------- Fuentes de datos por tipo (ventana) ----------
-const REPO = "https://github.com/diamedego/Mapa-de-riesgo-super-ni-o";
 function abrirFuentes() {
   let d = document.getElementById("fuentes");
   if (!d) {
@@ -138,7 +137,7 @@ function abrirFuentes() {
     <ul class="fuentes-tipos">${Object.keys(tipos).map((k) => `<li><span class="tipo-dato" data-tipo="${k}">${tipos[k]}</span>${t("tipo_dato_exp")[k]}</li>`).join("")}</ul>
     ${t("fuentes_grupos").map((g) => `<section class="fuentes-grupo"><h3>${g.t}</h3><ul>${g.items.map((f) => `<li class="fuente">
       <div class="fuente-cab"><b>${f.n}</b><span class="tipo-dato" data-tipo="${f.tipo}">${tipos[f.tipo]}</span></div><p>${f.d}</p>
-      <p class="fuente-pie">${f.u ? `<a href="${f.u === "repo" ? REPO : f.u}" target="_blank" rel="noopener">${f.f}</a>` : f.f} · ${f.cada}${f.act && act[f.act]
+      <p class="fuente-pie">${f.u && f.u !== "repo" ? `<a href="${f.u}" target="_blank" rel="noopener">${f.f}</a>` : f.f} · ${f.cada}${f.act && act[f.act]
         ? ` · ${t("ultima_act")} <b>${act[f.act]}</b>` : ""}</p></li>`).join("")}</ul></section>`).join("")}`;
   d.querySelector("[data-cerrar]").onclick = () => d.close();
   if (!d.open) d.showModal();
