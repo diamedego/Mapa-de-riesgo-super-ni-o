@@ -333,7 +333,7 @@ function bloqueEvolucion() {
         ${cartel ? `<span class="tb-evol-cartel" style="left:${limitar(pct, 22, 78)}%">${escapar(cartel)}</span>` : ""}
         <span class="tb-evol-relleno" style="width:${pct}%"></span>
         ${semanas.map((x) => `<span class="tb-evol-sem${x <= pct && cartel ? " ok" : ""}" style="left:${x}%"></span>`).join("")}
-        ${hitos.map((h) => `<span class="tb-evol-hito${h.activo ? " ok" : ""}" style="left:${h.x}%"><i></i><small>${escapar(h.etq)}</small></span>`).join("")}</div>${tipo === "rdia" ? bandaConfianza(lista, x) : ""}</div></div>`;
+        ${hitos.map((h) => `<span class="tb-evol-hito${h.activo ? " ok" : ""}" style="left:${h.x}%"><i></i><small>${escapar(h.etq)}</small></span>`).join("")}</div>${tipo === "rdia" ? bandaConfianza(lista, x) : tipo === "dia" ? bandaConfianza(lista.map((k) => k - Math.max(0, fechas.indexOf(estado.riesgo.dias[0]))), x) : ""}</div></div>`;
 }
 
 function elegirEnLinea(tipo, a, b, extender = false) {

@@ -80,7 +80,7 @@ async function pintarGraficosHeader() {
   cont.hidden = !barras;
   cont.className = "kpis-graficos";
   cont.innerHTML = barras;
-  if (dias) { dias.innerHTML = sem; dias.hidden = !sem; prepararInfo(dias); tipsEn(dias); }
+  if (dias) { dias.innerHTML = sem; dias.hidden = !sem || estado.capa !== "riesgo"; prepararInfo(dias); tipsEn(dias); }   // el gráfico de riesgo día por día solo va con la capa Riesgo
   const cols = document.getElementById("dias-col");
   if (cols) graficoDias(cols);
   cont.querySelectorAll(".zr-fila").forEach((li) => {
