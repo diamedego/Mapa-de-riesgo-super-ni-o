@@ -405,7 +405,7 @@ const Particulas = {
       ctx.fillRect(0, 0, this.cv.width, this.cv.height);
       ctx.globalCompositeOperation = "source-over";
     }
-    const pxGrado = (512 * 2 ** mapa.getZoom()) / 360, k = 0.055;   // ~1,6 px por cuadro con 30 km/h, a cualquier zoom
+    const pxGrado = (512 * 2 ** mapa.getZoom()) / 360, k = 0.055 * 0.7;   // velocidad de las líneas de viento al 70 % (antes ~1,6 px por cuadro con 30 km/h; ahora ~1,1), a cualquier zoom
     ctx.lineWidth = 1.25 * dpr;
     ctx.strokeStyle = "rgba(255,255,255,0.88)";
     ctx.beginPath();

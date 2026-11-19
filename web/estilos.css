@@ -2529,3 +2529,13 @@ h2 > .info, h3 > .info, .tit > .info, b > .info, .etq > .info, .tb-evol-cab .inf
   .hoja-mapa .refs .ley-lista:not(:has(> div:nth-child(5))) > div { display: flex; flex-direction: row; align-items: center; gap: 6px; white-space: nowrap; font-size: 11px; line-height: 16px; }
   .hoja-mapa .refs .ley-lista:not(:has(> div:nth-child(5))) > div i.pto { flex: none; }
 }
+
+/* v10 · celular: coordenadas bajo el buscador, sin fondo blanco y más cerca */
+@media (max-width: 760px) {
+  body.buscando #lec-coords:not([hidden]) { top: calc(var(--alto-barra) + 64px); padding: 4px 16px; background: transparent; border-bottom: 0; }
+}
+@media (max-width: 760px) {
+  /* al desplegar el buscador, el contenido baja lo justo para dejar sitio a las coordenadas (en el mismo fondo de la página) */
+  body.buscando:has(#lec-coords:not([hidden])) .hoja-mapa { padding-top: 40px; }
+  body.buscando #lec-coords:not([hidden]) { background: var(--superficie); padding: 4px 16px 6px; top: calc(var(--alto-barra) + 64px); }
+}
