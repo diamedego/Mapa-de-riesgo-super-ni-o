@@ -104,7 +104,18 @@ function refrescarLaminas() {
   if (laminaActual === 2 && SIM.datos) { pintarPanelSimulador(SIM.datos); if (SIM.modelo?.frames.length) { mostrarHora(); pintarPieSim(); } }   // textos del simulador en el idioma nuevo
 }
 
+// Celular: botón para ampliar el mapa (o la maqueta) a pantalla completa. En el tamaño normal el mapa deja deslizar la página con un dedo
+// (el mapa se mueve con dos dedos); ampliado, un dedo mueve el mapa como siempre.
+function alternarPantallaCompleta(marco, completo) {
+  const abrir = completo ?? !marco.classList.contains("completo");
+  marco.classList.toggle("completo", abrir);
+  document.body.classList.toggle("mapa-completo", abrir);
+  if (marco.querySelector("#mapa")) { try { abrir ? mapa.cooperativeGestures?.disable() : mapa.cooperativeGestures?.enable(); } catch (e) { /* sin gestos cooperativos */ } mapa.resize(); }
+  else { try { abrir ? SIM.mapa?.cooperativeGestures?.disable() : SIM.mapa?.cooperativeGestures?.enable(); } catch (e) { /* idem */ } SIM.mapa?.resize(); }
+  setTimeout(() => dispatchEvent(new Event("resize")), 60);
+}
 function iniciarLaminas() {
+  document.querySelectorAll(".btn-ampliar").forEach((bt) => { bt.onclick = () => alternarPantallaCompleta(bt.parentElement); });
   if (typeof iniciarControlesSim === "function") iniciarControlesSim();
   document.querySelectorAll(".solapa").forEach((b) => { b.onclick = () => irALamina(+b.dataset.lamina); });
   document.getElementById("sim-ir-mapa").onclick = () => mostrarLamina(1);

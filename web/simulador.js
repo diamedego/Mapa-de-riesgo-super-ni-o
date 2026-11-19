@@ -1065,7 +1065,7 @@ function pintarLineaSim() {
 function crearMapaSimulador(s) {
   SIM.mapa?.remove();
   const m = new maplibregl.Map({ container: "sim-mapa", style: estiloBase(), center: s.punto, zoom: 13, pitch: 62, bearing: -20,
-    maxPitch: 80, attributionControl: { compact: true } });
+    maxPitch: 80, attributionControl: { compact: true }, cooperativeGestures: esMovil(), locale: { "CooperativeGesturesHandler.MobileHelpText": t("gestos_mapa") } });
   SIM.mapa = m;
   m.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
   return new Promise((listo) => {
@@ -1430,7 +1430,7 @@ async function crearMaqueta() {
   // Cámara orbital: arrastrar gira (azimut y elevación), rueda o pellizco acercan
   const lienzo = ren.domElement, toques = new Map();
   let previo = null;
-  lienzo.style.touchAction = "none";
+  // touch-action se define en el CSS: «none» en pantalla completa y «pan-y» en el celular (un dedo en vertical desliza la página)
   lienzo.addEventListener("pointerdown", (e) => { lienzo.setPointerCapture(e.pointerId); toques.set(e.pointerId, [e.clientX, e.clientY]); previo = null; });
   lienzo.addEventListener("pointermove", (e) => {
     if (!toques.has(e.pointerId)) return;

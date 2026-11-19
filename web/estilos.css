@@ -2413,3 +2413,46 @@ h2 > .info, h3 > .info, .tit > .info, b > .info, .etq > .info, .tb-evol-cab .inf
 
 /* v10: la banda violeta gruesa bajo el gráfico de lluvia del pronóstico (días 7-15) pasa a una línea fina gris oscura */
 .pron-tramo-b.baja { fill: #4b5563; height: 1px; transform: translateY(1.5px); }
+
+/* v10 · celular: botón para ampliar el mapa y la maqueta (arriba a la derecha, chico) y pantalla completa */
+.btn-ampliar { display: none; }
+.sim-maqueta canvas { touch-action: none; }
+@media (max-width: 760px) {
+  .btn-ampliar { position: absolute; z-index: 12; top: 8px; right: 8px; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--borde-fuerte); background: var(--superficie); color: var(--tinta-1); cursor: pointer; }
+  .btn-ampliar .ico { width: 16px; height: 16px; }
+  .btn-ampliar .ico-cer { display: none; }
+  .completo > .btn-ampliar .ico-amp { display: none; } .completo > .btn-ampliar .ico-cer { display: block; }
+  .mapa-marco.completo, .sim-mapa-marco.completo { position: fixed !important; inset: 0 !important; z-index: 90; width: auto !important; height: 100svh !important; max-height: none !important; margin: 0 !important; border: 0 !important; }
+  .mapa-completo { overflow: hidden; }
+  .sim-mapa-marco:not(.completo) .sim-maqueta canvas { touch-action: pan-y; }
+  .mapa-marco .maplibregl-cooperative-gesture-screen, .sim-mapa-marco .maplibregl-cooperative-gesture-screen { font: 500 14px var(--f-ui); }
+}
+
+/* v10 · celular: ajustes de márgenes y carteles */
+@media (max-width: 760px) {
+  /* «Ver más detalles»: del ancho del texto de arriba (mismos márgenes), centrado */
+  .hoja-mapa .btn-detalles { width: 100%; margin: 12px 0 16px; }
+  .hoja-mapa .lec-cabeza > .titular { margin-bottom: -12px; }
+  /* Botón de ampliar del mapa: abajo de la barra de capas y radio, arriba a la derecha del mapa */
+  .mapa-marco > .btn-ampliar { top: calc(var(--top-minis, 130px) - 8px); }
+  /* Simulador: cada cartel en su lugar, más chicos (proporción parecida a la de la computadora) */
+  .sim-mapa-marco .sim-refs3d, .sim-mapa-marco .sim-x5.sim-refs3d { top: 8px; left: 8px; min-height: 28px; padding: 0 10px; font-size: 12px; }
+  .sim-maqueta-ayuda { display: none; }
+  .sim-lluvia-estado { top: 48px !important; right: 8px !important; padding: 4px 8px; font-size: 10px; }
+  .sim-esquina { left: 8px; bottom: 8px; max-width: calc(100% - 16px); }
+  .sim-esquina .sim-refs-agua { padding: 5px 8px 6px; max-width: 168px; }
+  .sim-esquina .sim-refs-agua .mapa-titulo b { font-size: 8.5px; letter-spacing: .05em; }
+  .sim-esquina .sim-refs-agua .ley-lista { display: grid; grid-template-columns: repeat(3, auto); gap: 2px 8px; margin-top: 4px; padding-top: 4px; }
+  .sim-esquina .sim-refs-agua .ley-lista div { gap: 4px; font-size: 9px; }
+  .sim-esquina .sim-refs-agua .ley-lista i { width: 9px; height: 7px; }
+  .sim-pie-maqueta { right: 8px; bottom: 8px; max-width: calc(100% - 200px); gap: 2px; }
+  .sim-pie-maqueta .sim-credito-sat { font-size: 7px; line-height: 9px; }
+  .sim-pie-maqueta .sim-diag-link { font-size: 7px; }
+  .sim-carga, .sim-estado { max-width: calc(100% - 24px); padding: 8px 12px; font-size: 0.82rem; }
+  /* Reporte: el texto, hasta el ancho del texto del pie */
+  .an-reporte .an-card { border-inline: 0; padding-inline: 0; }
+  .analisis { padding-inline: 0; }
+  .an-reporte { padding-inline: 24px; }
+  /* Documentación técnica: aire debajo del rótulo */
+  body[data-lamina="4"] .rotulo-movil { padding-bottom: 16px; }
+}

@@ -478,7 +478,7 @@ const TEXTOS = {
     pie_fuentes: "Fuentes: INDEC (Censo 2022), IGN, INA, SMN, ECMWF (ensamble, datos abiertos; SEAS5), GloFAS, ERA5 y ERA5-Land, Open-Meteo, MapBiomas Argentina, JRC, Dynamic World, RENABAP, BA Data, OpenStreetMap (© colaboradores, ODbL). Mapa base: OpenFreeMap.",
     pie_repo: "Código, datos y metodología en GitHub",
     // Riesgo por día (hoy y los próximos 14)
-    hoy: "hoy", volver: "Volver al mapa de riesgo",
+    ampliar_pantalla: "Ampliar a pantalla completa", gestos_mapa: "Usá dos dedos para mover el mapa", hoy: "hoy", volver: "Volver al mapa de riesgo",
     dentro_n: (n) => (n === 0 ? "hoy" : n === 1 ? "mañana" : `en ${n} días`),
     limite_riesgo: (f) => `Riesgo de hoy a 14 días: llega hasta el ${f}. Más allá no hay pronóstico confiable.`,
     kpi_pico_no: "Sin riesgo alto en 14 días",
@@ -1103,7 +1103,7 @@ const TEXTOS = {
     pie_fuentes: "Sources: INDEC (2022 Census), IGN, INA, SMN, ECMWF (ensemble open data; SEAS5), GloFAS, ERA5 and ERA5-Land, Open-Meteo, MapBiomas Argentina, JRC, Dynamic World, RENABAP, BA Data, OpenStreetMap (© contributors, ODbL). Basemap: OpenFreeMap.",
     pie_repo: "Code, data and methodology on GitHub",
     // Riesgo por día (hoy y los próximos 14)
-    hoy: "today", volver: "Back to the risk map",
+    ampliar_pantalla: "Expand to full screen", gestos_mapa: "Use two fingers to move the map", hoy: "today", volver: "Back to the risk map",
     dentro_n: (n) => (n === 0 ? "today" : n === 1 ? "tomorrow" : `in ${n} days`),
     limite_riesgo: (f) => `Risk from today to 14 days: available until ${f}. No reliable forecast beyond that.`,
     kpi_pico_no: "No high risk in 14 days",

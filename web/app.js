@@ -710,7 +710,7 @@ async function iniciar() {
   const vistaInicial = v?.length === 3 ? { center: [v[0], v[1]], zoom: v[2], pitch: 0, bearing: 0 } : VISTA_PAIS;
   // Sin vista en el enlace, el mapa nace ya encuadrado en el país (antes arrancaba en una vista fija y saltaba al cargar)
   const inicio = v?.length === 3 ? vistaInicial : { bounds: LIMITES_PAIS, fitBoundsOptions: { padding: margenPais() } };
-  mapa = new maplibregl.Map({ container: "mapa", style: estiloBase(), ...inicio, maxPitch: 75, attributionControl: { compact: true } });
+  mapa = new maplibregl.Map({ container: "mapa", style: estiloBase(), ...inicio, maxPitch: 75, attributionControl: { compact: true }, cooperativeGestures: esMovil(), locale: { "CooperativeGesturesHandler.MobileHelpText": t("gestos_mapa"), "CooperativeGesturesHandler.WindowsHelpText": t("gestos_mapa"), "CooperativeGesturesHandler.MacHelpText": t("gestos_mapa") } });
   mapa.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-left");
   // Créditos del mapa (obligatorios por licencia) cerrados: se abren solo al tocar el ícono (i)
   const cerrarCreditos = () => document.querySelectorAll("#mapa .maplibregl-ctrl-attrib").forEach((e) => e.classList.remove("maplibregl-compact-show"));
