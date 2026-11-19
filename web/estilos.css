@@ -2492,3 +2492,22 @@ h2 > .info, h3 > .info, .tit > .info, b > .info, .etq > .info, .tb-evol-cab .inf
   .mapa-marco.completo > #mapa { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; grid-row: auto !important; }
   .mapa-marco.completo .reticula { display: none !important; }
 }
+
+/* v10 · celular: botones de acercar y alejar, en la esquina de abajo a la izquierda (sin brújula: el mapa no se gira) */
+@media (max-width: 760px) {
+  .hoja-mapa .mapa-marco .maplibregl-ctrl-bottom-left { display: block !important; left: 8px; bottom: 8px; margin: 0; }
+  .hoja-mapa .mapa-marco .maplibregl-ctrl-bottom-left .maplibregl-ctrl { margin: 0; }
+  .hoja-mapa .mapa-marco .maplibregl-ctrl-compass { display: none !important; }
+  .mapa-marco .maplibregl-ctrl-group button { width: 32px; height: 32px; }
+  .sim-zoom { display: block !important; position: static; }
+  .sim-zoom .maplibregl-ctrl-compass { display: none; }
+  .sim-zoom button { width: 32px; height: 32px; }
+  .sim-esquina { align-items: flex-end; gap: 8px; }
+}
+
+/* v10 · celular: menos espacio sobre el titular, «3,5» más chico y la fila «3,5 sobre 10» más arriba */
+@media (max-width: 760px) {
+  .hoja-mapa .lec-cabeza > .titular, .hoja-mapa .lec-cabeza .titular { margin-top: 8px; margin-bottom: -14px; }
+  .lectura .titular span { margin-top: 0; font-size: 18px; }
+  .lectura .titular span b { font-size: 30px; }
+}
