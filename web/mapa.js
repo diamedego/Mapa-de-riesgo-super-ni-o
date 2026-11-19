@@ -499,25 +499,30 @@ function agregarCapasOpcionales() {
       }
       return pols;
     }));
+    // Máscara de tierra de una tesela (z/x/y): lo que no es tierra queda transparente. `achicar` es el ancho del trazo (px) con que
+    // se achica la orilla: el píxel de costa del satélite (agua «a veces») no deja una línea violeta alrededor de la tierra
+    const mascaraTierra = (z, x, y, pols, achicar, lado = 256) => {
+      const n2 = 2 ** z, lonA = (x / n2) * 360 - 180, lonB = ((x + 1) / n2) * 360 - 180, k = lado / 256;
+      const lat = (yy) => (Math.atan(Math.sinh(Math.PI * (1 - (2 * yy) / n2))) * 180) / Math.PI, latN = lat(y), latS = lat(y + 1);
+      const px = (lon) => ((lon + 180) / 360 * n2 - x) * 256 * k;
+      const py = (la) => { const f = (la * Math.PI) / 180; return ((1 - Math.log(Math.tan(f) + 1 / Math.cos(f)) / Math.PI) / 2 * n2 - y) * 256 * k; };
+      const mask = new OffscreenCanvas(lado, lado), m = mask.getContext("2d");
+      const trazar = (p) => { m.beginPath(); for (const anillo of p.anillos) anillo.forEach(([lo, la], i) => { const X = px(lo), Y = py(Math.max(-85, Math.min(85, la))); i ? m.lineTo(X, Y) : m.moveTo(X, Y); }); };
+      const cerca = pols.filter((p) => !(p.e < lonA || p.o > lonB || p.n < latS || p.s > latN));
+      m.fillStyle = "#000";
+      for (const p of cerca) { trazar(p); m.fill("evenodd"); }
+      m.globalCompositeOperation = "destination-out"; m.lineWidth = achicar; m.lineJoin = "round";
+      for (const p of cerca) { trazar(p); m.stroke(); }
+      return mask;
+    };
+    maplibregl.__tierra = { cargar: cargarTierra, mascara: mascaraTierra };
     maplibregl.addProtocol("jrcsinmar", async (params, abort) => {
       const [z, x, y] = params.url.replace(/\.png.*$/, "").split("/").slice(-3).map(Number);
       const [r, pols] = await Promise.all([fetch(params.url.replace("jrcsinmar://", "https://"), { signal: abort.signal }), cargarTierra()]);
       if (!r.ok) throw new Error(`agua ${r.status}`);
       const bmp = await createImageBitmap(await r.blob()), cv = new OffscreenCanvas(256, 256), c = cv.getContext("2d");
       c.drawImage(bmp, 0, 0, 256, 256);
-      const n2 = 2 ** z, lonA = (x / n2) * 360 - 180, lonB = ((x + 1) / n2) * 360 - 180;
-      const lat = (yy) => (Math.atan(Math.sinh(Math.PI * (1 - (2 * yy) / n2))) * 180) / Math.PI, latN = lat(y), latS = lat(y + 1);
-      const px = (lon) => ((lon + 180) / 360 * n2 - x) * 256;
-      const py = (la) => { const f = (la * Math.PI) / 180; return ((1 - Math.log(Math.tan(f) + 1 / Math.cos(f)) / Math.PI) / 2 * n2 - y) * 256; };
-      const mask = new OffscreenCanvas(256, 256), m = mask.getContext("2d");
-      const trazar = (p) => { m.beginPath(); for (const anillo of p.anillos) anillo.forEach(([lo, la], i) => { const X = px(lo), Y = py(Math.max(-85, Math.min(85, la))); i ? m.lineTo(X, Y) : m.moveTo(X, Y); }); };
-      const cerca = pols.filter((p) => !(p.e < lonA || p.o > lonB || p.n < latS || p.s > latN));
-      m.fillStyle = "#000";
-      for (const p of cerca) { trazar(p); m.fill("evenodd"); }
-      // La orilla se achica 2 px: el píxel de costa del satélite (agua «a veces») no deja una línea violeta alrededor de la tierra
-      m.globalCompositeOperation = "destination-out"; m.lineWidth = 4; m.lineJoin = "round";
-      for (const p of cerca) { trazar(p); m.stroke(); }
-      c.globalCompositeOperation = "destination-in"; c.drawImage(mask, 0, 0);
+      c.globalCompositeOperation = "destination-in"; c.drawImage(mascaraTierra(z, x, y, pols, 4), 0, 0);
       return { data: await (await cv.convertToBlob({ type: "image/png" })).arrayBuffer() };
     });
   }
@@ -558,6 +563,12 @@ function agregarCapasOpcionales() {
         p[i] = o[0]; p[i + 1] = o[1]; p[i + 2] = o[2]; p[i + 3] = o[3];
       }
       c.putImageData(img, 0, 0);
+      // Solo tierra: en el mar el producto marca falsas «inundaciones» (reflejos del sol, hielo, nubes) que de lejos se ven como cuadrados y al acercar desaparecen
+      try {
+        const [zz, yy, xx] = params.url.replace(/\.png.*$/, "").split("/").slice(-3).map(Number);
+        const pols = await maplibregl.__tierra.cargar();
+        c.globalCompositeOperation = "destination-in"; c.drawImage(maplibregl.__tierra.mascara(zz, xx, yy, pols, 2, W), 0, 0);
+      } catch (e) { /* sin el contorno de tierra se muestra el producto tal cual */ }
       return { data: await (await cv.convertToBlob({ type: "image/png" })).arrayBuffer() };
     });
   }
