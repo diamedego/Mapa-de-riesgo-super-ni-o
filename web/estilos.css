@@ -2539,3 +2539,6 @@ h2 > .info, h3 > .info, .tit > .info, b > .info, .etq > .info, .tb-evol-cab .inf
   body.buscando:has(#lec-coords:not([hidden])) .hoja-mapa { padding-top: 40px; }
   body.buscando #lec-coords:not([hidden]) { background: var(--superficie); padding: 4px 16px 6px; top: calc(var(--alto-barra) + 64px); }
 }
+
+/* v10 · celular: sin el recuadro «Detalle» (ya está el botón «Ir al simulador») */
+@media (max-width: 760px) { .hoja-mapa .detalle, .detalle { display: none !important; } }

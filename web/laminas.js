@@ -212,11 +212,11 @@ function actualizarReticula() {
       html += `<span class="ret-lat" style="top:${y.toFixed(1)}px">${-lat}° S</span>`;
     }
     const p = mapa.project([CAJA_A[2], CAJA_A[3]]);
-    if (estado.capa === "riesgo") html += `<b class="ret-a" style="left:${p.x.toFixed(0)}px;top:${p.y.toFixed(0)}px">A</b>`;
+    if (estado.capa === "riesgo" && !esMovil()) html += `<b class="ret-a" style="left:${p.x.toFixed(0)}px;top:${p.y.toFixed(0)}px">D</b>`;   // computadora: D de «Detalle»; en el celular no se muestra
   }
   cont.innerHTML = html;
   mapa.getSource("reticula").setData({ type: "FeatureCollection", features: lineas.map((co) => ({ type: "Feature", geometry: { type: "LineString", coordinates: co }, properties: {} })) });
-  for (const id of ["reticula", "caja-a"]) if (mapa.getLayer(id)) mapa.setLayoutProperty(id, "visibility", vis && (id === "reticula" || estado.capa === "riesgo") ? "visible" : "none");
+  for (const id of ["reticula", "caja-a"]) if (mapa.getLayer(id)) mapa.setLayoutProperty(id, "visibility", vis && (id === "reticula" || (estado.capa === "riesgo" && !esMovil())) ? "visible" : "none");
   // Escala gráfica de 500 km (o 50 km de cerca) en la leyenda
   const km = document.getElementById("ley-km");
   if (km) {
