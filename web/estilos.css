@@ -2137,7 +2137,7 @@ body[data-lamina="3"] .lec-1 { display: none; }
 
 /* v10: referencias de las alertas del SMN (cuadrado rayado: raya, espacio, raya, espacio) */
 .ley-claves i.ley-ray { --c: var(--alerta-amarilla); width: 12px; height: 12px; vertical-align: -2px; border: 1px solid var(--c);
-  background: repeating-linear-gradient(45deg, var(--c) 0 2px, transparent 2px 4px); }
+  background: repeating-linear-gradient(45deg, var(--c) 0 1px, transparent 1px 4px); }
 .ley-claves i.ley-ray.naranja { --c: var(--alerta-naranja); } .ley-claves i.ley-ray.roja { --c: var(--alerta-roja); }
 
 /* v10: símbolo en los dos títulos principales del reporte (mismo estilo que el de «Ríos cerca»: trazo fino en cian) */

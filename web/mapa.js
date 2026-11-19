@@ -207,7 +207,7 @@ function agregarCapas() {
   mapa.addLayer({ id: "alertas-relleno", type: "fill", source: "alertas", layout: { visibility: "none" },
     paint: { "fill-color": colorAlerta, "fill-opacity": 0.14 } });
   mapa.addLayer({ id: "alertas-borde", type: "line", source: "alertas", layout: { visibility: "none", "line-join": "round" },
-    paint: { "line-color": colorAlerta, "line-width": 1.6, "line-dasharray": [2, 1.5] } });
+    paint: { "line-color": colorAlerta, "line-width": 0.9, "line-dasharray": [2, 1.5] } });
 
   // Rayado de las alertas: raya, espacio, raya, espacio (diagonal) del color de cada nivel, encima del relleno y del borde punteado
   for (const [nivel, filtro] of [["roja", ["==", ["get", "nivel"], "roja"]], ["naranja", ["==", ["get", "nivel"], "naranja"]], ["amarilla", ["!", ["in", ["get", "nivel"], ["literal", ["roja", "naranja"]]]]]])
@@ -216,7 +216,7 @@ function agregarCapas() {
     const nivel = /^rayado-(roja|naranja|amarilla)$/.exec(ev.id)?.[1];
     if (!nivel || mapa.hasImage(ev.id)) return;
     const cv = document.createElement("canvas"); cv.width = cv.height = 8;
-    const g = cv.getContext("2d"); g.strokeStyle = css(`--alerta-${nivel}`); g.lineWidth = 2; g.lineCap = "butt";
+    const g = cv.getContext("2d"); g.strokeStyle = css(`--alerta-${nivel}`); g.lineWidth = 1; g.lineCap = "butt";
     for (const [dx, dy] of [[0, 0], [-8, 8], [8, -8]]) { g.beginPath(); g.moveTo(dx - 1, dy + 9); g.lineTo(dx + 9, dy - 1); g.stroke(); }   // la diagonal se repite sin cortes
     mapa.addImage(ev.id, g.getImageData(0, 0, 8, 8));
   });
