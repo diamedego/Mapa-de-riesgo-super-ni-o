@@ -160,14 +160,38 @@ function infraCirculo(s, radios) {
   return { salud: salud.length, saludBajo: salud.filter((x) => bajo(x.p)).length, servBajo: serv.filter((x) => bajo(x.p)).length, cercano };
 }
 
-// Estaciones de río de la selección (zona: dentro de su caja; punto: a menos de 60 km)
+// Estaciones de río «cerca» de lo elegido, cada una con `km` (distancia al punto o al centro de la zona).
+// Punto: a menos de 15 km, o dentro del círculo si es más grande (el mismo corte de «cerca» del riesgo por día, modelos/riesgo_diario.py).
+// Zona: las que caen dentro de su territorio (o a menos de 3 km de su borde: hay estaciones sobre la costa) y, si es de uno o dos
+// gobiernos locales, también las que están a menos de 15 km de su centro. Sin selección: todas.
+const KM_RIOS_CERCA = 15, KM_BORDE = 3;
+const cajasMuni = () => (estado.cajasMuni ??= estado.datos.municipios.features.map((f) => [f, cajaDe(f.geometry)]));
+// Distancia (km) de un punto a un territorio: 0 si cae adentro; si no, hasta el tramo de borde más cercano
+function distanciaTerritorioKm(p, geom) {
+  if (contiene(geom, p)) return 0;
+  const k = Math.cos((p[1] * Math.PI) / 180), anillos = geom.type === "Polygon" ? geom.coordinates : geom.type === "MultiPolygon" ? geom.coordinates.flat() : [];
+  let mejor = Infinity;
+  for (const a of anillos) for (let i = 1; i < a.length; i++) {
+    const ax = a[i - 1][0] * k, ay = a[i - 1][1], dx = a[i][0] * k - ax, dy = a[i][1] - ay, l2 = dx * dx + dy * dy;
+    const u = l2 ? limitar(((p[0] * k - ax) * dx + (p[1] - ay) * dy) / l2, 0, 1) : 0;
+    mejor = Math.min(mejor, Math.hypot(p[0] * k - (ax + u * dx), p[1] - (ay + u * dy)));
+  }
+  return mejor * 111.32;
+}
+// ¿Lo elegido es un lugar chico (un punto, o una zona de uno o dos gobiernos locales)? Ahí manda la cercanía; en una provincia o región, la gravedad
+const lugarChico = () => { const s = estado.sel; return s?.tipo === "punto" || (s?.tipo === "zona" && s.lugar.cmus.length <= 2); };
 function estacionesSel() {
-  const s = estado.sel, feats = estado.datos.estaciones.features;
-  const lista = feats.map((f) => ({ ...f.properties, c: f.geometry.coordinates }));
-  if (s?.tipo === "punto") return lista.map((e) => ({ ...e, km: distanciaKm(s.punto, e.c) })).filter((e) => e.km <= 60).sort((a, b) => a.km - b.km);
+  const s = estado.sel, lista = estado.datos.estaciones.features.map((f) => ({ ...f.properties, c: f.geometry.coordinates }));
+  if (s?.tipo === "punto") return lista.map((e) => ({ ...e, km: distanciaKm(s.punto, e.c) })).filter((e) => e.km <= Math.max(KM_RIOS_CERCA, s.km ?? 0)).sort((a, b) => a.km - b.km);
   if (s?.tipo === "zona") {
-    const [x0, y0, x1, y1] = s.lugar.caja, m = 0.15;
-    return lista.filter((e) => e.c[0] >= x0 - m && e.c[0] <= x1 + m && e.c[1] >= y0 - m && e.c[1] <= y1 + m);
+    const cmus = new Set(s.lugar.cmus.map(String)), territorio = cajasMuni().filter(([f]) => cmus.has(String(f.properties.cmu))), chico = lugarChico();
+    const centros = s.lugar.cmus.map((c) => estado.riesgo.cmu[c]?.c).filter(Boolean), [x0, y0, x1, y1] = s.lugar.caja;
+    const centro = centros.length ? [sumar(centros.map((c) => c[0])) / centros.length, sumar(centros.map((c) => c[1])) / centros.length] : [(x0 + x1) / 2, (y0 + y1) / 2];
+    return lista.map((e) => ({ ...e, km: distanciaKm(centro, e.c) })).filter((e) => {
+      const gy = KM_BORDE / 111.32, gx = gy / Math.max(0.2, Math.cos((e.c[1] * Math.PI) / 180));
+      return (chico && e.km <= KM_RIOS_CERCA) || territorio.some(([f, c]) => e.c[0] >= c[0] - gx && e.c[0] <= c[2] + gx && e.c[1] >= c[1] - gy && e.c[1] <= c[3] + gy
+        && distanciaTerritorioKm(e.c, f.geometry) <= KM_BORDE);
+    });
   }
   return lista;
 }
@@ -336,6 +360,12 @@ function lugarTitulo() {
   if (s.tipo === "zona") return s.lugar.nombre;
   return t("lugar_radio")(s.nombre || estado.porCmu.get(s.cmu)?.nam || t("punto_en_mapa"), fmt(s.km, s.km % 1 ? 1 : 0));
 }
+// Nombre del lugar elegido, solo (título del reporte); el radio del círculo va aparte, en el subtítulo
+function lugarNombre() {
+  const s = estado.sel;
+  if (!s) return "Argentina";
+  return s.tipo === "zona" ? s.lugar.nombre : s.nombre || estado.porCmu.get(s.cmu)?.nam || t("punto_en_mapa");
+}
 // Situación en viñetas: título con el lugar y la fuente en chico debajo; "Qué hacer" en una lista o separado en
 // prevención y emergencia (la que urge primero); la aclaración "Orientativo…" chica, a la derecha
 function bloqueSituacion(nivel, vinetas, acciones, { nota = "", extra = "" } = {}) {
@@ -385,10 +415,12 @@ async function tableroRiesgo(cont) {
   // v10: la situación (viñetas, tortas, «Qué hacer») se muestra en el tablero de control (lámina 03), para lo elegido
   estado.situacionHtml = situacion; estado.situacionSel = s;
   if (typeof pintarSituacionAnalisis === "function") pintarSituacionAnalisis();
-  // Ríos
-  const rios = ests.slice(0, 4).map((e) => {
+  // Ríos «cerca»: el nombre del río arriba, en negrita; debajo, la estación y la distancia. En un lugar chico, de la más cercana a la más lejana
+  const chico = lugarChico(), cerca = chico ? [...ests].sort((a, b) => (a.km ?? 0) - (b.km ?? 0)) : ests;
+  const rios = cerca.slice(0, 4).map((e) => {
     const tope = Math.max(e.nivel_evacuacion ?? e.nivel_alerta, e.h) * 1.12, pos = (v) => `${limitar((100 * v) / tope, 0, 100)}%`;
-    return `<li class="rio"><div class="rio-cab"><b>${escapar(e.estacion)}</b> <span>${escapar(nombreRio(e.rio))}${e.km != null ? ` · ${fmt(e.km)} km` : ""}</span>
+    const rio = nombreRio(e.rio), donde = [rio ? escapar(e.estacion) : "", chico && e.km != null ? `${fmt(e.km, e.km < 10 ? 1 : 0)} km` : ""].filter(Boolean).join(" · ");
+    return `<li class="rio"><div class="rio-cab"><div class="rio-tit"><b>${escapar(rio || e.estacion)}</b>${donde ? `<span>${donde}</span>` : ""}</div>
       <span class="pill sem-${e.estado === "evacuacion" ? "critico" : e.estado === "alerta" ? "atencion" : "ok"}">${t(`rio_${e.estado}`)}</span></div>
       <div class="rio-barra"><span class="rio-nivel" style="width:${pos(e.h)}"></span><i class="umbral al" style="left:${pos(e.nivel_alerta)}"></i>${e.nivel_evacuacion ? `<i class="umbral ev" style="left:${pos(e.nivel_evacuacion)}"></i>` : ""}</div>
       <div class="rio-pie"><span>${fmt(e.h, 2)} m ${e.dh != null ? `(${e.dh > 0 ? "+" : ""}${fmt(e.dh, 2)} m 24 h)` : ""}</span><span>${t("alerta_m")} ${fmt(e.nivel_alerta, 1)} · ${t("evac_m")} ${fmt(e.nivel_evacuacion, 1)}</span></div></li>`;

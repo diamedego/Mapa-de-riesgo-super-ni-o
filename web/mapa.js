@@ -714,9 +714,11 @@ function enlazarEventosMapa() {
   mapa.once("idle", () => setTimeout(precargarRelieve, 3000));   // baja en silencio el terreno de lo que se ve: la primera vez que se prende el relieve ya está en la memoria del navegador
   mapa.on("zoomend", () => { clearTimeout(ajustarCurvas.z); ajustarCurvas.z = setTimeout(ajustarCurvas, 60); });   // al cambiar el zoom, sin esperar a que termine de cargar todo   // cuando terminó de cargar el terreno de la vista, se mide el relieve y se elige la separación
   mapa.on("click", (e) => {
-    const est = mapa.getLayer("estaciones") && mapa.queryRenderedFeatures(e.point, { layers: ["estaciones"] })[0];
-    if (est) return seleccionarPunto(est.geometry.coordinates.slice(0, 2), { nombre: est.properties.estacion, origen: "mapa", volar: true });
-    seleccionarPunto([e.lngLat.lng, e.lngLat.lat], { origen: "mapa", volar: mapa.getZoom() < 8.5 });
+    const antes = estado.sel, est = mapa.getLayer("estaciones") && mapa.queryRenderedFeatures(e.point, { layers: ["estaciones"] })[0];
+    if (est) seleccionarPunto(est.geometry.coordinates.slice(0, 2), { nombre: est.properties.estacion, origen: "mapa", volar: true });
+    else seleccionarPunto([e.lngLat.lng, e.lngLat.lat], { origen: "mapa", volar: mapa.getZoom() < 8.5 });
+    // Celular: al tocar el mapa y elegir un punto, la página baja hasta el mapa (igual que con el buscador) para que se vea el punto elegido
+    if (esMovil() && estado.sel !== antes) irAlMapaMovil();
   });
   mapa.on("mousemove", porCuadro((e) => {
     const capas = ["estaciones", "riesgo-radio", "riesgo-mun"].filter((id) => mapa.getLayer(id)

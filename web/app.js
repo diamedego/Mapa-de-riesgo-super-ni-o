@@ -45,6 +45,8 @@ function circuloKpis(s) {
   return { n: props.length, poblacion: sumar(pob), altos: altos.length, pobAlto: sumar(altos.map((p) => Number(p.poblacion) || 0)),
     // Habitantes expuestos: el mayor del período elegido, sumando los radios del círculo (el simulador muestra este mismo número)
     expuestos: Math.max(0, ...idx.map((i) => sumar(props.map((p) => (Number(p.poblacion) || 0) * (fraccionExpuesta(p.cod_indec, i) ?? 0))))),
+    // lo mismo con el mayor de todos los días del pronóstico (el reporte no depende del período elegido)
+    expuestosMax: Math.max(0, ...M.map((_, i) => sumar(props.map((p) => (Number(p.poblacion) || 0) * (fraccionExpuesta(p.cod_indec, i) ?? 0))))),
     riesgo: M.map((m) => sumar(props.map((p, k) => (Number(p[`r_${m}`]) || 0) * peso[k])) / total) };
 }
 
@@ -56,17 +58,16 @@ function pintarKpis() {
   const rV = Math.max(...idx.map((i) => Z.riesgo[i]));
   estado.riesgoVista = { r: rV, dia: Math.max(...idx) };   // el simulador lo muestra junto al radio
   // Habitantes del lugar (totales y en zona inundable): el simulador usa estos mismos números (una sola cuenta para las dos solapas)
-  estado.habitantesLugar = C ? { total: C.poblacion, inundable: C.expuestos } : null;
+  estado.habitantesLugar = C ? { total: C.poblacion, inundable: C.expuestos, maxDias: C.expuestosMax, sel: A.circulo } : null;
+  if (typeof pintarDatosLugarAnalisis === "function") pintarDatosLugarAnalisis();   // el reporte muestra estos mismos habitantes del punto
   const altos = C ? [] : A.cmus.filter((c) => Math.max(...idx.map((i) => R.cmu[c].r[i] ?? 0)) >= CORTES[2]);
   const pobAlto = C ? C.pobAlto : sumar(altos.map((c) => Number(estado.porCmu.get(c)?.poblacion) || 0));
   // Habitantes en zona inundable (a menos de 2 m sobre el cauce, por la fracción de cada radio): los que el riesgo del día alcanzaría
   const expuestos = C ? C.expuestos : Math.max(0, ...idx.map((i) => sumar(A.cmus.map((c) => R.cmu[c]?.xd?.[i] ?? 0)))), nivelV = nivelRiesgo(rV);
-  // Ríos: con un punto, las estaciones a menos de 15 km (o dentro del círculo, si es más grande); con una zona, las de su caja
-  const enCaja = (c) => (A.circulo ? distanciaKm(A.circulo.punto, c) <= Math.max(15, A.circulo.km)
-    : !A.caja || (c[0] >= A.caja[0] - 0.1 && c[0] <= A.caja[2] + 0.1 && c[1] >= A.caja[1] - 0.1 && c[1] <= A.caja[3] + 0.1));
+  // Ríos: las mismas estaciones «cerca» que lista el tablero (estacionesSel: a menos de 15 km del punto; con una zona, las de su territorio)
   const alertas = estado.datos.alertas.features.filter((f) => !A.caja || (cajasSeTocan(cajaDe(f.geometry), A.caja) && (!A.circulo || contiene(f.geometry, A.circulo.punto)))).map((f) => f.properties);
   const nivelAl = alertas.some((a) => a.nivel === "roja") ? "roja" : alertas.some((a) => a.nivel === "naranja") ? "naranja" : alertas.length ? "amarilla" : null;
-  const ests = estado.datos.estaciones.features.filter((f) => f.properties.estado && enCaja(f.geometry.coordinates)).map((f) => f.properties);
+  const ests = estacionesSel().filter((e) => e.estado);
   const evac = ests.filter((e) => e.estado === "evacuacion").length, alerta = ests.filter((e) => e.estado === "alerta").length;
   const kpis = [
     { k: "personas", ico: "personas", etq: t("kpi_personas"), valor: fmtPersonas(expuestos), sub: t("kpi_personas_sub")(fmt((100 * expuestos) / (Z.poblacion || 1), 1), nombreNivel(rV).toLowerCase()),
@@ -531,7 +532,7 @@ function seleccionarPunto(punto, { nombre = null, origen = "mapa", volar = false
     document.getElementById("b-direccion").value = "";
   }
   seleccionar({ tipo: "punto", punto, km: estado.km, cmu: muni?.properties.cmu ?? null,
-    nombre: nombre ?? (muni ? t("punto_en")(muni.properties.nam) : t("punto_en_mapa")) }, { volar, origen });
+    nombre: nombre ?? (muni ? muni.properties.nam : t("punto_en_mapa")) }, { volar, origen });
 }
 function cambiarRadioBarra() { document.getElementById("b-radio").value = String(estado.km); document.getElementById("b-radio-v").textContent = `${fmt(estado.km, estado.km % 1 ? 1 : 0)} km`; }
 function cambiarRadio(km) {

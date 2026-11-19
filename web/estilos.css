@@ -2542,3 +2542,10 @@ h2 > .info, h3 > .info, .tit > .info, b > .info, .etq > .info, .tb-evol-cab .inf
 
 /* v10 · celular: sin el recuadro «Detalle» (ya está el botón «Ir al simulador») */
 @media (max-width: 760px) { .hoja-mapa .detalle, .detalle { display: none !important; } }
+
+/* «Ríos cerca»: arriba el nombre del río (en negrita) y debajo la estación con su distancia; el estado queda a la derecha, alineado con el nombre */
+.rio-cab { align-items: flex-start; justify-content: space-between; flex-wrap: nowrap; gap: 8px; }
+.rio-tit { min-width: 0; }
+.rio-tit b { display: block; font-size: 0.86rem; }
+.rio-cab .rio-tit span { display: block; margin-top: 2px; color: var(--tinta-3); font-size: 0.76rem; }
+.rio-cab .pill { margin-left: 0; flex: none; }
