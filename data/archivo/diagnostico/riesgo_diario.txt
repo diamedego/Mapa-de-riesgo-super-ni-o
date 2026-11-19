@@ -1,14 +1,13 @@
-corrida 2026-11-18 17:19 UTC
+corrida 2026-11-19 01:57 UTC
 To ensure the stability of our systems and to preserve resources for our operational activities (network, compute, etc.), access to the open-data portal is limited to 500 simultaneous connections. This limit helps us guarantee reliable service for our operational users, especially during periods of high demand. For added reliability, the open-data is replicated across AWS, Azure, and Google Cloud. If you experience difficulties accessing the portal directly, you can also retrieve the data from these cloud platforms.
-  ensamble ECMWF 18-11 00 UTC, paso 24 h
+  ensamble ECMWF 18-11 12 UTC, paso 12 h
   error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
   error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
   error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
   error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
   error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
   error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
-  error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
-/home/runner/work/Mapa-de-riesgo-super-ni-o/Mapa-de-riesgo-super-ni-o/modelos/riesgo_diario.py:435: DeprecationWarning: The 'shapely.vectorized.contains' function is deprecated and will be removed a future version. Use 'shapely.contains_xy' instead (available since shapely 2.0.0).
+/home/runner/work/Mapa-de-riesgo-super-ni-o/Mapa-de-riesgo-super-ni-o/modelos/riesgo_diario.py:436: DeprecationWarning: The 'shapely.vectorized.contains' function is deprecated and will be removed a future version. Use 'shapely.contains_xy' instead (available since shapely 2.0.0).
   dentro[caja] = vectorized.contains(g, LON[caja], LAT[caja])
-riesgo_diario: 2444 gobiernos locales, 79 estaciones, sin lluvia 0; nivel máximo en 14 días: {'0': 44, '1': 889, '2': 1484, '3': 27}
+riesgo_diario: 2444 gobiernos locales, 79 estaciones, sin lluvia 0; nivel máximo en 14 días: {'0': 123, '1': 992, '2': 1301, '3': 28}
 salida: 0
