@@ -2520,3 +2520,12 @@ h2 > .info, h3 > .info, .tit > .info, b > .info, .etq > .info, .tb-evol-cab .inf
   body:is([data-lamina="2"], [data-lamina="3"]) .franja .btn-tema, body:is([data-lamina="2"], [data-lamina="3"]) .franja .btn-lupa { width: 36px; }
   body:is([data-lamina="2"], [data-lamina="3"]) .franja .idioma b, body:is([data-lamina="2"], [data-lamina="3"]) .franja .idioma span { padding: 0 9px; }
 }
+
+/* v10 · celular: la leyenda ocupa todo el ancho (mismos márgenes izquierdo y derecho) y las referencias de ríos quedan en una fila, a la misma altura, repartidas */
+@media (max-width: 760px) {
+  .hoja-mapa .refs .leyenda, .hoja-mapa .refs .mapa-titulo { width: 100% !important; max-width: none !important; }
+  .hoja-mapa .refs .ley-lista:has(> div:nth-child(5)) { grid-template-columns: repeat(5, minmax(0, 1fr)); width: 100%; }
+  .hoja-mapa .refs .ley-lista:not(:has(> div:nth-child(5))) { display: flex !important; flex-wrap: nowrap; justify-content: space-between; align-items: center; gap: 8px; }
+  .hoja-mapa .refs .ley-lista:not(:has(> div:nth-child(5))) > div { display: flex; flex-direction: row; align-items: center; gap: 6px; white-space: nowrap; font-size: 11px; line-height: 16px; }
+  .hoja-mapa .refs .ley-lista:not(:has(> div:nth-child(5))) > div i.pto { flex: none; }
+}
