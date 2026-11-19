@@ -1421,7 +1421,8 @@ async function crearMaqueta() {
       c2.lineWidth = 3; c2.strokeStyle = "rgba(255,255,255,0.8)"; c2.fillStyle = p === "N" ? "#0d5560" : "#4b5563";
       const letra = p === "O" && estado.idioma === "en" ? "W" : p; c2.strokeText(letra, 32, 34); c2.fillText(letra, 32, 34);
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }));
-      sp.scale.set(0.06 * Rm, 0.06 * Rm, 1); sp.position.set(dx * 1.44 * Rm, y + 0.01 * Rm, dz * 1.44 * Rm); M.cardinales.add(sp);
+      const mov = esMovil(), esc = mov ? 0.1 : 0.06, dl = mov ? 1.31 : 1.44;   // celular: letra más grande y pegada a la flecha
+      sp.scale.set(esc * Rm, esc * Rm, 1); sp.position.set(dx * dl * Rm, y + 0.01 * Rm, dz * dl * Rm); M.cardinales.add(sp);
     } }
   M.lluvia = prepararLluvia(d, x0, y0, bw, bh);
   if (!SIM.industrias) SIM.industrias = await fetch("datos/industrias.geojson").then((r) => r.json()).then((g) => g.features.filter((f) => distanciaKm(d.s.punto, f.geometry.coordinates) <= d.s.km)).catch(() => []);

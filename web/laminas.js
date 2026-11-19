@@ -119,6 +119,7 @@ function iniciarLaminas() {
   if (typeof iniciarControlesSim === "function") iniciarControlesSim();
   document.querySelectorAll(".solapa").forEach((b) => { b.onclick = () => irALamina(+b.dataset.lamina); });
   document.getElementById("sim-ir-mapa").onclick = () => mostrarLamina(1);
+  document.getElementById("btn-ir-sim").onclick = () => irALamina(2);   // celular: junto a «Ver más detalles»
   document.getElementById("btn-volver").onclick = () => irALamina(1);   // «volver» del simulador y del reporte: al mapa de riesgo
   document.getElementById("btn-lupa").onclick = () => abrirBusquedaMovil(!document.body.classList.contains("buscando"));
   document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") cerrarBusquedaMovil(); });

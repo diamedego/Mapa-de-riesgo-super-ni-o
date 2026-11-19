@@ -2456,3 +2456,39 @@ h2 > .info, h3 > .info, .tit > .info, b > .info, .etq > .info, .tb-evol-cab .inf
   /* Documentación técnica: aire debajo del rótulo */
   body[data-lamina="4"] .rotulo-movil { padding-bottom: 16px; }
 }
+
+/* v10 · celular (3.ª tanda): pantalla completa solo del mapa, botones, márgenes y coordenadas en el buscador */
+.btn-ir-sim { display: none; }
+@media (max-width: 760px) {
+  /* Pantalla completa: solo el mapa (sin barra, miniaturas, leyenda ni detalle) y con altura real de la pantalla */
+  .mapa-marco.completo > :not(#mapa):not(.btn-ampliar):not(.maplibregl-ctrl):not(.reticula) { display: none !important; }
+  .mapa-marco.completo, .sim-mapa-marco.completo { height: 100dvh !important; padding-bottom: env(safe-area-inset-bottom, 0px); box-sizing: border-box; }
+  .sim-mapa-marco.completo .sim-esquina { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .sim-mapa-marco.completo .sim-pie-maqueta { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .sim-mapa-marco.completo .sim-refs3d { top: calc(12px + env(safe-area-inset-top, 0px)); }
+  .completo > .btn-ampliar { top: calc(12px + env(safe-area-inset-top, 0px)) !important; }
+  /* «Ver más detalles» y «Ir al simulador», cada uno en la mitad del ancho del texto */
+  .hoja-mapa .lec-pie { display: flex; flex-wrap: wrap; gap: 0 8px; }
+  .hoja-mapa .lec-pie > .bajada { flex: 0 0 100%; }
+  .hoja-mapa .btn-detalles, .hoja-mapa .btn-ir-sim { display: inline-flex; flex: 1 1 calc(50% - 4px); width: auto; min-width: 0; margin: 22px 0 8px; padding: 8px 12px; gap: 8px; align-items: center; justify-content: space-between; min-height: 48px; text-align: left; cursor: pointer; }
+  .hoja-mapa .btn-ir-sim { border: 1px solid var(--tinta-1); background: var(--superficie); color: var(--tinta-1); border-radius: 0; }
+  .btn-ir-sim b { display: block; font: 600 14px/1.2 var(--f-ui); color: var(--tinta-1); }
+  .btn-ir-sim small { display: block; font: 500 10px/1.4 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--cian); }
+  .btn-ir-sim i { font-style: normal; font-size: 18px; line-height: 1; color: var(--cian); }
+  .hoja-mapa .btn-detalles b { font-size: 13px; }
+  /* Márgenes: menos entre el título y el texto y debajo de los botones; más después de la fecha y antes de los botones */
+  .hoja-mapa .lec-cabeza > .titular, .hoja-mapa .lec-cabeza .titular { margin-top: 24px; margin-bottom: -22px; }
+  .hoja-mapa .lec-pie { padding-bottom: 8px; }
+  /* Coordenadas: solo con el buscador desplegado, en una fila (coordenadas · copiar · Google Maps) */
+  body:not(.buscando) #lec-coords { display: none !important; }
+  body.buscando #lec-coords:not([hidden]) { position: fixed; z-index: 45; left: 0; right: 0; top: calc(var(--alto-barra) + 72px); display: flex; flex-direction: row; align-items: center; gap: 8px; width: auto; margin: 0; padding: 8px 16px; background: var(--superficie); border-bottom: 1px solid var(--borde-fuerte); }
+  body.buscando #lec-coords .lec-coords-v { font: 500 12px/16px var(--f-mono); text-align: left; flex: none; }
+  body.buscando #lec-coords .lec-coords-bot { display: flex; flex-direction: row; gap: 8px; contain: none; }
+  body.buscando #lec-coords .lec-coords-bot .btn-banda { flex: none; min-height: 28px; }
+  body.buscando #lec-coords .lec-coords-bot a.btn-banda { padding: 0 10px; }
+}
+@media (max-width: 760px) {
+  .mapa-marco.completo { display: block !important; }
+  .mapa-marco.completo > #mapa { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; grid-row: auto !important; }
+  .mapa-marco.completo .reticula { display: none !important; }
+}
