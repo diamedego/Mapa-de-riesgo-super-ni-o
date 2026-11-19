@@ -642,6 +642,7 @@ function cambiarTema() {
   mapa.setStyle(estiloBase(), {
     transformStyle: (previo, nuevo) => {
       if (!previo) return nuevo;
+      estado.capasBase = new Set(nuevo.layers.map((l) => l.id));   // las capas del mapa base nuevo (el resto son las propias)
       const fuentes = { ...nuevo.sources }, propias = previo.layers.filter((l) => l.source && !(l.source in nuevo.sources) && previo.sources[l.source]);
       for (const l of propias) fuentes[l.source] = previo.sources[l.source];
       const i = nuevo.layers.findIndex((l) => l.type === "symbol");
@@ -649,7 +650,12 @@ function cambiarTema() {
       return { ...nuevo, sources: fuentes, layers: capas };
     },
   });
-  mapa.once("style.load", () => { nombresEnEspanol(); mapaBaseLiso(); recolorear(cambio); });
+  mapa.once("style.load", () => {
+    nombresEnEspanol(); mapaBaseLiso();
+    // El velo del tiempo es una capa de fondo sin fuente: no viaja con las demás (transformStyle) y se vuelve a crear
+    if (!mapa.getLayer("atenuar")) mapa.addLayer({ id: "atenuar", type: "background", layout: { visibility: "none" }, paint: { "background-color": css("--velo"), "background-opacity": 0.42 } }, mapa.getLayer("tiempo-raster") ? "tiempo-raster" : primeraCapa(["symbol"]));   // debajo del campo del tiempo
+    recolorear(cambio); aplicarCapaEnMapa();
+  });
 }
 function alternar3d() {
   estado.relieve3d = !estado.relieve3d;

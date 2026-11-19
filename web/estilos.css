@@ -2549,3 +2549,6 @@ h2 > .info, h3 > .info, .tit > .info, b > .info, .etq > .info, .tb-evol-cab .inf
 .rio-tit b { display: block; font-size: 0.86rem; }
 .rio-cab .rio-tit span { display: block; margin-top: 2px; color: var(--tinta-3); font-size: 0.76rem; }
 .rio-cab .pill { margin-left: 0; flex: none; }
+
+/* Simulador: el cartel de estado de la lluvia («Escurrimiento: el agua se desplaza…») no se monta sobre el botón «Referencias»: si el texto no entra, pasa a dos renglones */
+@media (min-width: 761px) { .sim-lluvia-estado { max-width: calc(100% - 420px); white-space: normal; line-height: 1.35; } }

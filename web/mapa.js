@@ -30,8 +30,10 @@ function nombresEnEspanol() {
 function mapaBaseLiso() {
   // Como la lámina aprobada: con el país entero a la vista no se dibuja el mapa base (ni países vecinos, ni ciudades, ni
   // costas): solo el papel con su cuadrícula, la retícula y la Argentina. Desde zoom 6 vuelve el mapa base (calles, ríos)
-  for (const capa of mapa.getStyle().layers) if (capa.type !== "background") mapa.setLayerZoomRange(capa.id, Math.max(capa.minzoom ?? 0, 6), capa.maxzoom ?? 24);
-  mapa.getStyle().layers.forEach((capa) => {
+  // Solo las capas del mapa base (estado.capasBase): las propias (riesgo, ríos, alertas…) se conservan al cambiar de tema y no se tocan
+  const base = mapa.getStyle().layers.filter((c) => !estado.capasBase || estado.capasBase.has(c.id));
+  for (const capa of base) if (capa.type !== "background") mapa.setLayerZoomRange(capa.id, Math.max(capa.minzoom ?? 0, 6), capa.maxzoom ?? 24);
+  base.forEach((capa) => {
     const sl = capa["source-layer"];
     if (capa.type === "background") mapa.setPaintProperty(capa.id, "background-opacity", 0);   // océano transparente: se ve la cuadrícula del papel
     else if (capa.type === "raster" || ["landcover", "landuse", "park", "aeroway"].includes(sl)) mapa.setLayoutProperty(capa.id, "visibility", "none");
@@ -160,7 +162,7 @@ function dibujarGrilla() {
 // ---------- Capas ----------
 function agregarCapas() {
   nombresEnEspanol();
-  if (!SIN_TESELAS) { mapaBaseLiso(); agregarRelieve(); }
+  if (!SIN_TESELAS) { estado.capasBase = new Set(mapa.getStyle().layers.map((l) => l.id)); mapaBaseLiso(); agregarRelieve(); }
   const antesLineas = SIN_TESELAS ? undefined : primeraCapa(["line", "symbol"]);
   const antesNombres = SIN_TESELAS ? undefined : primeraCapa(["symbol"]);
   const meses = diasVista();
