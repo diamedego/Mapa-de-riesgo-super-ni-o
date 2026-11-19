@@ -1,5 +1,7 @@
 """Figuras del documento funcional (SVG en línea; el texto queda como texto para que use las tipografías del documento)."""
 import io
+import json
+from pathlib import Path
 
 import matplotlib
 
@@ -43,7 +45,10 @@ def validacion_simulador(csv) -> str:
 def verificacion_pronostico() -> str:
     fig, ax = plt.subplots(figsize=(5.4, 2.3))
     plazos = ["0 a 3 días", "4 a 7 días", "8 a 15 días"]
-    corr, det = [0.709, 0.45, 0.107], [55.8, 27.0, 10.4]
+    # Se leen de data/gold/verificacion.json (la misma fuente que el texto de la sección 5.4): la figura no puede quedar desactualizada
+    pp = json.loads((Path(__file__).resolve().parents[2] / "data" / "gold" / "verificacion.json").read_text())["lluvia_16_dias"]["por_plazo"]
+    corr = [pp[k]["correlacion"] for k in ("0-3", "4-7", "8-15")]
+    det = [pp[k]["deteccion_20mm"] * 100 for k in ("0-3", "4-7", "8-15")]
     x = range(3)
     ax.bar([i - 0.2 for i in x], corr, width=0.38, color=CIAN, label="Correlación con la lluvia observada")
     ax.bar([i + 0.2 for i in x], [v / 100 for v in det], width=0.38, color=NARANJA, label="Detección de días con 20 mm o más")

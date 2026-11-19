@@ -24,7 +24,9 @@ sys.path.insert(0, str(AQUI))
 import contenido  # noqa: E402
 import graficos  # noqa: E402
 
-CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+CHROME = next((c for c in ("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                           r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe") if Path(c).exists()),
+              "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 SALIDA = RAIZ / "docs" / "Documento_funcional_El_Nino_2026-27.pdf"
 VERSIONES = RAIZ / "Documento funcional - versiones"
 VAL = RAIZ / "data" / "validacion"
@@ -62,6 +64,10 @@ def valores() -> dict:
               "riesgo_medio": f"{pico['riesgo_medio']:.1f}".replace(".", ","), "alto": int(pico["municipios_riesgo_alto"])}
     # Desagües y picos horarios: de lo precalculado (earth_engine/lluvia_ninos.py)
     crudo = RAIZ / "data" / "procesado" / "lluvia_ninos"
+    cache_desague = RAIZ / "data" / "referencia" / "desague_documento.json"   # lo calculado la última vez (data/procesado no se versiona)
+    if not crudo.exists() and cache_desague.exists():
+        desague = json.loads(cache_desague.read_text(encoding="utf-8"))
+        return _resto(L, R, D, verif, indice, desague)
     sys.path.insert(0, str(RAIZ / "earth_engine"))
     import lluvia_ninos as LN
     anual = np.stack([np.load(crudo / f"max_horaria_{y}.npy") for y in range(2001, 2026)])
@@ -74,6 +80,11 @@ def valores() -> dict:
     fz, cz = int((LN.NORTE + 34.10) / LN.PASO), int((-59.03 - LN.OESTE) / LN.PASO)
     q25, q75 = np.percentile(p1, [25, 75])
     desague = {"mediana": f"{np.median(D2[llanura]):.0f}", "zarate": f"{D2[fz, cz]:.0f}", "p1_rango": f"{5 * round(q25 / 5):.0f} a {5 * round(q75 / 5):.0f}"}
+    cache_desague.write_text(json.dumps(desague), encoding="utf-8")
+    return _resto(L, R, D, verif, indice, desague)
+
+
+def _resto(L, R, D, verif, indice, desague) -> dict:
     # Riesgo por día (modelos/riesgo_diario.py): municipios en riesgo alto hoy, el día más comprometido y la propensión
     rd = json.loads((RAIZ / "web" / "datos" / "riesgo_diario.json").read_text())
     cortes = [3, 4.5, 6, 7]
@@ -113,7 +124,7 @@ def imprimir(html: str, destino: Path) -> None:
     arch = AQUI / "_documento.html"
     arch.write_text(html)
     subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--no-pdf-header-footer", "--virtual-time-budget=25000",
-                    f"--print-to-pdf={destino}", f"file://{arch}"], check=True, capture_output=True, timeout=180)
+                    f"--print-to-pdf={destino}", arch.as_uri()], check=True, capture_output=True, timeout=180)
 
 
 def numerar(pdf: Path) -> dict:
@@ -134,19 +145,26 @@ def numerar(pdf: Path) -> dict:
 
 WEB_CSS = """
 @media screen {
-  html { font-size: 17px; background: #f7f6f2; }
-  body { max-width: 820px; margin: 0 auto; padding: 24px 16px 64px; text-align: left; hyphens: manual; background: #fff; }
-  .portada { width: auto; height: auto; min-height: 560px; margin: -24px -16px 32px; }
+  /* Computadora: una hoja A4 centrada con los mismos márgenes, la misma tipografía y el mismo espaciado que el PDF */
+  html { background: #ecebe6; }
+  body { width: 210mm; max-width: 100%; margin: 0 auto; padding: 21mm 19mm 21mm 21mm; background: #fff; box-shadow: 0 0 0 1px #d8d5cd; }
+  .portada { margin: -21mm -19mm 0 -21mm; }   /* como la primera página: la hoja entera, sin margen */
+  h1 { margin-top: 21mm; padding-top: 12mm; border-top: 1px solid #d8d5cd; }   /* cada capítulo arranca como en una página nueva */
+  figure svg, img { max-width: 100%; height: auto; }
+  .indice li { cursor: pointer; } .indice li .p { display: none; }
+  .formula { overflow-x: auto; }
+}
+@media screen and (max-width: 860px) {
+  /* Celular: columna de una sola pieza con 16 px de margen a cada lado */
+  html { font-size: 14px; }
+  body { width: auto; padding: 16px 16px 48px; text-align: left; hyphens: manual; box-shadow: none; }
+  .portada { width: auto; height: auto; min-height: 560px; margin: -16px -16px 24px; }
   .portada .contenido { position: relative; left: 0; right: 0; top: 0; padding: 48px 24px 0; }
   .portada .pie { position: relative; left: 0; right: 0; bottom: 0; padding: 160px 24px 24px; }
   .portada .olas { height: 140px; }
-  section { margin-bottom: 56px; }
-  h1 { padding-top: 24px; border-top: 1px solid #d8d5cd; }
+  h1 { margin-top: 32px; padding-top: 24px; }
   table { display: block; overflow-x: auto; max-width: 100%; }
-  figure svg, img { max-width: 100%; height: auto; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .indice li { cursor: pointer; } .indice li .p { display: none; }
-  .formula { overflow-x: auto; }
 }
 """
 JS_WEB = """<script>

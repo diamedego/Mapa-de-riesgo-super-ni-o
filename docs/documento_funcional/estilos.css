@@ -16,7 +16,7 @@ a { color: inherit; text-decoration: none; }
 .portada .contenido { position: absolute; left: 24mm; right: 24mm; top: 52mm; }
 .portada .logo { width: 22mm; height: 22mm; margin-bottom: 14mm; }
 .portada .tipo { font: 600 9pt "Avenir Next", "Gill Sans", "Helvetica Neue", Arial, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: #67e8f9; margin-bottom: 7mm; }
-.portada h1 { font: 700 34pt/1.08 "Iowan Old Style", "Charter", "Palatino", Georgia, serif; letter-spacing: -0.01em; margin: 0 0 7mm; color: #fff; text-wrap: balance; }
+.portada h1 { break-before: auto; font: 700 34pt/1.08 "Iowan Old Style", "Charter", "Palatino", Georgia, serif; letter-spacing: -0.01em; margin: 0 0 7mm; color: #fff; text-wrap: balance; }
 .portada .sub { font: 400 15pt/1.4 "Iowan Old Style", "Charter", "Palatino", Georgia, serif; color: #b6d3df; max-width: 140mm; margin-bottom: 20mm; font-style: italic; }
 .portada .datos { font: 400 9.5pt/1.7 "Avenir Next", "Gill Sans", "Helvetica Neue", Arial, sans-serif; color: #cfe3ec; border-top: 1px solid rgba(255, 255, 255, 0.22); padding-top: 6mm; max-width: 120mm; }
 .portada .datos b { color: #fff; font-weight: 600; }
@@ -75,3 +75,4 @@ ul, ol { margin: 0 0 6pt; padding-left: 5.5mm; } li { margin-bottom: 1.4pt; text
 .referencias p { padding-left: 8mm; text-indent: -8mm; font-size: 9pt; text-align: left; margin-bottom: 3pt; }
 .glosario dt { font: 600 9.4pt "Avenir Next", "Gill Sans", "Helvetica Neue", Arial, sans-serif; color: var(--cian-osc); margin-top: 3mm; }
 .glosario dd { margin: 0 0 0 0; font-size: 9.4pt; }
+.caja-clave li > b { flex: none; white-space: nowrap; }

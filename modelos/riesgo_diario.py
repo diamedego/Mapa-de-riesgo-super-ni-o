@@ -68,6 +68,10 @@ F_SUELO, F_TERRENO = float(PARAM.get("factor_suelo", 0.25)), float(PARAM.get("fa
 # zonas amplias donde puede haber tormentas fuertes aisladas; sin calibrar, el modelo veía 1 de cada 9 municipios que el SMN alertaba
 FU = PARAM.get("factor_umbral", {})
 F_UMB = np.array([float(FU.get("amarillo", 1)), float(FU.get("naranja", 1)), float(FU.get("rojo", 1))])
+# Piso físico del umbral efectivo (mm/24 h, v9): U_ef = máx(U · f · (1 − 0,20 P) · (1 − 0,25 s_m) ; piso). Evita que con f bajo, terreno propenso y suelo
+# mojado una lluvia ordinaria dispare amarilla o naranja. La roja no tiene piso (f = 1,0). Sin «piso_mm» en el JSON no hay piso (comportamiento v8).
+PM = PARAM.get("piso_mm", {})
+PISO_MM = np.array([float(PM.get("amarillo", 0)), float(PM.get("naranja", 0)), 0.0])
 F_NORMAL = 0.5   # factor de lluvia del índice con lluvia normal (f = lluvia / normal / 2)
 H_NIVEL = [0, 4, 7, 10]
 CRECIDA = "https://flood-api.open-meteo.com/v1/flood"
@@ -160,7 +164,7 @@ def niveles_lluvia(M: np.ndarray, u: pd.Series, propension: float) -> tuple[list
         # Desde el día 3 el ensamble ya no coincide en el día exacto de la tormenta: cuenta si el miembro supera el umbral ese día
         # o el anterior o el siguiente (ventana de ±1 día, como el índice de extremos del ECMWF con plazos largos)
         dia = (M[:, max(2, k - 1):min(M.shape[1], k + 2)].max(axis=1) if d >= VENTANA_DESDE else M[:, k])[:, None]
-        p = ((dia > base[None, :] * (1 - F_SUELO * sat)[:, None]).mean(axis=0))
+        p = ((dia > np.maximum(base[None, :] * (1 - F_SUELO * sat)[:, None], PISO_MM[None, :])).mean(axis=0))
         n = 3 if p[2] >= P_UMBRAL else 2 if p[1] >= P_UMBRAL else 1 if p[0] >= P_UMBRAL else 0
         niv.append(n); prob.append(round(float(p[max(0, n - 1)]), 2)); p3.append([float(x) for x in p])
     return niv, prob, p3
@@ -403,7 +407,7 @@ def riesgo_grilla(lluvia: dict, rios: dict, dias: list, PLd: np.ndarray | None =
             ant = sum(M[:, k - j] * 0.85 ** (j - 1) for j in range(1, 6) if k - j >= 0)
             fac = 1 - F_SUELO * np.clip(ant[:, None] / np.maximum(base[None, :, 1], 1.0), 0, 1)   # miembros × celdas
             dia = M[:, max(2, k - 1):min(M.shape[1], k + 2)].max(axis=1) if d >= VENTANA_DESDE else M[:, k]   # ±1 día desde el día 3
-            p = (dia[:, None, None] > base[None, :, :] * fac[:, :, None]).mean(axis=0)     # celdas × 3
+            p = (dia[:, None, None] > np.maximum(base[None, :, :] * fac[:, :, None], PISO_MM[None, None, :])).mean(axis=0)     # celdas × 3 (con piso en mm)
             n = np.where(p[:, 2] >= P_UMBRAL, 3, np.where(p[:, 1] >= P_UMBRAL, 2, np.where(p[:, 0] >= P_UMBRAL, 1, 0)))
             NL[d][sel], PLL[d][sel] = n, np.take_along_axis(p, np.maximum(n - 1, 0)[:, None], 1)[:, 0]
             PAM[d][sel] = p[:, 0]

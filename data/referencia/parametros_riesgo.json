@@ -11,11 +11,19 @@
     {
       "fecha": "2026-11-17",
       "cambio": "factor_umbral calibrado contra las alertas del SMN (43 días, 2026-09-28 a 2026-11-09): amarillo 0.2 (ETS 0.117), naranja y rojo 0.25 (ETS 0.134); rojo sin calibrar (1,0): no hubo alertas rojas en la muestra"
+    },
+    {
+      "fecha": "2026-11-18",
+      "cambio": "v9: piso físico del umbral efectivo (mm/24 h): amarillo 10, naranja 20 (propuesta prudente; con 4 días de lluvia observada el piso de 15/30 mm recortaba el 56-75 % de la detección). Calibración semanal con Frequency Bias acotado a [0,8; 1,5]. Factores sin cambio (0,20 / 0,25 / 1,0)"
     }
   ],
   "factor_umbral": {
     "amarillo": 0.2,
     "naranja": 0.25,
     "rojo": 1.0
+  },
+  "piso_mm": {
+    "amarillo": 10,
+    "naranja": 20
   }
 }

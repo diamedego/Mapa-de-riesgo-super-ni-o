@@ -16,7 +16,7 @@ a { color: inherit; text-decoration: none; }
 .portada .contenido { position: absolute; left: 24mm; right: 24mm; top: 52mm; }
 .portada .logo { width: 22mm; height: 22mm; margin-bottom: 14mm; }
 .portada .tipo { font: 600 9pt "Avenir Next", "Gill Sans", "Helvetica Neue", Arial, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: #67e8f9; margin-bottom: 7mm; }
-.portada h1 { font: 700 34pt/1.08 "Iowan Old Style", "Charter", "Palatino", Georgia, serif; letter-spacing: -0.01em; margin: 0 0 7mm; color: #fff; text-wrap: balance; }
+.portada h1 { break-before: auto; font: 700 34pt/1.08 "Iowan Old Style", "Charter", "Palatino", Georgia, serif; letter-spacing: -0.01em; margin: 0 0 7mm; color: #fff; text-wrap: balance; }
 .portada .sub { font: 400 15pt/1.4 "Iowan Old Style", "Charter", "Palatino", Georgia, serif; color: #b6d3df; max-width: 140mm; margin-bottom: 20mm; font-style: italic; }
 .portada .datos { font: 400 9.5pt/1.7 "Avenir Next", "Gill Sans", "Helvetica Neue", Arial, sans-serif; color: #cfe3ec; border-top: 1px solid rgba(255, 255, 255, 0.22); padding-top: 6mm; max-width: 120mm; }
 .portada .datos b { color: #fff; font-weight: 600; }
@@ -75,25 +75,33 @@ ul, ol { margin: 0 0 6pt; padding-left: 5.5mm; } li { margin-bottom: 1.4pt; text
 .referencias p { padding-left: 8mm; text-indent: -8mm; font-size: 9pt; text-align: left; margin-bottom: 3pt; }
 .glosario dt { font: 600 9.4pt "Avenir Next", "Gill Sans", "Helvetica Neue", Arial, sans-serif; color: var(--cian-osc); margin-top: 3mm; }
 .glosario dd { margin: 0 0 0 0; font-size: 9.4pt; }
+.caja-clave li > b { flex: none; white-space: nowrap; }
 
 @media screen {
-  html { font-size: 17px; background: #f7f6f2; }
-  body { max-width: 820px; margin: 0 auto; padding: 24px 16px 64px; text-align: left; hyphens: manual; background: #fff; }
-  .portada { width: auto; height: auto; min-height: 560px; margin: -24px -16px 32px; }
-  .portada .contenido { position: relative; left: 0; right: 0; top: 0; padding: 48px 24px 0; }
-  .portada .pie { position: relative; left: 0; right: 0; bottom: 0; padding: 160px 24px 24px; }
-  .portada .olas { height: 140px; }
-  section { margin-bottom: 56px; }
-  h1 { padding-top: 24px; border-top: 1px solid #d8d5cd; }
-  table { display: block; overflow-x: auto; max-width: 100%; }
+  /* Computadora: una hoja A4 centrada con los mismos márgenes, la misma tipografía y el mismo espaciado que el PDF */
+  html { background: #ecebe6; }
+  body { width: 210mm; max-width: 100%; margin: 0 auto; padding: 21mm 19mm 21mm 21mm; background: #fff; box-shadow: 0 0 0 1px #d8d5cd; }
+  .portada { margin: -21mm -19mm 0 -21mm; }   /* como la primera página: la hoja entera, sin margen */
+  h1 { margin-top: 21mm; padding-top: 12mm; border-top: 1px solid #d8d5cd; }   /* cada capítulo arranca como en una página nueva */
   figure svg, img { max-width: 100%; height: auto; }
-  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .indice li { cursor: pointer; } .indice li .p { display: none; }
   .formula { overflow-x: auto; }
 }
+@media screen and (max-width: 860px) {
+  /* Celular: columna de una sola pieza con 16 px de margen a cada lado */
+  html { font-size: 14px; }
+  body { width: auto; padding: 16px 16px 48px; text-align: left; hyphens: manual; box-shadow: none; }
+  .portada { width: auto; height: auto; min-height: 560px; margin: -16px -16px 24px; }
+  .portada .contenido { position: relative; left: 0; right: 0; top: 0; padding: 48px 24px 0; }
+  .portada .pie { position: relative; left: 0; right: 0; bottom: 0; padding: 160px 24px 24px; }
+  .portada .olas { height: 140px; }
+  h1 { margin-top: 32px; padding-top: 24px; }
+  table { display: block; overflow-x: auto; max-width: 100%; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 </style></head><body><section class="portada"><div class="contenido"><svg viewBox="0 0 40 40" class="logo"><rect width="40" height="40" rx="10" fill="#0e7490"/><path d="M8 24c3 0 3-2 6-2s3 2 6 2 3-2 6-2 3 2 6 2" fill="none" stroke="#22d3ee" stroke-width="2.4" stroke-linecap="round"/><path d="M8 30c3 0 3-2 6-2s3 2 6 2 3-2 6-2 3 2 6 2" fill="none" stroke="#a5f3fc" stroke-width="2.4" stroke-linecap="round" opacity=".7"/><path d="M20 8c3 3.6 5 6.3 5 8.8a5 5 0 0 1-10 0c0-2.5 2-5.2 5-8.8Z" fill="#ecfeff"/></svg><div class="tipo">Documento funcional y memoria técnica</div>
 <h1>Argentina frente a El Niño 2026–27</h1><div class="sub">Sistema de pronóstico de riesgo de inundación basado en impacto para los gobiernos locales de la República Argentina, con simulación hidráulica bidimensional de escenarios históricos</div>
-<div class="datos"><b>Autora:</b> Diamela, ingeniera química (UTN)<br><b>Versión:</b> 8.0 · <b>Fecha:</b> 18 de noviembre de 2026<br><b>Sitio:</b> mapa-de-riesgo-super-nino.diamedego.workers.dev<br><b>Repositorio:</b> github.com/diamedego/Mapa-de-riesgo-super-ni-o</div></div><svg class="olas" viewBox="0 0 794 227" preserveAspectRatio="none"><path d="M0 120c60 0 80-30 140-30s80 30 140 30 80-30 140-30 80 30 140 30 80-30 140-30 60 30 94 30V227H0Z" fill="#0e7490" opacity=".28"/><path d="M0 160c60 0 80-30 140-30s80 30 140 30 80-30 140-30 80 30 140 30 80-30 140-30 60 30 94 30V227H0Z" fill="#0e7490" opacity=".45"/><path d="M0 200c60 0 80-26 140-26s80 26 140 26 80-26 140-26 80 26 140 26 80-26 140-26 60 26 94 26V227H0Z" fill="#22d3ee" opacity=".22"/></svg>
+<div class="datos"><b>Autora:</b> Diamela Dego<br><b>Versión:</b> 9.0 · <b>Fecha:</b> 18 de noviembre de 2026<br><b>Sitio:</b> mapa-de-riesgo-super-nino.diamedego.workers.dev<br><b>Repositorio:</b> github.com/diamedego/Mapa-de-riesgo-super-ni-o</div></div><svg class="olas" viewBox="0 0 794 227" preserveAspectRatio="none"><path d="M0 120c60 0 80-30 140-30s80 30 140 30 80-30 140-30 80 30 140 30 80-30 140-30 60 30 94 30V227H0Z" fill="#0e7490" opacity=".28"/><path d="M0 160c60 0 80-30 140-30s80 30 140 30 80-30 140-30 80 30 140 30 80-30 140-30 60 30 94 30V227H0Z" fill="#0e7490" opacity=".45"/><path d="M0 200c60 0 80-26 140-26s80 26 140 26 80-26 140-26 80 26 140 26 80-26 140-26 60 26 94 26V227H0Z" fill="#22d3ee" opacity=".22"/></svg>
 <div class="pie">Trabajo independiente elaborado con datos públicos. No constituye un producto oficial; ante una emergencia rigen las indicaciones de Defensa Civil, el SMN y el INA.</div></section>
 <section class="resumen"><h1><span class="num">Resumen</span>Resumen</h1>
 <p>El presente trabajo describe el diseño, la implementación y la validación de un sistema de pronóstico de riesgo de inundación para la República Argentina durante el evento El Niño 2026–27. El sistema abarca 2.282 gobiernos locales, 162 zonas rurales sin gobierno local y 66.515 radios censales, y se compone de dos productos: un tablero cartográfico de actualización automática y un simulador hidráulico bidimensional ejecutado en el navegador.</p>
@@ -109,26 +117,26 @@ Se concluye que el sistema constituye una herramienta de carácter orientativo, 
 <div class="kpis"><div class="kpi"><b>2.282</b><span>gobiernos locales con pronóstico de riesgo a 14 días</span></div><div class="kpi"><b>482</b><span>tormentas observadas para la selección de la fuente de lluvia</span></div><div class="kpi"><b>0,32</b><span>CSI fluvial frente al radar (Concordia, 2023)</span></div><div class="kpi"><b>$ 0</b><span>costo operativo: servicios y herramientas gratuitos</span></div></div>
 <p class="palabras"><b>Palabras clave:</b> riesgo de inundación · El Niño · pronóstico basado en impacto · pronóstico por ensamble · inundación compuesta · número de curva · modelación hidráulica bidimensional · IMERG · validación · Argentina.</p></section>
 <section class="indice"><h1><span class="num">Contenido</span>Índice</h1><ol>
-<li><span class="n">1</span><span class="t">Introducción</span><span class="p"></span></li>
-<li><span class="n">2</span><span class="t">Marco teórico y antecedentes</span><span class="p"></span></li>
-<li><span class="n">3</span><span class="t">Datos: fuentes, cobertura y actualización</span><span class="p"></span></li>
-<li><span class="n">4</span><span class="t">Arquitectura del sistema</span><span class="p"></span></li>
-<li><span class="n">5</span><span class="t">Metodología del pronóstico de riesgo</span><span class="p"></span></li>
-<li><span class="n">6</span><span class="t">Modelo hidráulico y escenarios históricos</span><span class="p"></span></li>
-<li><span class="n">7</span><span class="t">Método estático de ordenamiento de escenarios</span><span class="p"></span></li>
-<li><span class="n">8</span><span class="t">Validación</span><span class="p"></span></li>
-<li><span class="n">9</span><span class="t">Especificación funcional</span><span class="p"></span></li>
-<li><span class="n">10</span><span class="t">Aseguramiento de la calidad y trazabilidad</span><span class="p"></span></li>
-<li><span class="n">11</span><span class="t">Metodología de desarrollo</span><span class="p"></span></li>
-<li><span class="n">12</span><span class="t">Conclusiones</span><span class="p"></span></li>
-<li><span class="n">13</span><span class="t">Limitaciones, riesgos y trabajo futuro</span><span class="p"></span></li>
-<li><span class="n">A</span><span class="t">Glosario</span><span class="p"></span></li>
-<li><span class="n">B</span><span class="t">Referencias</span><span class="p"></span></li>
-<li><span class="n">C</span><span class="t">Estructura del repositorio y procedimientos de ejecución</span><span class="p"></span></li></ol>
+<li><span class="n">1</span><span class="t">Introducción</span><span class="p">6</span></li>
+<li><span class="n">2</span><span class="t">Marco teórico y antecedentes</span><span class="p">9</span></li>
+<li><span class="n">3</span><span class="t">Datos: fuentes, cobertura y actualización</span><span class="p">12</span></li>
+<li><span class="n">4</span><span class="t">Arquitectura del sistema</span><span class="p">15</span></li>
+<li><span class="n">5</span><span class="t">Metodología del pronóstico de riesgo</span><span class="p">17</span></li>
+<li><span class="n">6</span><span class="t">Modelo hidráulico y escenarios históricos</span><span class="p">25</span></li>
+<li><span class="n">7</span><span class="t">Método estático de ordenamiento de escenarios</span><span class="p">30</span></li>
+<li><span class="n">8</span><span class="t">Validación</span><span class="p">33</span></li>
+<li><span class="n">9</span><span class="t">Especificación funcional</span><span class="p">37</span></li>
+<li><span class="n">10</span><span class="t">Aseguramiento de la calidad y trazabilidad</span><span class="p">39</span></li>
+<li><span class="n">11</span><span class="t">Metodología de desarrollo</span><span class="p">41</span></li>
+<li><span class="n">12</span><span class="t">Conclusiones</span><span class="p">43</span></li>
+<li><span class="n">13</span><span class="t">Limitaciones, riesgos y trabajo futuro</span><span class="p">44</span></li>
+<li><span class="n">A</span><span class="t">Glosario</span><span class="p">46</span></li>
+<li><span class="n">B</span><span class="t">Referencias</span><span class="p">48</span></li>
+<li><span class="n">C</span><span class="t">Estructura del repositorio y procedimientos de ejecución</span><span class="p">50</span></li></ol>
 <div class="caja-clave" style="margin-top:12mm"><b>Cómo leer este documento.</b>
 <ul>
 <li><b>Capítulos 1 a 4:</b> planteamiento del problema, fundamentos teóricos, datos empleados y arquitectura.</li>
-<li><b>Capítulos 5 a 7:</b> metodología de cálculo de cada producto, con sus ecuaciones, parámetros y criterios de adopción.</li>
+<li><b>Capítulos 5 a 7:</b> metodología de cada producto: ecuaciones, parámetros y criterios de adopción.</li>
 <li><b>Capítulo 8:</b> validación frente a observaciones independientes.</li>
 <li><b>Capítulos 9 a 11:</b> especificación funcional, aseguramiento de la calidad y metodología de desarrollo.</li>
 <li><b>Capítulos 12 y 13:</b> conclusiones, limitaciones y líneas de trabajo futuro.</li>
@@ -242,11 +250,11 @@ Cada modelo concluye con un recuadro «Alcance y validez», que delimita la preg
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-11-18T16:16:33.605844</dc:date>
+    <dc:date>2026-11-19T00:38:52.834010</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
-      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+      <dc:title>Matplotlib v3.11.0, https://matplotlib.org/</dc:title>
      </cc:Agent>
     </dc:creator>
    </cc:Work>
@@ -280,16 +288,16 @@ z
      <g id="line2d_1">
       <path d="M 156.155078 190.152 
 L 156.155078 7.2 
-" clip-path="url(#p550565ae3f)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p558feb1dad)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_2">
       <defs>
-       <path id="mda84903719" d="M 0 0 
+       <path id="m57ca8c9d0a" d="M 0 0 
 L 0 3.5 
 " style="stroke: #5b6675; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#mda84903719" x="156.155078" y="190.152" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m57ca8c9d0a" x="156.155078" y="190.152" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_1">
@@ -300,11 +308,11 @@ L 0 3.5
      <g id="line2d_3">
       <path d="M 221.919364 190.152 
 L 221.919364 7.2 
-" clip-path="url(#p550565ae3f)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p558feb1dad)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_4">
       <g>
-       <use xlink:href="#mda84903719" x="221.919364" y="190.152" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m57ca8c9d0a" x="221.919364" y="190.152" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_2">
@@ -315,11 +323,11 @@ L 221.919364 7.2
      <g id="line2d_5">
       <path d="M 287.68365 190.152 
 L 287.68365 7.2 
-" clip-path="url(#p550565ae3f)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p558feb1dad)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_6">
       <g>
-       <use xlink:href="#mda84903719" x="287.68365" y="190.152" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m57ca8c9d0a" x="287.68365" y="190.152" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_3">
@@ -330,11 +338,11 @@ L 287.68365 7.2
      <g id="line2d_7">
       <path d="M 353.447935 190.152 
 L 353.447935 7.2 
-" clip-path="url(#p550565ae3f)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p558feb1dad)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_8">
       <g>
-       <use xlink:href="#mda84903719" x="353.447935" y="190.152" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m57ca8c9d0a" x="353.447935" y="190.152" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_4">
@@ -345,11 +353,11 @@ L 353.447935 7.2
      <g id="line2d_9">
       <path d="M 419.212221 190.152 
 L 419.212221 7.2 
-" clip-path="url(#p550565ae3f)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p558feb1dad)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_10">
       <g>
-       <use xlink:href="#mda84903719" x="419.212221" y="190.152" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m57ca8c9d0a" x="419.212221" y="190.152" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_5">
@@ -360,11 +368,11 @@ L 419.212221 7.2
      <g id="line2d_11">
       <path d="M 484.976507 190.152 
 L 484.976507 7.2 
-" clip-path="url(#p550565ae3f)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p558feb1dad)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_12">
       <g>
-       <use xlink:href="#mda84903719" x="484.976507" y="190.152" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m57ca8c9d0a" x="484.976507" y="190.152" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_6">
@@ -379,12 +387,12 @@ L 484.976507 7.2
     <g id="ytick_1">
      <g id="line2d_13">
       <defs>
-       <path id="m5d41c8b7d7" d="M 0 0 
+       <path id="md1a76a78a8" d="M 0 0 
 L -3.5 0 
 " style="stroke: #5b6675; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#m5d41c8b7d7" x="156.155078" y="177.750485" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md1a76a78a8" x="156.155078" y="177.750485" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_8">
@@ -394,7 +402,7 @@ L -3.5 0
     <g id="ytick_2">
      <g id="line2d_14">
       <g>
-       <use xlink:href="#m5d41c8b7d7" x="156.155078" y="164.571404" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md1a76a78a8" x="156.155078" y="164.571404" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_9">
@@ -404,7 +412,7 @@ L -3.5 0
     <g id="ytick_3">
      <g id="line2d_15">
       <g>
-       <use xlink:href="#m5d41c8b7d7" x="156.155078" y="151.392323" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md1a76a78a8" x="156.155078" y="151.392323" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_10">
@@ -414,7 +422,7 @@ L -3.5 0
     <g id="ytick_4">
      <g id="line2d_16">
       <g>
-       <use xlink:href="#m5d41c8b7d7" x="156.155078" y="138.213242" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md1a76a78a8" x="156.155078" y="138.213242" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_11">
@@ -424,7 +432,7 @@ L -3.5 0
     <g id="ytick_5">
      <g id="line2d_17">
       <g>
-       <use xlink:href="#m5d41c8b7d7" x="156.155078" y="125.034162" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md1a76a78a8" x="156.155078" y="125.034162" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_12">
@@ -434,7 +442,7 @@ L -3.5 0
     <g id="ytick_6">
      <g id="line2d_18">
       <g>
-       <use xlink:href="#m5d41c8b7d7" x="156.155078" y="111.855081" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md1a76a78a8" x="156.155078" y="111.855081" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_13">
@@ -444,7 +452,7 @@ L -3.5 0
     <g id="ytick_7">
      <g id="line2d_19">
       <g>
-       <use xlink:href="#m5d41c8b7d7" x="156.155078" y="98.676" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md1a76a78a8" x="156.155078" y="98.676" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_14">
@@ -454,7 +462,7 @@ L -3.5 0
     <g id="ytick_8">
      <g id="line2d_20">
       <g>
-       <use xlink:href="#m5d41c8b7d7" x="156.155078" y="85.496919" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md1a76a78a8" x="156.155078" y="85.496919" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_15">
@@ -464,7 +472,7 @@ L -3.5 0
     <g id="ytick_9">
      <g id="line2d_21">
       <g>
-       <use xlink:href="#m5d41c8b7d7" x="156.155078" y="72.317838" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md1a76a78a8" x="156.155078" y="72.317838" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_16">
@@ -474,7 +482,7 @@ L -3.5 0
     <g id="ytick_10">
      <g id="line2d_22">
       <g>
-       <use xlink:href="#m5d41c8b7d7" x="156.155078" y="59.138758" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md1a76a78a8" x="156.155078" y="59.138758" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_17">
@@ -484,7 +492,7 @@ L -3.5 0
     <g id="ytick_11">
      <g id="line2d_23">
       <g>
-       <use xlink:href="#m5d41c8b7d7" x="156.155078" y="45.959677" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md1a76a78a8" x="156.155078" y="45.959677" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_18">
@@ -494,7 +502,7 @@ L -3.5 0
     <g id="ytick_12">
      <g id="line2d_24">
       <g>
-       <use xlink:href="#m5d41c8b7d7" x="156.155078" y="32.780596" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md1a76a78a8" x="156.155078" y="32.780596" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_19">
@@ -504,7 +512,7 @@ L -3.5 0
     <g id="ytick_13">
      <g id="line2d_25">
       <g>
-       <use xlink:href="#m5d41c8b7d7" x="156.155078" y="19.601515" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md1a76a78a8" x="156.155078" y="19.601515" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_20">
@@ -518,7 +526,7 @@ L 225.207578 181.836
 L 225.207578 173.66497 
 L 156.155078 173.66497 
 z
-" clip-path="url(#p550565ae3f)" style="fill: #eb6834"/>
+" clip-path="url(#p558feb1dad)" style="fill: #eb6834"/>
    </g>
    <g id="patch_4">
     <path d="M 156.155078 168.656919 
@@ -526,7 +534,7 @@ L 254.801507 168.656919
 L 254.801507 160.485889 
 L 156.155078 160.485889 
 z
-" clip-path="url(#p550565ae3f)" style="fill: #eb6834"/>
+" clip-path="url(#p558feb1dad)" style="fill: #eb6834"/>
    </g>
    <g id="patch_5">
     <path d="M 156.155078 155.477838 
@@ -534,7 +542,7 @@ L 307.412935 155.477838
 L 307.412935 147.306808 
 L 156.155078 147.306808 
 z
-" clip-path="url(#p550565ae3f)" style="fill: #e0ae00"/>
+" clip-path="url(#p558feb1dad)" style="fill: #e0ae00"/>
    </g>
    <g id="patch_6">
     <path d="M 156.155078 142.298758 
@@ -542,7 +550,7 @@ L 363.312578 142.298758
 L 363.312578 134.127727 
 L 156.155078 134.127727 
 z
-" clip-path="url(#p550565ae3f)" style="fill: #e0ae00"/>
+" clip-path="url(#p558feb1dad)" style="fill: #e0ae00"/>
    </g>
    <g id="patch_7">
     <path d="M 156.155078 129.119677 
@@ -550,7 +558,7 @@ L 399.482935 129.119677
 L 399.482935 120.948647 
 L 156.155078 120.948647 
 z
-" clip-path="url(#p550565ae3f)" style="fill: #e0ae00"/>
+" clip-path="url(#p558feb1dad)" style="fill: #e0ae00"/>
    </g>
    <g id="patch_8">
     <path d="M 156.155078 115.940596 
@@ -558,7 +566,7 @@ L 452.094364 115.940596
 L 452.094364 107.769566 
 L 156.155078 107.769566 
 z
-" clip-path="url(#p550565ae3f)" style="fill: #0e7490"/>
+" clip-path="url(#p558feb1dad)" style="fill: #0e7490"/>
    </g>
    <g id="patch_9">
     <path d="M 156.155078 102.761515 
@@ -566,7 +574,7 @@ L 481.688292 102.761515
 L 481.688292 94.590485 
 L 156.155078 94.590485 
 z
-" clip-path="url(#p550565ae3f)" style="fill: #0e7490"/>
+" clip-path="url(#p558feb1dad)" style="fill: #0e7490"/>
    </g>
    <g id="patch_10">
     <path d="M 156.155078 89.582434 
@@ -574,7 +582,7 @@ L 483.990042 89.582434
 L 483.990042 81.411404 
 L 156.155078 81.411404 
 z
-" clip-path="url(#p550565ae3f)" style="fill: #0e7490"/>
+" clip-path="url(#p558feb1dad)" style="fill: #0e7490"/>
    </g>
    <g id="patch_11">
     <path d="M 156.155078 76.403353 
@@ -582,7 +590,7 @@ L 484.976507 76.403353
 L 484.976507 68.232323 
 L 156.155078 68.232323 
 z
-" clip-path="url(#p550565ae3f)" style="fill: #0e7490"/>
+" clip-path="url(#p558feb1dad)" style="fill: #0e7490"/>
    </g>
    <g id="patch_12">
     <path d="M 156.155078 63.224273 
@@ -590,7 +598,7 @@ L 484.976507 63.224273
 L 484.976507 55.053242 
 L 156.155078 55.053242 
 z
-" clip-path="url(#p550565ae3f)" style="fill: #0e7490"/>
+" clip-path="url(#p558feb1dad)" style="fill: #0e7490"/>
    </g>
    <g id="patch_13">
     <path d="M 156.155078 50.045192 
@@ -598,7 +606,7 @@ L 484.976507 50.045192
 L 484.976507 41.874162 
 L 156.155078 41.874162 
 z
-" clip-path="url(#p550565ae3f)" style="fill: #0e7490"/>
+" clip-path="url(#p558feb1dad)" style="fill: #0e7490"/>
    </g>
    <g id="patch_14">
     <path d="M 156.155078 36.866111 
@@ -606,7 +614,7 @@ L 484.976507 36.866111
 L 484.976507 28.695081 
 L 156.155078 28.695081 
 z
-" clip-path="url(#p550565ae3f)" style="fill: #0e7490"/>
+" clip-path="url(#p558feb1dad)" style="fill: #0e7490"/>
    </g>
    <g id="patch_15">
     <path d="M 156.155078 23.68703 
@@ -614,7 +622,7 @@ L 484.976507 23.68703
 L 484.976507 15.516 
 L 156.155078 15.516 
 z
-" clip-path="url(#p550565ae3f)" style="fill: #0e7490"/>
+" clip-path="url(#p558feb1dad)" style="fill: #0e7490"/>
    </g>
    <g id="patch_16">
     <path d="M 156.155078 190.152 
@@ -668,7 +676,7 @@ L 524.435078 190.152
   </g>
  </g>
  <defs>
-  <clipPath id="p550565ae3f">
+  <clipPath id="p558feb1dad">
    <rect x="156.155078" y="7.2" width="368.28" height="182.952"/>
   </clipPath>
  </defs>
@@ -722,14 +730,14 @@ L 524.435078 190.152
 </ul>
 <p>Las capas se construyen en SQL y se validaron con DuckDB, con resultados idénticos a los de la implementación en Python para los componentes de exposición y vulnerabilidad. La ejecución sobre Databricks se encuentra preparada.</p>
 <h2><span class="n">4.2</span>Aplicación web</h2>
-<p>La interfaz es una aplicación estática basada en MapLibre GL, complementada por maplibre-contour para las curvas de nivel y three.js para la maqueta tridimensional, que se carga solo cuando se la solicita. Se organiza en cuatro secciones principales (Mapa de riesgo · Simulador de inundación · Tablero de control · Documentación técnica) y en módulos de responsabilidad única (tabla 3). El diseño visual responde a una guía propia: retícula de 8 px, filetes de 1 px, cifras en tipografía monoespaciada, semáforo reservado al nivel de riesgo y una revisión de cinco puntos previa a cada publicación.</p>
+<p>La interfaz es una aplicación estática basada en MapLibre GL, complementada por maplibre-contour para las curvas de nivel y three.js para la maqueta tridimensional, que se carga solo cuando se la solicita. Se organiza en cuatro secciones principales (Mapa de riesgo · Simulador de inundación · Reporte · Documentación técnica) y en módulos de responsabilidad única (tabla 3). El diseño visual responde a una guía propia: retícula de 8 px, filetes de 1 px, cifras en tipografía monoespaciada, semáforo reservado al nivel de riesgo y una revisión de cinco puntos previa a cada publicación.</p>
 <div class="tabla-t">Tabla 3. Módulos de la aplicación</div>
 <table><thead><tr><th>Módulo</th><th>Responsabilidad</th></tr></thead><tbody>
 <tr><td>Textos</td><td>Contenido en español e inglés; los textos dependientes de datos se generan por función</td></tr>
 <tr><td>Utilidades y gráficos</td><td>Formatos, geometría, íconos y gráficos vectoriales propios, sin librerías externas</td></tr>
 <tr><td>Tiempo</td><td>Campos meteorológicos, partículas de viento y miniaturas</td></tr>
 <tr><td>Mapa y buscador</td><td>Capas, curvas de nivel acotadas y geocodificación de provincias, partidos, localidades, direcciones, barrios populares, establecimientos y coordenadas</td></tr>
-<tr><td>Tableros, láminas y guía</td><td>Tablero de cada capa, listado de cambios de nivel, análisis, gráfico de riesgo diario, fuentes por tipo y recorrido guiado</td></tr>
+<tr><td>Tableros, láminas y guía</td><td>Tablero de cada capa, «Evolución de riesgo por zona», reporte de texto, gráfico de riesgo diario, fuentes por tipo y recorrido guiado</td></tr>
 <tr><td>Aplicación</td><td>Estado, armado del riesgo diario, indicadores del área seleccionada y línea de tiempo</td></tr>
 <tr><td>Simulador</td><td>Datos del lugar, base de tormentas históricas, motor hidráulico (en un <i>Web Worker</i>), escenarios, ordenamiento de eventos y maqueta 3D</td></tr></tbody></table>
 <p><b>Adaptación a dispositivos.</b> Las pantallas de hasta 760 px disponen de un diseño específico, con barra superior, navegación fija inferior e indicadores en dos columnas. Cada modificación se verifica mediante mediciones automáticas a 390 y 1.440 px (desbordes, superposición de textos y coherencia entre indicador y mapa en 30 lugares aleatorios). La representación cartográfica varía con la escala: gobiernos locales a escala nacional, celdas de 0,1° a escala regional y radios censales a escala local.</p>
@@ -761,10 +769,11 @@ L 524.435078 190.152
 <tr><td>3 · roja</td><td>Medio</td><td>Alto</td><td>Muy alto</td><td>Muy alto</td></tr></tbody></table>
 <h3>Amenaza por precipitación</h3>
 <p>Para cada uno de los 50 miembros del ensamble del ECMWF (0,25°) y cada día, la lluvia de 24 h se compara con tres umbrales del lugar. El nivel corresponde al mayor umbral superado por al menos el 30 % de los miembros:</p>
-<div class="formula">U<sub>k,ef</sub> = U<sub>k</sub> · f<sub>k</sub> · ( 1 − 0,20 · P ) · ( 1 − 0,25 · s<sub>m</sub> ) ,  s<sub>m</sub> = mín( 1 ; Σ<sub>j=1..5</sub> 0,85<sup>j−1</sup> · R<sub>m,d−j</sub> / U<sub>naranja</sub> )<span class="eq">(1c)</span></div>
+<div class="formula">U<sub>k,ef</sub> = máx( U<sub>k</sub> · f<sub>k</sub> · ( 1 − 0,20 · P ) · ( 1 − 0,25 · s<sub>m</sub> ) ; Π<sub>k</sub> ) ,  s<sub>m</sub> = mín( 1 ; Σ<sub>j=1..5</sub> 0,85<sup>j−1</sup> · R<sub>m,d−j</sub> / U<sub>naranja</sub> )<span class="eq">(1c)</span></div>
 <ul>
 <li><b>U<sub>k</sub>, umbrales del SMN.</b> Se aplica el método de la Nota Técnica SMN 2021-109: percentil 90 de la lluvia diaria del mes más lluvioso (amarilla), percentil 99 (naranja) y un valor próximo al extremo (roja), calculados por celda de 0,1° con ERA5-Land 1991–2020, sobre días con 1 mm o más y redondeados a múltiplos de 5 mm. Mediana nacional: amarilla 30 mm, naranja 70 mm y roja 95 mm en un día. Los valores son consistentes con los publicados por el SMN para la llanura chaco-pampeana (amarilla de 30 a 50 mm; roja de 70 a 100 mm).</li>
-<li><b>f<sub>k</sub>, factor de calibración</b> contra las alertas del SMN (sección 5.5): 0,20 para la amarilla y 0,25 para la naranja; la roja no se calibra (f = 1,0).</li>
+<li><b>f<sub>k</sub>, factor de calibración</b> contra las alertas del SMN (sección 5.5): 0,20 para la amarilla y 0,25 para la naranja; la roja no se calibra (f = 1,0). Con las medianas nacionales de U<sub>k</sub> estos factores equivalen a 6 mm y 17,5 mm en 24 h, y a menos aún con P y s<sub>m</sub> máximos (3,6 mm y 10,5 mm), mientras que la roja se mantiene en 95 mm.</li>
+<li><b>Π<sub>k</sub>, piso físico</b> del umbral efectivo (versión 9): 10 mm en 24 h para la amarilla y 20 mm para la naranja; la roja no tiene piso. Impide que, con f<sub>k</sub> bajo, terreno propenso y suelo húmedo, una lluvia ordinaria active el nivel. Los valores corresponden a una propuesta prudente, no a un óptimo validado (sección 5.5).</li>
 <li><b>P, propensión del terreno</b> (0 a 1, a partir del agua observada por satélite y del terreno bajo): reduce el umbral hasta un 20 %.</li>
 <li><b>s<sub>m</sub>, humedad antecedente</b>: índice de precipitación antecedente de 5 días de cada miembro (factor de decaimiento 0,85), relativo al umbral naranja; reduce el umbral hasta un 25 %.</li>
 <li><b>Tolerancia temporal.</b> Desde el día siguiente, un miembro se computa si supera el umbral en el día considerado, el anterior o el posterior; para el día en curso se exige coincidencia exacta.</li>
@@ -776,7 +785,7 @@ L 524.435078 190.152
 </ul>
 <h3>Impacto</h3>
 <div class="formula">I = mín( 4 ; 1 + [N ≥ 100] + [N ≥ 1.000] + [N ≥ 10.000] + [V ≥ 6 y N ≥ 1] )<span class="eq">(1d)</span></div>
-<p>N representa los habitantes expuestos a inundaciones del día d. Para la lluvia y las alertas se obtiene con el mismo terreno que el simulador hidráulico: una tabla precalculada para cada radio censal, con el código del simulador y 800 m de terreno alrededor de cada círculo de cálculo, da la fracción de su superficie que queda con 10 cm de agua o más para 9 lluvias de 3 días (10 a 300 mm) y 3 humedades del suelo, mediante el método estático del capítulo 7 (número de curva, depresiones del relieve y capacidad de desagüe bienal). Cada día se interpola en esa tabla la lluvia de 3 días que supera el 30 % de los miembros del ensamble, con la humedad antecedente del índice de 5 días; con alerta del SMN, la lluvia mínima es el umbral de ese nivel. Para el río se mantiene la población a menos de 5 m sobre el drenaje (MERIT Hydro). Con alerta naranja el impacto no desciende de «menor» y con roja de «significativo», dado que el relieve de 30 m no representa el escurrimiento por calles en tormentas intensas. V es la vulnerabilidad de 0 a 10, promedio de los indicadores normalizados de hogares sin cloaca, hogares con NBI, viviendas con materiales deficientes y barrios populares por habitante, con los umbrales de la tabla 5.</p>
+<p>N representa los habitantes expuestos a inundaciones del día d. Para la lluvia y las alertas se obtiene con el mismo terreno que el simulador hidráulico: una tabla precalculada para cada radio censal, con el código del simulador y 800 m de terreno alrededor de cada círculo de cálculo, da la fracción de su superficie que queda con 10 cm de agua o más para 9 lluvias de 3 días (10 a 300 mm) y 3 humedades del suelo, mediante el método estático del capítulo 7 (número de curva, depresiones del relieve y capacidad de desagüe bienal). Cada día se interpola en esa tabla la lluvia de 3 días que supera el 30 % de los miembros del ensamble, con la humedad antecedente del índice de 5 días; con alerta del SMN, la lluvia mínima es el umbral de ese nivel. Para el río se mantiene la población a menos de 5 m sobre el drenaje (MERIT Hydro). Con alerta naranja el impacto no desciende de «menor» y con roja de «significativo», dado que el relieve de 30 m no representa el escurrimiento por calles en tormentas intensas. Este piso de impacto, y la lluvia mínima por alerta, se aplican exclusivamente ante alertas oficiales CAP vigentes del SMN por tormentas o lluvias; una amenaza originada en la lluvia del ensamble calibrada con f<sub>k</sub> no lo recibe (verificado en el código del cálculo diario y de la grilla de 0,1°). V es la vulnerabilidad de 0 a 10, promedio de los indicadores normalizados de hogares sin cloaca, hogares con NBI, viviendas con materiales deficientes y barrios populares por habitante, con los umbrales de la tabla 5.</p>
 <div class="tabla-t">Tabla 5. Umbrales físicos de vulnerabilidad y propensión</div>
 <table><thead><tr><th>Indicador</th><th class="num">Valor 0</th><th class="num">Valor 1</th><th>Fundamento</th></tr></thead><tbody>
 <tr><td>Hogares sin cloaca · materiales deficientes</td><td class="num">0 %</td><td class="num">100 %</td><td>Rango natural de la variable</td></tr>
@@ -792,7 +801,8 @@ L 524.435078 190.152
 <tr><td>Umbrales calculados con ERA5-Land</td><td>Consistencia con el pronóstico (mismo centro, ECMWF) y cobertura nacional</td><td>Estaciones del SMN: red rala; la comparación de un modelo con un pluviómetro sesga las probabilidades</td></tr>
 <tr><td>Probabilidad mínima de 30 %</td><td>Criterio de aviso del EFAS; revisión semanal contra lo observado (sección 5.5)</td><td>10–20 %: exceso de falsas alarmas; 50 % o más: avisos tardíos</td></tr>
 <tr><td>Tolerancia de ±1 día desde el día siguiente</td><td>Desfase temporal de los miembros a plazos mayores, criterio análogo al índice de extremos del ECMWF</td><td>Coincidencia exacta: los días 3 a 14 no registraban tormentas presentes en el ensamble</td></tr>
-<tr><td>Calibración contra alertas del SMN</td><td>El ensamble atenúa las tormentas: sin calibración coincidía con 184 de 1.656 gobiernos locales alertados</td><td>Reducción de la probabilidad mínima a 10 %: no corrige la intensidad (184 coincidencias)</td></tr>
+<tr><td>Calibración contra alertas del SMN: f<sub>k</sub> de máximo ETS con Frequency Bias entre 0,8 y 1,5</td><td>El ensamble atenúa las tormentas: sin calibración coincidía con 184 de 1.656 gobiernos locales alertados. El Bias acotado evita que el ajuste compre aciertos con sobrealerta</td><td>Reducción de la probabilidad mínima a 10 %: no corrige la intensidad (184 coincidencias). Máximo ETS sin restricción (versión 8): llevó f a 0,20 y 0,25; en producción el Bias de la naranja es 1,55 (sección 5.5)</td></tr>
+<tr><td>Piso físico de 10 mm (amarilla) y 20 mm (naranja) en 24 h</td><td>Con 4 días de lluvia observada reduce a menos de la mitad los gobiernos locales señalados donde el SMN no alertó (amarilla: 14,2 % a 6,8 %; naranja: 3,3 % a 1,5 %), con una pérdida de detección de un 28 % y un 33 % respectivamente</td><td>15 y 30 mm (y 20 y 35 mm): recortaban el 56–72 % (amarilla) y el 75–84 % (naranja) de la detección; descartados. Sin piso: sobrealerta en días sin aviso del SMN</td></tr>
 <tr><td>Nivel rojo sin calibrar</td><td>Ausencia de alertas rojas en la muestra</td><td>Calibración con el factor naranja: 1.110 gobiernos locales en rojo, resultado alarmista</td></tr>
 <tr><td>Humedad antecedente (−25 % máx.), índice de 5 días</td><td>Criterio del sistema de guía de crecidas repentinas de la OMM (FFGS)</td><td>Modelo continuo de humedad (Sacramento): sin datos ni corridas propias</td></tr>
 <tr><td>Propensión del terreno (−20 % máx.)</td><td>En la llanura la inundación se produce por anegamiento, no contemplado en las alertas por tormenta</td><td>Amenaza fija aditiva: asignaba riesgo sin evento</td></tr>
@@ -838,11 +848,11 @@ L 524.435078 190.152
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-11-18T16:16:33.643891</dc:date>
+    <dc:date>2026-11-19T00:38:52.929726</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
-      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+      <dc:title>Matplotlib v3.11.0, https://matplotlib.org/</dc:title>
      </cc:Agent>
     </dc:creator>
    </cc:Work>
@@ -875,12 +885,12 @@ z
     <g id="xtick_1">
      <g id="line2d_1">
       <defs>
-       <path id="m81086d028a" d="M 0 0 
+       <path id="m9c6ed243ce" d="M 0 0 
 L 0 3.5 
 " style="stroke: #5b6675; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#m81086d028a" x="93.638525" y="134.712" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m9c6ed243ce" x="93.638525" y="134.712" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_1">
@@ -890,7 +900,7 @@ L 0 3.5
     <g id="xtick_2">
      <g id="line2d_2">
       <g>
-       <use xlink:href="#m81086d028a" x="192.173516" y="134.712" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m9c6ed243ce" x="192.173516" y="134.712" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_2">
@@ -900,7 +910,7 @@ L 0 3.5
     <g id="xtick_3">
      <g id="line2d_3">
       <g>
-       <use xlink:href="#m81086d028a" x="290.708506" y="134.712" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m9c6ed243ce" x="290.708506" y="134.712" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_3">
@@ -913,16 +923,16 @@ L 0 3.5
      <g id="line2d_4">
       <path d="M 41.513516 134.712 
 L 342.833516 134.712 
-" clip-path="url(#pe14b2f6cf2)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p04da5cdee8)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_5">
       <defs>
-       <path id="m2ba87a7960" d="M 0 0 
+       <path id="ma9728d7639" d="M 0 0 
 L -3.5 0 
 " style="stroke: #5b6675; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#m2ba87a7960" x="41.513516" y="134.712" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#ma9728d7639" x="41.513516" y="134.712" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_4">
@@ -933,11 +943,11 @@ L -3.5 0
      <g id="line2d_6">
       <path d="M 41.513516 107.867368 
 L 342.833516 107.867368 
-" clip-path="url(#pe14b2f6cf2)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p04da5cdee8)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_7">
       <g>
-       <use xlink:href="#m2ba87a7960" x="41.513516" y="107.867368" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#ma9728d7639" x="41.513516" y="107.867368" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_5">
@@ -948,11 +958,11 @@ L 342.833516 107.867368
      <g id="line2d_8">
       <path d="M 41.513516 81.022737 
 L 342.833516 81.022737 
-" clip-path="url(#pe14b2f6cf2)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p04da5cdee8)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_9">
       <g>
-       <use xlink:href="#m2ba87a7960" x="41.513516" y="81.022737" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#ma9728d7639" x="41.513516" y="81.022737" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_6">
@@ -963,11 +973,11 @@ L 342.833516 81.022737
      <g id="line2d_10">
       <path d="M 41.513516 54.178105 
 L 342.833516 54.178105 
-" clip-path="url(#pe14b2f6cf2)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p04da5cdee8)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_11">
       <g>
-       <use xlink:href="#m2ba87a7960" x="41.513516" y="54.178105" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#ma9728d7639" x="41.513516" y="54.178105" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_7">
@@ -978,11 +988,11 @@ L 342.833516 54.178105
      <g id="line2d_12">
       <path d="M 41.513516 27.333474 
 L 342.833516 27.333474 
-" clip-path="url(#pe14b2f6cf2)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p04da5cdee8)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_13">
       <g>
-       <use xlink:href="#m2ba87a7960" x="41.513516" y="27.333474" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#ma9728d7639" x="41.513516" y="27.333474" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_8">
@@ -996,50 +1006,50 @@ L 342.833516 27.333474
    <g id="patch_3">
     <path d="M 55.209879 134.712 
 L 92.653176 134.712 
-L 92.653176 39.547781 
-L 55.209879 39.547781 
+L 92.653176 43.842922 
+L 55.209879 43.842922 
 z
-" clip-path="url(#pe14b2f6cf2)" style="fill: #0e7490"/>
+" clip-path="url(#p04da5cdee8)" style="fill: #0e7490"/>
    </g>
    <g id="patch_4">
     <path d="M 153.744869 134.712 
 L 191.188166 134.712 
-L 191.188166 74.311579 
-L 153.744869 74.311579 
+L 191.188166 80.754291 
+L 153.744869 80.754291 
 z
-" clip-path="url(#pe14b2f6cf2)" style="fill: #0e7490"/>
+" clip-path="url(#p04da5cdee8)" style="fill: #0e7490"/>
    </g>
    <g id="patch_5">
     <path d="M 252.27986 134.712 
 L 289.723156 134.712 
-L 289.723156 120.350122 
-L 252.27986 120.350122 
+L 289.723156 121.423907 
+L 252.27986 121.423907 
 z
-" clip-path="url(#pe14b2f6cf2)" style="fill: #0e7490"/>
+" clip-path="url(#p04da5cdee8)" style="fill: #0e7490"/>
    </g>
    <g id="patch_6">
     <path d="M 94.623875 134.712 
 L 132.067172 134.712 
-L 132.067172 59.815478 
-L 94.623875 59.815478 
+L 132.067172 65.452851 
+L 94.623875 65.452851 
 z
-" clip-path="url(#pe14b2f6cf2)" style="fill: #eb6834"/>
+" clip-path="url(#p04da5cdee8)" style="fill: #eb6834"/>
    </g>
    <g id="patch_7">
     <path d="M 193.158866 134.712 
 L 230.602162 134.712 
-L 230.602162 98.471747 
-L 193.158866 98.471747 
+L 230.602162 97.532185 
+L 193.158866 97.532185 
 z
-" clip-path="url(#pe14b2f6cf2)" style="fill: #eb6834"/>
+" clip-path="url(#p04da5cdee8)" style="fill: #eb6834"/>
    </g>
    <g id="patch_8">
     <path d="M 291.693856 134.712 
 L 329.137152 134.712 
-L 329.137152 120.752792 
-L 291.693856 120.752792 
+L 329.137152 120.887015 
+L 291.693856 120.887015 
 z
-" clip-path="url(#pe14b2f6cf2)" style="fill: #eb6834"/>
+" clip-path="url(#p04da5cdee8)" style="fill: #eb6834"/>
    </g>
    <g id="patch_9">
     <path d="M 41.513516 134.712 
@@ -1052,22 +1062,22 @@ L 342.833516 134.712
 " style="fill: none; stroke: #5b6675; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="text_10">
-    <text style="font-size: 8px; font-family: 'Avenir Next, Gill Sans, Helvetica Neue, Arial, sans-serif'; text-anchor: middle; fill: #0e7490" x="73.931527" y="37.534434" transform="rotate(-0 73.931527 37.534434)">0.71</text>
+    <text style="font-size: 8px; font-family: 'Avenir Next, Gill Sans, Helvetica Neue, Arial, sans-serif'; text-anchor: middle; fill: #0e7490" x="73.931527" y="41.829575" transform="rotate(-0 73.931527 41.829575)">0.68</text>
    </g>
    <g id="text_11">
-    <text style="font-size: 8px; font-family: 'Avenir Next, Gill Sans, Helvetica Neue, Arial, sans-serif'; text-anchor: middle; fill: #eb6834" x="113.345523" y="57.802131" transform="rotate(-0 113.345523 57.802131)">56 %</text>
+    <text style="font-size: 8px; font-family: 'Avenir Next, Gill Sans, Helvetica Neue, Arial, sans-serif'; text-anchor: middle; fill: #eb6834" x="113.345523" y="63.439503" transform="rotate(-0 113.345523 63.439503)">52 %</text>
    </g>
    <g id="text_12">
-    <text style="font-size: 8px; font-family: 'Avenir Next, Gill Sans, Helvetica Neue, Arial, sans-serif'; text-anchor: middle; fill: #0e7490" x="172.466518" y="72.298232" transform="rotate(-0 172.466518 72.298232)">0.45</text>
+    <text style="font-size: 8px; font-family: 'Avenir Next, Gill Sans, Helvetica Neue, Arial, sans-serif'; text-anchor: middle; fill: #0e7490" x="172.466518" y="78.740943" transform="rotate(-0 172.466518 78.740943)">0.40</text>
    </g>
    <g id="text_13">
-    <text style="font-size: 8px; font-family: 'Avenir Next, Gill Sans, Helvetica Neue, Arial, sans-serif'; text-anchor: middle; fill: #eb6834" x="211.880514" y="96.4584" transform="rotate(-0 211.880514 96.4584)">27 %</text>
+    <text style="font-size: 8px; font-family: 'Avenir Next, Gill Sans, Helvetica Neue, Arial, sans-serif'; text-anchor: middle; fill: #eb6834" x="211.880514" y="95.518838" transform="rotate(-0 211.880514 95.518838)">28 %</text>
    </g>
    <g id="text_14">
-    <text style="font-size: 8px; font-family: 'Avenir Next, Gill Sans, Helvetica Neue, Arial, sans-serif'; text-anchor: middle; fill: #0e7490" x="271.001508" y="118.336775" transform="rotate(-0 271.001508 118.336775)">0.11</text>
+    <text style="font-size: 8px; font-family: 'Avenir Next, Gill Sans, Helvetica Neue, Arial, sans-serif'; text-anchor: middle; fill: #0e7490" x="271.001508" y="119.41056" transform="rotate(-0 271.001508 119.41056)">0.10</text>
    </g>
    <g id="text_15">
-    <text style="font-size: 8px; font-family: 'Avenir Next, Gill Sans, Helvetica Neue, Arial, sans-serif'; text-anchor: middle; fill: #eb6834" x="310.415504" y="118.739444" transform="rotate(-0 310.415504 118.739444)">10 %</text>
+    <text style="font-size: 8px; font-family: 'Avenir Next, Gill Sans, Helvetica Neue, Arial, sans-serif'; text-anchor: middle; fill: #eb6834" x="310.415504" y="118.873667" transform="rotate(-0 310.415504 118.873667)">10 %</text>
    </g>
    <g id="legend_1">
     <g id="patch_11">
@@ -1096,7 +1106,7 @@ z
   </g>
  </g>
  <defs>
-  <clipPath id="pe14b2f6cf2">
+  <clipPath id="p04da5cdee8">
    <rect x="41.513516" y="7.2" width="301.32" height="127.512"/>
   </clipPath>
  </defs>
@@ -1112,6 +1122,21 @@ z
 <tr><td>Semanal</td><td>Calibración de los umbrales contra las alertas del SMN de las últimas 8 semanas</td><td>Cambio máximo de 0,05 por semana, a fin de que una semana atípica no desbalancee el ajuste</td></tr>
 <tr><td>Mensual (previsto)</td><td>Agua observada por Sentinel-1 frente a los lugares en nivel alto y frente al simulador</td><td>Revisita del satélite de 12 días</td></tr></tbody></table>
 <p><b>Calibración contra el SMN.</b> Para cada día con alertas archivadas desde el 28 de septiembre se obtiene la lluvia diaria observada (ERA5-Land) en la grilla de 0,1° y se determina el factor f que maximiza la coincidencia entre «lluvia &gt; f × umbral» y «alerta vigente de ese nivel o superior». La métrica es el ETS (<i>equitable threat score</i>), estándar en la verificación de precipitación por descontar los aciertos atribuibles al azar. Sobre 43 días se obtuvo f = 0,20 para la amarilla (ETS 0,117) y f = 0,25 para la naranja (ETS 0,134). Un factor reducido no implica que el SMN alerte por 6 mm: sus alertas abarcan zonas extensas con posibilidad de tormentas intensas aisladas, que en el promedio de una celda de 10 km se manifiestan como lluvia moderada. Con la calibración, el 17 de noviembre el modelo coincidió con el SMN en 1.395 de 2.038 gobiernos locales alertados (184 de 1.656 sin calibración) y se eliminó la discontinuidad entre el día en curso, con alertas, y los días siguientes, sin ellas.</p>
+<p><b>Auditoría de sobrealerta (versión 9).</b> Los factores f<sub>k</sub> de 0,20 y 0,25 llevan los umbrales efectivos a 6 mm y 17,5 mm en 24 h (mediana nacional), a 3,6 mm y 10,5 mm con P y s<sub>m</sub> máximos, frente a 95 mm de la roja: un salto de 5,4 veces entre la naranja y la roja. Se midió el comportamiento de producción (ensamble de 50 miembros, 0,25°, tolerancia de ±1 día, P y s<sub>m</sub>) con las salidas archivadas del 17 y el 18 de noviembre de 2026, a plazo 0, contra las alertas CAP del SMN por tormentas o lluvias (4.888 lugares-día). Los archivos del 15 y 16 de noviembre son anteriores a la calibración y los plazos mayores no son evaluables, porque el SMN todavía no había emitido alertas.</p>
+<div class="tabla-t">Tabla 7.1. Producción frente a las alertas del SMN (17 y 18 de noviembre de 2026, plazo 0)</div>
+<table><thead><tr><th>Nivel</th><th class="num">POD</th><th class="num">FAR</th><th class="num">Bias</th><th class="num">ETS</th><th>Gobiernos locales con amenaza donde el SMN no alertó (3.484)</th></tr></thead><tbody>
+<tr><td>Amarilla o mayor</td><td class="num">0,44</td><td class="num">0,47</td><td class="num">0,83</td><td class="num">0,17</td><td>15,8 % (23,1 % el 18 de noviembre)</td></tr>
+<tr><td>Naranja o mayor</td><td class="num">0,42</td><td class="num">0,73</td><td class="num">1,55</td><td class="num">0,17</td><td>1,7 %</td></tr></tbody></table>
+<p>La sobrealerta se concentra en la naranja: 226 de los 310 gobiernos locales con amenaza naranja por lluvia carecían de alerta naranja del SMN (Bias 1,55), mientras que la amarilla se mantiene en el rango (Bias 0,83), aunque el 18 de noviembre uno de cada cuatro lugares sin alerta recibió amenaza amarilla. La muestra es de 2 días y un único evento: las cifras son orientativas y no comparables con el ETS de 0,117 y 0,134 de la calibración (43 días, ERA5-Land, celdas de 0,1°, sin ensamble). Las alertas archivadas corresponden a la última corrida de cada día, por lo que el porcentaje de falsas alarmas sin alerta puede estar sobreestimado.</p>
+<p><b>Piso físico.</b> Se evaluó un mínimo absoluto del umbral efectivo con la lluvia observada de 4 días (14 al 17 de noviembre; análisis de corto plazo del ECMWF por gobierno local, sin P, s<sub>m</sub> ni miembros del ensamble, que no se archivan), comparada con las alertas enviadas cada día.</p>
+<div class="tabla-t">Tabla 7.2. Antes y después del piso físico (lluvia observada, 4 días, 2.444 gobiernos locales)</div>
+<table><thead><tr><th>Configuración</th><th>Nivel</th><th class="num">POD</th><th class="num">FAR</th><th class="num">Bias</th><th class="num">ETS</th><th class="num">% con amenaza sin alerta SMN</th></tr></thead><tbody>
+<tr><td>Antes (versión 8, sin piso)</td><td>Amarilla</td><td class="num">0,34</td><td class="num">0,19</td><td class="num">0,43</td><td class="num">0,09</td><td class="num">14,2</td></tr>
+<tr><td>Después (piso 10 mm)</td><td>Amarilla</td><td class="num">0,25</td><td class="num">0,14</td><td class="num">0,29</td><td class="num">0,08</td><td class="num">6,8</td></tr>
+<tr><td>Antes (versión 8, sin piso)</td><td>Naranja</td><td class="num">0,18</td><td class="num">0,51</td><td class="num">0,36</td><td class="num">0,07</td><td class="num">3,3</td></tr>
+<tr><td>Después (piso 20 mm)</td><td>Naranja</td><td class="num">0,12</td><td class="num">0,51</td><td class="num">0,24</td><td class="num">0,05</td><td class="num">1,5</td></tr></tbody></table>
+<p>El piso reduce a menos de la mitad los gobiernos locales señalados sin alerta del SMN, a costa de una parte de la detección. Valores más altos (15 y 30 mm, o 20 y 35 mm) la recortaban entre un 56 y un 84 %, por lo que se descartaron. El Bias de esta aproximación es inferior a 1 porque no incluye los miembros del ensamble: no sustituye la medición de producción de la tabla 7.1.</p>
+<p><b>Decisión.</b> Se adoptan el piso de 10 mm (amarilla) y 20 mm (naranja) y la selección de f<sub>k</sub> por máximo ETS con Frequency Bias acotado entre 0,8 y 1,5 en la calibración semanal, que mantiene f = 0,20 y 0,25 hasta que ese procedimiento los modifique. Como el ETS sigue siendo bajo (0,12 a 0,17), no se desacopló la detección de tormentas intensas de la replicación de alertas extensas: los umbrales sin deformar (f = 1) detectan menos del 5 % de los gobiernos locales alertados con la lluvia observada. No se pudo repetir la calibración sobre los 48 días ni ajustar f<sub>k</sub> directamente sobre el ensamble o por región climática, ni realizar la validación cruzada temporal, por no disponerse de la lluvia ERA5-Land de esos días ni de los miembros del ensamble archivados. La tasa de falsas alarmas en días sin alerta del SMN se informa en el pie del tablero.</p>
 <p>Cada ajuste automático queda registrado con su fecha y su motivo. Los parámetros que aún carecen de verificación propia (humedad antecedente y propensión del terreno) permanecen fijos hasta disponer del control mensual con radar.</p>
 </section>
 <section><h1><span class="num">Capítulo 6</span>Modelo hidráulico y escenarios históricos</h1>
@@ -1255,11 +1280,11 @@ z
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-11-18T16:16:33.735422</dc:date>
+    <dc:date>2026-11-19T00:38:53.127724</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
-      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+      <dc:title>Matplotlib v3.11.0, https://matplotlib.org/</dc:title>
      </cc:Agent>
     </dc:creator>
    </cc:Work>
@@ -1292,12 +1317,12 @@ z
     <g id="xtick_1">
      <g id="line2d_1">
       <defs>
-       <path id="me3a7adca65" d="M 0 0 
+       <path id="m4318f3c4c5" d="M 0 0 
 L 0 3.5 
 " style="stroke: #5b6675; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#me3a7adca65" x="72.54672" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4318f3c4c5" x="72.54672" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_1">
@@ -1308,7 +1333,7 @@ L 0 3.5
     <g id="xtick_2">
      <g id="line2d_2">
       <g>
-       <use xlink:href="#me3a7adca65" x="120.121172" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4318f3c4c5" x="120.121172" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_2">
@@ -1319,7 +1344,7 @@ L 0 3.5
     <g id="xtick_3">
      <g id="line2d_3">
       <g>
-       <use xlink:href="#me3a7adca65" x="167.695624" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4318f3c4c5" x="167.695624" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_3">
@@ -1330,7 +1355,7 @@ L 0 3.5
     <g id="xtick_4">
      <g id="line2d_4">
       <g>
-       <use xlink:href="#me3a7adca65" x="215.270077" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4318f3c4c5" x="215.270077" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_4">
@@ -1344,16 +1369,16 @@ L 0 3.5
      <g id="line2d_5">
       <path d="M 44.739453 157.615938 
 L 243.077344 157.615938 
-" clip-path="url(#p17e0419fd0)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p65901800ed)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_6">
       <defs>
-       <path id="m6951f37f49" d="M 0 0 
+       <path id="m70c25232e3" d="M 0 0 
 L -3.5 0 
 " style="stroke: #5b6675; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#m6951f37f49" x="44.739453" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m70c25232e3" x="44.739453" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_5">
@@ -1364,11 +1389,11 @@ L -3.5 0
      <g id="line2d_7">
       <path d="M 44.739453 120.597926 
 L 243.077344 120.597926 
-" clip-path="url(#p17e0419fd0)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p65901800ed)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_8">
       <g>
-       <use xlink:href="#m6951f37f49" x="44.739453" y="120.597926" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m70c25232e3" x="44.739453" y="120.597926" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_6">
@@ -1379,11 +1404,11 @@ L 243.077344 120.597926
      <g id="line2d_9">
       <path d="M 44.739453 83.579914 
 L 243.077344 83.579914 
-" clip-path="url(#p17e0419fd0)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p65901800ed)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_10">
       <g>
-       <use xlink:href="#m6951f37f49" x="44.739453" y="83.579914" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m70c25232e3" x="44.739453" y="83.579914" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_7">
@@ -1394,11 +1419,11 @@ L 243.077344 83.579914
      <g id="line2d_11">
       <path d="M 44.739453 46.561903 
 L 243.077344 46.561903 
-" clip-path="url(#p17e0419fd0)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p65901800ed)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_12">
       <g>
-       <use xlink:href="#m6951f37f49" x="44.739453" y="46.561903" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m70c25232e3" x="44.739453" y="46.561903" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_8">
@@ -1415,7 +1440,7 @@ L 65.648425 157.615938
 L 65.648425 27.726268 
 L 53.754812 27.726268 
 z
-" clip-path="url(#p17e0419fd0)" style="fill: #eb6834"/>
+" clip-path="url(#p65901800ed)" style="fill: #eb6834"/>
    </g>
    <g id="patch_4">
     <path d="M 101.329264 157.615938 
@@ -1423,7 +1448,7 @@ L 113.222877 157.615938
 L 113.222877 91.744156 
 L 101.329264 91.744156 
 z
-" clip-path="url(#p17e0419fd0)" style="fill: #eb6834"/>
+" clip-path="url(#p65901800ed)" style="fill: #eb6834"/>
    </g>
    <g id="patch_5">
     <path d="M 148.903716 157.615938 
@@ -1431,7 +1456,7 @@ L 160.797329 157.615938
 L 160.797329 108.654161 
 L 148.903716 108.654161 
 z
-" clip-path="url(#p17e0419fd0)" style="fill: #eb6834"/>
+" clip-path="url(#p65901800ed)" style="fill: #eb6834"/>
    </g>
    <g id="patch_6">
     <path d="M 196.478168 157.615938 
@@ -1439,7 +1464,7 @@ L 208.371781 157.615938
 L 208.371781 120.727905 
 L 196.478168 120.727905 
 z
-" clip-path="url(#p17e0419fd0)" style="fill: #eb6834"/>
+" clip-path="url(#p65901800ed)" style="fill: #eb6834"/>
    </g>
    <g id="patch_7">
     <path d="M 66.599914 157.615938 
@@ -1447,7 +1472,7 @@ L 78.493527 157.615938
 L 78.493527 40.709791 
 L 66.599914 40.709791 
 z
-" clip-path="url(#p17e0419fd0)" style="fill: #9aa6b5"/>
+" clip-path="url(#p65901800ed)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_8">
     <path d="M 114.174366 157.615938 
@@ -1455,7 +1480,7 @@ L 126.067979 157.615938
 L 126.067979 86.455559 
 L 114.174366 86.455559 
 z
-" clip-path="url(#p17e0419fd0)" style="fill: #9aa6b5"/>
+" clip-path="url(#p65901800ed)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_9">
     <path d="M 161.748818 157.615938 
@@ -1463,7 +1488,7 @@ L 173.642431 157.615938
 L 173.642431 105.571183 
 L 161.748818 105.571183 
 z
-" clip-path="url(#p17e0419fd0)" style="fill: #9aa6b5"/>
+" clip-path="url(#p65901800ed)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_10">
     <path d="M 209.32327 157.615938 
@@ -1471,7 +1496,7 @@ L 221.216883 157.615938
 L 221.216883 118.345689 
 L 209.32327 118.345689 
 z
-" clip-path="url(#p17e0419fd0)" style="fill: #9aa6b5"/>
+" clip-path="url(#p65901800ed)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_11">
     <path d="M 79.445016 157.615938 
@@ -1479,7 +1504,7 @@ L 91.338629 157.615938
 L 91.338629 26.228065 
 L 79.445016 26.228065 
 z
-" clip-path="url(#p17e0419fd0)" style="fill: #0e7490"/>
+" clip-path="url(#p65901800ed)" style="fill: #0e7490"/>
    </g>
    <g id="patch_12">
     <path d="M 127.019468 157.615938 
@@ -1487,7 +1512,7 @@ L 138.913081 157.615938
 L 138.913081 67.189611 
 L 127.019468 67.189611 
 z
-" clip-path="url(#p17e0419fd0)" style="fill: #0e7490"/>
+" clip-path="url(#p65901800ed)" style="fill: #0e7490"/>
    </g>
    <g id="patch_13">
     <path d="M 174.59392 157.615938 
@@ -1495,7 +1520,7 @@ L 186.487533 157.615938
 L 186.487533 91.731644 
 L 174.59392 91.731644 
 z
-" clip-path="url(#p17e0419fd0)" style="fill: #0e7490"/>
+" clip-path="url(#p65901800ed)" style="fill: #0e7490"/>
    </g>
    <g id="patch_14">
     <path d="M 222.168372 157.615938 
@@ -1503,12 +1528,12 @@ L 234.061985 157.615938
 L 234.061985 103.360657 
 L 222.168372 103.360657 
 z
-" clip-path="url(#p17e0419fd0)" style="fill: #0e7490"/>
+" clip-path="url(#p65901800ed)" style="fill: #0e7490"/>
    </g>
    <g id="line2d_13">
     <path d="M 44.739453 83.579914 
 L 243.077344 83.579914 
-" clip-path="url(#p17e0419fd0)" style="fill: none; stroke-dasharray: 2.96,1.28; stroke-dashoffset: 0; stroke: #1b2430; stroke-width: 0.8"/>
+" clip-path="url(#p65901800ed)" style="fill: none; stroke-dasharray: 2.96,1.28; stroke-dashoffset: 0; stroke: #1b2430; stroke-width: 0.8"/>
    </g>
    <g id="patch_15">
     <path d="M 44.739453 157.615938 
@@ -1573,7 +1598,7 @@ z
     <g id="xtick_5">
      <g id="line2d_14">
       <g>
-       <use xlink:href="#me3a7adca65" x="313.20672" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4318f3c4c5" x="313.20672" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_14">
@@ -1584,7 +1609,7 @@ z
     <g id="xtick_6">
      <g id="line2d_15">
       <g>
-       <use xlink:href="#me3a7adca65" x="360.781172" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4318f3c4c5" x="360.781172" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_15">
@@ -1595,7 +1620,7 @@ z
     <g id="xtick_7">
      <g id="line2d_16">
       <g>
-       <use xlink:href="#me3a7adca65" x="408.355624" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4318f3c4c5" x="408.355624" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_16">
@@ -1606,7 +1631,7 @@ z
     <g id="xtick_8">
      <g id="line2d_17">
       <g>
-       <use xlink:href="#me3a7adca65" x="455.930077" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4318f3c4c5" x="455.930077" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_17">
@@ -1620,11 +1645,11 @@ z
      <g id="line2d_18">
       <path d="M 285.399453 157.615938 
 L 483.737344 157.615938 
-" clip-path="url(#pb5fe1ace60)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p913978e576)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_19">
       <g>
-       <use xlink:href="#m6951f37f49" x="285.399453" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m70c25232e3" x="285.399453" y="157.615938" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_18">
@@ -1635,11 +1660,11 @@ L 483.737344 157.615938
      <g id="line2d_20">
       <path d="M 285.399453 123.693978 
 L 483.737344 123.693978 
-" clip-path="url(#pb5fe1ace60)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p913978e576)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_21">
       <g>
-       <use xlink:href="#m6951f37f49" x="285.399453" y="123.693978" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m70c25232e3" x="285.399453" y="123.693978" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_19">
@@ -1650,11 +1675,11 @@ L 483.737344 123.693978
      <g id="line2d_22">
       <path d="M 285.399453 89.772018 
 L 483.737344 89.772018 
-" clip-path="url(#pb5fe1ace60)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p913978e576)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_23">
       <g>
-       <use xlink:href="#m6951f37f49" x="285.399453" y="89.772018" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m70c25232e3" x="285.399453" y="89.772018" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_20">
@@ -1665,11 +1690,11 @@ L 483.737344 89.772018
      <g id="line2d_24">
       <path d="M 285.399453 55.850058 
 L 483.737344 55.850058 
-" clip-path="url(#pb5fe1ace60)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p913978e576)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_25">
       <g>
-       <use xlink:href="#m6951f37f49" x="285.399453" y="55.850058" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m70c25232e3" x="285.399453" y="55.850058" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_21">
@@ -1680,11 +1705,11 @@ L 483.737344 55.850058
      <g id="line2d_26">
       <path d="M 285.399453 21.928099 
 L 483.737344 21.928099 
-" clip-path="url(#pb5fe1ace60)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p913978e576)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_27">
       <g>
-       <use xlink:href="#m6951f37f49" x="285.399453" y="21.928099" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m70c25232e3" x="285.399453" y="21.928099" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_22">
@@ -1701,7 +1726,7 @@ L 306.308425 157.615938
 L 306.308425 29.66031 
 L 294.414812 29.66031 
 z
-" clip-path="url(#pb5fe1ace60)" style="fill: #eb6834"/>
+" clip-path="url(#p913978e576)" style="fill: #eb6834"/>
    </g>
    <g id="patch_22">
     <path d="M 341.989264 157.615938 
@@ -1709,7 +1734,7 @@ L 353.882877 157.615938
 L 353.882877 121.52581 
 L 341.989264 121.52581 
 z
-" clip-path="url(#pb5fe1ace60)" style="fill: #eb6834"/>
+" clip-path="url(#p913978e576)" style="fill: #eb6834"/>
    </g>
    <g id="patch_23">
     <path d="M 389.563716 157.615938 
@@ -1717,7 +1742,7 @@ L 401.457329 157.615938
 L 401.457329 98.177249 
 L 389.563716 98.177249 
 z
-" clip-path="url(#pb5fe1ace60)" style="fill: #eb6834"/>
+" clip-path="url(#p913978e576)" style="fill: #eb6834"/>
    </g>
    <g id="patch_24">
     <path d="M 437.138168 157.615938 
@@ -1725,7 +1750,7 @@ L 449.031781 157.615938
 L 449.031781 72.513268 
 L 437.138168 72.513268 
 z
-" clip-path="url(#pb5fe1ace60)" style="fill: #eb6834"/>
+" clip-path="url(#p913978e576)" style="fill: #eb6834"/>
    </g>
    <g id="patch_25">
     <path d="M 307.259914 157.615938 
@@ -1733,7 +1758,7 @@ L 319.153527 157.615938
 L 319.153527 59.110247 
 L 307.259914 59.110247 
 z
-" clip-path="url(#pb5fe1ace60)" style="fill: #9aa6b5"/>
+" clip-path="url(#p913978e576)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_26">
     <path d="M 354.834366 157.615938 
@@ -1741,7 +1766,7 @@ L 366.727979 157.615938
 L 366.727979 121.831611 
 L 354.834366 121.831611 
 z
-" clip-path="url(#pb5fe1ace60)" style="fill: #9aa6b5"/>
+" clip-path="url(#p913978e576)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_27">
     <path d="M 402.408818 157.615938 
@@ -1749,7 +1774,7 @@ L 414.302431 157.615938
 L 414.302431 106.654328 
 L 402.408818 106.654328 
 z
-" clip-path="url(#pb5fe1ace60)" style="fill: #9aa6b5"/>
+" clip-path="url(#p913978e576)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_28">
     <path d="M 449.98327 157.615938 
@@ -1757,7 +1782,7 @@ L 461.876883 157.615938
 L 461.876883 77.970709 
 L 449.98327 77.970709 
 z
-" clip-path="url(#pb5fe1ace60)" style="fill: #9aa6b5"/>
+" clip-path="url(#p913978e576)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_29">
     <path d="M 320.105016 157.615938 
@@ -1765,7 +1790,7 @@ L 331.998629 157.615938
 L 331.998629 26.228065 
 L 320.105016 26.228065 
 z
-" clip-path="url(#pb5fe1ace60)" style="fill: #0e7490"/>
+" clip-path="url(#p913978e576)" style="fill: #0e7490"/>
    </g>
    <g id="patch_30">
     <path d="M 367.679468 157.615938 
@@ -1773,7 +1798,7 @@ L 379.573081 157.615938
 L 379.573081 102.413947 
 L 367.679468 102.413947 
 z
-" clip-path="url(#pb5fe1ace60)" style="fill: #0e7490"/>
+" clip-path="url(#p913978e576)" style="fill: #0e7490"/>
    </g>
    <g id="patch_31">
     <path d="M 415.25392 157.615938 
@@ -1781,7 +1806,7 @@ L 427.147533 157.615938
 L 427.147533 117.812164 
 L 415.25392 117.812164 
 z
-" clip-path="url(#pb5fe1ace60)" style="fill: #0e7490"/>
+" clip-path="url(#p913978e576)" style="fill: #0e7490"/>
    </g>
    <g id="patch_32">
     <path d="M 462.828372 157.615938 
@@ -1789,7 +1814,7 @@ L 474.721985 157.615938
 L 474.721985 112.170654 
 L 462.828372 112.170654 
 z
-" clip-path="url(#pb5fe1ace60)" style="fill: #0e7490"/>
+" clip-path="url(#p913978e576)" style="fill: #0e7490"/>
    </g>
    <g id="patch_33">
     <path d="M 285.399453 157.615938 
@@ -1807,10 +1832,10 @@ L 483.737344 157.615938
   </g>
  </g>
  <defs>
-  <clipPath id="p17e0419fd0">
+  <clipPath id="p65901800ed">
    <rect x="44.739453" y="19.658672" width="198.337891" height="137.957266"/>
   </clipPath>
-  <clipPath id="pb5fe1ace60">
+  <clipPath id="p913978e576">
    <rect x="285.399453" y="19.658672" width="198.337891" height="137.957266"/>
   </clipPath>
  </defs>
@@ -1833,11 +1858,11 @@ L 483.737344 157.615938
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-11-18T16:16:33.757316</dc:date>
+    <dc:date>2026-11-19T00:38:53.186960</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
-      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+      <dc:title>Matplotlib v3.11.0, https://matplotlib.org/</dc:title>
      </cc:Agent>
     </dc:creator>
    </cc:Work>
@@ -1871,16 +1896,16 @@ z
      <g id="line2d_1">
       <path d="M 178.568359 118.08 
 L 178.568359 7.2 
-" clip-path="url(#p5acc842805)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p6da737aca5)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_2">
       <defs>
-       <path id="m13c50ee521" d="M 0 0 
+       <path id="mbcd5044c3a" d="M 0 0 
 L 0 3.5 
 " style="stroke: #5b6675; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#m13c50ee521" x="178.568359" y="118.08" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#mbcd5044c3a" x="178.568359" y="118.08" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_1">
@@ -1891,11 +1916,11 @@ L 0 3.5
      <g id="line2d_3">
       <path d="M 247.760359 118.08 
 L 247.760359 7.2 
-" clip-path="url(#p5acc842805)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p6da737aca5)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_4">
       <g>
-       <use xlink:href="#m13c50ee521" x="247.760359" y="118.08" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#mbcd5044c3a" x="247.760359" y="118.08" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_2">
@@ -1906,11 +1931,11 @@ L 247.760359 7.2
      <g id="line2d_5">
       <path d="M 316.952359 118.08 
 L 316.952359 7.2 
-" clip-path="url(#p5acc842805)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p6da737aca5)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_6">
       <g>
-       <use xlink:href="#m13c50ee521" x="316.952359" y="118.08" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#mbcd5044c3a" x="316.952359" y="118.08" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_3">
@@ -1921,11 +1946,11 @@ L 316.952359 7.2
      <g id="line2d_7">
       <path d="M 386.144359 118.08 
 L 386.144359 7.2 
-" clip-path="url(#p5acc842805)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p6da737aca5)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_8">
       <g>
-       <use xlink:href="#m13c50ee521" x="386.144359" y="118.08" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#mbcd5044c3a" x="386.144359" y="118.08" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_4">
@@ -1936,11 +1961,11 @@ L 386.144359 7.2
      <g id="line2d_9">
       <path d="M 455.336359 118.08 
 L 455.336359 7.2 
-" clip-path="url(#p5acc842805)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p6da737aca5)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_10">
       <g>
-       <use xlink:href="#m13c50ee521" x="455.336359" y="118.08" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#mbcd5044c3a" x="455.336359" y="118.08" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_5">
@@ -1951,11 +1976,11 @@ L 455.336359 7.2
      <g id="line2d_11">
       <path d="M 524.528359 118.08 
 L 524.528359 7.2 
-" clip-path="url(#p5acc842805)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p6da737aca5)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_12">
       <g>
-       <use xlink:href="#m13c50ee521" x="524.528359" y="118.08" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#mbcd5044c3a" x="524.528359" y="118.08" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_6">
@@ -1967,12 +1992,12 @@ L 524.528359 7.2
     <g id="ytick_1">
      <g id="line2d_13">
       <defs>
-       <path id="m151bfe4cf9" d="M 0 0 
+       <path id="m0f7228a59d" d="M 0 0 
 L -3.5 0 
 " style="stroke: #5b6675; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#m151bfe4cf9" x="178.568359" y="25.851679" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m0f7228a59d" x="178.568359" y="25.851679" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_7">
@@ -1982,7 +2007,7 @@ L -3.5 0
     <g id="ytick_2">
      <g id="line2d_14">
       <g>
-       <use xlink:href="#m151bfe4cf9" x="178.568359" y="62.64" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m0f7228a59d" x="178.568359" y="62.64" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_8">
@@ -1992,7 +2017,7 @@ L -3.5 0
     <g id="ytick_3">
      <g id="line2d_15">
       <g>
-       <use xlink:href="#m151bfe4cf9" x="178.568359" y="99.428321" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m0f7228a59d" x="178.568359" y="99.428321" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_9">
@@ -2006,7 +2031,7 @@ L 262.982599 26.219562
 L 262.982599 39.463358 
 L 178.568359 39.463358 
 z
-" clip-path="url(#p5acc842805)" style="fill: #9aa6b5"/>
+" clip-path="url(#p6da737aca5)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_4">
     <path d="M 178.568359 63.007883 
@@ -2014,7 +2039,7 @@ L 431.811079 63.007883
 L 431.811079 76.251679 
 L 178.568359 76.251679 
 z
-" clip-path="url(#p5acc842805)" style="fill: #9aa6b5"/>
+" clip-path="url(#p6da737aca5)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_5">
     <path d="M 178.568359 99.796204 
@@ -2022,7 +2047,7 @@ L 229.078519 99.796204
 L 229.078519 113.04 
 L 178.568359 113.04 
 z
-" clip-path="url(#p5acc842805)" style="fill: #9aa6b5"/>
+" clip-path="url(#p6da737aca5)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_6">
     <path d="M 178.568359 12.24 
@@ -2030,7 +2055,7 @@ L 440.114119 12.24
 L 440.114119 25.483796 
 L 178.568359 25.483796 
 z
-" clip-path="url(#p5acc842805)" style="fill: #0e7490"/>
+" clip-path="url(#p6da737aca5)" style="fill: #0e7490"/>
    </g>
    <g id="patch_7">
     <path d="M 178.568359 49.028321 
@@ -2038,7 +2063,7 @@ L 402.058519 49.028321
 L 402.058519 62.272117 
 L 178.568359 62.272117 
 z
-" clip-path="url(#p5acc842805)" style="fill: #0e7490"/>
+" clip-path="url(#p6da737aca5)" style="fill: #0e7490"/>
    </g>
    <g id="patch_8">
     <path d="M 178.568359 85.816642 
@@ -2046,7 +2071,7 @@ L 288.583639 85.816642
 L 288.583639 99.060438 
 L 178.568359 99.060438 
 z
-" clip-path="url(#p5acc842805)" style="fill: #0e7490"/>
+" clip-path="url(#p6da737aca5)" style="fill: #0e7490"/>
    </g>
    <g id="patch_9">
     <path d="M 178.568359 118.08 
@@ -2103,7 +2128,7 @@ z
   </g>
  </g>
  <defs>
-  <clipPath id="p5acc842805">
+  <clipPath id="p6da737aca5">
    <rect x="178.568359" y="7.2" width="345.96" height="110.88"/>
   </clipPath>
  </defs>
@@ -2135,11 +2160,11 @@ z
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-11-18T16:16:33.669500</dc:date>
+    <dc:date>2026-11-19T00:38:52.998867</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
-      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+      <dc:title>Matplotlib v3.11.0, https://matplotlib.org/</dc:title>
      </cc:Agent>
     </dc:creator>
    </cc:Work>
@@ -2173,16 +2198,16 @@ z
      <g id="line2d_1">
       <path d="M 52.975 181.836 
 L 52.975 7.2 
-" clip-path="url(#pe2820f1da9)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#pda2f103364)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_2">
       <defs>
-       <path id="m04ea13ab72" d="M 0 0 
+       <path id="m00e1bfdf40" d="M 0 0 
 L 0 3.5 
 " style="stroke: #5b6675; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#m04ea13ab72" x="52.975" y="181.836" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m00e1bfdf40" x="52.975" y="181.836" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_1">
@@ -2193,11 +2218,11 @@ L 0 3.5
      <g id="line2d_3">
       <path d="M 96.302059 181.836 
 L 96.302059 7.2 
-" clip-path="url(#pe2820f1da9)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#pda2f103364)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_4">
       <g>
-       <use xlink:href="#m04ea13ab72" x="96.302059" y="181.836" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m00e1bfdf40" x="96.302059" y="181.836" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_2">
@@ -2208,11 +2233,11 @@ L 96.302059 7.2
      <g id="line2d_5">
       <path d="M 139.629118 181.836 
 L 139.629118 7.2 
-" clip-path="url(#pe2820f1da9)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#pda2f103364)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_6">
       <g>
-       <use xlink:href="#m04ea13ab72" x="139.629118" y="181.836" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m00e1bfdf40" x="139.629118" y="181.836" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_3">
@@ -2223,11 +2248,11 @@ L 139.629118 7.2
      <g id="line2d_7">
       <path d="M 182.956176 181.836 
 L 182.956176 7.2 
-" clip-path="url(#pe2820f1da9)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#pda2f103364)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_8">
       <g>
-       <use xlink:href="#m04ea13ab72" x="182.956176" y="181.836" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m00e1bfdf40" x="182.956176" y="181.836" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_4">
@@ -2238,11 +2263,11 @@ L 182.956176 7.2
      <g id="line2d_9">
       <path d="M 226.283235 181.836 
 L 226.283235 7.2 
-" clip-path="url(#pe2820f1da9)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#pda2f103364)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_10">
       <g>
-       <use xlink:href="#m04ea13ab72" x="226.283235" y="181.836" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m00e1bfdf40" x="226.283235" y="181.836" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_5">
@@ -2253,11 +2278,11 @@ L 226.283235 7.2
      <g id="line2d_11">
       <path d="M 269.610294 181.836 
 L 269.610294 7.2 
-" clip-path="url(#pe2820f1da9)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#pda2f103364)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_12">
       <g>
-       <use xlink:href="#m04ea13ab72" x="269.610294" y="181.836" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m00e1bfdf40" x="269.610294" y="181.836" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_6">
@@ -2268,11 +2293,11 @@ L 269.610294 7.2
      <g id="line2d_13">
       <path d="M 312.937353 181.836 
 L 312.937353 7.2 
-" clip-path="url(#pe2820f1da9)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#pda2f103364)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_14">
       <g>
-       <use xlink:href="#m04ea13ab72" x="312.937353" y="181.836" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m00e1bfdf40" x="312.937353" y="181.836" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_7">
@@ -2283,11 +2308,11 @@ L 312.937353 7.2
      <g id="line2d_15">
       <path d="M 356.264412 181.836 
 L 356.264412 7.2 
-" clip-path="url(#pe2820f1da9)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#pda2f103364)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_16">
       <g>
-       <use xlink:href="#m04ea13ab72" x="356.264412" y="181.836" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m00e1bfdf40" x="356.264412" y="181.836" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_8">
@@ -2298,11 +2323,11 @@ L 356.264412 7.2
      <g id="line2d_17">
       <path d="M 399.591471 181.836 
 L 399.591471 7.2 
-" clip-path="url(#pe2820f1da9)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#pda2f103364)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_18">
       <g>
-       <use xlink:href="#m04ea13ab72" x="399.591471" y="181.836" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m00e1bfdf40" x="399.591471" y="181.836" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_9">
@@ -2317,12 +2342,12 @@ L 399.591471 7.2
     <g id="ytick_1">
      <g id="line2d_19">
       <defs>
-       <path id="m5ba2e4d0f4" d="M 0 0 
+       <path id="mc987ba6015" d="M 0 0 
 L -3.5 0 
 " style="stroke: #5b6675; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#m5ba2e4d0f4" x="52.975" y="166.846018" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#mc987ba6015" x="52.975" y="166.846018" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_11">
@@ -2333,7 +2358,7 @@ L -3.5 0
     <g id="ytick_2">
      <g id="line2d_20">
       <g>
-       <use xlink:href="#m5ba2e4d0f4" x="52.975" y="148.764014" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#mc987ba6015" x="52.975" y="148.764014" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_12">
@@ -2344,7 +2369,7 @@ L -3.5 0
     <g id="ytick_3">
      <g id="line2d_21">
       <g>
-       <use xlink:href="#m5ba2e4d0f4" x="52.975" y="130.682009" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#mc987ba6015" x="52.975" y="130.682009" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_13">
@@ -2355,7 +2380,7 @@ L -3.5 0
     <g id="ytick_4">
      <g id="line2d_22">
       <g>
-       <use xlink:href="#m5ba2e4d0f4" x="52.975" y="112.600005" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#mc987ba6015" x="52.975" y="112.600005" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_14">
@@ -2366,7 +2391,7 @@ L -3.5 0
     <g id="ytick_5">
      <g id="line2d_23">
       <g>
-       <use xlink:href="#m5ba2e4d0f4" x="52.975" y="94.518" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#mc987ba6015" x="52.975" y="94.518" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_15">
@@ -2377,7 +2402,7 @@ L -3.5 0
     <g id="ytick_6">
      <g id="line2d_24">
       <g>
-       <use xlink:href="#m5ba2e4d0f4" x="52.975" y="76.435995" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#mc987ba6015" x="52.975" y="76.435995" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_16">
@@ -2388,7 +2413,7 @@ L -3.5 0
     <g id="ytick_7">
      <g id="line2d_25">
       <g>
-       <use xlink:href="#m5ba2e4d0f4" x="52.975" y="58.353991" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#mc987ba6015" x="52.975" y="58.353991" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_17">
@@ -2399,7 +2424,7 @@ L -3.5 0
     <g id="ytick_8">
      <g id="line2d_26">
       <g>
-       <use xlink:href="#m5ba2e4d0f4" x="52.975" y="40.271986" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#mc987ba6015" x="52.975" y="40.271986" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_18">
@@ -2410,7 +2435,7 @@ L -3.5 0
     <g id="ytick_9">
      <g id="line2d_27">
       <g>
-       <use xlink:href="#m5ba2e4d0f4" x="52.975" y="22.189982" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#mc987ba6015" x="52.975" y="22.189982" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_19">
@@ -2425,7 +2450,7 @@ L 60.3406 166.665198
 L 60.3406 159.794036 
 L 52.975 159.794036 
 z
-" clip-path="url(#pe2820f1da9)" style="fill: #0e7490"/>
+" clip-path="url(#pda2f103364)" style="fill: #0e7490"/>
    </g>
    <g id="patch_4">
     <path d="M 52.975 148.583194 
@@ -2433,7 +2458,7 @@ L 62.506953 148.583194
 L 62.506953 141.712032 
 L 52.975 141.712032 
 z
-" clip-path="url(#pe2820f1da9)" style="fill: #0e7490"/>
+" clip-path="url(#pda2f103364)" style="fill: #0e7490"/>
    </g>
    <g id="patch_5">
     <path d="M 52.975 130.501189 
@@ -2441,7 +2466,7 @@ L 62.940224 130.501189
 L 62.940224 123.630027 
 L 52.975 123.630027 
 z
-" clip-path="url(#pe2820f1da9)" style="fill: #0e7490"/>
+" clip-path="url(#pda2f103364)" style="fill: #0e7490"/>
    </g>
    <g id="patch_6">
     <path d="M 52.975 112.419185 
@@ -2449,7 +2474,7 @@ L 161.292647 112.419185
 L 161.292647 105.548023 
 L 52.975 105.548023 
 z
-" clip-path="url(#pe2820f1da9)" style="fill: #0e7490"/>
+" clip-path="url(#pda2f103364)" style="fill: #0e7490"/>
    </g>
    <g id="patch_7">
     <path d="M 52.975 94.33718 
@@ -2457,7 +2482,7 @@ L 210.685494 94.33718
 L 210.685494 87.466018 
 L 52.975 87.466018 
 z
-" clip-path="url(#pe2820f1da9)" style="fill: #0e7490"/>
+" clip-path="url(#pda2f103364)" style="fill: #0e7490"/>
    </g>
    <g id="patch_8">
     <path d="M 52.975 76.255175 
@@ -2465,7 +2490,7 @@ L 260.078341 76.255175
 L 260.078341 69.384014 
 L 52.975 69.384014 
 z
-" clip-path="url(#pe2820f1da9)" style="fill: #0e7490"/>
+" clip-path="url(#pda2f103364)" style="fill: #0e7490"/>
    </g>
    <g id="patch_9">
     <path d="M 52.975 58.173171 
@@ -2473,7 +2498,7 @@ L 293.873447 58.173171
 L 293.873447 51.302009 
 L 52.975 51.302009 
 z
-" clip-path="url(#pe2820f1da9)" style="fill: #0e7490"/>
+" clip-path="url(#pda2f103364)" style="fill: #0e7490"/>
    </g>
    <g id="patch_10">
     <path d="M 52.975 40.091166 
@@ -2481,7 +2506,7 @@ L 304.705212 40.091166
 L 304.705212 33.220005 
 L 52.975 33.220005 
 z
-" clip-path="url(#pe2820f1da9)" style="fill: #0e7490"/>
+" clip-path="url(#pda2f103364)" style="fill: #0e7490"/>
    </g>
    <g id="patch_11">
     <path d="M 52.975 22.009162 
@@ -2489,7 +2514,7 @@ L 344.132835 22.009162
 L 344.132835 15.138 
 L 52.975 15.138 
 z
-" clip-path="url(#pe2820f1da9)" style="fill: #0e7490"/>
+" clip-path="url(#pda2f103364)" style="fill: #0e7490"/>
    </g>
    <g id="patch_12">
     <path d="M 52.975 173.898 
@@ -2497,7 +2522,7 @@ L 52.975 173.898
 L 52.975 167.026838 
 L 52.975 167.026838 
 z
-" clip-path="url(#pe2820f1da9)" style="fill: #9aa6b5"/>
+" clip-path="url(#pda2f103364)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_13">
     <path d="M 52.975 155.815995 
@@ -2505,7 +2530,7 @@ L 52.975 155.815995
 L 52.975 148.944834 
 L 52.975 148.944834 
 z
-" clip-path="url(#pe2820f1da9)" style="fill: #9aa6b5"/>
+" clip-path="url(#pda2f103364)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_14">
     <path d="M 52.975 137.733991 
@@ -2513,7 +2538,7 @@ L 144.395094 137.733991
 L 144.395094 130.862829 
 L 52.975 130.862829 
 z
-" clip-path="url(#pe2820f1da9)" style="fill: #9aa6b5"/>
+" clip-path="url(#pda2f103364)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_15">
     <path d="M 52.975 119.651986 
@@ -2521,7 +2546,7 @@ L 348.898812 119.651986
 L 348.898812 112.780825 
 L 52.975 112.780825 
 z
-" clip-path="url(#pe2820f1da9)" style="fill: #9aa6b5"/>
+" clip-path="url(#pda2f103364)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_16">
     <path d="M 52.975 101.569982 
@@ -2529,7 +2554,7 @@ L 202.453353 101.569982
 L 202.453353 94.69882 
 L 52.975 94.69882 
 z
-" clip-path="url(#pe2820f1da9)" style="fill: #9aa6b5"/>
+" clip-path="url(#pda2f103364)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_17">
     <path d="M 52.975 83.487977 
@@ -2537,7 +2562,7 @@ L 283.908224 83.487977
 L 283.908224 76.616815 
 L 52.975 76.616815 
 z
-" clip-path="url(#pe2820f1da9)" style="fill: #9aa6b5"/>
+" clip-path="url(#pda2f103364)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_18">
     <path d="M 52.975 65.405973 
@@ -2545,7 +2570,7 @@ L 125.331188 65.405973
 L 125.331188 58.534811 
 L 52.975 58.534811 
 z
-" clip-path="url(#pe2820f1da9)" style="fill: #9aa6b5"/>
+" clip-path="url(#pda2f103364)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_19">
     <path d="M 52.975 47.323968 
@@ -2553,7 +2578,7 @@ L 371.428882 47.323968
 L 371.428882 40.452806 
 L 52.975 40.452806 
 z
-" clip-path="url(#pe2820f1da9)" style="fill: #9aa6b5"/>
+" clip-path="url(#pda2f103364)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_20">
     <path d="M 52.975 29.241964 
@@ -2561,7 +2586,7 @@ L 302.972129 29.241964
 L 302.972129 22.370802 
 L 52.975 22.370802 
 z
-" clip-path="url(#pe2820f1da9)" style="fill: #9aa6b5"/>
+" clip-path="url(#pda2f103364)" style="fill: #9aa6b5"/>
    </g>
    <g id="patch_21">
     <path d="M 52.975 181.836 
@@ -2627,7 +2652,7 @@ z
   </g>
  </g>
  <defs>
-  <clipPath id="pe2820f1da9">
+  <clipPath id="pda2f103364">
    <rect x="52.975" y="7.2" width="368.28" height="174.636"/>
   </clipPath>
  </defs>
@@ -2644,24 +2669,24 @@ z
 <section><h1><span class="num">Capítulo 9</span>Especificación funcional</h1>
 <div class="tabla-t">Tabla 9. Requerimientos funcionales implementados</div>
 <table><thead><tr><th style="width:11mm">Código</th><th>Función</th><th>Descripción</th></tr></thead><tbody>
-<tr><td>RF-01</td><td>Secciones</td><td>Cuatro secciones con solapas: Mapa de riesgo · Simulador de inundación · Tablero de control · Documentación técnica (esta memoria, con dirección propia /documentacion/)</td></tr>
-<tr><td>RF-02</td><td>Lectura del lugar</td><td>Nivel de riesgo con escala de aguja, radio del área (1 km por defecto), evolución en el período y condiciones meteorológicas del lugar</td></tr>
+<tr><td>RF-01</td><td>Secciones</td><td>Cuatro secciones con solapas: Mapa de riesgo · Simulador de inundación · Reporte (solo texto) · Documentación técnica (esta memoria, con dirección propia /documentacion/); botón «volver» al mapa en el simulador y el reporte</td></tr>
+<tr><td>RF-02</td><td>Lectura del lugar</td><td>Nivel de riesgo con escala de aguja, radio del área (1 km por defecto), coordenadas del punto con botones «Copiar» y «Google Maps», evolución en el período con la confianza del pronóstico por plazo (alta hasta 2 días, media de 3 a 7, baja de 8 a 14) y condiciones meteorológicas del lugar</td></tr>
 <tr><td>RF-03</td><td>Indicadores del área</td><td>Habitantes en zona inundable, radios en riesgo alto, ríos a 15 km o menos, alertas vigentes sobre el punto y día más crítico; método y fuente disponibles en cada indicador</td></tr>
 <tr><td>RF-04</td><td>Buscador</td><td>Provincia, partido, localidad, dirección, barrio popular (RENABAP), establecimiento (TomTom y registro propio) y coordenadas, ordenados por relevancia; ante ausencia de coincidencia ofrece alternativas en lugar de un resultado aproximado</td></tr>
-<tr><td>RF-05</td><td>Mapa</td><td>Riesgo, lluvia, viento y temperatura; capas superponibles (hidrografía, alertas del SMN, zonas inundadas históricamente, inundación observada del día, densidad, barrios, suelo, infraestructura, rutas); curvas de nivel acotadas</td></tr>
-<tr><td>RF-06</td><td>Detalle del lugar</td><td>Recuadro asociado a la selección, con el punto y el área, que da acceso al simulador</td></tr>
+<tr><td>RF-05</td><td>Mapa</td><td>Riesgo, lluvia, viento y temperatura; capas superponibles (hidrografía, alertas del SMN con rayado por nivel, zonas inundadas históricamente sin el océano, inundación observada del día, infraestructura, rutas); curvas de nivel acotadas a Argentina. Solo se admite elegir puntos dentro del territorio argentino; fuera de él se avisa y no se simula</td></tr>
+<tr><td>RF-06</td><td>Detalle del lugar</td><td>Recuadro «Detalle» asociado a la selección, con el punto y el área (solo el contorno exterior de la zona), que da acceso al simulador 3D</td></tr>
 <tr><td>RF-07</td><td>Situación y recomendaciones</td><td>Nivel, período, día más comprometido, causa, antecedentes y población; recomendaciones de prevención y de emergencia construidas con los datos del lugar; propensión a acumular agua</td></tr>
-<tr><td>RF-08</td><td>Riesgo diario</td><td>Línea de tiempo de 14 días con reproducción; gráfico de riesgo diario vinculado al mapa; listado de zonas que aumentan, se mantienen o descienden de nivel</td></tr>
-<tr><td>RF-09</td><td>Tablero de control</td><td>Indicadores, evolución diaria por nivel, cambios de nivel previstos, calendario por provincia, ranking (riesgo, incremento, exposición), amenazas, orientación preventiva e incertidumbre; un filtro de provincia actualiza todos los componentes</td></tr>
-<tr><td>RF-10</td><td>Simulador: reproducción</td><td>Control de reproducción, hora, barra temporal, velocidad y gráfico de lluvia y agua; maqueta en condición seca al inicio de cada escenario</td></tr>
+<tr><td>RF-08</td><td>Riesgo diario</td><td>Línea de tiempo de 14 días con reproducción (primer día, día 7 y último) y confianza por plazo; gráfico de riesgo diario vinculado al mapa; «Evolución de riesgo por zona»: listado de zonas que suben, siguen altos o bajan de nivel, con el motivo desplegable</td></tr>
+<tr><td>RF-09</td><td>Reporte</td><td>Lámina solo de texto con el nombre del lugar elegido (o del país): habitantes expuestos sobre el total, posición del lugar entre sus pares, situación y «Qué hacer» con prevención y emergencia; sin gráficos</td></tr>
+<tr><td>RF-10</td><td>Simulador: reproducción</td><td>Control de reproducción, hora, barra temporal, velocidad (×2 por defecto) y gráfico de lluvia y agua; líneas de escurrimiento siempre visibles; maqueta en condición seca al inicio de cada escenario; puntos cardinales sobre el plano del círculo; controles de zoom y norte; referencias de profundidad del agua</td></tr>
 <tr><td>RF-11</td><td>Simulador: escenario</td><td>Parámetros de lluvia, duración (1–72 h), humedad, lagunas, río y desagüe con sus límites y fuentes; inicialización con el evento más severo del lugar</td></tr>
-<tr><td>RF-12</td><td>Simulador: eventos</td><td>Selector de eventos desde 1997–98 con su tormenta, fecha y nivel del río; identificación del evento más severo; tabla informativa de los 27 eventos desde 1951</td></tr>
+<tr><td>RF-12</td><td>Simulador: eventos</td><td>Selector de eventos desde 1997–98 con su tormenta, fecha y nivel del río; identificación del evento más severo; tabla informativa de los 27 eventos desde 1951, ordenable por cualquier columna (▲ de menor a mayor, ▼ de mayor a menor)</td></tr>
 <tr><td>RF-13</td><td>Simulador: resultados</td><td>Superficie anegada y profundidad máxima, habitantes, habitantes en zona inundable, habitantes alcanzados, calles cortadas, habitantes aislados y centros de salud sin acceso</td></tr>
 <tr><td>RF-14</td><td>Simulador: pronóstico</td><td>14 días observados, agua actual por radar y 15 días de pronóstico, probable o pesimista</td></tr>
-<tr><td>RF-15</td><td>Fuentes y recorrido</td><td>Fuentes clasificadas por tipo de dato y recorrido guiado de 13 pasos</td></tr>
+<tr><td>RF-15</td><td>Fuentes y recorrido</td><td>Fuentes clasificadas por tipo de dato y recorrido guiado de 17 pasos por las cuatro láminas</td></tr>
 <tr><td>RF-16</td><td>Requerimientos transversales</td><td>Español e inglés; tema claro y oscuro; diseño específico para dispositivos móviles; separador de miles con punto</td></tr></tbody></table>
 <h2><span class="n">9.1</span>Secuencia de uso</h2>
-<ol><li><b>Panorama nacional.</b> La lámina 01 resume la situación del día y de los 14 siguientes e identifica las zonas que aumentan de nivel.</li><li><b>Selección del lugar.</b> Mediante el buscador o el mapa; el radio define el área de análisis.</li><li><b>Lectura del lugar.</b> Los indicadores describen el área; «Situación» explica el nivel y «Qué hacer» distingue prevención y emergencia.</li><li><b>Simulación.</b> Se selecciona un evento o se ajustan los parámetros y se reproduce la tormenta.</li></ol></section>
+<ol><li><b>Panorama nacional.</b> La lámina 01 resume la situación del día y de los 14 siguientes e identifica las zonas que aumentan de nivel.</li><li><b>Selección del lugar.</b> Mediante el buscador o el mapa; el radio define el área de análisis.</li><li><b>Lectura del lugar.</b> Los indicadores describen el área; «Ver más detalles» abre el reporte, donde «Situación» explica el nivel y «Qué hacer» distingue prevención y emergencia.</li><li><b>Simulación.</b> Se selecciona un evento o se ajustan los parámetros y se reproduce la tormenta.</li></ol></section>
 <section><h1><span class="num">Capítulo 10</span>Aseguramiento de la calidad y trazabilidad</h1>
 <h2><span class="n">10.1</span>Principios</h2>
 <ul><li><b>Trazabilidad.</b> Cada cifra informa su fuente, su fecha y su método. Ante la falta de un dato se informa «Sin información», sin imputaciones ocultas.</li><li><b>Coherencia temporal.</b> Un escenario histórico emplea lluvia, humedad y nivel fluvial del mismo período.</li><li><b>Selección por medición.</b> Cada fuente y cada regla se seleccionan por comparación con observaciones, y la comparación se publica.</li><li><b>Explicitación de la incertidumbre.</b> La validación y sus límites se informan en la aplicación. Se evaluó un indicador de confianza por hora simulada y se lo descartó: sin una medición propia de cada lugar, no aportaba información.</li></ul>
@@ -2692,11 +2717,11 @@ z
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-11-18T16:16:33.781023</dc:date>
+    <dc:date>2026-11-19T00:38:53.253164</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
-      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+      <dc:title>Matplotlib v3.11.0, https://matplotlib.org/</dc:title>
      </cc:Agent>
     </dc:creator>
    </cc:Work>
@@ -2730,16 +2755,16 @@ z
      <g id="line2d_1">
       <path d="M 223.353627 195.696 
 L 223.353627 7.2 
-" clip-path="url(#pb1c1bdf51e)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3e42dca612)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_2">
       <defs>
-       <path id="m4eec14505f" d="M 0 0 
+       <path id="md284396b47" d="M 0 0 
 L 0 3.5 
 " style="stroke: #5b6675; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#m4eec14505f" x="223.353627" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md284396b47" x="223.353627" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_1">
@@ -2750,11 +2775,11 @@ L 0 3.5
      <g id="line2d_3">
       <path d="M 253.467913 195.696 
 L 253.467913 7.2 
-" clip-path="url(#pb1c1bdf51e)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3e42dca612)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_4">
       <g>
-       <use xlink:href="#m4eec14505f" x="253.467913" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md284396b47" x="253.467913" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_2">
@@ -2765,11 +2790,11 @@ L 253.467913 7.2
      <g id="line2d_5">
       <path d="M 283.582199 195.696 
 L 283.582199 7.2 
-" clip-path="url(#pb1c1bdf51e)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3e42dca612)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_6">
       <g>
-       <use xlink:href="#m4eec14505f" x="283.582199" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md284396b47" x="283.582199" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_3">
@@ -2780,11 +2805,11 @@ L 283.582199 7.2
      <g id="line2d_7">
       <path d="M 313.696484 195.696 
 L 313.696484 7.2 
-" clip-path="url(#pb1c1bdf51e)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3e42dca612)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_8">
       <g>
-       <use xlink:href="#m4eec14505f" x="313.696484" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md284396b47" x="313.696484" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_4">
@@ -2795,11 +2820,11 @@ L 313.696484 7.2
      <g id="line2d_9">
       <path d="M 343.81077 195.696 
 L 343.81077 7.2 
-" clip-path="url(#pb1c1bdf51e)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3e42dca612)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_10">
       <g>
-       <use xlink:href="#m4eec14505f" x="343.81077" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md284396b47" x="343.81077" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_5">
@@ -2810,11 +2835,11 @@ L 343.81077 7.2
      <g id="line2d_11">
       <path d="M 373.925056 195.696 
 L 373.925056 7.2 
-" clip-path="url(#pb1c1bdf51e)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3e42dca612)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_12">
       <g>
-       <use xlink:href="#m4eec14505f" x="373.925056" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md284396b47" x="373.925056" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_6">
@@ -2825,11 +2850,11 @@ L 373.925056 7.2
      <g id="line2d_13">
       <path d="M 404.039342 195.696 
 L 404.039342 7.2 
-" clip-path="url(#pb1c1bdf51e)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3e42dca612)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_14">
       <g>
-       <use xlink:href="#m4eec14505f" x="404.039342" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md284396b47" x="404.039342" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_7">
@@ -2840,11 +2865,11 @@ L 404.039342 7.2
      <g id="line2d_15">
       <path d="M 434.153627 195.696 
 L 434.153627 7.2 
-" clip-path="url(#pb1c1bdf51e)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3e42dca612)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_16">
       <g>
-       <use xlink:href="#m4eec14505f" x="434.153627" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md284396b47" x="434.153627" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_8">
@@ -2855,11 +2880,11 @@ L 434.153627 7.2
      <g id="line2d_17">
       <path d="M 464.267913 195.696 
 L 464.267913 7.2 
-" clip-path="url(#pb1c1bdf51e)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3e42dca612)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_18">
       <g>
-       <use xlink:href="#m4eec14505f" x="464.267913" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md284396b47" x="464.267913" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_9">
@@ -2870,11 +2895,11 @@ L 464.267913 7.2
      <g id="line2d_19">
       <path d="M 494.382199 195.696 
 L 494.382199 7.2 
-" clip-path="url(#pb1c1bdf51e)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3e42dca612)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_20">
       <g>
-       <use xlink:href="#m4eec14505f" x="494.382199" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md284396b47" x="494.382199" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_10">
@@ -2885,11 +2910,11 @@ L 494.382199 7.2
      <g id="line2d_21">
       <path d="M 524.496484 195.696 
 L 524.496484 7.2 
-" clip-path="url(#pb1c1bdf51e)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3e42dca612)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_22">
       <g>
-       <use xlink:href="#m4eec14505f" x="524.496484" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md284396b47" x="524.496484" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_11">
@@ -2900,11 +2925,11 @@ L 524.496484 7.2
      <g id="line2d_23">
       <path d="M 554.61077 195.696 
 L 554.61077 7.2 
-" clip-path="url(#pb1c1bdf51e)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3e42dca612)" style="fill: none; stroke: #d9dee5; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_24">
       <g>
-       <use xlink:href="#m4eec14505f" x="554.61077" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#md284396b47" x="554.61077" y="195.696" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_12">
@@ -2919,12 +2944,12 @@ L 554.61077 7.2
     <g id="ytick_1">
      <g id="line2d_25">
       <defs>
-       <path id="maab0a1d9c5" d="M 0 0 
+       <path id="m4d27321470" d="M 0 0 
 L -3.5 0 
 " style="stroke: #5b6675; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#maab0a1d9c5" x="208.296484" y="183.048" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4d27321470" x="208.296484" y="183.048" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_14">
@@ -2934,7 +2959,7 @@ L -3.5 0
     <g id="ytick_2">
      <g id="line2d_26">
       <g>
-       <use xlink:href="#maab0a1d9c5" x="208.296484" y="168.211636" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4d27321470" x="208.296484" y="168.211636" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_15">
@@ -2944,7 +2969,7 @@ L -3.5 0
     <g id="ytick_3">
      <g id="line2d_27">
       <g>
-       <use xlink:href="#maab0a1d9c5" x="208.296484" y="153.375273" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4d27321470" x="208.296484" y="153.375273" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_16">
@@ -2954,7 +2979,7 @@ L -3.5 0
     <g id="ytick_4">
      <g id="line2d_28">
       <g>
-       <use xlink:href="#maab0a1d9c5" x="208.296484" y="138.538909" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4d27321470" x="208.296484" y="138.538909" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_17">
@@ -2964,7 +2989,7 @@ L -3.5 0
     <g id="ytick_5">
      <g id="line2d_29">
       <g>
-       <use xlink:href="#maab0a1d9c5" x="208.296484" y="123.702545" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4d27321470" x="208.296484" y="123.702545" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_18">
@@ -2974,7 +2999,7 @@ L -3.5 0
     <g id="ytick_6">
      <g id="line2d_30">
       <g>
-       <use xlink:href="#maab0a1d9c5" x="208.296484" y="108.866182" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4d27321470" x="208.296484" y="108.866182" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_19">
@@ -2984,7 +3009,7 @@ L -3.5 0
     <g id="ytick_7">
      <g id="line2d_31">
       <g>
-       <use xlink:href="#maab0a1d9c5" x="208.296484" y="94.029818" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4d27321470" x="208.296484" y="94.029818" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_20">
@@ -2994,7 +3019,7 @@ L -3.5 0
     <g id="ytick_8">
      <g id="line2d_32">
       <g>
-       <use xlink:href="#maab0a1d9c5" x="208.296484" y="79.193455" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4d27321470" x="208.296484" y="79.193455" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_21">
@@ -3004,7 +3029,7 @@ L -3.5 0
     <g id="ytick_9">
      <g id="line2d_33">
       <g>
-       <use xlink:href="#maab0a1d9c5" x="208.296484" y="64.357091" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4d27321470" x="208.296484" y="64.357091" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_22">
@@ -3014,7 +3039,7 @@ L -3.5 0
     <g id="ytick_10">
      <g id="line2d_34">
       <g>
-       <use xlink:href="#maab0a1d9c5" x="208.296484" y="49.520727" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4d27321470" x="208.296484" y="49.520727" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_23">
@@ -3024,7 +3049,7 @@ L -3.5 0
     <g id="ytick_11">
      <g id="line2d_35">
       <g>
-       <use xlink:href="#maab0a1d9c5" x="208.296484" y="34.684364" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4d27321470" x="208.296484" y="34.684364" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_24">
@@ -3034,7 +3059,7 @@ L -3.5 0
     <g id="ytick_12">
      <g id="line2d_36">
       <g>
-       <use xlink:href="#maab0a1d9c5" x="208.296484" y="19.848" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
+       <use xlink:href="#m4d27321470" x="208.296484" y="19.848" style="fill: #5b6675; stroke: #5b6675; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_25">
@@ -3048,7 +3073,7 @@ L 569.667913 187.128
 L 569.667913 178.968 
 L 539.553627 178.968 
 z
-" clip-path="url(#pb1c1bdf51e)" style="fill: #c62f2f"/>
+" clip-path="url(#p3e42dca612)" style="fill: #c62f2f"/>
    </g>
    <g id="patch_4">
     <path d="M 509.439342 172.291636 
@@ -3056,7 +3081,7 @@ L 539.553627 172.291636
 L 539.553627 164.131636 
 L 509.439342 164.131636 
 z
-" clip-path="url(#pb1c1bdf51e)" style="fill: #0e7490"/>
+" clip-path="url(#p3e42dca612)" style="fill: #0e7490"/>
    </g>
    <g id="patch_5">
     <path d="M 479.325056 157.455273 
@@ -3064,7 +3089,7 @@ L 509.439342 157.455273
 L 509.439342 149.295273 
 L 479.325056 149.295273 
 z
-" clip-path="url(#pb1c1bdf51e)" style="fill: #0e7490"/>
+" clip-path="url(#p3e42dca612)" style="fill: #0e7490"/>
    </g>
    <g id="patch_6">
     <path d="M 449.21077 142.618909 
@@ -3072,7 +3097,7 @@ L 479.325056 142.618909
 L 479.325056 134.458909 
 L 449.21077 134.458909 
 z
-" clip-path="url(#pb1c1bdf51e)" style="fill: #c62f2f"/>
+" clip-path="url(#p3e42dca612)" style="fill: #c62f2f"/>
    </g>
    <g id="patch_7">
     <path d="M 419.096484 127.782545 
@@ -3080,7 +3105,7 @@ L 449.21077 127.782545
 L 449.21077 119.622545 
 L 419.096484 119.622545 
 z
-" clip-path="url(#pb1c1bdf51e)" style="fill: #1baf7a"/>
+" clip-path="url(#p3e42dca612)" style="fill: #1baf7a"/>
    </g>
    <g id="patch_8">
     <path d="M 388.982199 112.946182 
@@ -3088,7 +3113,7 @@ L 419.096484 112.946182
 L 419.096484 104.786182 
 L 388.982199 104.786182 
 z
-" clip-path="url(#pb1c1bdf51e)" style="fill: #c62f2f"/>
+" clip-path="url(#p3e42dca612)" style="fill: #c62f2f"/>
    </g>
    <g id="patch_9">
     <path d="M 358.867913 98.109818 
@@ -3096,7 +3121,7 @@ L 388.982199 98.109818
 L 388.982199 89.949818 
 L 358.867913 89.949818 
 z
-" clip-path="url(#pb1c1bdf51e)" style="fill: #eb6834"/>
+" clip-path="url(#p3e42dca612)" style="fill: #eb6834"/>
    </g>
    <g id="patch_10">
     <path d="M 328.753627 83.273455 
@@ -3104,7 +3129,7 @@ L 358.867913 83.273455
 L 358.867913 75.113455 
 L 328.753627 75.113455 
 z
-" clip-path="url(#pb1c1bdf51e)" style="fill: #eb6834"/>
+" clip-path="url(#p3e42dca612)" style="fill: #eb6834"/>
    </g>
    <g id="patch_11">
     <path d="M 298.639342 68.437091 
@@ -3112,7 +3137,7 @@ L 328.753627 68.437091
 L 328.753627 60.277091 
 L 298.639342 60.277091 
 z
-" clip-path="url(#pb1c1bdf51e)" style="fill: #1baf7a"/>
+" clip-path="url(#p3e42dca612)" style="fill: #1baf7a"/>
    </g>
    <g id="patch_12">
     <path d="M 268.525056 53.600727 
@@ -3120,7 +3145,7 @@ L 298.639342 53.600727
 L 298.639342 45.440727 
 L 268.525056 45.440727 
 z
-" clip-path="url(#pb1c1bdf51e)" style="fill: #1baf7a"/>
+" clip-path="url(#p3e42dca612)" style="fill: #1baf7a"/>
    </g>
    <g id="patch_13">
     <path d="M 238.41077 38.764364 
@@ -3128,7 +3153,7 @@ L 268.525056 38.764364
 L 268.525056 30.604364 
 L 238.41077 30.604364 
 z
-" clip-path="url(#pb1c1bdf51e)" style="fill: #0e7490"/>
+" clip-path="url(#p3e42dca612)" style="fill: #0e7490"/>
    </g>
    <g id="patch_14">
     <path d="M 208.296484 23.928 
@@ -3136,7 +3161,7 @@ L 238.41077 23.928
 L 238.41077 15.768 
 L 208.296484 15.768 
 z
-" clip-path="url(#pb1c1bdf51e)" style="fill: #2a78d6"/>
+" clip-path="url(#p3e42dca612)" style="fill: #2a78d6"/>
    </g>
    <g id="patch_15">
     <path d="M 208.296484 195.696 
@@ -3151,7 +3176,7 @@ L 587.736484 195.696
   </g>
  </g>
  <defs>
-  <clipPath id="pb1c1bdf51e">
+  <clipPath id="p3e42dca612">
    <rect x="208.296484" y="7.2" width="379.44" height="188.496"/>
   </clipPath>
  </defs>
@@ -3174,7 +3199,7 @@ L 587.736484 195.696
 <ol>
 <li>Es factible construir, exclusivamente con datos públicos y servicios gratuitos, un sistema de pronóstico de riesgo de inundación de cobertura nacional, con actualización automática y resolución de gobierno local, celda de 0,1° y radio censal.</li>
 <li>Para un horizonte de días, el esquema probabilidad × impacto resulta más adecuado que un índice estructural del tipo INFORM: el riesgo responde al pronóstico y se anula en ausencia de evento, en concordancia con las prácticas del EFAS, el <i>Flood Guidance Statement</i> y el SMN.</li>
-<li>El ensamble del ECMWF, con celdas de 25 km, atenúa las tormentas convectivas. La calibración contra las alertas oficiales elevó la coincidencia con el SMN de 184 a 1.395 gobiernos locales alertados, con un acuerdo moderado (ETS de 0,12 a 0,13) que se reevalúa semanalmente.</li>
+<li>El ensamble del ECMWF, con celdas de 25 km, atenúa las tormentas convectivas. La calibración contra las alertas oficiales elevó la coincidencia con el SMN de 184 a 1.395 gobiernos locales alertados, con un acuerdo moderado (ETS de 0,12 a 0,13 en la calibración y 0,17 en producción sobre 2 días) y sobrealerta en el nivel naranja (Bias 1,55), que la versión 9 acota con un piso físico de 10 y 20 mm y con un Bias restringido en la calibración semanal, que se reevalúa semanalmente.</li>
 <li>La selección de la fuente de precipitación histórica debe basarse en mediciones: ERA5 reproduce el 60 % de las tormentas de 100 mm o más e IMERG, el 82 %. La corrección por cuantiles no mejoró el resultado.</li>
 <li>La coincidencia temporal entre lluvia y nivel fluvial es una condición necesaria de los escenarios de inundación compuesta; los escenarios con la crecida máxima de la temporada representan situaciones no ocurridas.</li>
 <li>El modelo hidráulico inercial ejecutado en el navegador reproduce las crecidas fluviales con estación cercana (POD 76 %, CSI 0,32 en Concordia) y alcanza en el anegamiento persistente un desempeño equivalente al mapa histórico (CSI 0,36 frente a 0,34).</li>
@@ -3186,7 +3211,7 @@ L 587.736484 195.696
 <li><b>Ventana fluvial.</b> Los tres días posteriores a la tormenta constituyen un criterio físico no calibrado. GloFAS convertido a altura presenta errores del orden de 1 m. La sudestada no se modela, limitación relevante en el Delta.</li>
 <li><b>Método estático.</b> No encadena desbordes entre depresiones ni considera el tiempo de drenaje; depende de la precisión vertical del relieve satelital (1 a 3 m) y no se validó contra daños.</li>
 <li><b>Simulador.</b> El desagüe se supone uniforme; no se representa el aporte externo al área; los cauces se graban con un ancho supuesto; la validación con Dynamic World empleó celdas de 150 m, frente a 32 m del simulador; la simulación del pronóstico emplea la mediana fluvial sin su dispersión.</li>
-<li><b>Riesgo diario.</b> Depende de un pronóstico de 25 km; la calibración presenta un acuerdo moderado; los habitantes expuestos se derivan de la acumulación en depresiones y no incluyen el escurrimiento por calles, por lo que el anegamiento urbano breve puede estar subestimado (de allí el piso por alerta); el componente fluvial conserva el criterio topográfico de 5 m; el nivel rojo no pudo calibrarse por ausencia de alertas rojas en la muestra; no se estiman pérdidas ni daños.</li>
+<li><b>Riesgo diario.</b> Depende de un pronóstico de 25 km; la calibración presenta un acuerdo moderado (ETS de 0,17 en producción sobre 2 días) y sobrealerta en el nivel naranja (Bias 1,55; 1,7 % de los gobiernos locales sin alerta del SMN con amenaza naranja y 15,8 % con amarilla o mayor); el piso físico de 10 y 20 mm es una propuesta no validada con la muestra disponible, y no se evaluó el ajuste sobre el ensamble ni por región climática; los habitantes expuestos se derivan de la acumulación en depresiones y no incluyen el escurrimiento por calles, por lo que el anegamiento urbano breve puede estar subestimado (de allí el piso por alerta); el componente fluvial conserva el criterio topográfico de 5 m; el nivel rojo no pudo calibrarse por ausencia de alertas rojas en la muestra; no se estiman pérdidas ni daños.</li>
 <li><b>Automatización.</b> La plataforma ejecuta las tareas programadas con demoras de varias horas.</li>
 <li><b>Cobertura fluvial.</b> Los ríos sin estación con niveles de alerta (noroeste, Cuyo, Patagonia) carecen de estimación.</li></ul>
 <h2><span class="n">13.2</span>Riesgos del proyecto</h2>
@@ -3270,7 +3295,10 @@ L 587.736484 195.696
 <div class="tabla-t">Tabla C.1. Parámetros principales y su origen</div>
 <table><thead><tr><th>Parámetro</th><th class="num">Valor</th><th>Origen</th></tr></thead><tbody>
 <tr><td>Probabilidad mínima de aviso</td><td class="num">30 %</td><td>Criterio EFAS; ajuste semanal por ETS</td></tr>
-<tr><td>Factor de calibración amarilla · naranja · roja</td><td class="num">0,20 · 0,25 · 1,0</td><td>Calibración contra alertas del SMN</td></tr>
+<tr><td>Factor de calibración amarilla · naranja · roja</td><td class="num">0,20 · 0,25 · 1,0</td><td>Calibración contra alertas del SMN (43 días, ETS 0,117 · 0,134); sin cambio en la versión 9</td></tr>
+<tr><td>Piso físico del umbral efectivo amarilla · naranja · roja (mm/24 h)</td><td class="num">10 · 20 · sin piso</td><td>Versión 9; comparación con lluvia observada de 4 días (tabla 7.2)</td></tr>
+<tr><td>Frequency Bias admitido en la calibración semanal</td><td class="num">0,8 – 1,5</td><td>Versión 9; control de sobrealerta (tabla 7.1: naranja 1,55 antes del control)</td></tr>
+<tr><td>Falsas alarmas sin alerta del SMN (producción, 2 días) amarilla · naranja</td><td class="num">15,8 % · 1,7 %</td><td>Medición del 17 y 18 de noviembre de 2026 (tabla 7.1)</td></tr>
 <tr><td>Reducción máxima por propensión · humedad antecedente</td><td class="num">20 % · 25 %</td><td>Criterio FFGS (OMM)</td></tr>
 <tr><td>Decaimiento del índice antecedente (5 días)</td><td class="num">0,85</td><td>Índice de precipitación antecedente</td></tr>
 <tr><td>Persistencia fluvial con curva · sin curva</td><td class="num">3 · 7 días</td><td>Ajuste semanal (con curva)</td></tr>

@@ -7,8 +7,8 @@ const estado = {
   idioma: "es", capa: "riesgo", modo: "futuro", sel: null, km: 1,
   rangoRiesgo: [0, 0], rangoDias: [0, 6], paso3h: null,
   diaRiesgo: null, diaReproduciendo: null, reproduciendo: null,
-  verRios: true, verAlertas: false, verReferencias: true, verHidro: true, verInundadas: false, verInundHoy: false, verDensidad: false,
-  verBarrios: false, verSuelo: false, verInfra: false, verRutas: false, riesgo3d: false, relieve3d: false, relieve: false, ranking: "r",
+  verRios: true, verAlertas: false, verReferencias: true, verHidro: true, verInundadas: false, verInundHoy: false,
+  verInfra: false, verRutas: false, riesgo3d: false, relieve3d: false, relieve: false, ranking: "r",
   datos: {}, riesgo: null, porCmu: new Map(), radios: [], cargasRadios: new Map(), tiempo: null,
 };
 const t = (clave) => TEXTOS[estado.idioma][clave] ?? TEXTOS.es[clave] ?? clave;
@@ -101,12 +101,11 @@ function pintarKpis() {
     ir: () => { if (!pico) return; detenerReproduccion(false); estado.rangoRiesgo = [pico.i, pico.i]; elegirCapa("riesgo"); } });
   document.getElementById("kpis-alcance").textContent = t("kpis_de")(A.nombre);
   const cont = document.getElementById("kpis");
-  cont.innerHTML = kpis.map((k, i) => `<button class="kpi" data-i="${i}" data-sev="${k.sev}"${k.nivelAl ? ` data-alerta="${k.nivelAl}"` : ""} type="button" data-ayuda="${escapar(t(`kpi_ayuda_${k.k}`))}">
+  cont.innerHTML = kpis.map((k, i) => `<div class="kpi" data-i="${i}" data-sev="${k.sev}"${k.nivelAl ? ` data-alerta="${k.nivelAl}"` : ""} data-ayuda="${escapar(t(`kpi_ayuda_${k.k}`))}">
       <span class="kpi-l">${k.etq}</span><span class="kpi-i">${icono(k.ico)}</span>
       <span class="kpi-v">${k.valor}${k.unidad ? `<small>${k.unidad.trim()}</small>` : ""}</span>
-      <span class="kpi-f">${escapar(k.sub)}</span></button>`).join("");
-  // (en el celular, si el indicador cambia el mapa y no la lámina, la página baja hasta el mapa)
-  cont.querySelectorAll(".kpi").forEach((b) => { b.onclick = () => { kpis[+b.dataset.i].ir(); if (esMovil() && laminaActual === 1) irAlMapaMovil(); }; });
+      <span class="kpi-f">${escapar(k.sub)}</span></div>`).join("");
+  // (v10: los indicadores son informativos, no llevan a otra capa ni lámina)
   pintarCabezaLectura(A, rV, expuestos, evac, pico);
   pintarRadioLectura(A.circulo ?? (estado.sel ? null : { km: estado.km }));   // sin nada elegido: el radio que tendrá el próximo punto
 }
@@ -144,21 +143,42 @@ function pintarCoordenadas(punto) {
   el.hidden = !punto;
   if (!punto) return;
   const txt = `${punto[1].toFixed(5)}, ${punto[0].toFixed(5)}`;
-  el.innerHTML = `<span class="lec-coords-v">${txt}</span><button type="button" class="btn-banda">${t("copiar")}</button>
-    <a class="btn-banda" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(txt)}" target="_blank" rel="noopener">Google Maps ↗</a>`;
+  const icoCopiar = `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="1.5"/><path d="M5 15V5.5A1.5 1.5 0 0 1 6.5 4H15"/></svg>`;
+  el.innerHTML = `<span class="lec-coords-v">${txt}</span><div class="lec-coords-bot"><button type="button" class="btn-banda btn-copiar" aria-label="${t("copiar")}" title="${t("copiar")}">${icoCopiar}</button>
+    <a class="btn-banda" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(txt)}" target="_blank" rel="noopener">Google Maps ↗</a></div>`;
   const b = el.querySelector("button");
   b.onclick = async () => {
-    try { await navigator.clipboard.writeText(txt); b.textContent = t("copiado"); }
+    try { await navigator.clipboard.writeText(txt); b.classList.add("copiado"); b.title = t("copiado"); }
     catch (e) { const r = document.createRange(); r.selectNodeContents(el.querySelector(".lec-coords-v")); getSelection().removeAllRanges(); getSelection().addRange(r); }
-    setTimeout(() => { b.textContent = t("copiar"); }, 1800);
+    setTimeout(() => { b.classList.remove("copiado"); b.title = t("copiar"); }, 1800);
   };
 }
 
+// Un texto que siempre va en una sola línea: si no entra en su columna, la letra se achica de a medio punto (hasta 10 px) y, si aun así
+// no entra, se prueba con una versión más corta del mismo texto (sin «sin puntos suspensivos»: se resume, no se corta)
+function ajustarUnaLinea(el, variantes = null) {
+  if (!el) return;
+  if (variantes) el._variantes = variantes;
+  const lista = el._variantes ?? [el.textContent];
+  const fin = () => {
+    if (!el.clientWidth) return;   // oculto (celular): no hay nada que medir
+    for (const v of lista) {
+      el.textContent = v; el.style.fontSize = "";
+      let fs = parseFloat(getComputedStyle(el).fontSize);
+      while (el.scrollWidth > el.clientWidth + 1 && fs > 10) { fs -= 0.5; el.style.fontSize = `${fs}px`; }
+      if (el.scrollWidth <= el.clientWidth + 1) return;
+    }
+  };
+  fin(); requestAnimationFrame(fin);
+}
+addEventListener("resize", () => ajustarUnaLinea(document.getElementById("escala-sub")));
 // ---------- Cabeza de la lámina 01: titular, bajada y escala de riesgo ----------
 function pintarCabezaLectura(A, rV, pobAlto, evac, pico) {
   const pais = A.nombre === "Argentina", hoy = fmtDia(hoyLocal(), { day: "numeric", month: "short", year: "numeric" }).replace(".", "");
   const nivel = nombreNivel(rV).toLowerCase(), c = A.circulo ? "_c" : "";
-  document.getElementById("lec-etq").textContent = t("lec_etq")(pais ? t("lec_pais") : A.nombre, hoy);
+  // Solo el nombre del lugar va grande; el radio y la fecha, debajo y más chicos
+  const [nombre0, ...resto0] = (pais ? t("lec_pais") : A.nombre).split(" · ");
+  document.getElementById("lec-etq").innerHTML = `<span class="lec-nombre">${escapar(nombre0)}</span> <span class="lec-resto">${[...resto0.map(escapar), escapar(hoy)].join(" · ")}</span>`;
   pintarCoordenadas(A.circulo?.punto ?? null);
   // El período que mira el riesgo va en el titular: «hoy», «en los próximos 14 días», «el 20/11» o «del 20/11 al 25/11»
   const iv = indicesVista(), i0 = Math.min(...iv), i1 = Math.max(...iv), fd = (i) => fechaCorta(estado.riesgo.dias[i]).slice(0, 5);
@@ -168,8 +188,13 @@ function pintarCabezaLectura(A, rV, pobAlto, evac, pico) {
   document.getElementById("lec-titular").innerHTML = `${escapar(capitalizar(esMovil() ? t("lec_titular")(nivel, "").replace(" :", ":") : t("lec_titular")(nivel, per)))} <span>${t("sobre_10")(`<b>${fmtRiesgo(rV)}</b>`)}</span>`;
   const pers = pobAlto >= 1e6 ? t("personas_txt")(fmt(pobAlto / 1e6, 1), true) : t("personas_txt")(fmt(Math.round(pobAlto)), false);
   const diaPico = pico ? fmtDiaFrase(estado.riesgo.dias[pico.i], { weekday: "long", day: "numeric", month: "long" }).replace(",", "") : null;
-  document.getElementById("lec-bajada").textContent = t(`lec_bajada${c}`)(capitalizar(pers), evac, pico ? pico.i : null, diaPico);
+  document.getElementById("lec-bajada").innerHTML = t(`lec_bajada${c}`)(capitalizar(pers), evac, pico ? pico.i : null, diaPico).split("\n").map((x) => `<span>${escapar(x)}</span>`).join("");   // punto y aparte: cada oración en su párrafo
   document.getElementById("escala-sub").textContent = t("escala_sub")(pais ? t("el_pais") : A.nombre);
+  { // Subtítulo en una línea: con un círculo, «Riesgo en círculo de 1 km» (el nombre del lugar ya está arriba)
+    const sub = document.getElementById("escala-sub");
+    if (A.circulo) sub.textContent = t("escala_sub_c")(A.circulo.km ?? estado.sel?.km);
+    ajustarUnaLinea(sub, pais ? [sub.textContent] : A.circulo ? [sub.textContent] : [sub.textContent, A.nombre]);
+  }
   // Indicador de aguja de 0 a 10: un tramo por nivel del índice y la aguja en el valor de hoy
   const cortes = [0, ...CORTES, 10], nombres = t("niveles_cortos"), cx = 115, cy = 108, R = 82, v = limitar(rV, 0, 10);
   const pt = (val, r) => { const a = Math.PI * (1 - val / 10); return [(cx + r * Math.cos(a)).toFixed(1), (cy - r * Math.sin(a)).toFixed(1)]; };
@@ -178,11 +203,14 @@ function pintarCabezaLectura(A, rV, pobAlto, evac, pico) {
     const a = pt(cortes[i] + (i ? 0.07 : 0), R), b = pt(c - (c < 10 ? 0.07 : 0), R);
     ag += `<path d="M${a[0]} ${a[1]}A${R} ${R} 0 0 1 ${b[0]} ${b[1]}" fill="none" stroke-width="15" style="stroke:var(--r${i + 1})"><title>${nombres[i]}: ${fmt(cortes[i], cortes[i] % 1 ? 1 : 0)}–${fmt(c, c % 1 ? 1 : 0)}</title></path>`;
   });
-  cortes.forEach((c) => { const q = pt(c, R + 17); ag += `<text x="${q[0]}" y="${c === 0 || c === 10 ? cy + 16 : q[1]}" text-anchor="middle" dominant-baseline="middle">${fmt(c, c % 1 ? 1 : 0)}</text>`; });
-  const punta = pt(v, R - 13);
-  ag += `<line x1="${cx}" y1="${cy}" x2="${punta[0]}" y2="${punta[1]}" stroke-width="2.5" stroke-linecap="round" style="stroke:var(--tinta-1)"/><circle cx="${cx}" cy="${cy}" r="5.5" style="fill:var(--tinta-1)"/>`;
-  ag += `<text class="v" x="${cx}" y="${cy + 34}" text-anchor="middle">${fmtRiesgo(rV)} / 10 · ${escapar(nombreNivel(rV))}</text>`;
-  document.getElementById("lec-escala").innerHTML = `<svg class="aguja" viewBox="0 0 230 150" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${fmtRiesgo(rV)} / 10 · ${escapar(nombreNivel(rV))}">${ag}</svg>`;
+  cortes.forEach((c) => { const q = pt(c, R + 19); ag += `<text x="${q[0]}" y="${c === 0 || c === 10 ? cy + 18 : q[1]}" text-anchor="middle" dominant-baseline="middle">${fmt(c, c % 1 ? 1 : 0)}</text>`; });
+  // Aguja con punta de flecha que llega hasta los colores del arco
+  const ang = Math.PI * (1 - v / 10), dx = Math.cos(ang), dy = -Math.sin(ang), px = -dy, py = dx;   // dirección y perpendicular
+  const en = (r, w = 0) => `${(cx + r * dx + w * px).toFixed(1)},${(cy + r * dy + w * py).toFixed(1)}`;
+  ag += `<line x1="${cx}" y1="${cy}" x2="${(cx + (R - 15) * dx).toFixed(1)}" y2="${(cy + (R - 15) * dy).toFixed(1)}" stroke-width="2" stroke-linecap="butt" style="stroke:var(--tinta-1)"/>`
+    + `<polygon points="${en(R - 3)} ${en(R - 16, 4)} ${en(R - 16, -4)}" style="fill:var(--tinta-1)"/><circle cx="${cx}" cy="${cy}" r="6.5" style="fill:var(--tinta-1)"/>`;
+  ag += `<text class="v" x="${cx}" y="${cy + 50}" text-anchor="middle">${fmtRiesgo(rV)} / 10 · ${escapar(nombreNivel(rV))}</text>`;
+  document.getElementById("lec-escala").innerHTML = `<svg class="aguja" viewBox="0 0 230 166" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${fmtRiesgo(rV)} / 10 · ${escapar(nombreNivel(rV))}">${ag}</svg>`;
 }
 
 // ---------- Modo, período y línea de tiempo ----------
@@ -271,11 +299,13 @@ function actualizarEvolucion() {
 // Confianza del pronóstico según el plazo, debajo de la línea de los días: alta (0-2: día exacto, alertas del SMN), media (3-7: lluvia
 // con ventana de ±1 día) y baja (8-14: el ensamble ya no ubica bien el día; sirve como tendencia)
 function bandaConfianza(lista, x) {
-  const tramos = [["alta", 0, 2], ["media", 3, 7], ["baja", 8, 99]].map(([c, a, b]) => {
-    const j0 = lista.findIndex((k) => k >= a), j1 = lista.findLastIndex((k) => k <= b);
-    return j0 < 0 || j1 < j0 ? "" : `<span class="tb-conf ${c}" style="left:${x(j0)}%;width:${Math.max(0, x(j1) - x(j0))}%"><small>${t(`conf_${c}`)}</small></span>`;
+  const tramos = [["alta", 0, 2], ["media", 3, 7], ["baja", 8, 99]].map(([c, a, b]) => ({ c, j0: lista.findIndex((k) => k >= a), j1: lista.findLastIndex((k) => k <= b) })).filter((r) => r.j0 >= 0 && r.j1 >= r.j0);
+  // Sin huecos entre un tramo y el siguiente: el límite entre ambos queda a mitad de camino entre el último día de uno y el primero del otro
+  const html = tramos.map((r, i) => {
+    const izq = i === 0 ? x(r.j0) : (x(tramos[i - 1].j1) + x(r.j0)) / 2, der = i === tramos.length - 1 ? x(r.j1) : (x(r.j1) + x(tramos[i + 1].j0)) / 2;
+    return `<span class="tb-conf ${r.c}" style="left:${izq}%;width:${Math.max(0, der - izq)}%"><small>${t(`conf_${r.c}`)}</small></span>`;
   }).join("");
-  return `<div class="tb-evol-conf" aria-label="${t("conf_aria")}">${tramos}</div>`;
+  return `<div class="tb-evol-conf" aria-label="${t("conf_aria")}">${html}</div>`;
 }
 function bloqueEvolucion() {
   const { tipo, lista } = listaReproduccion();
@@ -284,11 +314,10 @@ function bloqueEvolucion() {
   const fechas = tipo === "rdia" ? estado.riesgo.dias : T.dias;
   let pct = 0, cartel = "", color = "var(--cian)", tinta = "var(--cian-tinta)";
   const x = (j) => (100 * j) / n1, etq = (k) => (tipo === "hora" ? fmtHora(T.horas[k]) : fechaCorta(fechas[k]).slice(0, 5));
-  const lunes = lista.map((k, j) => ({ j, k })).filter(({ k }) => tipo !== "hora" && new Date(`${fechas[k]}T12:00:00Z`).getUTCDay() === 1);
-  const hitos = [{ j: 0 }, ...lunes.filter(({ j }) => j > 0), { j: n1 }].filter((h, i, a) => a.findIndex((q) => q.j === h.j) === i)
-    .filter((h, i, a) => i === 0 || (h.j - a[i - 1].j) / n1 > 0.14)
-    .map(({ j }) => ({ x: x(j), etq: etq(lista[j]), activo: false, j }));
-  const semanas = lunes.map(({ j }) => x(j));
+  // Hitos: el primer día, el día 7 (la mitad de los 14) y el último; la línea termina en el último día
+  const medio = Math.ceil(n1 / 2);
+  const hitos = [0, medio, n1].filter((j, i, a) => a.indexOf(j) === i).map((j) => ({ x: x(j), etq: etq(lista[j]), activo: false, j }));
+  const semanas = [];
   const actual = tipo === "rdia" ? estado.diaRiesgo : tipo === "dia" ? estado.diaReproduciendo : jugando ? estado.paso3h : null, pos = actual == null ? -1 : lista.indexOf(actual);
   if (pos >= 0) {
     pct = x(pos);
@@ -398,9 +427,8 @@ function pintarLeyenda() {
   // Claves de las capas opcionales prendidas (las que tienen colores propios)
   const claves = [
     estado.verInundadas && `<span><i style="background:linear-gradient(90deg,#f3a6b5,#5a7bd8)"></i>${t("ley_inundadas")}</span>`,
-    estado.verDensidad && `<span><i style="background:linear-gradient(90deg,rgba(59,51,102,.15),rgba(59,51,102,.75))"></i>${t("ley_densidad")}</span>`,
-    estado.verBarrios && `<span><i style="background:rgba(122,61,143,.45);border:1px solid #5b2a6f"></i>${t("capa_barrios")}</span>`,
-    estado.verSuelo && `<span><i style="background:rgba(92,99,112,.5)"></i>${t("ley_urbano")} <i style="background:rgba(58,154,91,.5)"></i>${t("ley_verde")}</span>`,
+    estado.verInundHoy && `<span><i style="background:linear-gradient(90deg,#00c4b0,#00a896)"></i>${t("ley_inund_hoy")}</span>`,
+    ...(estado.verAlertas && (capa === "riesgo" || estado.modo === "actual") ? ["amarilla", "naranja", "roja"].map((n) => `<span><i class="ley-ray ${n}"></i>${t(`ley_alerta_${n}`)}</span>`) : []),
     estado.verInfra && `<span>${Object.entries(GRUPOS_INFRA).map(([g, c]) => `<i class="pt" style="background:${c}"></i>${t(`infra_${g}`)}`).join(" ")}</span>`,
   ].filter(Boolean).join("");
   const interruptores = claves ? `<p class="ley-claves">${claves}</p>` : "";
@@ -411,8 +439,7 @@ function pintarLeyenda() {
     cuerpo = `<div class="ley-lista">${[1, 2, 3, 4, 5].map((n) => fila(`<i style="background:var(--r${n})"></i>`, t("niveles")[n - 1], ["0 – 3", "3 – 4,5", "4,5 – 6", "6 – 7", "7 – 10"][n - 1])).join("")}</div>
       ${estado.verHidro ? `<div class="ley-lista">${vistaHoy()
         ? fila('<i class="pto" style="background:var(--critico)"></i>', t("ley_rio_ev"), "") + fila('<i class="pto" style="background:var(--serio)"></i>', t("ley_rio_al"), "") + fila('<i class="pto" style="background:var(--rio-normal)"></i>', t("ley_rio_no"), "")
-        : fila('<i class="pto" style="background:var(--critico)"></i>', t("ley_rio_ev_pron"), "") + fila('<i class="pto" style="background:var(--serio)"></i>', t("ley_rio_al_pron"), "") + fila('<i class="pto" style="background:var(--rio-normal)"></i>', t("ley_rio_no_pron"), "")}</div>` : ""}
-      <div class="ley-km" id="ley-km"><i></i><span></span></div>`;
+        : fila('<i class="pto" style="background:var(--critico)"></i>', t("ley_rio_ev_pron"), "") + fila('<i class="pto" style="background:var(--serio)"></i>', t("ley_rio_al_pron"), "") + fila('<i class="pto" style="background:var(--rio-normal)"></i>', t("ley_rio_no_pron"), "")}</div>` : ""}`;
   } else if (estado.campo) {
     const c = estado.campo, esc = c.escala, n = esc.length;
     const pasos = esc.map(([v, col], i) => `<span style="background:${rgba(col, 0.25)}"></span>`).join("");
@@ -439,11 +466,11 @@ function pintarLeyenda() {
 // capas adicionales se pueden sumar de a varias. Referencias y líneas de relieve quedan aparte, en la fila chica de opciones.
 const OPCIONES_MAPA = [["verReferencias", "capa_ref"], ["relieve", "capa_relieve"]];
 const CAPAS_SUMAR = [
-  ["verHidro", "capa_hidro"], ["verAlertas", "capa_alertas"], ["verInundHoy", "capa_inund_hoy"], ["verInundadas", "capa_inundadas"], ["verDensidad", "capa_densidad"],
-  ["verBarrios", "capa_barrios"], ["verSuelo", "capa_suelo"], ["verInfra", "capa_infra"], ["verRutas", "capa_rutas"],
+  ["verHidro", "capa_hidro"], ["verAlertas", "capa_alertas"], ["verInundHoy", "capa_inund_hoy"], ["verInundadas", "capa_inundadas"],
+  ["verInfra", "capa_infra"], ["verRutas", "capa_rutas"],
 ];
 function pintarCapasExtra() {
-  const sinTeselas = new Set(SIN_TESELAS ? ["relieve", "verSuelo", "verRutas", "verInundadas", "verInundHoy"] : []);
+  const sinTeselas = new Set(SIN_TESELAS ? ["relieve", "verRutas", "verInundadas", "verInundHoy"] : []);
   const botones = (lista) => lista.filter(([k]) => !sinTeselas.has(k)).map(([k, txt]) => {
     const apagada = k === "verAlertas" && estado.capa !== "riesgo" && estado.modo !== "actual";
     return `<button type="button" class="capa-chip" data-k="${k}" aria-pressed="${!!estado[k] && !apagada}"${apagada ? " disabled" : ""}
@@ -459,7 +486,7 @@ function pintarCapasExtra() {
       estado[k] = !estado[k];
       aplicarCapaEnMapa(); pintarLeyenda(); pintarCapasExtra();
       // Con una capa de superficie encendida el riesgo se atenúa para que se lea
-      if (["verInundadas", "verDensidad", "verSuelo"].includes(k)) for (const id of ["riesgo-mun", "riesgo-radio"]) mapa.setPaintProperty(id, "fill-opacity", opacidadRiesgo(OPAC_RELLENO));
+      if (["verInundadas"].includes(k)) for (const id of ["riesgo-mun", "riesgo-radio"]) mapa.setPaintProperty(id, "fill-opacity", opacidadRiesgo(OPAC_RELLENO));
     };
   });
 }
@@ -471,6 +498,8 @@ function seleccionar(sel, { volar = false, origen = null } = {}) {
   aplicarCapaEnMapa();
   actualizarBorrar();
   pintarKpis(); pintarGraficosHeader(); pintarTablero(); pintarAnalisis(); pintarLeyenda();
+  // Computadora: al elegir un lugar el panel vuelve arriba, donde están su nombre, las coordenadas y los botones «Copiar» y «Google Maps»
+  if (sel && !esMovil()) document.querySelector("aside.lectura")?.scrollTo({ top: 0, behavior: movimientoReducido() ? "auto" : "smooth" });
   if (volar && sel?.tipo === "zona") volarAZona(sel.lugar);
   if (volar && sel?.tipo === "punto") volarAPunto(sel.punto, sel.km);
   if (!sel && volar !== false) mapa.flyTo({ ...vistaPais(), duration: movimientoReducido() ? 0 : 1400 });
@@ -482,7 +511,20 @@ function municipioEn(punto) {
   estado.cajasMuni ??= estado.datos.municipios.features.map((f) => [f, cajaDe(f.geometry)]);
   return estado.cajasMuni.find(([f, c]) => punto[0] >= c[0] && punto[0] <= c[2] && punto[1] >= c[1] && punto[1] <= c[3] && contiene(f.geometry, punto))?.[0];
 }
+// ¿El punto está dentro del territorio argentino? (municipios y, si cae en un hueco de ellos, las provincias)
+function puntoEnArgentina(punto) {
+  return !!municipioEn(punto) || (estado.datos.provincias?.features ?? []).some((f) => contiene(f.geometry, punto));
+}
+// Aviso breve sobre el mapa (se va solo)
+function avisoMapa(txt) {
+  document.querySelector(".aviso-mapa")?.remove();
+  const a = document.createElement("p");
+  a.className = "aviso-mapa"; a.setAttribute("role", "status"); a.textContent = txt;
+  document.querySelector(".mapa-marco").appendChild(a);
+  setTimeout(() => a.remove(), 5000);
+}
 function seleccionarPunto(punto, { nombre = null, origen = "mapa", volar = false } = {}) {
+  if (!puntoEnArgentina(punto)) { if (origen === "direccion") mostrarAviso(t("fuera_argentina")); else avisoMapa(t("fuera_argentina")); return; }
   const muni = municipioEn(punto);
   if (origen !== "direccion") {
     if (muni) completarCamposDesdePunto(muni.properties.cmu);
@@ -526,15 +568,28 @@ function mostrarAviso(txt) {
   a.textContent = txt; a.hidden = false;
 }
 
+// Barra del mapa: «Capas» del ancho de la pestaña «Temperatura» y el radio del triple de «Riesgo»; las miniaturas van debajo de la barra
+function ajustarBarraMapa() {
+  const cab = document.querySelector(".plano-cab"), marco = document.querySelector(".mapa-marco");
+  const r = cab?.querySelector('.capas-tabs [data-capa="riesgo"]'), tmp = cab?.querySelector('.capas-tabs [data-capa="temp"]');
+  if (!r || !tmp || !r.offsetWidth) return;
+  cab.style.setProperty("--w-capas", `${Math.round(tmp.getBoundingClientRect().width)}px`);
+  cab.style.setProperty("--w-radio", `${Math.round(4 * r.getBoundingClientRect().width)}px`);
+  marco?.style.setProperty("--top-minis", `${Math.round(cab.getBoundingClientRect().bottom - marco.getBoundingClientRect().top + 16)}px`);
+}
 // Vista inicial del país (el recorrido guiado está en guia.js)
 const VISTA_PAIS = { center: [-63.6, -38.6], zoom: 3.55, pitch: 0, bearing: 0 };
 // El país entero a la izquierda del cuadro de referencias (que no tape la mitad del país) y sin tapar los botones de zoom
 const LIMITES_PAIS = [[-73.6, -55.2], [-53.5, -21.7]];
-function margenPais() {   // celular: las referencias quedan debajo del mapa; computadora: el país a la izquierda del cuadro de referencias
+function margenPais() {   // celular: las referencias quedan debajo del mapa; computadora: encuadre fijo en proporción al mapa
   if (esMovil()) return { top: 24, bottom: 24, left: 24, right: 24 };
-  const refs = document.getElementById("refs"), marco = document.querySelector(".mapa-marco");
-  const der = refs && marco && !refs.hidden ? marco.getBoundingClientRect().right - refs.getBoundingClientRect().left + 16 : 40;
-  return { top: 70, bottom: 24, left: 70, right: Math.max(40, der) };
+  // Encuadre elegido (v10): el país ocupa ~81 % del alto, con ~9,5 % libre arriba y ~9 % abajo, y queda centrado un poco a la izquierda de la mitad,
+  // entre las miniaturas de la izquierda y la leyenda de la derecha
+  const marco = document.querySelector(".mapa-marco"), W = marco?.clientWidth || 900, H = marco?.clientHeight || 700;
+  // Medido en la captura aprobada del 18-nov (cuadro de 1097 × 954): el país ocupa el 80 % del alto (12,5 % libre arriba, 7,3 % abajo), su ancho es el 51 % de su alto
+  // y su centro queda al 46 % del ancho del cuadro; así el encuadre es el mismo con cualquier proporción de ventana
+  const top = 0.125 * H, bottom = 0.073 * H, anchoPais = (H - top - bottom) * 0.5125, left = Math.max(0, 0.461 * W - anchoPais / 2), right = Math.max(0, W - left - anchoPais);
+  return { top: Math.round(top), bottom: Math.round(bottom), left: Math.round(left), right: Math.round(right) };
 }
 function vistaPais() {
   const c = mapa.cameraForBounds(LIMITES_PAIS, { padding: margenPais() });
@@ -664,8 +719,9 @@ async function iniciar() {
 
   document.querySelectorAll("#modo [data-modo]").forEach((b) => { b.onclick = () => elegirModo(b.dataset.modo); });
   document.querySelectorAll(".capas-tabs [data-capa]").forEach((b) => { b.onclick = () => elegirCapa(b.dataset.capa); });
-  document.getElementById("btn-idioma").onclick = () => { estado.idioma = estado.idioma === "es" ? "en" : "es"; aplicarIdioma(); };
+  document.getElementById("btn-idioma").onclick = () => { estado.idioma = estado.idioma === "es" ? "en" : "es"; aplicarIdioma(); requestAnimationFrame(ajustarBarraMapa); };
   document.getElementById("btn-tema").onclick = cambiarTema;
+  document.getElementById("btn-detalles").onclick = () => { mostrarLamina(3); };   // el reporte de lo elegido
   iniciarGuia();
   const laminaDelEnlace = iniciarLaminas();
   pintarCapasExtra();
@@ -673,11 +729,12 @@ async function iniciar() {
   // Capas adicionales y opciones del mapa en un panel desplegable sobre el mapa
   const btnCapas = document.getElementById("btn-capas"), panelCapas = document.getElementById("panel-capas");
   btnCapas.onclick = (ev) => { ev.stopPropagation(); panelCapas.hidden = !panelCapas.hidden; btnCapas.setAttribute("aria-expanded", String(!panelCapas.hidden)); };
-  document.addEventListener("click", (ev) => { if (!panelCapas.hidden && !panelCapas.contains(ev.target) && ev.target !== btnCapas) { panelCapas.hidden = true; btnCapas.setAttribute("aria-expanded", "false"); } });
+  document.addEventListener("click", (ev) => { if (!panelCapas.hidden && ev.target.isConnected && !panelCapas.contains(ev.target) && ev.target !== btnCapas) { panelCapas.hidden = true; btnCapas.setAttribute("aria-expanded", "false"); } });
   if (SIN_TESELAS) { document.getElementById("enlace-completo").hidden = false; }
   addEventListener("resize", demorar(() => { pintarTablero(); pintarAnalisis(); pintarMinis(); }, 250));
 
   aplicarIdioma();
+  ajustarBarraMapa(); document.fonts?.ready.then(ajustarBarraMapa); addEventListener("resize", demorar(ajustarBarraMapa, 100));
   // Links directos (versión completa): ?capa=lluvia&modo=futuro&punto=lon,lat&radio=5&lugar=…&partido=…&dir=…
   if (CAPAS.includes(q.get("capa"))) estado.capa = q.get("capa");
   if (q.get("modo") === "futuro") estado.modo = "futuro";
@@ -695,6 +752,10 @@ async function iniciar() {
   alCargar(() => {
     iniciarPlano();
     actualizarTodo();
+    // Sin vista en el enlace: el país queda encuadrado entre los controles de la izquierda y la leyenda, también cuando la página termina de acomodarse
+    mapa.on("dragstart", (e) => { if (e.originalEvent) estado.mapaTocado = true; });
+    mapa.on("zoomstart", (e) => { if (e.originalEvent) estado.mapaTocado = true; });
+    if (!v) for (const ms of [600, 2000]) setTimeout(() => { if (!estado.mapaTocado && !estado.sel) { const c = vistaPais(); if (c) mapa.jumpTo({ center: c.center, zoom: c.zoom }); } }, ms);
     laminaDelEnlace();   // enlaces directos a una lámina: #lamina-2, #lamina-3
     const buscarL = (nombre, niveles) => estado.lugares.find((l) => niveles.includes(l.nivel) && l.clave === normalizar(nombre));
     const pt = q.get("punto")?.split(",").map(Number);

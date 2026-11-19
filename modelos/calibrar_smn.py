@@ -8,7 +8,8 @@ Método (calibración contra el pronóstico oficial, como se ajustan los product
 día con alertas archivadas (data/archivo/smn_cap/, desde el 28-sep) se baja la lluvia diaria que cayó (ERA5-Land, el reanálisis del
 mismo centro que hace el pronóstico) en la grilla de 0,1°; se busca el factor k sobre los umbrales amarillo y naranja que mejor hace
 coincidir «lluvia > k × umbral» con «había alerta del SMN por tormentas o lluvias de ese nivel o más» (máximo ETS, el índice
-equitativo de aciertos). k se busca entre 0,1 y 1,2 y se guarda en data/referencia/parametros_riesgo.json (factor_umbral), que usa
+equitativo de aciertos). k se busca entre 0,1 y 1,2 (v9: máximo ETS entre los k con Frequency Bias en [0,8 ; 1,5] y con el piso físico en mm de parametros_riesgo.json aplicado; ver
+modelos/calibracion_umbrales.py) y se guarda en data/referencia/parametros_riesgo.json (factor_umbral), que usa
 modelos/riesgo_diario.py. Se puede volver a correr cuando haya más días (la verificación semanal lo puede retomar).
 
 Corre sola los lunes en GitHub Actions (últimas 8 semanas, ≥ 21 días, cambio máximo de 0,05 por semana).
@@ -29,6 +30,8 @@ RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ / "earth_engine"))
 from config import PROYECTO_EE  # noqa: E402
 import lluvia_ninos as LN  # noqa: E402
+sys.path.insert(0, str(RAIZ / "modelos"))
+from calibracion_umbrales import BIAS_MAX, BIAS_MIN, elegir_factor  # noqa: E402
 
 CACHE = RAIZ / "data" / "procesado" / "calibrar_smn"
 PARAM = RAIZ / "data" / "referencia" / "parametros_riesgo.json"
@@ -99,28 +102,26 @@ def main() -> None:
             m = vectorized.contains(g, LON, LAT)
             A[k][m] = np.maximum(A[k][m], n)
     print(f"{len(dias)} días ({dias[0]} a {dias[-1]}); celdas-día con alerta amarilla+: {int((A >= 1).sum())}, naranja+: {int((A >= 2).sum())}")
+    P = json.loads(PARAM.read_text())
+    piso = P.get("piso_mm", {})   # piso físico en mm/24 h del umbral efectivo (v9): el factor se busca con el piso aplicado
+    m = tierra[None] & np.isfinite(mm)
     res = {}
     for j, (nombre, nv) in enumerate([("amarillo", 1), ("naranja", 2)]):
-        mejor = (0.0, 1.0)
-        for k in np.round(np.arange(0.1, 1.21, 0.05), 2):
-            pron = mm > (k * U[j])[None]
-            obs = A >= nv
-            m = tierra[None] & np.isfinite(mm)
-            a = int((pron & obs & m).sum()); b = int((pron & ~obs & m).sum()); c = int((~pron & obs & m).sum()); d_ = int((~pron & ~obs & m).sum())
-            e = ets(a, b, c, d_)
-            if e > mejor[0]:
-                mejor = (e, float(k))
-        res[nombre] = {"factor": mejor[1], "ets": round(mejor[0], 3)}
-        print(f"  {nombre}: factor {mejor[1]} (ETS {mejor[0]:.3f})")
-    P = json.loads(PARAM.read_text())
+        r = elegir_factor(mm, U[j], A, nv, m, piso=float(piso.get(nombre, 0)))
+        res[nombre] = {"factor": r["factor"], "ets": round(r["ETS"], 3), "pod": round(r["POD"], 3), "far": round(r["FAR"], 3), "bias": round(r["bias"], 2),
+                       "sin_alerta_pct": round(r["sin_alerta_pct"], 1), "cumple_bias": r["cumple_bias"]}
+        print(f"  {nombre}: factor {r['factor']} (ETS {r['ETS']:.3f}, POD {r['POD']:.3f}, FAR {r['FAR']:.3f}, Bias {r['bias']:.2f}, "
+              f"con amenaza donde el SMN no alertó {r['sin_alerta_pct']:.1f} %)" + ("" if r["cumple_bias"] else f"  AVISO: ningún f deja el Bias en [{BIAS_MIN}, {BIAS_MAX}]"))
     viejo = P.get("factor_umbral", {"amarillo": 1.0, "naranja": 1.0, "rojo": 1.0})
     nuevo = {k: round(float(np.clip(viejo[k] + np.clip(res[k]["factor"] - viejo[k], -PASO_MAX, PASO_MAX), 0.1, 1.2)), 2) for k in ("amarillo", "naranja")}
     nuevo["rojo"] = 1.0   # sin alertas rojas suficientes: el rojo no se calibra
     if nuevo != {k: viejo.get(k) for k in nuevo}:
         P["factor_umbral"] = nuevo
         P["historial"].append({"fecha": dt.date.today().isoformat(), "cambio": f"factor_umbral (calibración semanal contra el SMN, {len(dias)} días hasta {dias[-1]}): "
-                               f"amarillo {viejo.get('amarillo')} → {nuevo['amarillo']} (óptimo {res['amarillo']['factor']}, ETS {res['amarillo']['ets']}); "
-                               f"naranja {viejo.get('naranja')} → {nuevo['naranja']} (óptimo {res['naranja']['factor']}, ETS {res['naranja']['ets']})"})
+                               f"amarillo {viejo.get('amarillo')} → {nuevo['amarillo']} (óptimo {res['amarillo']['factor']}, ETS {res['amarillo']['ets']}, Bias {res['amarillo']['bias']}, "
+                               f"FAR {res['amarillo']['far']}, {res['amarillo']['sin_alerta_pct']} % de falsa amenaza sin alerta SMN); "
+                               f"naranja {viejo.get('naranja')} → {nuevo['naranja']} (óptimo {res['naranja']['factor']}, ETS {res['naranja']['ets']}, Bias {res['naranja']['bias']}, "
+                               f"FAR {res['naranja']['far']}, {res['naranja']['sin_alerta_pct']} %); Bias acotado a [{BIAS_MIN}, {BIAS_MAX}], piso {piso}"})
         PARAM.write_text(json.dumps(P, ensure_ascii=False, indent=2))
         print("calibración SMN: factores", nuevo)
     else:
