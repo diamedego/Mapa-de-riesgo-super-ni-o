@@ -2511,3 +2511,12 @@ h2 > .info, h3 > .info, .tit > .info, b > .info, .etq > .info, .tb-evol-cab .inf
   .lectura .titular span { margin-top: 0; font-size: 18px; }
   .lectura .titular span b { font-size: 30px; }
 }
+
+/* v10 · celular: botón «volver» (flecha doblada) al final de la barra en el simulador y el reporte, como en la computadora */
+@media (max-width: 760px) {
+  body:is([data-lamina="2"], [data-lamina="3"]) .btn-volver { display: inline-grid; flex: none; }
+  body:is([data-lamina="2"], [data-lamina="3"]) .franja { gap: 6px; padding-right: 6px; }
+  body:is([data-lamina="2"], [data-lamina="3"]) .franja .btn-tema, body:is([data-lamina="2"], [data-lamina="3"]) .franja .btn-lupa, body:is([data-lamina="2"], [data-lamina="3"]) .franja .idioma { height: 36px; }
+  body:is([data-lamina="2"], [data-lamina="3"]) .franja .btn-tema, body:is([data-lamina="2"], [data-lamina="3"]) .franja .btn-lupa { width: 36px; }
+  body:is([data-lamina="2"], [data-lamina="3"]) .franja .idioma b, body:is([data-lamina="2"], [data-lamina="3"]) .franja .idioma span { padding: 0 9px; }
+}
