@@ -147,18 +147,19 @@ WEB_CSS = """
 @media screen {
   /* Computadora: una hoja A4 centrada con los mismos márgenes, la misma tipografía y el mismo espaciado que el PDF */
   html { background: #ecebe6; }
-  body { width: 210mm; max-width: 100%; margin: 0 auto; padding: 21mm 19mm 21mm 21mm; background: #fff; box-shadow: 0 0 0 1px #d8d5cd; }
-  .portada { margin: -21mm -19mm 0 -21mm; }   /* como la primera página: la hoja entera, sin margen */
+  html { font-size: 9.5pt; }   /* un poco más chica que en el PDF (10,1 pt) */
+  body { width: auto; max-width: none; margin: 0; padding: 21mm 0.6cm; background: #fff; }   /* 0,6 cm a cada lado */
+  .portada { width: auto; margin: -21mm -0.6cm 0; }   /* como la primera página: la hoja entera, sin margen */
   h1 { margin-top: 21mm; padding-top: 12mm; border-top: 1px solid #d8d5cd; }   /* cada capítulo arranca como en una página nueva */
   figure svg, img { max-width: 100%; height: auto; }
   .indice li { cursor: pointer; } .indice li .p { display: none; }
   .formula { overflow-x: auto; }
 }
 @media screen and (max-width: 860px) {
-  /* Celular: columna de una sola pieza con 16 px de margen a cada lado */
-  html { font-size: 14px; }
-  body { width: auto; padding: 16px 16px 48px; text-align: left; hyphens: manual; box-shadow: none; }
-  .portada { width: auto; height: auto; min-height: 560px; margin: -16px -16px 24px; }
+  /* Celular: columna de una sola pieza con 0,6 cm de margen a cada lado */
+  html { font-size: 13px; }
+  body { width: auto; padding: 16px 0.6cm 48px; text-align: left; hyphens: manual; box-shadow: none; }
+  .portada { width: auto; height: auto; min-height: 560px; margin: -16px -0.6cm 24px; }
   .portada .contenido { position: relative; left: 0; right: 0; top: 0; padding: 48px 24px 0; }
   .portada .pie { position: relative; left: 0; right: 0; bottom: 0; padding: 160px 24px 24px; }
   .portada .olas { height: 140px; }
