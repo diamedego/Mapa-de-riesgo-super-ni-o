@@ -1,6 +1,15 @@
-corrida 2026-11-22 00:25 UTC
+corrida 2026-11-22 16:21 UTC
 To ensure the stability of our systems and to preserve resources for our operational activities (network, compute, etc.), access to the open-data portal is limited to 500 simultaneous connections. This limit helps us guarantee reliable service for our operational users, especially during periods of high demand. For added reliability, the open-data is replicated across AWS, Azure, and Google Cloud. If you experience difficulties accessing the portal directly, you can also retrieve the data from these cloud platforms.
-  ensamble ECMWF 21-11 12 UTC, paso 12 h
+  ensamble ECMWF 22-11 00 UTC, paso 24 h
+  error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
+  error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
+  error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
+  error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
+  error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
+  error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
+  error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
+  error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
+/home/runner/work/Mapa-de-riesgo-super-ni-o/Mapa-de-riesgo-super-ni-o/modelos/riesgo_diario.py:440: DeprecationWarning: The 'shapely.vectorized.contains' function is deprecated and will be removed a future version. Use 'shapely.contains_xy' instead (available since shapely 2.0.0).
   dentro[caja] = vectorized.contains(g, LON[caja], LAT[caja])
-riesgo_diario: 2444 gobiernos locales, 79 estaciones, sin lluvia 0; nivel máximo en 14 días: {'0': 300, '1': 479, '2': 1632, '3': 33}
+riesgo_diario: 2444 gobiernos locales, 79 estaciones, sin lluvia 0; nivel máximo en 14 días: {'0': 350, '1': 411, '2': 1649, '3': 34}
 salida: 0
