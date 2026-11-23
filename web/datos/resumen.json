@@ -1,5 +1,5 @@
 {
- "calculado": "2026-11-22",
+ "calculado": "2026-11-23",
  "corrida_seas5": "2026-10-06",
  "corrida_glofas": "2026-11-16",
  "meses": [
@@ -15,25 +15,25 @@
  "peso_pronostico": 0.105,
  "verificacion_lluvia": "verificado",
  "verificacion_plazos": {
-  "dias": 52,
+  "dias": 53,
   "por_plazo": {
    "0-3": {
-    "n": 355978,
-    "correlacion": 0.659,
-    "sesgo_mm": 0.48,
-    "deteccion_20mm": 0.514
+    "n": 365754,
+    "correlacion": 0.651,
+    "sesgo_mm": 0.51,
+    "deteccion_20mm": 0.513
    },
    "4-7": {
-    "n": 317360,
-    "correlacion": 0.364,
-    "sesgo_mm": 1.23,
-    "deteccion_20mm": 0.286
+    "n": 326812,
+    "correlacion": 0.366,
+    "sesgo_mm": 1.26,
+    "deteccion_20mm": 0.291
    },
    "8-15": {
-    "n": 520296,
+    "n": 533988,
     "correlacion": 0.105,
-    "sesgo_mm": 1.03,
-    "deteccion_20mm": 0.105
+    "sesgo_mm": 1.08,
+    "deteccion_20mm": 0.106
    }
   }
  },
@@ -51,31 +51,31 @@
    "estaciones_prob_evacuacion_50": 6
   },
   "2026-12": {
-   "personas_en_riesgo": 6040624.2,
+   "personas_en_riesgo": 6040972.7,
    "riesgo_medio": 2.0,
    "municipios_riesgo_alto": 3.0,
    "estaciones_prob_evacuacion_50": 10
   },
   "2027-01": {
-   "personas_en_riesgo": 6104695.3,
+   "personas_en_riesgo": 6104862.6,
    "riesgo_medio": 2.0,
    "municipios_riesgo_alto": 3.0,
    "estaciones_prob_evacuacion_50": 15
   },
   "2027-02": {
-   "personas_en_riesgo": 6118103.8,
+   "personas_en_riesgo": 6118301.1,
    "riesgo_medio": 2.0,
    "municipios_riesgo_alto": 3.0,
    "estaciones_prob_evacuacion_50": 15
   },
   "2027-03": {
-   "personas_en_riesgo": 6114296.1,
+   "personas_en_riesgo": 6114497.4,
    "riesgo_medio": 2.0,
    "municipios_riesgo_alto": 3.0,
    "estaciones_prob_evacuacion_50": 14
   },
   "2027-04": {
-   "personas_en_riesgo": 6054703.0,
+   "personas_en_riesgo": 6054908.9,
    "riesgo_medio": 2.0,
    "municipios_riesgo_alto": 2.0,
    "estaciones_prob_evacuacion_50": 14
@@ -111,7 +111,7 @@
    "nam": "Recreo",
    "jur": "Santa Fe",
    "riesgo": 6.73,
-   "personas_en_riesgo": 12474.71,
+   "personas_en_riesgo": 12477.11,
    "pct_simulaciones_top10": 99.6
   },
   {
@@ -127,7 +127,7 @@
    "nam": "Helvecia",
    "jur": "Santa Fe",
    "riesgo": 6.52,
-   "personas_en_riesgo": 4064.32,
+   "personas_en_riesgo": 4065.48,
    "pct_simulaciones_top10": 98.4
   },
   {
@@ -143,7 +143,7 @@
    "nam": "San José del Rincón",
    "jur": "Santa Fe",
    "riesgo": 6.36,
-   "personas_en_riesgo": 4698.48,
+   "personas_en_riesgo": 4699.21,
    "pct_simulaciones_top10": 93.8
   },
   {
@@ -167,7 +167,7 @@
    "nam": "Sauce Viejo",
    "jur": "Santa Fe",
    "riesgo": 6.23,
-   "personas_en_riesgo": 5547.48,
+   "personas_en_riesgo": 5548.42,
    "pct_simulaciones_top10": 96.1
   },
   {
@@ -175,15 +175,15 @@
    "nam": "Arroyo Leyes",
    "jur": "Santa Fe",
    "riesgo": 6.23,
-   "personas_en_riesgo": 1696.24,
+   "personas_en_riesgo": 1696.46,
    "pct_simulaciones_top10": 93.5
   },
   {
    "cmu": "822532",
    "nam": "Theobald",
    "jur": "Santa Fe",
-   "riesgo": 6.18,
-   "personas_en_riesgo": 334.09,
+   "riesgo": 6.17,
+   "personas_en_riesgo": 334.04,
    "pct_simulaciones_top10": 93.4
   },
   {
@@ -191,7 +191,7 @@
    "nam": "Villa Gobernador Gálvez",
    "jur": "Santa Fe",
    "riesgo": 6.16,
-   "personas_en_riesgo": 27205.22,
+   "personas_en_riesgo": 27212.48,
    "pct_simulaciones_top10": 93.9
   },
   {
@@ -207,7 +207,7 @@
    "nam": "Isla Las Lechiguanas",
    "jur": "Entre Ríos",
    "riesgo": 6.13,
-   "personas_en_riesgo": 110.31,
+   "personas_en_riesgo": 110.27,
    "pct_simulaciones_top10": 94.9
   },
   {
@@ -239,7 +239,7 @@
    "nam": "Arroyo Aguiar",
    "jur": "Santa Fe",
    "riesgo": 5.99,
-   "personas_en_riesgo": 975.9,
+   "personas_en_riesgo": 975.94,
    "pct_simulaciones_top10": 96.8
   }
  ],
@@ -249,8 +249,8 @@
    "nam": "Rosario",
    "jur": "Santa Fe",
    "riesgo": 4.47,
-   "personas_en_riesgo": 243209.83,
-   "pct_simulaciones_top10": 47.4
+   "personas_en_riesgo": 243291.46,
+   "pct_simulaciones_top10": 47.5
   },
   {
    "cmu": "060427",
@@ -265,7 +265,7 @@
    "nam": "Santa Fe",
    "jur": "Santa Fe",
    "riesgo": 5.86,
-   "personas_en_riesgo": 183309.29,
+   "personas_en_riesgo": 183347.88,
    "pct_simulaciones_top10": 86.7
   },
   {
