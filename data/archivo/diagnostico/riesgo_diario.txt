@@ -1,6 +1,6 @@
-corrida 2026-11-23 00:59 UTC
+corrida 2026-11-23 20:17 UTC
 To ensure the stability of our systems and to preserve resources for our operational activities (network, compute, etc.), access to the open-data portal is limited to 500 simultaneous connections. This limit helps us guarantee reliable service for our operational users, especially during periods of high demand. For added reliability, the open-data is replicated across AWS, Azure, and Google Cloud. If you experience difficulties accessing the portal directly, you can also retrieve the data from these cloud platforms.
-  ensamble ECMWF 22-11 12 UTC, paso 12 h
+  ensamble ECMWF 23-11 12 UTC, paso 12 h
   error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
   error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
   error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
@@ -10,5 +10,5 @@ To ensure the stability of our systems and to preserve resources for our operati
   error HTTPSConnectionPool(host='flood-api.open-meteo.com', port=443): Read timed out. (read timeout=180)
 /home/runner/work/Mapa-de-riesgo-super-ni-o/Mapa-de-riesgo-super-ni-o/modelos/riesgo_diario.py:440: DeprecationWarning: The 'shapely.vectorized.contains' function is deprecated and will be removed a future version. Use 'shapely.contains_xy' instead (available since shapely 2.0.0).
   dentro[caja] = vectorized.contains(g, LON[caja], LAT[caja])
-riesgo_diario: 2444 gobiernos locales, 79 estaciones, sin lluvia 0; nivel máximo en 14 días: {'0': 466, '1': 790, '2': 1146, '3': 42}
+riesgo_diario: 2444 gobiernos locales, 79 estaciones, sin lluvia 0; nivel máximo en 14 días: {'0': 334, '1': 779, '2': 1290, '3': 41}
 salida: 0
