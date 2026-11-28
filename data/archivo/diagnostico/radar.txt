@@ -1,7 +1,7 @@
-corrida 2026-11-28 16:55 UTC · identidad Google: success · credenciales: sí
+corrida 2026-11-28 17:33 UTC · identidad Google: success · credenciales: sí
 /opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/ee/data.py:335: UserWarning: Your project has exceeded its noncommercial compute quota and is now in restricted mode. Visit https://developers.google.com/earth-engine/guides/noncommercial_tiers#restricted_mode to learn more.
   warnings.warn(
 /opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/ee/data.py:335: UserWarning: Your project has exceeded its noncommercial compute quota and is now in restricted mode. Visit https://developers.google.com/earth-engine/guides/noncommercial_tiers#restricted_mode to learn more.
   warnings.warn(
-radar_agua.json: 2026-11-28T16:55+00:00 https://earthengine.googleapis.com/v1/projects/camisetas-de-futbol-argentino/maps/d5c987fa
+radar_agua.json: 2026-11-28T17:33+00:00 https://earthengine.googleapis.com/v1/projects/camisetas-de-futbol-argentino/maps/2a415957
 salida: 0
